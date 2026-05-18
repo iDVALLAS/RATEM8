@@ -41,7 +41,6 @@ body {
 
 .font-display {
   font-family: var(--font-display), Georgia, serif;
-  font-feature-settings: "ss01", "ss02";
 }
 
 .font-mono {
