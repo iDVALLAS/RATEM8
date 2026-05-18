@@ -2,7 +2,7 @@ export const copy = {
   hero: {
     tagline: "Loan intelligence.",
     taglineEmphasis: "Free for the people.",
-    sub: "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer. Available in Washington and Arizona.",
+    sub: "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer. Available in Washington, Arizona, California, and Texas.",
     borrowerCta: "I'm shopping a mortgage",
     agentCta: "I'm a real estate agent",
   },
@@ -27,7 +27,7 @@ export const copy = {
       },
       {
         n: "03",
-        title: "Chris closes the loan.",
+        title: "Jason closes the loan.",
         body: "One licensed loan officer, start to close. You leave with a written record of every decision.",
       },
     ],
@@ -47,31 +47,31 @@ export const copy = {
       },
       {
         title: "One person owns the file.",
-        body: "Chris. Not a processor in another time zone. You call once, you get the answer.",
+        body: "Jason. Not a processor in another time zone. You call once, you get the answer.",
       },
     ],
     cta: "Book a partner intro call",
   },
   about: {
     eyebrow: "WHO CLOSES YOUR LOAN",
-    heading: "Chris Boyle.",
-    sub: "NMLS-licensed. 49 states authorized; launching first in Washington and Arizona because those are the markets where I live, work, and answer the phone in person. M8 is the tool. I'm the human on the line.",
-    nmls: "NMLS #[XXXXXX]",
+    heading: "Jason Shapiro.",
+    sub: "NMLS-licensed Mortgage Loan Originator. Authorized in Washington, Arizona, California, and Texas. M8 is the tool. I'm the human on the line.",
+    nmls: "NMLS #1844143 · WA · AZ · CA DFPI · TX",
   },
   footer: {
     blurb:
-      "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer. Built in the Pacific Northwest.",
+      "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer.",
     disclaimer:
-      "RateM8 Loan Intelligence is the trade name of [Chris's licensed entity]. Equal Housing Lender. NMLS #[XXXXXX]. Licensed in Washington (NMLS #[XXXXXX]) and Arizona (NMLS #[XXXXXX]). This is not a commitment to lend. Rates and terms subject to change.",
+      "RateM8 Loan Intelligence is the trade name of [Jason's licensed entity]. Equal Housing Lender. NMLS #1844143. Licensed in Washington (NMLS #1844143), Arizona (NMLS #1037722), California (DFPI #1844143), and Texas (NMLS #1844143). This is not a commitment to lend. Rates and terms subject to change.",
   },
   agentsPage: {
     eyebrow: "PARTNERSHIP",
     heading: "Built for agents who are tired of mortgage drama.",
-    sub: "RateM8 was designed alongside working agents in Seattle and Phoenix. Here is what the partnership actually looks like.",
+    sub: "RateM8 was designed alongside working agents across the four launch markets. Here is what the partnership actually looks like.",
     sections: [
       {
         title: "The basics",
-        body: "You refer a buyer. Chris answers in business hours, same day. Pre-approval letter — fully underwritten where possible — delivered within 24 hours. You get cc'd on every status change.",
+        body: "You refer a buyer. Jason answers in business hours, same day. Pre-approval letter — fully underwritten where possible — delivered within 24 hours. You get cc'd on every status change.",
       },
       {
         title: "What we will never do",

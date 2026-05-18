@@ -24,7 +24,7 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "RateM8 — Loan intelligence. Free for the people.",
   description:
-    "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer. Available in Washington and Arizona.",
+    "AI-powered mortgage rate shopping. Every loan closed by Jason Shapiro, NMLS-licensed in Washington, Arizona, California, and Texas.",
   metadataBase: new URL("https://ratem8.com"),
   openGraph: {
     title: "RateM8 — Loan intelligence. Free for the people.",

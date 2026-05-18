@@ -8,10 +8,10 @@ import { principles } from "@/lib/principles";
 
 const borrowerCalendly =
   process.env.NEXT_PUBLIC_CALENDLY_BORROWER ||
-  "https://calendly.com/chris-ratem8/talk-to-chris";
+  "https://calendly.com/jason-ratem8/talk-to-jason";
 const agentCalendly =
   process.env.NEXT_PUBLIC_CALENDLY_AGENT ||
-  "https://calendly.com/chris-ratem8/agent-partnership";
+  "https://calendly.com/jason-ratem8/agent-partnership";
 
 export default function HomePage() {
   return (
@@ -54,7 +54,7 @@ export default function HomePage() {
             </div>
 
             <p className="mt-10 font-mono text-xs tracking-[0.2em] text-[var(--muted)]">
-              LICENSED IN WASHINGTON · ARIZONA
+              LICENSED IN WA · AZ · CA · TX
             </p>
           </div>
         </section>
@@ -160,7 +160,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ABOUT CHRIS */}
+        {/* ABOUT JASON */}
         <section id="about" className="border-t border-[var(--rule)]">
           <div className="mx-auto max-w-4xl px-6 py-24">
             <div className="principle-label">{copy.about.eyebrow}</div>
