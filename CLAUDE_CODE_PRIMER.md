@@ -6,7 +6,7 @@
 
 ## Who you are working for
 
-Chris Boyle. NMLS-licensed Mortgage Loan Originator. Authorized in 49 states. Building RateM8 — an AI-powered mortgage rate shopping platform where every loan is closed by Chris personally via wholesale lender partners.
+Jason Shapiro. NMLS-licensed Mortgage Loan Originator (NMLS #1844143). Licensed in Washington, Arizona, California, and Texas. Building RateM8 — an AI-powered mortgage rate shopping platform where every loan is closed by Jason personally via wholesale lender partners.
 
 The AI assistant is called **M8** (built on Anthropic's Claude API). The brand voice is populist, technically grounded, calm, honest, specific. Never corporate, never pressuring, never effusive.
 
@@ -18,8 +18,8 @@ Tagline: **"Loan intelligence. Free for the people."**
 
 A single-domain consumer platform at **ratem8.com** that serves two audiences from one homepage:
 
-1. **Borrowers** in WA and AZ who want to shop mortgage rates without being sold to
-2. **Real estate agents** in WA and AZ who want a mortgage partner that doesn't spam their buyers
+1. **Borrowers** in WA, AZ, CA, and TX who want to shop mortgage rates without being sold to
+2. **Real estate agents** in WA, AZ, CA, and TX who want a mortgage partner that doesn't spam their buyers
 
 v1 is the **marketing site + booking funnel**. It does NOT yet include:
 - The M8 chat (Stage 2, weeks 4–6)
@@ -35,7 +35,7 @@ DO build the architecture so M8 chat can drop into `/app/chat` later without ref
 - **Framework:** Next.js 15 (App Router) + TypeScript
 - **Styling:** Tailwind CSS v4 with CSS variables for brand tokens
 - **Hosting:** Vercel
-- **Forms:** Server actions → forward to Chris's email via Resend (or Vercel email) for v1. Calendly embed for booking calls.
+- **Forms:** Server actions → forward to Jason's email via Resend (or Vercel email) for v1. Calendly embed for booking calls.
 - **Fonts:** Self-hosted via `next/font/google`
   - Display: **Fraunces** (serif, distinctive, warm — for headlines and the tagline)
   - Body: **Geist** (sans, refined, modern — for UI and body)
@@ -86,9 +86,9 @@ See `/components/Orb.tsx` for the reference implementation — start there.
 │            Loan intelligence.                           │
 │            Free for the people.                         │
 │                                                         │
-│   AI-powered mortgage rate shopping. Every loan         │
-│   closed by one licensed loan officer. Available in     │
-│   Washington and Arizona.                               │
+│   AI-powered mortgage rate shopping. Every loan        │
+│   closed by one licensed loan officer. Available in    │
+│   Washington, Arizona, California, and Texas.          │
 │                                                         │
 │   ┌──────────────────┐  ┌──────────────────┐           │
 │   │ I'm shopping a   │  │ I'm a real       │           │
@@ -107,9 +107,9 @@ See `/components/Orb.tsx` for the reference implementation — start there.
 │  is murky. M8 unsticks them."                           │
 │  3-card value prop + CTA to /agents (or modal)          │
 ├─────────────────────────────────────────────────────────┤
-│  ABOUT CHRIS                                            │
-│  (Brief bio, NMLS#, photo, 49-state license context     │
-│   but emphasize WA + AZ as the launch markets)          │
+│  ABOUT JASON                                            │
+│  (Brief bio, NMLS#, photo, all four state licenses      │
+│   listed: WA, AZ, CA, TX)                               │
 ├─────────────────────────────────────────────────────────┤
 │  FOOTER                                                 │
 │  (Wordmark, principles links, NMLS#, Equal Housing      │
@@ -150,16 +150,16 @@ The hero, principles, and agent section copy is already written in that file —
 
 Two primary CTAs on the homepage. Each routes to a Calendly embed in a modal (not a separate page):
 
-- **Borrower CTA → "Talk to Chris" Calendly** (15-min intro call)
+- **Borrower CTA → "Talk to Jason" Calendly** (15-min intro call)
 - **Agent CTA → "Partner intro call" Calendly** (20-min agent partnership call)
 
-Calendly URLs are placeholders in the code — Chris will swap them in via `.env.local`:
+Calendly URLs are placeholders in the code — Jason will swap them in via `.env.local`:
 ```
-NEXT_PUBLIC_CALENDLY_BORROWER=https://calendly.com/chris-ratem8/talk-to-chris
-NEXT_PUBLIC_CALENDLY_AGENT=https://calendly.com/chris-ratem8/agent-partnership
+NEXT_PUBLIC_CALENDLY_BORROWER=https://calendly.com/jason-ratem8/talk-to-jason
+NEXT_PUBLIC_CALENDLY_AGENT=https://calendly.com/jason-ratem8/agent-partnership
 ```
 
-DO NOT add a "join the waitlist" email form. Chris doesn't want one in v1. The two CTAs are both "book a call." That's the whole funnel.
+DO NOT add a "join the waitlist" email form. Jason doesn't want one in v1. The two CTAs are both "book a call." That's the whole funnel.
 
 ---
 
@@ -167,13 +167,13 @@ DO NOT add a "join the waitlist" email form. Chris doesn't want one in v1. The t
 
 Even though no rate display and no chat exists yet, the marketing site itself is regulated. Required elements:
 
-- **NMLS #** displayed in footer (placeholder `NMLS #XXXXXX` until Chris drops his in)
+- **NMLS #** displayed in footer (Jason's individual NMLS is `#1844143`; each state license number is also disclosed)
 - **Equal Housing Lender** logo or text in footer
-- **"Licensed in WA and AZ"** explicit on homepage and footer (NOT "49 states" on the public site — that's true but creates expectation mismatch for v1 launch)
+- **"Licensed in WA, AZ, CA, and TX"** explicit on homepage and footer (list only the four currently-licensed states, never claim broader reach)
 - **Privacy policy link** in footer (placeholder `/privacy` page with a short v1 statement: "We don't sell leads. We don't share your data. Full policy coming with platform launch.")
-- **Disclaimer at bottom of homepage:** "RateM8 Loan Intelligence is the trade name of [Chris's licensed entity]. Equal Housing Lender. NMLS #XXXXXX. Licensed in Washington (NMLS #) and Arizona (NMLS #). This is not a commitment to lend. Rates and terms subject to change."
+- **Disclaimer at bottom of homepage:** "RateM8 Loan Intelligence is a trade name of PIROLO, a DBA of Jason Shapiro (NMLS #1844143). Equal Housing Lender. Licensed in Washington (NMLS #1844143), Arizona (NMLS #1037722), California (DFPI #1844143), and Texas (NMLS #1844143). This is not a commitment to lend. Rates and terms subject to change."
 
-Use brackets `[ ]` for any field Chris needs to fill in. Don't invent license numbers.
+Use brackets `[ ]` for any field Jason still needs to fill in. Don't invent license numbers.
 
 ---
 
@@ -219,14 +219,14 @@ DNS propagation: 1–6 hours typically.
 2. Install dependencies: `npm install`
 3. Run dev: `npm run dev`
 4. Open `http://localhost:3000` and verify the orb breathes, the layout renders, fonts load
-5. Polish only what feels rough — Chris cares about the orb feeling alive, the typography feeling expensive, and the eight principles section feeling like a manifesto, not a feature list
+5. Polish only what feels rough — Jason cares about the orb feeling alive, the typography feeling expensive, and the eight principles section feeling like a manifesto, not a feature list
 6. Ship to Vercel once it feels right
 
 **Do not over-engineer.** This is v1. Keep components small. Skip Storybook, skip testing infrastructure, skip i18n. Focus on: orb that breathes beautifully, typography that punches, two CTAs that feel like distinct paths, footer that reads as compliant and serious.
 
 ---
 
-## Things Chris explicitly does NOT want in v1
+## Things Jason explicitly does NOT want in v1
 
 - Email waitlist forms
 - "Get a quote in 60 seconds" anywhere
@@ -240,7 +240,7 @@ DNS propagation: 1–6 hours typically.
 
 ---
 
-## Things Chris explicitly DOES want
+## Things Jason explicitly DOES want
 
 - The breathing orb as the first thing you see
 - The serif tagline rendered with care — italicize "Free for the people."

@@ -6,7 +6,7 @@ import { copy } from "@/lib/copy";
 
 const agentCalendly =
   process.env.NEXT_PUBLIC_CALENDLY_AGENT ||
-  "https://calendly.com/chris-ratem8/agent-partnership";
+  "https://calendly.com/jason-ratem8/agent-partnership";
 
 export const metadata = {
   title: "For Agents — RateM8",

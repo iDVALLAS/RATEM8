@@ -2,7 +2,7 @@
 
 **Loan intelligence. Free for the people.**
 
-Consumer-facing AI-powered mortgage rate shopping platform. Every loan is closed by Chris Boyle, NMLS-licensed in 49 states. Launching in Washington and Arizona.
+Consumer-facing AI-powered mortgage rate shopping platform. Every loan is closed by Jason Shapiro, NMLS-licensed in Washington, Arizona, California, and Texas.
 
 This repo contains the v1 marketing site. The M8 chat and live rate-shopping platform ship in Stage 2.
 
@@ -71,7 +71,7 @@ See `CLAUDE_CODE_PRIMER.md` in the project root. Short version:
 - "M8" is always emphasized in `--color-m8-green` (`#5DCAA5`) within the wordmark.
 - Default theme is dark. Light mode is secondary.
 - No urgency tactics. No "get a quote in 60 seconds." No stock-photo couples.
-- All compliance disclosures (NMLS, Equal Housing, "licensed in WA & AZ") must remain in the footer.
+- All compliance disclosures (NMLS, Equal Housing, full state license list) must remain in the footer.
 
 ## Roadmap
 
@@ -83,4 +83,5 @@ See `CLAUDE_CODE_PRIMER.md` in the project root. Short version:
 
 ---
 
-NMLS #[XXXXXX] · Equal Housing Lender · Licensed in Washington and Arizona
+Jason Shapiro · NMLS #1844143 · Equal Housing Lender
+WA #1844143 · AZ #1037722 · CA DFPI #1844143 · TX #1844143

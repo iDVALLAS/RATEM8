@@ -43,9 +43,10 @@ export default function Footer() {
         <div className="text-sm space-y-3">
           <div className="principle-label">Compliance</div>
           <ul className="space-y-2 text-[var(--muted)]">
-            <li>NMLS #[XXXXXX]</li>
+            <li>Jason Shapiro · NMLS #1844143</li>
             <li>Equal Housing Lender</li>
-            <li>Licensed in Washington and Arizona</li>
+            <li>WA #1844143 · AZ #1037722</li>
+            <li>CA DFPI #1844143 · TX #1844143</li>
           </ul>
         </div>
       </div>

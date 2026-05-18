@@ -8,7 +8,7 @@ export const principles: Principle[] = [
   {
     number: 1,
     title: "One loan officer, start to close.",
-    body: "No bouncing between reps. Chris answers his own phone.",
+    body: "No bouncing between reps. Jason answers his own phone.",
   },
   {
     number: 2,
@@ -38,7 +38,7 @@ export const principles: Principle[] = [
   {
     number: 7,
     title: "M8 shops the math. A licensed human verifies the deal.",
-    body: "AI doesn't sign disclosures. Chris does. Every loan, every time.",
+    body: "AI doesn't sign disclosures. Jason does. Every loan, every time.",
   },
   {
     number: 8,
