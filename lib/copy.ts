@@ -62,7 +62,7 @@ export const copy = {
     blurb:
       "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer.",
     disclaimer:
-      "RateM8 Loan Intelligence is the trade name of [Jason's licensed entity]. Equal Housing Lender. NMLS #1844143. Licensed in Washington (NMLS #1844143), Arizona (NMLS #1037722), California (DFPI #1844143), and Texas (NMLS #1844143). This is not a commitment to lend. Rates and terms subject to change.",
+      "RateM8 Loan Intelligence is a trade name of PIROLO, a DBA of Jason Shapiro (NMLS #1844143). Equal Housing Lender. Licensed in Washington (NMLS #1844143), Arizona (NMLS #1037722), California (DFPI #1844143), and Texas (NMLS #1844143). This is not a commitment to lend. Rates and terms subject to change.",
   },
   agentsPage: {
     eyebrow: "PARTNERSHIP",

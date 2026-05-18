@@ -171,7 +171,7 @@ Even though no rate display and no chat exists yet, the marketing site itself is
 - **Equal Housing Lender** logo or text in footer
 - **"Licensed in WA, AZ, CA, and TX"** explicit on homepage and footer (list only the four currently-licensed states, never claim broader reach)
 - **Privacy policy link** in footer (placeholder `/privacy` page with a short v1 statement: "We don't sell leads. We don't share your data. Full policy coming with platform launch.")
-- **Disclaimer at bottom of homepage:** "RateM8 Loan Intelligence is the trade name of [Jason's licensed entity]. Equal Housing Lender. NMLS #1844143. Licensed in Washington (NMLS #1844143), Arizona (NMLS #1037722), California (DFPI #1844143), and Texas (NMLS #1844143). This is not a commitment to lend. Rates and terms subject to change."
+- **Disclaimer at bottom of homepage:** "RateM8 Loan Intelligence is a trade name of PIROLO, a DBA of Jason Shapiro (NMLS #1844143). Equal Housing Lender. Licensed in Washington (NMLS #1844143), Arizona (NMLS #1037722), California (DFPI #1844143), and Texas (NMLS #1844143). This is not a commitment to lend. Rates and terms subject to change."
 
 Use brackets `[ ]` for any field Jason still needs to fill in. Don't invent license numbers.
 
