@@ -1,21 +1,41 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { JetBrains_Mono } from "next/font/google";
 import { ANCHOR_LO, STATE_LIST_LONG } from "@/lib/licensing";
 import { copy } from "@/lib/copy";
 import "./globals.css";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
+/**
+ * Exo — the new primary typeface for RateM8.
+ * Geometric sans-serif. Used for headlines, body, and UI.
+ *
+ * Files live in /public/fonts/. Loaded via next/font/local for
+ * automatic font optimization (preload, subset, no FOUT).
+ */
+const exo = localFont({
+  src: [
+    { path: "../public/fonts/Exo-Thin.otf", weight: "100", style: "normal" },
+    { path: "../public/fonts/Exo-ThinItalic.otf", weight: "100", style: "italic" },
+    { path: "../public/fonts/Exo-ExtraLight.otf", weight: "200", style: "normal" },
+    { path: "../public/fonts/Exo-ExtraLightItalic.otf", weight: "200", style: "italic" },
+    { path: "../public/fonts/Exo-Light.otf", weight: "300", style: "normal" },
+    { path: "../public/fonts/Exo-LightItalic.otf", weight: "300", style: "italic" },
+    { path: "../public/fonts/Exo-Regular.otf", weight: "400", style: "normal" },
+    { path: "../public/fonts/Exo-Italic.otf", weight: "400", style: "italic" },
+    { path: "../public/fonts/Exo-Medium.otf", weight: "500", style: "normal" },
+    { path: "../public/fonts/Exo-MediumItalic.otf", weight: "500", style: "italic" },
+    { path: "../public/fonts/Exo-SemiBold.otf", weight: "600", style: "normal" },
+    { path: "../public/fonts/Exo-SemiBoldItalic.otf", weight: "600", style: "italic" },
+    { path: "../public/fonts/Exo-Bold.otf", weight: "700", style: "normal" },
+    { path: "../public/fonts/Exo-BoldItalic.otf", weight: "700", style: "italic" },
+    { path: "../public/fonts/Exo-ExtraBold.otf", weight: "800", style: "normal" },
+    { path: "../public/fonts/Exo-ExtraBoldItalic.otf", weight: "800", style: "italic" },
+    { path: "../public/fonts/Exo-Black.otf", weight: "900", style: "normal" },
+    { path: "../public/fonts/Exo-BlackItalic.otf", weight: "900", style: "italic" },
+  ],
+  variable: "--font-exo",
   display: "swap",
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist",
-  display: "swap",
+  fallback: ["system-ui", "-apple-system", "Helvetica Neue", "Arial", "sans-serif"],
 });
 
 const jetbrains = JetBrains_Mono({
@@ -46,10 +66,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      className={`${fraunces.variable} ${geist.variable} ${jetbrains.variable}`}
-    >
+    <html lang="en" className={`${exo.variable} ${jetbrains.variable}`}>
       <body>{children}</body>
     </html>
   );

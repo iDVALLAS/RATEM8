@@ -9,8 +9,9 @@
   --color-m8-stone: #E8E6E1;
   --color-m8-charcoal: #1A1A19;
 
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-geist);
+  /* Typography — Exo is now primary. JetBrains Mono for data labels. */
+  --font-display: var(--font-exo);
+  --font-sans: var(--font-exo);
   --font-mono: var(--font-jetbrains);
 }
 
@@ -21,43 +22,65 @@
   --rule: color-mix(in srgb, var(--color-m8-paper) 12%, transparent);
 }
 
-@media (prefers-color-scheme: light) {
-  :root[data-theme="auto"] {
-    --bg: var(--color-m8-paper);
-    --fg: var(--color-m8-charcoal);
-    --muted: color-mix(in srgb, var(--color-m8-charcoal) 65%, transparent);
-    --rule: var(--color-m8-stone);
-  }
-}
-
 html,
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-exo), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 .font-display {
-  font-family: var(--font-display), Georgia, serif;
-  font-feature-settings: normal;
-  font-variant-ligatures: common-ligatures;
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  font-family: var(--font-exo), system-ui, sans-serif;
 }
 
 .font-mono {
-  font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+  font-family: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
 }
 
-/* ---------- The Orb ---------- */
+/* ─── Tagline treatment ─────────────────────────────────── */
+/*
+ * The hero tagline uses contrasting weights:
+ *   "Loan intelligence."        → Exo Bold (700)
+ *   "Free for all loan mates."  → Exo Thin Italic (100)
+ *
+ * The contrast does the rhetorical work — bold statement,
+ * light promise. Don't add italics anywhere else.
+ */
+
+.tagline {
+  font-family: var(--font-exo);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+}
+
+.tagline em,
+.tagline i {
+  font-weight: 100;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  color: color-mix(in srgb, var(--color-m8-paper) 92%, var(--color-m8-green));
+}
+
+/* ─── The Orb ───────────────────────────────────────────── */
 
 .orb {
   position: relative;
   display: inline-block;
   border-radius: 9999px;
   isolation: isolate;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.orb--clickable {
+  transition: transform 200ms ease-out;
+}
+
+.orb--clickable:hover {
+  transform: scale(1.03);
 }
 
 .orb::before {
@@ -94,42 +117,185 @@ body {
   animation: orb-breath 4s ease-in-out infinite;
 }
 
+.orb--listening::after {
+  animation: orb-breath-fast 1.2s ease-in-out infinite;
+  box-shadow:
+    inset 0 0 24px color-mix(in srgb, var(--color-m8-forest) 60%, transparent),
+    0 0 90px color-mix(in srgb, var(--color-m8-green) 60%, transparent);
+}
+
+.orb--speaking::after {
+  animation: orb-pulse 0.6s ease-in-out infinite;
+}
+
 @keyframes orb-breath {
-  0%, 100% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
-  50% {
-    transform: scale(1.05);
-    filter: brightness(1.08);
-  }
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50%      { transform: scale(1.05); filter: brightness(1.08); }
+}
+
+@keyframes orb-breath-fast {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50%      { transform: scale(1.08); filter: brightness(1.15); }
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50%      { transform: scale(1.04); filter: brightness(1.2); }
 }
 
 @keyframes orb-halo {
-  0%, 100% {
-    opacity: 0.7;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.08); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .orb::before,
   .orb::after {
-    animation: none;
+    animation: none !important;
   }
 }
 
-/* ---------- Type rhythm ---------- */
+/* ─── Speech bubble ─────────────────────────────────────── */
+/*
+ * Emerges from the orb. Used for:
+ *   - Initial "Tap to chat" hint
+ *   - Text fallback if mic is denied
+ *   - Future M8 chat messages
+ */
 
-.tagline em,
-.tagline i {
-  font-style: italic;
-  color: color-mix(in srgb, var(--color-m8-paper) 90%, var(--color-m8-green));
+.speech-bubble {
+  position: relative;
+  display: inline-block;
+  max-width: 280px;
+  padding: 14px 20px;
+  background: color-mix(in srgb, var(--color-m8-night) 80%, var(--color-m8-forest));
+  border: 1px solid color-mix(in srgb, var(--color-m8-green) 40%, transparent);
+  border-radius: 18px;
+  color: var(--color-m8-paper);
+  font-family: var(--font-exo);
+  font-weight: 400;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  box-shadow:
+    0 4px 20px color-mix(in srgb, var(--color-m8-green) 15%, transparent),
+    0 0 40px color-mix(in srgb, var(--color-m8-green) 10%, transparent);
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+  animation: bubble-in 600ms cubic-bezier(0.22, 1, 0.36, 1) 1200ms forwards;
 }
+
+/* Speech bubble tail (small notch pointing up toward orb) */
+.speech-bubble::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 14px;
+  height: 14px;
+  background: color-mix(in srgb, var(--color-m8-night) 80%, var(--color-m8-forest));
+  border-top: 1px solid color-mix(in srgb, var(--color-m8-green) 40%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--color-m8-green) 40%, transparent);
+}
+
+.speech-bubble--persistent {
+  animation: bubble-in 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
+             bubble-pulse 3s ease-in-out 2s infinite;
+}
+
+@keyframes bubble-in {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bubble-pulse {
+  0%, 100% { box-shadow: 0 4px 20px color-mix(in srgb, var(--color-m8-green) 15%, transparent),
+                          0 0 40px color-mix(in srgb, var(--color-m8-green) 10%, transparent); }
+  50%      { box-shadow: 0 4px 24px color-mix(in srgb, var(--color-m8-green) 25%, transparent),
+                          0 0 60px color-mix(in srgb, var(--color-m8-green) 18%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speech-bubble,
+  .speech-bubble--persistent {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ─── Floating mortgage-term backdrop ──────────────────── */
+
+.term-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+  mask-image: radial-gradient(
+    ellipse 28% 22% at center,
+    transparent 0%,
+    rgba(0,0,0,0.5) 65%,
+    rgba(0,0,0,1) 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 28% 22% at center,
+    transparent 0%,
+    rgba(0,0,0,0.5) 65%,
+    rgba(0,0,0,1) 100%
+  );
+}
+
+.term {
+  position: absolute;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--color-m8-green);
+  opacity: 0;
+  white-space: nowrap;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--color-m8-green) 40%, transparent);
+  will-change: transform, opacity;
+}
+
+.term--num {
+  font-size: 0.95rem;
+  color: var(--color-m8-paper);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--color-m8-green) 50%, transparent);
+}
+
+@keyframes drift-tl {
+  0%   { transform: translate(-30vw, -25vh) rotate(-6deg); opacity: 0; }
+  20%  { opacity: 0.7; }
+  80%  { opacity: 0.7; }
+  100% { transform: translate(2vw, 2vh) rotate(-6deg); opacity: 0; }
+}
+@keyframes drift-tr {
+  0%   { transform: translate(30vw, -25vh) rotate(5deg); opacity: 0; }
+  20%  { opacity: 0.65; }
+  80%  { opacity: 0.65; }
+  100% { transform: translate(-2vw, 2vh) rotate(5deg); opacity: 0; }
+}
+@keyframes drift-bl {
+  0%   { transform: translate(-30vw, 25vh) rotate(4deg); opacity: 0; }
+  20%  { opacity: 0.6; }
+  80%  { opacity: 0.6; }
+  100% { transform: translate(2vw, -2vh) rotate(4deg); opacity: 0; }
+}
+@keyframes drift-br {
+  0%   { transform: translate(30vw, 25vh) rotate(-5deg); opacity: 0; }
+  20%  { opacity: 0.6; }
+  80%  { opacity: 0.6; }
+  100% { transform: translate(-2vw, -2vh) rotate(-5deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .term { animation: none !important; opacity: 0.25; }
+}
+
+/* ─── Type rhythm ───────────────────────────────────────── */
 
 .hairline {
   height: 1px;
@@ -137,85 +303,13 @@ body {
 }
 
 .principle-label {
-  font-family: var(--font-mono), monospace;
+  font-family: var(--font-jetbrains), monospace;
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  font-weight: 500;
   color: color-mix(in srgb, var(--color-m8-green) 80%, var(--color-m8-paper));
 }
-
-/* ---------- Orb flow field ---------- */
-/* Mortgage-vocabulary terms that drift toward the orb's center,
-   fade, and disappear into it. */
-
-.orb-field {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(960px, 92vw);
-  height: min(560px, 90vw);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-  mask-image: radial-gradient(
-    ellipse at center,
-    transparent 100px,
-    black 180px,
-    black 55%,
-    transparent 100%
-  );
-  -webkit-mask-image: radial-gradient(
-    ellipse at center,
-    transparent 100px,
-    black 180px,
-    black 55%,
-    transparent 100%
-  );
-}
-
-.orb-term {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-m8-green) 70%, transparent);
-  white-space: nowrap;
-  will-change: transform, opacity;
-  opacity: 0;
-  animation: orb-flow var(--dur, 12s) cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  animation-delay: var(--delay, 0s);
-}
-
-@keyframes orb-flow {
-  0% {
-    transform: translate(var(--tx), var(--ty)) scale(1);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.85;
-  }
-  70% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: translate(0, 0) scale(0.25);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .orb-term {
-    animation: none;
-    opacity: 0.25;
-    transform: translate(var(--tx), var(--ty));
-  }
-}
-
-/* ---------- Selection ---------- */
 
 ::selection {
   background: color-mix(in srgb, var(--color-m8-green) 50%, transparent);

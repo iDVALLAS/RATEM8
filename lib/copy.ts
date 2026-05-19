@@ -5,13 +5,18 @@
  *        Occasional Aussie warmth in microcopy ("G'day", "mate")
  *        used sparingly so it lands as flavor, not a costume.
  *
- * NOTE: LICENSING / COMPLIANCE / LO contact values are NOT here.
- * Edit `lib/licensing.ts` for anything regulatory or LO-specific.
+ * LICENSING / COMPLIANCE / LO contact values are NOT here.
+ * Edit `lib/licensing.ts` for anything regulatory.
+ *
+ * NOTE: hero no longer renders an "Available in" line. State
+ * scope is communicated only in the footer's legal disclaimer
+ * (where it's regulatorily required). Removing the public hero
+ * announcement keeps the visual clean. The licensing config
+ * still enforces state restrictions on routing internally.
  */
 
 import {
   ANCHOR_LO,
-  STATE_LIST_SHORT,
   STATE_LIST_LONG,
   NMLS_BADGE,
   DISCLAIMER,
@@ -24,7 +29,6 @@ export const copy = {
   },
 
   hero: {
-    eyebrow: `G'day. Available in ${STATE_LIST_SHORT}.`,
     tagline: "Loan intelligence.",
     taglineEmphasis: "Free for all loan mates.",
     sub: "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer. No lead-selling. No trigger leads. No spam.",
@@ -84,7 +88,7 @@ export const copy = {
   about: {
     eyebrow: "WHO CLOSES YOUR LOAN",
     heading: `${ANCHOR_LO.name}.`,
-    sub: `NMLS-licensed Mortgage Loan Originator. Authorized in ${STATE_LIST_LONG}. M8 is the tool. I'm the human on the line.`,
+    sub: `NMLS-licensed Mortgage Loan Originator. M8 is the tool. I'm the human on the line.`,
     nmls: NMLS_BADGE,
   },
 
@@ -97,7 +101,7 @@ export const copy = {
   agentsPage: {
     eyebrow: "PARTNERSHIP",
     heading: "Built for agents who are tired of mortgage drama.",
-    sub: "RateM8 was designed alongside working agents across the four launch markets. Here is what the partnership actually looks like.",
+    sub: "RateM8 was designed alongside working agents in our licensed markets. Here is what the partnership actually looks like.",
     sections: [
       {
         title: "The basics",
@@ -225,7 +229,7 @@ export const copy = {
       },
       {
         name: "Jumbo",
-        body: "Loan amounts above the conforming limit (higher in WA and CA high-cost areas). Stricter underwriting, often competitive rates if you have strong assets.",
+        body: "Loan amounts above the conforming limit (higher in high-cost areas of our markets). Stricter underwriting, often competitive rates if you have strong assets.",
         bestFor: "Higher-priced homes, strong credit and reserves.",
       },
       {
@@ -274,7 +278,7 @@ export const copy = {
 
   aboutPage: {
     eyebrow: "ABOUT",
-    heading: "One loan officer. Four states. No call center.",
+    heading: "One loan officer. No call center.",
     sub: `${ANCHOR_LO.name} is an NMLS-licensed mortgage loan originator authorized in ${STATE_LIST_LONG}. Every loan on this platform is closed personally by ${ANCHOR_LO.firstName} through a panel of wholesale lender partners. No call center. No transfers. One loan officer, start to close.`,
     sections: [
       {

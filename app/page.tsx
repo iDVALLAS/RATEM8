@@ -1,12 +1,12 @@
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import Orb from "@/components/Orb";
-import OrbFlowField from "@/components/OrbFlowField";
+import VoiceOrb from "@/components/VoiceOrb";
+import TermField from "@/components/TermField";
 import CTAButton from "@/components/CTAButton";
 import PrincipleCard from "@/components/PrincipleCard";
 import { copy } from "@/lib/copy";
 import { principles } from "@/lib/principles";
-import { ANCHOR_LO, STATE_LIST_SHORT } from "@/lib/licensing";
+import { ANCHOR_LO } from "@/lib/licensing";
 
 export default function HomePage() {
   return (
@@ -14,25 +14,27 @@ export default function HomePage() {
       <Nav />
 
       <main>
-        {/* HERO */}
-        <section className="relative">
-          <div className="mx-auto max-w-4xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-28 text-center">
-            <div className="flex justify-center mb-12">
-              <div className="relative">
-                <OrbFlowField />
-                <Orb size="hero" />
-              </div>
+        {/* ───── HERO ───── */}
+        <section className="relative min-h-[88vh] overflow-hidden">
+          <TermField />
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-m8-green)]/8 blur-[120px]"
+          />
+
+          <div className="relative z-10 mx-auto max-w-4xl px-6 pt-20 pb-20 sm:pt-28 sm:pb-28 text-center">
+            <div className="mb-12">
+              <VoiceOrb />
             </div>
 
-            <p className="principle-label mb-6">{copy.hero.eyebrow}</p>
-
-            <h1 className="font-display text-5xl sm:text-7xl leading-[1.05] tracking-tight tagline">
+            <h1 className="tagline text-5xl sm:text-7xl">
               {copy.hero.tagline}
               <br />
               <em>{copy.hero.taglineEmphasis}</em>
             </h1>
 
-            <p className="mt-8 text-lg text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-10 text-lg text-[var(--muted)] max-w-2xl mx-auto leading-relaxed font-light">
               {copy.hero.sub}
             </p>
 
@@ -52,25 +54,18 @@ export default function HomePage() {
                 {copy.hero.agentCta}
               </CTAButton>
             </div>
-
-            <p className="mt-10 font-mono text-xs tracking-[0.2em] text-[var(--muted)]">
-              LICENSED IN {STATE_LIST_SHORT}
-            </p>
           </div>
         </section>
 
-        {/* PRINCIPLES */}
-        <section
-          id="principles"
-          className="border-t border-[var(--rule)]"
-        >
+        {/* ───── PRINCIPLES ───── */}
+        <section id="principles" className="border-t border-[var(--rule)]">
           <div className="mx-auto max-w-6xl px-6 py-24">
             <div className="max-w-2xl">
               <div className="principle-label">{copy.principles.eyebrow}</div>
-              <h2 className="font-display text-4xl sm:text-5xl mt-4 leading-tight">
+              <h2 className="font-display font-bold text-4xl sm:text-5xl mt-4 leading-tight tracking-tight">
                 {copy.principles.heading}
               </h2>
-              <p className="mt-4 text-[var(--muted)] leading-relaxed">
+              <p className="mt-4 text-[var(--muted)] leading-relaxed font-light">
                 {copy.principles.sub}
               </p>
             </div>
@@ -79,10 +74,7 @@ export default function HomePage() {
               {principles.map((p, i) => (
                 <div
                   key={p.number}
-                  className={
-                    // Asymmetric: the manifesto principle gets two cells on lg
-                    i === 6 ? "lg:col-span-2" : ""
-                  }
+                  className={i === 6 ? "lg:col-span-2" : ""}
                 >
                   <PrincipleCard
                     number={p.number}
@@ -95,12 +87,12 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* HOW IT WORKS */}
+        {/* ───── HOW IT WORKS ───── */}
         <section className="border-t border-[var(--rule)]">
           <div className="mx-auto max-w-6xl px-6 py-24">
             <div className="max-w-2xl">
               <div className="principle-label">{copy.how.eyebrow}</div>
-              <h2 className="font-display text-4xl sm:text-5xl mt-4 leading-tight">
+              <h2 className="font-display font-bold text-4xl sm:text-5xl mt-4 leading-tight tracking-tight">
                 {copy.how.heading}
               </h2>
             </div>
@@ -111,10 +103,10 @@ export default function HomePage() {
                   <div className="font-mono text-sm text-[var(--color-m8-green)]">
                     {s.n}
                   </div>
-                  <h3 className="font-display text-2xl mt-3 leading-snug">
+                  <h3 className="font-display font-semibold text-2xl mt-3 leading-snug">
                     {s.title}
                   </h3>
-                  <p className="mt-3 text-[var(--muted)] leading-relaxed">
+                  <p className="mt-3 text-[var(--muted)] leading-relaxed font-light">
                     {s.body}
                   </p>
                 </li>
@@ -123,15 +115,15 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* FOR AGENTS */}
+        {/* ───── FOR AGENTS ───── */}
         <section className="border-t border-[var(--rule)]">
           <div className="mx-auto max-w-6xl px-6 py-24">
             <div className="max-w-3xl">
               <div className="principle-label">{copy.agents.eyebrow}</div>
-              <h2 className="font-display text-4xl sm:text-5xl mt-4 leading-tight">
+              <h2 className="font-display font-bold text-4xl sm:text-5xl mt-4 leading-tight tracking-tight">
                 {copy.agents.heading}
               </h2>
-              <p className="mt-4 text-[var(--muted)] leading-relaxed">
+              <p className="mt-4 text-[var(--muted)] leading-relaxed font-light">
                 {copy.agents.sub}
               </p>
             </div>
@@ -142,10 +134,10 @@ export default function HomePage() {
                   key={c.title}
                   className="p-7 border border-[var(--rule)] rounded-2xl"
                 >
-                  <h3 className="font-display text-xl leading-snug">
+                  <h3 className="font-display font-semibold text-xl leading-snug">
                     {c.title}
                   </h3>
-                  <p className="mt-3 text-sm text-[var(--muted)] leading-relaxed">
+                  <p className="mt-3 text-sm text-[var(--muted)] leading-relaxed font-light">
                     {c.body}
                   </p>
                 </div>
@@ -160,14 +152,14 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ABOUT JASON */}
+        {/* ───── ABOUT JASON ───── */}
         <section id="about" className="border-t border-[var(--rule)]">
           <div className="mx-auto max-w-4xl px-6 py-24">
             <div className="principle-label">{copy.about.eyebrow}</div>
-            <h2 className="font-display text-4xl sm:text-5xl mt-4 leading-tight">
+            <h2 className="font-display font-bold text-4xl sm:text-5xl mt-4 leading-tight tracking-tight">
               {copy.about.heading}
             </h2>
-            <p className="mt-6 text-lg text-[var(--muted)] leading-relaxed max-w-2xl">
+            <p className="mt-6 text-lg text-[var(--muted)] leading-relaxed max-w-2xl font-light">
               {copy.about.sub}
             </p>
             <p className="mt-6 font-mono text-xs tracking-[0.2em] text-[var(--color-m8-green)]">
