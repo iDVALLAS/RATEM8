@@ -3,10 +3,7 @@ import Footer from "@/components/Footer";
 import CTAButton from "@/components/CTAButton";
 import Orb from "@/components/Orb";
 import { copy } from "@/lib/copy";
-
-const agentCalendly =
-  process.env.NEXT_PUBLIC_CALENDLY_AGENT ||
-  "https://calendly.com/jason-ratem8/agent-partnership";
+import { ANCHOR_LO } from "@/lib/licensing";
 
 export const metadata = {
   title: "For Agents — RateM8",
@@ -59,7 +56,7 @@ export default function AgentsPage() {
               Twenty minutes. No pitch deck. Just questions and answers.
             </p>
             <div className="mt-8 inline-flex">
-              <CTAButton href={agentCalendly} variant="primary">
+              <CTAButton href={ANCHOR_LO.calendlyAgent!} variant="primary">
                 {copy.agentsPage.cta}
               </CTAButton>
             </div>

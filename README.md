@@ -83,5 +83,4 @@ See `CLAUDE_CODE_PRIMER.md` in the project root. Short version:
 
 ---
 
-Jason Shapiro · NMLS #1844143 · Equal Housing Lender
-WA #1844143 · AZ #1037722 · CA DFPI #1844143 · TX #1844143
+All NMLS numbers, sponsoring entities, and the legal disclaimer live in `lib/licensing.ts` — single source of truth. Edit there; everything else regenerates.
