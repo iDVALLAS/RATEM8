@@ -16,22 +16,28 @@ export default function HomePage() {
       <main>
         {/* ───── HERO ───── */}
         <section className="relative min-h-[88vh] overflow-hidden">
-          <TermField />
-
           <div
             aria-hidden="true"
             className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-m8-green)]/8 blur-[120px]"
           />
 
           <div className="relative z-10 mx-auto max-w-4xl px-6 pt-20 pb-20 sm:pt-28 sm:pb-28 text-center">
-            <div className="mb-12">
-              <VoiceOrb />
+            {/* Orb + term-field wrapper. The field is absolutely
+                centered on this box, so terms converge on the orb
+                rather than the section's geometric center. */}
+            <div className="mb-12 flex justify-center">
+              <div className="relative">
+                <TermField />
+                <VoiceOrb />
+              </div>
             </div>
 
+            {/* v7: Tagline is now a single Fraunces serif line.
+                "Free for all loan mates." italic line removed
+                per design direction. The phrase still appears
+                in the footer signature and metadata. */}
             <h1 className="tagline text-5xl sm:text-7xl">
               {copy.hero.tagline}
-              <br />
-              <em>{copy.hero.taglineEmphasis}</em>
             </h1>
 
             <p className="mt-10 text-lg text-[var(--muted)] max-w-2xl mx-auto leading-relaxed font-light">
@@ -39,10 +45,14 @@ export default function HomePage() {
             </p>
 
             <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-stretch">
+              {/* v7: Borrower CTA now routes to /chat (M8 demo)
+                  instead of Calendly. The demo gives borrowers
+                  a real preview of the M8 experience before
+                  asking them to book a call. */}
               <CTAButton
-                href={ANCHOR_LO.calendlyBorrower!}
+                href="/chat"
                 variant="primary"
-                ariaLabel="Borrower intro call"
+                ariaLabel="Shop a mortgage with M8"
               >
                 {copy.hero.borrowerCta}
               </CTAButton>

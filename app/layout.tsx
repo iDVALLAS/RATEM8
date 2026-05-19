@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { JetBrains_Mono } from "next/font/google";
+import { Fraunces, JetBrains_Mono } from "next/font/google";
 import { ANCHOR_LO, STATE_LIST_LONG } from "@/lib/licensing";
 import { copy } from "@/lib/copy";
 import "./globals.css";
@@ -38,6 +38,19 @@ const exo = localFont({
   fallback: ["system-ui", "-apple-system", "Helvetica Neue", "Arial", "sans-serif"],
 });
 
+/**
+ * Fraunces — used only for the hero tagline ("Loan intelligence.")
+ * per the v7 design. Bold serif, no italic, no wonky stylistic sets.
+ * Limited to weights 600/700 to keep the bundle small.
+ */
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  style: ["normal"],
+  weight: ["600", "700"],
+});
+
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains",
@@ -66,7 +79,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${exo.variable} ${jetbrains.variable}`}>
+    <html
+      lang="en"
+      className={`${exo.variable} ${fraunces.variable} ${jetbrains.variable}`}
+    >
       <body>{children}</body>
     </html>
   );
