@@ -1,17 +1,12 @@
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import Orb from "@/components/Orb";
+import OrbFlowField from "@/components/OrbFlowField";
 import CTAButton from "@/components/CTAButton";
 import PrincipleCard from "@/components/PrincipleCard";
 import { copy } from "@/lib/copy";
 import { principles } from "@/lib/principles";
-
-const borrowerCalendly =
-  process.env.NEXT_PUBLIC_CALENDLY_BORROWER ||
-  "https://calendly.com/jason-ratem8/talk-to-jason";
-const agentCalendly =
-  process.env.NEXT_PUBLIC_CALENDLY_AGENT ||
-  "https://calendly.com/jason-ratem8/agent-partnership";
+import { ANCHOR_LO, STATE_LIST_SHORT } from "@/lib/licensing";
 
 export default function HomePage() {
   return (
@@ -23,8 +18,13 @@ export default function HomePage() {
         <section className="relative">
           <div className="mx-auto max-w-4xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-28 text-center">
             <div className="flex justify-center mb-12">
-              <Orb size="hero" />
+              <div className="relative">
+                <OrbFlowField />
+                <Orb size="hero" />
+              </div>
             </div>
+
+            <p className="principle-label mb-6">{copy.hero.eyebrow}</p>
 
             <h1 className="font-display text-5xl sm:text-7xl leading-[1.05] tracking-tight tagline">
               {copy.hero.tagline}
@@ -38,14 +38,14 @@ export default function HomePage() {
 
             <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-stretch">
               <CTAButton
-                href={borrowerCalendly}
+                href={ANCHOR_LO.calendlyBorrower!}
                 variant="primary"
                 ariaLabel="Borrower intro call"
               >
                 {copy.hero.borrowerCta}
               </CTAButton>
               <CTAButton
-                href={agentCalendly}
+                href={ANCHOR_LO.calendlyAgent!}
                 variant="secondary"
                 ariaLabel="Agent partnership intro call"
               >
@@ -54,7 +54,7 @@ export default function HomePage() {
             </div>
 
             <p className="mt-10 font-mono text-xs tracking-[0.2em] text-[var(--muted)]">
-              LICENSED IN WA · AZ · CA · TX
+              LICENSED IN {STATE_LIST_SHORT}
             </p>
           </div>
         </section>

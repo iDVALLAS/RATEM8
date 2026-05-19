@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Geist, JetBrains_Mono } from "next/font/google";
+import { ANCHOR_LO, STATE_LIST_LONG } from "@/lib/licensing";
+import { copy } from "@/lib/copy";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -22,15 +24,16 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
+const siteTitle = `RateM8 — ${copy.brand.tagline}`;
+const siteDescription = `AI-powered mortgage rate shopping. Every loan closed by ${ANCHOR_LO.name}, NMLS-licensed in ${STATE_LIST_LONG}.`;
+
 export const metadata: Metadata = {
-  title: "RateM8 — Loan intelligence. Free for the people.",
-  description:
-    "AI-powered mortgage rate shopping. Every loan closed by Jason Shapiro, NMLS-licensed in Washington, Arizona, California, and Texas.",
+  title: siteTitle,
+  description: siteDescription,
   metadataBase: new URL("https://ratem8.com"),
   openGraph: {
-    title: "RateM8 — Loan intelligence. Free for the people.",
-    description:
-      "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer.",
+    title: siteTitle,
+    description: siteDescription,
     url: "https://ratem8.com",
     siteName: "RateM8",
     type: "website",
