@@ -141,33 +141,39 @@ html, body {
   pointer-events: none;
 }
 
-/* ─── Floating mortgage-term backdrop (V4 styling) ──────── */
-/* Terms drift diagonally toward the orb. The radial mask
-   fades them out where the orb sits, so the orb appears to
-   absorb the terminology. */
+/* ─── Floating loan-term backdrop (V4 wrap-the-orb behavior) ─ */
+/* Loan-related words drift inward from varied positions around
+   the orb and converge into its body. Field is sized to wrap
+   the orb only — it does NOT extend down to the tagline/CTAs. */
 
 .term-field {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  width: min(960px, 95vw);
+  height: min(560px, 70vw);
+  transform: translate(-50%, -50%);
   pointer-events: none;
   overflow: hidden;
   z-index: 1;
   mask-image: radial-gradient(
-    ellipse 30% 25% at center,
+    ellipse 18% 30% at center,
     transparent 0%,
-    rgba(0,0,0,0.4) 60%,
-    rgba(0,0,0,1) 100%
+    rgba(0, 0, 0, 0.4) 55%,
+    rgba(0, 0, 0, 1) 100%
   );
   -webkit-mask-image: radial-gradient(
-    ellipse 30% 25% at center,
+    ellipse 18% 30% at center,
     transparent 0%,
-    rgba(0,0,0,0.4) 60%,
-    rgba(0,0,0,1) 100%
+    rgba(0, 0, 0, 0.4) 55%,
+    rgba(0, 0, 0, 1) 100%
   );
 }
 
 .term {
   position: absolute;
+  top: 50%;
+  left: 50%;
   font-family: var(--font-jetbrains), ui-monospace, monospace;
   font-size: 0.78rem;
   letter-spacing: 0.08em;
@@ -176,38 +182,14 @@ html, body {
   white-space: nowrap;
   text-shadow: 0 0 12px rgba(93, 202, 165, 0.4);
   will-change: transform, opacity;
+  animation: drift-in var(--dur, 12s) ease-in-out infinite;
 }
 
-.term--num {
-  font-size: 0.95rem;
-  color: var(--color-m8-paper);
-  text-shadow: 0 0 14px rgba(93, 202, 165, 0.5);
-}
-
-/* Four drift trajectories — corners → center */
-@keyframes drift-tl {
-  0%   { transform: translate(-30vw, -25vh) rotate(-6deg); opacity: 0; }
-  20%  { opacity: 0.7; }
-  80%  { opacity: 0.7; }
-  100% { transform: translate(2vw, 2vh) rotate(-6deg); opacity: 0; }
-}
-@keyframes drift-tr {
-  0%   { transform: translate(30vw, -25vh) rotate(5deg); opacity: 0; }
-  20%  { opacity: 0.65; }
-  80%  { opacity: 0.65; }
-  100% { transform: translate(-2vw, 2vh) rotate(5deg); opacity: 0; }
-}
-@keyframes drift-bl {
-  0%   { transform: translate(-30vw, 25vh) rotate(4deg); opacity: 0; }
-  20%  { opacity: 0.6; }
-  80%  { opacity: 0.6; }
-  100% { transform: translate(2vw, -2vh) rotate(4deg); opacity: 0; }
-}
-@keyframes drift-br {
-  0%   { transform: translate(30vw, 25vh) rotate(-5deg); opacity: 0; }
-  20%  { opacity: 0.6; }
-  80%  { opacity: 0.6; }
-  100% { transform: translate(-2vw, -2vh) rotate(-5deg); opacity: 0; }
+@keyframes drift-in {
+  0%   { transform: translate(var(--tx), var(--ty)); opacity: 0; }
+  15%  { opacity: 0.75; }
+  85%  { opacity: 0.35; }
+  100% { transform: translate(0, 0) scale(0.3); opacity: 0; }
 }
 
 /* Respect reduced motion */
@@ -215,7 +197,10 @@ html, body {
   .orb, .orb::before, .orb::after, .term {
     animation: none !important;
   }
-  .term { opacity: 0.25; }
+  .term {
+    opacity: 0.25;
+    transform: translate(var(--tx), var(--ty));
+  }
 }
 
 /* ─── Grain overlay ──────────────────────────────────────── */
