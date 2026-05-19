@@ -28,10 +28,12 @@ export default function HomePage() {
               <VoiceOrb />
             </div>
 
+            {/* v7: Tagline is now a single Fraunces serif line.
+                "Free for all loan mates." italic line removed
+                per design direction. The phrase still appears
+                in the footer signature and metadata. */}
             <h1 className="tagline text-5xl sm:text-7xl">
               {copy.hero.tagline}
-              <br />
-              <em>{copy.hero.taglineEmphasis}</em>
             </h1>
 
             <p className="mt-10 text-lg text-[var(--muted)] max-w-2xl mx-auto leading-relaxed font-light">
@@ -39,10 +41,14 @@ export default function HomePage() {
             </p>
 
             <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-stretch">
+              {/* v7: Borrower CTA now routes to /chat (M8 demo)
+                  instead of Calendly. The demo gives borrowers
+                  a real preview of the M8 experience before
+                  asking them to book a call. */}
               <CTAButton
-                href={ANCHOR_LO.calendlyBorrower!}
+                href="/chat"
                 variant="primary"
-                ariaLabel="Borrower intro call"
+                ariaLabel="Shop a mortgage with M8"
               >
                 {copy.hero.borrowerCta}
               </CTAButton>
