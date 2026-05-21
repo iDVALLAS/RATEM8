@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /
+Allow: /$
+Allow: /demo
+
+# Stealth-launch mode. When the site goes live, replace this file
+# with a real robots.txt that allows everything except /api/* and
+# any non-public routes you want to keep hidden.
