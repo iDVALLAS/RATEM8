@@ -17,13 +17,131 @@
   --font-mono: var(--font-jetbrains);
 }
 
-:root {
+/* ─── THEMES ─────────────────────────────────────────────── */
+/*
+ * Three modes, switched via data-theme on <html>:
+ *   night  = true dark      (default, the brand)
+ *   dim    = softer dark    (forest bg, paper text)
+ *   paper  = true light     (editorial, daylight)
+ *
+ * Every visual decision keys off the semantic tokens defined here,
+ * NOT off the raw brand color tokens. Components reference --bg,
+ * --fg, --muted, --rule, --accent, etc. — never --color-m8-night
+ * directly, except where we explicitly want the brand color to
+ * appear identically in every theme (the orb interior, the M8 wordmark).
+ */
+
+/* NIGHT — the brand default */
+:root,
+:root[data-theme="night"] {
   --bg: var(--color-m8-night);
+  --bg-elevated: color-mix(in srgb, var(--color-m8-forest) 14%, var(--color-m8-night));
+  --bg-sunken: #000000;
   --fg: var(--color-m8-paper);
+  --fg-soft: color-mix(in srgb, var(--color-m8-paper) 85%, transparent);
   --muted: color-mix(in srgb, var(--color-m8-paper) 65%, transparent);
   --rule: color-mix(in srgb, var(--color-m8-paper) 12%, transparent);
+  --rule-strong: color-mix(in srgb, var(--color-m8-paper) 22%, transparent);
+
+  --accent: var(--color-m8-green);
+  --accent-deep: var(--color-m8-deep);
+  --accent-soft: color-mix(in srgb, var(--color-m8-green) 12%, transparent);
+  --accent-text: var(--color-m8-forest);
+
+  --orb-shadow: 0 0 60px rgba(93, 202, 165, 0.35);
+  --orb-halo-opacity: 0.45;
+  --term-color: var(--color-m8-green);
+  --term-opacity: 0.55;
+  --term-shadow: 0 0 12px rgba(93, 202, 165, 0.4);
+
+  --rate-card-bg: color-mix(in srgb, var(--color-m8-forest) 12%, var(--color-m8-night));
+  --grain-opacity: 0.04;
+  --grain-blend: overlay;
+
   color-scheme: dark;
 }
+
+/* DIM — softer dark. Background lifts off pure black. */
+:root[data-theme="dim"] {
+  --bg: #0B1F18;
+  --bg-elevated: #133126;
+  --bg-sunken: #06120D;
+  --fg: var(--color-m8-paper);
+  --fg-soft: color-mix(in srgb, var(--color-m8-paper) 88%, transparent);
+  --muted: color-mix(in srgb, var(--color-m8-paper) 70%, transparent);
+  --rule: color-mix(in srgb, var(--color-m8-paper) 14%, transparent);
+  --rule-strong: color-mix(in srgb, var(--color-m8-paper) 24%, transparent);
+
+  --accent: var(--color-m8-green);
+  --accent-deep: var(--color-m8-deep);
+  --accent-soft: color-mix(in srgb, var(--color-m8-green) 14%, transparent);
+  --accent-text: var(--color-m8-forest);
+
+  --orb-shadow: 0 0 50px rgba(93, 202, 165, 0.28);
+  --orb-halo-opacity: 0.32;
+  --term-color: var(--color-m8-green);
+  --term-opacity: 0.42;
+  --term-shadow: 0 0 10px rgba(93, 202, 165, 0.3);
+
+  --rate-card-bg: color-mix(in srgb, var(--color-m8-forest) 30%, #0B1F18);
+  --grain-opacity: 0.03;
+  --grain-blend: overlay;
+
+  color-scheme: dark;
+}
+
+/* PAPER — true light, editorial.
+ * All ~40 small design decisions live here. Documented inline. */
+:root[data-theme="paper"] {
+  /* Paper isn't pure white — that's too clinical. Use the brand's
+     warm off-white. Slight cream temperature reads as "newsprint",
+     not "Apple website". */
+  --bg: var(--color-m8-paper);
+  --bg-elevated: #F2EFE8;     /* slightly darker — for inset surfaces */
+  --bg-sunken: #FFFFFF;       /* slightly lighter — for elevated cards */
+
+  /* Charcoal, not pure black. Pure black on paper is harsh.
+     Charcoal has a slight warmth that pairs with the green accent. */
+  --fg: var(--color-m8-charcoal);
+  --fg-soft: #2C2C2A;
+  --muted: #5F5E5A;           /* the body-text-muted tier — must pass WCAG AA on paper */
+  --rule: rgba(26, 26, 25, 0.10);
+  --rule-strong: rgba(26, 26, 25, 0.18);
+
+  /* Accent shifts from M8 Green to Deep Green. M8 Green on paper
+     fails contrast (4.5:1 minimum for text); Deep Green passes
+     and reads as more grown-up. The orb keeps M8 Green though —
+     it's a graphic object, not text, so AA doesn't apply. */
+  --accent: var(--color-m8-deep);
+  --accent-deep: var(--color-m8-forest);
+  --accent-soft: color-mix(in srgb, var(--color-m8-deep) 10%, transparent);
+  --accent-text: var(--color-m8-paper);
+
+  /* Orb halo softens dramatically. On dark, the green glow is the
+     magic. On paper, that same glow reads as a smudge. We replace
+     it with a subtle drop shadow that suggests weight, not luminance. */
+  --orb-shadow: 0 12px 40px rgba(29, 158, 117, 0.25), 0 2px 8px rgba(4, 52, 44, 0.08);
+  --orb-halo-opacity: 0;       /* halo OFF in paper mode */
+
+  /* Term-field drops to 22% Forest with no glow. The terms become
+     ghost-watermarks — felt, not loud. The orb still appears to
+     absorb them via the radial mask. */
+  --term-color: var(--color-m8-forest);
+  --term-opacity: 0.22;
+  --term-shadow: none;
+
+  /* Rate cards: hairline border on white, not glowing forest fill. */
+  --rate-card-bg: #FFFFFF;
+
+  /* Grain at very low opacity, using multiply not overlay (multiply
+     works correctly on light backgrounds; overlay washes out). */
+  --grain-opacity: 0.025;
+  --grain-blend: multiply;
+
+  color-scheme: light;
+}
+
+/* ─── Global resets ──────────────────────────────────────── */
 
 html, body {
   background: var(--bg);
@@ -32,38 +150,42 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Smooth the theme swap when the user clicks the toggle.
+     Only color-related properties — never layout transitions. */
+  transition: background-color 240ms ease-out, color 240ms ease-out;
 }
 
 ::selection {
-  background: var(--color-m8-green);
-  color: var(--color-m8-forest);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ─── Tagline ────────────────────────────────────────────── */
-/*
- * Hero tagline: "Loan intelligence."
- * Single line, Fraunces Bold (700), upright (not italic).
- * The italic second line "Free for all loan mates." has been
- * removed from the hero per v7 spec. The phrase still lives
- * in the footer signature and metadata for brand continuity.
- */
+
 .tagline {
   font-family: var(--font-fraunces), Georgia, serif;
   font-weight: 700;
   font-style: normal;
   letter-spacing: -0.025em;
   line-height: 1.0;
+  color: var(--fg);
 }
 
-.font-display {
-  font-family: var(--font-exo), system-ui, sans-serif;
-}
-
-.font-serif {
-  font-family: var(--font-fraunces), Georgia, serif;
-}
-
-.font-mono {
+.font-display { font-family: var(--font-exo), system-ui, sans-serif; }
+.font-serif   { font-family: var(--font-fraunces), Georgia, serif; }
+.font-mono    {
   font-family: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
   letter-spacing: 0.05em;
 }
@@ -73,10 +195,11 @@ html, body {
   font-size: 0.7rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--color-m8-green);
+  color: var(--accent);
 }
 
-/* ─── Orb animation (V4 styling restored) ───────────────── */
+/* ─── Orb (theme-aware) ──────────────────────────────────── */
+
 @keyframes orb-breathe {
   0%, 100% { transform: scale(1); opacity: 1; }
   50%      { transform: scale(1.05); opacity: 0.92; }
@@ -88,8 +211,8 @@ html, body {
 }
 
 @keyframes orb-halo {
-  0%, 100% { transform: scale(1); opacity: 0.4; }
-  50%      { transform: scale(1.12); opacity: 0.6; }
+  0%, 100% { transform: scale(1); opacity: var(--orb-halo-opacity); }
+  50%      { transform: scale(1.12); opacity: calc(var(--orb-halo-opacity) * 1.5); }
 }
 
 .orb {
@@ -106,10 +229,11 @@ html, body {
   box-shadow:
     inset -10px -20px 40px rgba(4, 52, 44, 0.6),
     inset 10px 20px 40px rgba(255, 255, 255, 0.12),
-    0 0 60px rgba(93, 202, 165, 0.35);
+    var(--orb-shadow);
   z-index: 2;
 }
 
+/* The inner highlight — keep on all themes (it's part of the orb's form). */
 .orb::before {
   content: "";
   position: absolute;
@@ -125,6 +249,7 @@ html, body {
   pointer-events: none;
 }
 
+/* The outer halo — fades out entirely in Paper mode via --orb-halo-opacity. */
 .orb::after {
   content: "";
   position: absolute;
@@ -141,10 +266,11 @@ html, body {
   pointer-events: none;
 }
 
-/* ─── Floating loan-term backdrop (V4 wrap-the-orb behavior) ─ */
+/* ─── Term-field (V4 wrap-the-orb, theme-aware) ─────────── */
 /* Loan-related words drift inward from varied positions around
    the orb and converge into its body. Field is sized to wrap
-   the orb only — it does NOT extend down to the tagline/CTAs. */
+   the orb only — does NOT extend down to the tagline / CTAs.
+   Colors and opacity come from per-theme tokens (--term-*). */
 
 .term-field {
   position: absolute;
@@ -177,50 +303,114 @@ html, body {
   font-family: var(--font-jetbrains), ui-monospace, monospace;
   font-size: 0.78rem;
   letter-spacing: 0.08em;
-  color: var(--color-m8-green);
+  color: var(--term-color);
   opacity: 0;
   white-space: nowrap;
-  text-shadow: 0 0 12px rgba(93, 202, 165, 0.4);
+  text-shadow: var(--term-shadow);
   will-change: transform, opacity;
   animation: drift-in var(--dur, 12s) ease-in-out infinite;
 }
 
 @keyframes drift-in {
   0%   { transform: translate(var(--tx), var(--ty)); opacity: 0; }
-  15%  { opacity: 0.75; }
-  85%  { opacity: 0.35; }
+  15%  { opacity: var(--term-opacity); }
+  85%  { opacity: calc(var(--term-opacity) * 0.5); }
   100% { transform: translate(0, 0) scale(0.3); opacity: 0; }
 }
 
-/* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .orb, .orb::before, .orb::after, .term {
     animation: none !important;
   }
   .term {
-    opacity: 0.25;
+    opacity: calc(var(--term-opacity) * 0.5);
     transform: translate(var(--tx), var(--ty));
   }
 }
 
-/* ─── Grain overlay ──────────────────────────────────────── */
+/* ─── Grain overlay (theme-aware blend mode) ────────────── */
+
 .grain { position: relative; }
 .grain::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.04;
-  mix-blend-mode: overlay;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
 }
 
-/* ─── Chat page (/chat) styling ─────────────────────────── */
-/* Three-column M8 demo: conversations | chat | scenario+LO */
+/* ─── Theme toggle (3-dot nav widget) ───────────────────── */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  transition: border-color 150ms ease-out;
+}
+
+.theme-toggle:hover {
+  border-color: var(--rule-strong);
+}
+
+.theme-dot {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: var(--dot-color);
+  border: 1px solid var(--rule-strong);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 180ms ease-out;
+}
+
+.theme-dot:hover {
+  transform: scale(1.15);
+}
+
+.theme-dot--active {
+  transform: scale(1.25);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--accent);
+}
+
+.theme-dot:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--accent);
+}
+
+.theme-dot-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--rule);
+  color: var(--fg);
+  font-family: var(--font-jetbrains);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* ─── Chat page (/chat) — theme-aware ───────────────────── */
 
 .chat-page {
-  background: var(--color-m8-night);
+  background: var(--bg);
   min-height: 100vh;
+  color: var(--fg);
 }
 
 .chat-shell {
@@ -241,7 +431,7 @@ html, body {
   justify-content: space-between;
   padding: 14px 24px;
   border-bottom: 1px solid var(--rule);
-  background: var(--color-m8-night);
+  background: var(--bg);
   height: 60px;
 }
 
@@ -249,6 +439,7 @@ html, body {
   border-right: 1px solid var(--rule);
   padding: 24px 18px;
   overflow-y: auto;
+  background: var(--bg);
 }
 
 .chat-side--right {
@@ -261,13 +452,16 @@ html, body {
   overflow-y: auto;
   padding: 28px 36px 120px;
   position: relative;
+  background: var(--bg);
 }
 
 .chat-input {
-  position: sticky;
-  bottom: 0;
-  background: linear-gradient(to top, var(--color-m8-night) 70%, transparent);
-  padding: 20px 36px 24px;
+  /* v8: removed position:sticky so the disclosure bar below it
+   * always remains visible. Input now sits as a natural part of
+   * the page flow. The chat-center has bottom padding to ensure
+   * the conversation content doesn't get hidden behind it. */
+  background: var(--bg);
+  padding: 18px 36px 16px;
   border-top: 1px solid var(--rule);
 }
 
@@ -292,9 +486,9 @@ html, body {
 }
 
 .msg-avatar--user {
-  background: color-mix(in srgb, var(--color-m8-green) 30%, var(--color-m8-forest));
-  color: var(--color-m8-paper);
-  border: 1px solid color-mix(in srgb, var(--color-m8-green) 40%, transparent);
+  background: var(--accent-soft);
+  color: var(--fg);
+  border: 1px solid var(--rule-strong);
 }
 
 .msg-avatar--m8 {
@@ -312,7 +506,7 @@ html, body {
 }
 
 .msg-meta--label {
-  color: var(--color-m8-green);
+  color: var(--accent);
   margin-left: 8px;
 }
 
@@ -320,7 +514,7 @@ html, body {
   border: 1px solid var(--rule);
   border-radius: 12px;
   padding: 20px 24px;
-  background: color-mix(in srgb, var(--color-m8-forest) 12%, var(--color-m8-night));
+  background: var(--rate-card-bg);
   margin: 16px 0;
 }
 
@@ -336,7 +530,7 @@ html, body {
 .rate-card-row:first-of-type { border-top: 0; }
 
 .rate-card-row--selected {
-  border-left: 3px solid var(--color-m8-green);
+  border-left: 3px solid var(--accent);
   margin-left: -16px;
   padding-left: 13px;
 }
@@ -345,7 +539,7 @@ html, body {
   font-family: var(--font-fraunces), Georgia, serif;
   font-size: 1.65rem;
   font-weight: 500;
-  color: var(--color-m8-paper);
+  color: var(--fg);
   line-height: 1;
 }
 
@@ -377,10 +571,7 @@ html, body {
   text-transform: lowercase;
 }
 
-.pill b {
-  color: var(--color-m8-paper);
-  font-weight: 500;
-}
+.pill b { color: var(--fg); font-weight: 500; }
 
 .followup-btn {
   display: inline-flex;
@@ -390,7 +581,7 @@ html, body {
   border-radius: 9999px;
   border: 1px solid var(--rule);
   background: transparent;
-  color: var(--color-m8-paper);
+  color: var(--fg);
   font-size: 0.875rem;
   font-family: var(--font-exo);
   cursor: pointer;
@@ -398,8 +589,8 @@ html, body {
 }
 
 .followup-btn:hover {
-  border-color: var(--color-m8-green);
-  background: color-mix(in srgb, var(--color-m8-green) 8%, transparent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .scenario-row {
@@ -412,15 +603,11 @@ html, body {
 }
 
 .scenario-row:last-child { border-bottom: 0; }
-
-.scenario-label {
-  color: var(--muted);
-}
-
+.scenario-label { color: var(--muted); }
 .scenario-value {
   font-family: var(--font-fraunces), Georgia, serif;
   font-weight: 500;
-  color: var(--color-m8-paper);
+  color: var(--fg);
 }
 
 .lo-card {
@@ -428,6 +615,7 @@ html, body {
   border-radius: 14px;
   padding: 20px;
   margin-top: 16px;
+  background: var(--bg-sunken);
 }
 
 .lo-avatar {
@@ -453,23 +641,24 @@ html, body {
 }
 
 .lo-btn-primary {
-  background: var(--color-m8-green);
-  color: var(--color-m8-forest);
-  border-color: var(--color-m8-green);
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
   font-weight: 600;
 }
 
 .lo-btn-primary:hover {
-  background: var(--color-m8-deep);
+  background: var(--accent-deep);
+  color: var(--accent-text);
 }
 
 .lo-btn-secondary {
   background: transparent;
-  color: var(--color-m8-paper);
+  color: var(--fg);
 }
 
 .lo-btn-secondary:hover {
-  border-color: var(--color-m8-green);
+  border-color: var(--accent);
 }
 
 .live-badge {
@@ -479,7 +668,7 @@ html, body {
   font-family: var(--font-jetbrains);
   font-size: 11px;
   letter-spacing: 0.12em;
-  color: var(--color-m8-paper);
+  color: var(--fg);
 }
 
 .live-badge::before {
@@ -487,8 +676,8 @@ html, body {
   width: 8px;
   height: 8px;
   border-radius: 9999px;
-  background: var(--color-m8-green);
-  box-shadow: 0 0 8px var(--color-m8-green);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
   animation: live-pulse 2s ease-in-out infinite;
 }
 
@@ -502,6 +691,7 @@ html, body {
   border-radius: 12px;
   padding: 16px;
   margin-top: 16px;
+  background: var(--bg-sunken);
 }
 
 .market-card-label {
@@ -518,6 +708,7 @@ html, body {
   font-size: 2rem;
   font-weight: 500;
   line-height: 1;
+  color: var(--fg);
 }
 
 .market-card-meta {
@@ -539,8 +730,126 @@ html, body {
 }
 
 .demo-disclosure b {
-  color: color-mix(in srgb, var(--color-m8-green) 80%, var(--color-m8-paper));
+  color: var(--accent);
   font-weight: 500;
 }
 
 .hairline { height: 1px; background: var(--rule); }
+
+/* ─── M8 input orb (clickable, breathing) ───────────────── */
+/*
+ * The small orb sitting at the left edge of the chat input box.
+ * Visual signal that AI is present in the conversation.
+ *
+ * Uses Deep Green (#1D9E75) instead of the orb's usual luminous
+ * M8 Green — at 32px it's small enough that the brighter green
+ * would feel like a toy. Deep Green reads as a confident mark.
+ *
+ * The breathing animation matches the hero orb's 4-second rhythm
+ * so the two orbs feel like the same entity in different scales.
+ *
+ * Click handler is wired in ChatInput.tsx. In v8, clicking
+ * focuses the input. In v9, clicking will start a live M8
+ * conversation (Claude API) or open voice mode (Vapi).
+ */
+
+.m8-input-orb {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 255, 255, 0.25) 0%,
+    var(--color-m8-deep) 30%,
+    var(--color-m8-deep) 60%,
+    var(--color-m8-forest) 100%
+  );
+  box-shadow:
+    inset -3px -6px 12px rgba(4, 52, 44, 0.55),
+    inset 3px 6px 12px rgba(255, 255, 255, 0.1),
+    0 0 18px rgba(29, 158, 117, 0.45);
+  animation: m8-input-orb-breathe 4s ease-in-out infinite;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 180ms ease-out;
+}
+
+.m8-input-orb::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 40% 35%,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(29, 158, 117, 0) 60%
+  );
+  pointer-events: none;
+}
+
+.m8-input-orb:hover {
+  transform: scale(1.08);
+  box-shadow:
+    inset -3px -6px 12px rgba(4, 52, 44, 0.55),
+    inset 3px 6px 12px rgba(255, 255, 255, 0.1),
+    0 0 24px rgba(29, 158, 117, 0.6);
+}
+
+.m8-input-orb:focus-visible {
+  outline: none;
+  box-shadow:
+    inset -3px -6px 12px rgba(4, 52, 44, 0.55),
+    inset 3px 6px 12px rgba(255, 255, 255, 0.1),
+    0 0 24px rgba(29, 158, 117, 0.6),
+    0 0 0 3px var(--bg),
+    0 0 0 5px var(--accent);
+}
+
+/* Idle: slow 4s breath, matches the hero orb */
+.m8-input-orb--idle {
+  animation-duration: 4s;
+}
+
+/* Typing: faster pulse — signals "I'm tracking what you say" */
+.m8-input-orb--typing {
+  animation-duration: 2s;
+  animation-name: m8-input-orb-listen;
+}
+
+/* Sending: rapid pulse — signals "I'm working" */
+.m8-input-orb--sending {
+  animation-duration: 0.9s;
+  animation-name: m8-input-orb-think;
+}
+
+@keyframes m8-input-orb-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.06); opacity: 0.92; }
+}
+
+@keyframes m8-input-orb-listen {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.1); }
+}
+
+@keyframes m8-input-orb-think {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50%      { transform: scale(1.08); filter: brightness(1.15); }
+}
+
+@keyframes m8-hint-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m8-input-orb,
+  .m8-input-orb--idle,
+  .m8-input-orb--typing,
+  .m8-input-orb--sending {
+    animation: none !important;
+  }
+}

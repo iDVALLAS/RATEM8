@@ -3,10 +3,11 @@ import localFont from "next/font/local";
 import { Fraunces, JetBrains_Mono } from "next/font/google";
 import { ANCHOR_LO, STATE_LIST_LONG } from "@/lib/licensing";
 import { copy } from "@/lib/copy";
+import { themeBootScript } from "@/lib/theme";
 import "./globals.css";
 
 /**
- * Exo — the new primary typeface for RateM8.
+ * Exo — the primary typeface for RateM8.
  * Geometric sans-serif. Used for headlines, body, and UI.
  *
  * Files live in /public/fonts/. Loaded via next/font/local for
@@ -41,7 +42,6 @@ const exo = localFont({
 /**
  * Fraunces — used only for the hero tagline ("Loan intelligence.")
  * per the v7 design. Bold serif, no italic, no wonky stylistic sets.
- * Limited to weights 600/700 to keep the bundle small.
  */
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -82,7 +82,24 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${exo.variable} ${fraunces.variable} ${jetbrains.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        {/*
+         * No-flash theme boot.
+         * This script runs synchronously before React hydrates and
+         * before any visible paint. It reads the user's saved theme
+         * from localStorage and applies it via data-theme on <html>.
+         *
+         * Without this, every page load would render in the default
+         * theme (Night) for one frame, then snap to the user's
+         * actual preference. That snap is jarring; this prevents it.
+         *
+         * `suppressHydrationWarning` on <html> is required because
+         * the server can't know what data-theme the client will set.
+         */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );
