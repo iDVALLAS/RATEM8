@@ -1,7 +1,7 @@
 import ChatExperience from "@/components/ChatExperience";
 
 export const metadata = {
-  title: "M8 Chat — RateM8",
+  title: "M8 Chat — LoanM8",
   description:
     "Preview the M8 conversation experience — anti-steering rate display, hold-period analysis, and a real licensed loan officer ready to close.",
   // Legacy URL during stealth. /demo is the canonical preview route.

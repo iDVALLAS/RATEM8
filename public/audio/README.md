@@ -1,6 +1,6 @@
 # /public/audio/
 
-This directory holds audio assets served by RateM8.
+This directory holds audio assets served by LoanM8.
 
 ## greeting.mp3 (expected)
 

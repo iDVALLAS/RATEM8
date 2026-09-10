@@ -1,5 +1,5 @@
 /**
- * All user-facing copy for RateM8.
+ * All user-facing copy for LoanM8.
  *
  * Voice: populist, technically grounded, calm, honest, specific.
  *        Occasional Aussie warmth in microcopy ("G'day", "mate")
@@ -101,7 +101,7 @@ export const copy = {
   agentsPage: {
     eyebrow: "PARTNERSHIP",
     heading: "Built for agents who are tired of mortgage drama.",
-    sub: "RateM8 was designed alongside working agents in our licensed markets. Here is what the partnership actually looks like.",
+    sub: "LoanM8 was designed alongside working agents in our licensed markets. Here is what the partnership actually looks like.",
     sections: [
       {
         title: "The basics",
@@ -113,7 +113,7 @@ export const copy = {
       },
       {
         title: "Co-branded subdomain (coming)",
-        body: "When live, your buyers will land on agentname.ratem8.com — your face, your name, our engine. You stay the trusted brand.",
+        body: "When live, your buyers will land on agentname.loanm8.com — your face, your name, our engine. You stay the trusted brand.",
       },
       {
         title: "Compensation",
@@ -126,7 +126,7 @@ export const copy = {
   privacy: {
     heading: "Privacy — v1 statement",
     intro:
-      "RateM8 launches with a single principle on data: yours stays yours. This page is the short v1 statement. The full policy ships with the platform.",
+      "LoanM8 launches with a single principle on data: yours stays yours. This page is the short v1 statement. The full policy ships with the platform.",
     points: [
       "We do not sell leads. Ever.",
       "We do not share your data with third-party marketers.",
@@ -282,12 +282,12 @@ export const copy = {
     sub: `${ANCHOR_LO.name} is an NMLS-licensed mortgage loan originator authorized in ${STATE_LIST_LONG}. Every loan on this platform is closed personally by ${ANCHOR_LO.firstName} through a panel of wholesale lender partners. No call center. No transfers. One loan officer, start to close.`,
     sections: [
       {
-        title: "Why RateM8 exists",
-        body: `[${ANCHOR_LO.firstName}'s personal story goes here — a few paragraphs about why the existing mortgage shopping experience is broken, what you saw working with borrowers that frustrated you, and what RateM8 is meant to fix. Keep it specific, keep it honest. Avoid platitudes.]`,
+        title: "Why LoanM8 exists",
+        body: `[${ANCHOR_LO.firstName}'s personal story goes here — a few paragraphs about why the existing mortgage shopping experience is broken, what you saw working with borrowers that frustrated you, and what LoanM8 is meant to fix. Keep it specific, keep it honest. Avoid platitudes.]`,
       },
       {
         title: "The wholesale-broker advantage",
-        body: "A wholesale broker shops dozens of lenders on each file. A retail bank only sells you their own loans. That structural difference is why broker channel pricing usually beats retail bank pricing for the same borrower. RateM8 is a broker operation. Every loan file gets shopped — same algorithm, every time.",
+        body: "A wholesale broker shops dozens of lenders on each file. A retail bank only sells you their own loans. That structural difference is why broker channel pricing usually beats retail bank pricing for the same borrower. LoanM8 is a broker operation. Every loan file gets shopped — same algorithm, every time.",
       },
       {
         title: "What M8 is, what M8 isn't",
@@ -299,7 +299,7 @@ export const copy = {
   contact: {
     eyebrow: "CONTACT",
     heading: "One human. No call center.",
-    sub: `RateM8 is ${ANCHOR_LO.name}. There is no IVR, no support tier system, no offshore call center. If you email or call, you reach ${ANCHOR_LO.firstName}. If ${ANCHOR_LO.firstName} is in a closing, they'll get back to you within the business day.`,
+    sub: `LoanM8 is ${ANCHOR_LO.name}. There is no IVR, no support tier system, no offshore call center. If you email or call, you reach ${ANCHOR_LO.firstName}. If ${ANCHOR_LO.firstName} is in a closing, they'll get back to you within the business day.`,
     email: ANCHOR_LO.email,
     phone: ANCHOR_LO.phone,
   },

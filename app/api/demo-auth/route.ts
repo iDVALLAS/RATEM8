@@ -7,10 +7,10 @@ import { NextResponse } from "next/server";
  *
  * Body: { password: string }
  *
- * Success → sets `ratem8_demo_auth` cookie (httpOnly, secure, 30-day) and returns { ok: true }
+ * Success → sets `loanm8_demo_auth` cookie (httpOnly, secure, 30-day) and returns { ok: true }
  * Failure → returns 401 with error message, logs the attempt
  *
- * Cookie value is SHA-256 hash of "ratem8:" + password. The page checks
+ * Cookie value is SHA-256 hash of "loanm8:" + password. The page checks
  * the same hash on each request, so rotating DEMO_PASSWORD instantly
  * invalidates all existing cookies (since the hash changes).
  *
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 
   const response = NextResponse.json({ ok: true });
 
-  response.cookies.set("ratem8_demo_auth", hash, {
+  response.cookies.set("loanm8_demo_auth", hash, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
 
 async function hashPassword(pw: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode("ratem8:" + pw);
+  const data = encoder.encode("loanm8:" + pw);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");

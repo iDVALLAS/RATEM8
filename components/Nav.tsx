@@ -34,7 +34,7 @@ export function Nav() {
       }}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" aria-label="RateM8 home">
+        <Link href="/" aria-label="LoanM8 home">
           <Wordmark />
         </Link>
 

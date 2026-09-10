@@ -1,12 +1,12 @@
-# RateM8 — Claude Code Build Primer
+# LoanM8 — Claude Code Build Primer
 
-**Paste this entire document into Claude Code as your first message. It contains everything Claude Code needs to build RateM8 v1 and deploy it to Vercel on ratem8.com.**
+**Paste this entire document into Claude Code as your first message. It contains everything Claude Code needs to build LoanM8 v1 and deploy it to Vercel on loanm8.com.**
 
 ---
 
 ## Who you are working for
 
-Jason Shapiro, NMLS-licensed Mortgage Loan Originator. Operating entity, NMLS number, and current state licenses live in `lib/licensing.ts` (the single source of truth for everything compliance-related). RateM8 is the AI-powered mortgage rate shopping platform where every loan is closed by Jason personally via wholesale lender partners.
+Jason Shapiro, NMLS-licensed Mortgage Loan Originator. Operating entity, NMLS number, and current state licenses live in `lib/licensing.ts` (the single source of truth for everything compliance-related). LoanM8 is the AI-powered mortgage rate shopping platform where every loan is closed by Jason personally via wholesale lender partners.
 
 The AI assistant is called **M8** (built on Anthropic's Claude API). The brand voice is populist, technically grounded, calm, honest, specific. Never corporate, never pressuring, never effusive.
 
@@ -16,7 +16,7 @@ Tagline: **"Loan intelligence. Free for the people."**
 
 ## What you are building (v1 scope)
 
-A single-domain consumer platform at **ratem8.com** that serves two audiences from one homepage:
+A single-domain consumer platform at **loanm8.com** that serves two audiences from one homepage:
 
 1. **Borrowers** in WA, AZ, CA, and TX who want to shop mortgage rates without being sold to
 2. **Real estate agents** in WA, AZ, CA, and TX who want a mortgage partner that doesn't spam their buyers
@@ -57,7 +57,7 @@ DO build the architecture so M8 chat can drop into `/app/chat` later without ref
 --m8-charcoal: #1A1A19;   /* body text on paper */
 ```
 
-**Default theme: dark.** RateM8 is a dark-mode-first brand. The orb glows on `--m8-night`. The serif tagline reads in `--m8-paper` against the dark background. Light mode exists but is secondary.
+**Default theme: dark.** LoanM8 is a dark-mode-first brand. The orb glows on `--m8-night`. The serif tagline reads in `--m8-paper` against the dark background. Light mode exists but is secondary.
 
 ---
 
@@ -78,7 +78,7 @@ See `/components/Orb.tsx` for the reference implementation — start there.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  NAV  [RateM8 wordmark + mark]    For Agents  About  → │
+│  NAV  [LoanM8 wordmark + mark]    For Agents  About  → │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │                    [HERO ORB]                           │
@@ -179,7 +179,7 @@ Use brackets `[ ]` for any field Jason still needs to fill in. Don't invent lice
 
 ## Files to expect in this scaffold
 
-Start with what's in `/home/claude/ratem8/` — extend from there. Key files:
+Start with what's in `/home/claude/loanm8/` — extend from there. Key files:
 
 - `package.json` — Next.js 15, TypeScript, Tailwind v4, fonts
 - `app/layout.tsx` — Root layout with fonts and brand CSS variables
@@ -195,14 +195,14 @@ Start with what's in `/home/claude/ratem8/` — extend from there. Key files:
 
 ---
 
-## Deployment to ratem8.com
+## Deployment to loanm8.com
 
 After build:
 
-1. `git init && git add . && git commit -m "RateM8 v1"`
+1. `git init && git add . && git commit -m "LoanM8 v1"`
 2. Push to a private GitHub repo
 3. Connect repo to Vercel
-4. In Vercel: Project Settings → Domains → add `ratem8.com` and `www.ratem8.com`
+4. In Vercel: Project Settings → Domains → add `loanm8.com` and `www.loanm8.com`
 5. Update DNS at your registrar:
    - `A` record `@` → `76.76.21.21` (Vercel)
    - `CNAME` `www` → `cname.vercel-dns.com`

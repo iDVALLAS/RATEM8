@@ -27,7 +27,7 @@ import { M8_SESSION_KEY } from "@/lib/m8";
  *  - Any compliance-required disclosures beyond the footer
  */
 
-const M8_OPENING = `Hi. I'm M8, RateM8's mortgage assistant. I'm still being fine-tuned so this is a preview version — I can chat about how mortgages work but I can't quote live rates yet. What can I help you understand?`;
+const M8_OPENING = `Hi. I'm M8, LoanM8's mortgage assistant. I'm still being fine-tuned so this is a preview version — I can chat about how mortgages work but I can't quote live rates yet. What can I help you understand?`;
 
 export default function M8LiveChat() {
   const [messages, setMessages] = useState<M8Message[]>([]);

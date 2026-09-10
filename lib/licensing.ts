@@ -155,7 +155,7 @@ export const LOAN_OFFICERS: LoanOfficer[] = [
     nmls: "1844143",
     operatingEntity: {
       legalName: "Shapiro Home Loans LLC",
-      tradeName: "RateM8 Loan Intelligence",
+      tradeName: "LoanM8 Loan Intelligence",
     },
     states: [
       { state: "WA", fullName: "Washington", sponsor: HOME_TRUST_LOANS },

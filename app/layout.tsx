@@ -7,7 +7,7 @@ import { themeBootScript } from "@/lib/theme";
 import "./globals.css";
 
 /**
- * Exo — the primary typeface for RateM8.
+ * Exo — the primary typeface for LoanM8.
  * Geometric sans-serif. Used for headlines, body, and UI.
  *
  * Files live in /public/fonts/. Loaded via next/font/local for
@@ -57,18 +57,18 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
-const siteTitle = `RateM8 — ${copy.brand.tagline}`;
+const siteTitle = `LoanM8 — ${copy.brand.tagline}`;
 const siteDescription = `AI-powered mortgage rate shopping. Every loan closed by ${ANCHOR_LO.name}, NMLS-licensed in ${STATE_LIST_LONG}.`;
 
 export const metadata: Metadata = {
   title: siteTitle,
   description: siteDescription,
-  metadataBase: new URL("https://ratem8.com"),
+  metadataBase: new URL("https://loanm8.com"),
   openGraph: {
     title: siteTitle,
     description: siteDescription,
-    url: "https://ratem8.com",
-    siteName: "RateM8",
+    url: "https://loanm8.com",
+    siteName: "LoanM8",
     type: "website",
   },
 };

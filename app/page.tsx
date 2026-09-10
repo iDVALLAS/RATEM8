@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { LAUNCH_STATES_LONG } from "@/lib/states";
 
 export const metadata = {
-  title: "RateM8 — Coming soon",
-  description: "RateM8 Loan Intelligence is being built. Preview the M8 demo by invitation.",
+  title: "LoanM8 — Coming soon",
+  description: "LoanM8 Loan Intelligence is being built. Preview the M8 demo by invitation.",
   robots: { index: false, follow: false },
 };
 
@@ -30,7 +31,7 @@ export default function ComingSoonPage() {
             <span className="flex items-center gap-3">
               <span className="orb" style={{ width: 20, height: 20 }} />
               <span className="font-display font-medium tracking-tight text-lg">
-                Rate<span style={{ color: "var(--color-m8-green)" }}>M8</span>
+                Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
               </span>
             </span>
             <Link
@@ -65,8 +66,8 @@ export default function ComingSoonPage() {
             style={{ color: "var(--muted)" }}
           >
             AI-powered mortgage rate shopping, built by an originator who
-            closes every loan personally. Coming soon to Washington, Arizona,
-            California, and Texas — with more states to follow.
+            closes every loan personally. Coming soon to {LAUNCH_STATES_LONG}{" "}
+            — with more markets to follow.
           </p>
 
           <div className="mt-12 flex flex-col items-center gap-4">
