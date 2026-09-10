@@ -333,7 +333,7 @@ export default function ChatExperience() {
       <ChatInput />
 
       <div className="demo-disclosure">
-        RATEM8 never shares your data · Soft pull only ·{" "}
+        LOANM8 never shares your data · Soft pull only ·{" "}
         <b>Verified by a human MLO before signing</b> · NMLS #{ANCHOR_LO.nmls} ·{" "}
         Sample conversation. Live pricing not yet active.
       </div>

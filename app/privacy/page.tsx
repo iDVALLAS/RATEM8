@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import { copy } from "@/lib/copy";
 
 export const metadata = {
-  title: "Privacy — RateM8",
+  title: "Privacy — LoanM8",
   description:
     "We don't sell leads. We don't share your data. Full policy ships with platform launch.",
 };

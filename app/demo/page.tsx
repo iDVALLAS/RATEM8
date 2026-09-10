@@ -3,7 +3,7 @@ import ChatExperienceWithToggle from "@/components/ChatExperienceWithToggle";
 import DemoPasswordGate from "@/components/DemoPasswordGate";
 
 export const metadata = {
-  title: "M8 Preview — RateM8",
+  title: "M8 Preview — LoanM8",
   description:
     "Preview the M8 conversation experience. By invitation only.",
   robots: { index: false, follow: false },
@@ -23,7 +23,7 @@ export const metadata = {
 async function hashPassword(pw: string): Promise<string> {
   if (!pw) return "";
   const encoder = new TextEncoder();
-  const data = encoder.encode("ratem8:" + pw);
+  const data = encoder.encode("loanm8:" + pw);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -31,7 +31,7 @@ async function hashPassword(pw: string): Promise<string> {
 
 export default async function DemoPage() {
   const cookieStore = await cookies();
-  const authCookie = cookieStore.get("ratem8_demo_auth");
+  const authCookie = cookieStore.get("loanm8_demo_auth");
   const expectedHash = await hashPassword(process.env.DEMO_PASSWORD || "");
 
   const authed =

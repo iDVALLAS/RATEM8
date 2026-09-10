@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * RateM8 stealth-launch middleware — v9.1 (cookie-aware version).
+ * LoanM8 stealth-launch middleware — v9.1 (cookie-aware version).
  *
  * Behavior:
  *  - Anonymous visitors (no demo auth cookie): only / and /demo are
@@ -76,7 +76,7 @@ export function middleware(request: NextRequest) {
   //   - Authenticated visitor → marketing pages open, demo accessible
   //   - Stale cookie visitor → marketing pages open (low risk),
   //     demo prompts for password again (chat still gated)
-  const authCookie = request.cookies.get("ratem8_demo_auth");
+  const authCookie = request.cookies.get("loanm8_demo_auth");
   if (authCookie?.value) {
     return NextResponse.next();
   }

@@ -55,7 +55,7 @@ export default function DemoPasswordGate() {
             <a href="/" className="flex items-center gap-3" aria-label="Back to coming soon">
               <span className="orb" style={{ width: 20, height: 20 }} />
               <span className="font-display font-medium tracking-tight text-lg">
-                Rate<span style={{ color: "var(--color-m8-green)" }}>M8</span>
+                Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
               </span>
             </a>
             <span className="font-mono text-[10px] tracking-[0.18em] uppercase"

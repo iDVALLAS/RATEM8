@@ -1,4 +1,4 @@
-# RateM8 — Paper Mode Design Decisions
+# LoanM8 — Paper Mode Design Decisions
 
 Paper mode is the editorial light theme. Every decision below is a judgment call I made; this document exists so you can review them and override anything that looks wrong on your screen.
 

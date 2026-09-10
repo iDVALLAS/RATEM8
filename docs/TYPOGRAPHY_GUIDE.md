@@ -1,10 +1,10 @@
-# RateM8 — Typography Guide
+# LoanM8 — Typography Guide
 
 **Primary typeface: Exo**
 A geometric sans-serif designed by Natanael Gama. Modern, clean,
 slightly futuristic. Pairs naturally with the orb's geometric form.
 
-This guide is the rulebook. Anyone working on RateM8 — designers,
+This guide is the rulebook. Anyone working on LoanM8 — designers,
 developers, copywriters — should follow it.
 
 ---
@@ -135,7 +135,7 @@ for accents and the orb. Headlines stay paper-colored.
 
 ## Wordmark Specifics
 
-The "RateM8" wordmark is set in Exo **SemiBold (600)** with:
+The "LoanM8" wordmark is set in Exo **SemiBold (600)** with:
 - "Rate" in `--m8-paper`
 - "M8" in `--m8-green`
 - Letter spacing: `-0.02em`

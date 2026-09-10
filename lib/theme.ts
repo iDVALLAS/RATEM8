@@ -1,5 +1,5 @@
 /**
- * Theme system for RateM8.
+ * Theme system for LoanM8.
  *
  * Three modes:
  *  - "night"  — true dark (current default). Black background, luminous green orb.
@@ -16,7 +16,7 @@
  * Default behavior:
  *  - First visit: "night" (the brand default).
  *  - We deliberately do NOT respect prefers-color-scheme on first load.
- *    RateM8 IS a dark brand; users opt in to the others.
+ *    LoanM8 IS a dark brand; users opt in to the others.
  *  - Once a user picks, their choice persists across visits.
  *
  * No flash of wrong theme:
@@ -48,7 +48,7 @@ export const THEME_DOT_COLORS: Record<Theme, string> = {
   paper: "#FAFAF9",
 };
 
-export const THEME_KEY = "ratem8.theme";
+export const THEME_KEY = "loanm8.theme";
 export const DEFAULT_THEME: Theme = "night";
 
 /** Read the saved theme from localStorage, or fall back to the default. */

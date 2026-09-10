@@ -1,17 +1,23 @@
 /**
- * RateM8 footer.
+ * LoanM8 footer.
  *
  * Compliance-critical content for a regulated lender website.
  * All NMLS / sponsor / entity values pull from lib/licensing.ts —
  * the single source of truth. Update licensing.ts and disclosures
  * regenerate everywhere.
  *
+ * v11: State prose comes from lib/states.ts (LICENSED_STATES_LONG =
+ * legal license footprint, per the config-not-hardcoding pattern from
+ * the v11 master build prompt). The sponsor-per-state breakdown still
+ * lives in licensing.ts since that's the authoritative sponsor data.
+ *
  * Uses theme tokens so it works correctly in Night, Dim, and Paper modes.
  *
  * IMPORTANT: Verify the NMLS # for sponsoring entities on
  * nmlsconsumeraccess.org before the stealth gate lifts.
  */
-import { ANCHOR_LO, STATE_LIST_LONG } from "@/lib/licensing";
+import { ANCHOR_LO } from "@/lib/licensing";
+import { LICENSED_STATES_LONG } from "@/lib/states";
 
 export default function Footer() {
   // Group state licenses by sponsoring entity so we render one
@@ -39,7 +45,7 @@ export default function Footer() {
           <div className="flex items-center gap-3">
             <span className="orb" style={{ width: 18, height: 18 }} />
             <span className="font-display font-medium tracking-tight">
-              Rate<span style={{ color: "var(--color-m8-green)" }}>M8</span>
+              Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
               <span
                 className="ml-3 font-mono text-[10px] tracking-[0.2em] uppercase"
                 style={{ color: "var(--muted)" }}
@@ -66,7 +72,7 @@ export default function Footer() {
           <p className="mb-3">
             {ANCHOR_LO.operatingEntity.tradeName} is the trade name of{" "}
             {ANCHOR_LO.operatingEntity.legalName}. {ANCHOR_LO.name}, NMLS #
-            {ANCHOR_LO.nmls}. Licensed in {STATE_LIST_LONG}.
+            {ANCHOR_LO.nmls}. Licensed in {LICENSED_STATES_LONG}.
           </p>
           <p className="mb-3">
             {sponsorGroups.map((g, i) => (

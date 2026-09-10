@@ -65,7 +65,12 @@ export async function POST(req: Request) {
 
   const apiKey = process.env.RESEND_API_KEY;
   const toEmail = process.env.JASON_NOTIFICATION_EMAIL;
-  const fromEmail = process.env.RATEM8_FROM_EMAIL || "m8@ratem8.com";
+  // v11 rename: prefer LOANM8_FROM_EMAIL going forward; fall back to
+  // RATEM8_FROM_EMAIL so existing Vercel env config keeps working.
+  const fromEmail =
+    process.env.LOANM8_FROM_EMAIL ||
+    process.env.RATEM8_FROM_EMAIL ||
+    "m8@ratem8.com";
 
   const ip =
     req.headers.get("x-forwarded-for") ||
@@ -88,7 +93,7 @@ export async function POST(req: Request) {
     `REFERER: ${referer}`,
     `USER AGENT: ${ua}`,
     ``,
-    `— Sent by RateM8 /chat demo`,
+    `— Sent by LoanM8 /chat demo`,
   ].join("\n");
 
   // If we don't have Resend configured (e.g. local dev), just log

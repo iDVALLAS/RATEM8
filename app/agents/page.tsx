@@ -2,7 +2,7 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 
 export const metadata = {
-  title: "For Agents — RateM8",
+  title: "For Agents — LoanM8",
   description:
     "Built for agents who want to build their business at the speed of AI. Real loan officer. Real AI co-pilot. Real partnership.",
   // Per stealth-launch: this page is invisible from the homepage but
@@ -14,10 +14,10 @@ export const metadata = {
  * /agents — the partnership pitch page.
  *
  * Per v9 spec (Variant C, subscription-based):
- *  - Agents pay RateM8 for platform access, brand tools, AI co-pilot
+ *  - Agents pay LoanM8 for platform access, brand tools, AI co-pilot
  *    for their buyers
- *  - Money flows: Agent → RateM8 (clearly legal under RESPA)
- *  - Borrowers may or may not become RateM8 customers — that's their
+ *  - Money flows: Agent → LoanM8 (clearly legal under RESPA)
+ *  - Borrowers may or may not become LoanM8 customers — that's their
  *    choice, not a guaranteed deliverable to the agent
  *
  * Headline: "Built for Agents who want to build their business at
@@ -51,7 +51,7 @@ export default function AgentsPage() {
             <Link href="/" className="flex items-center gap-3">
               <span className="orb" style={{ width: 20, height: 20 }} />
               <span className="font-display font-medium tracking-tight text-lg">
-                Rate<span style={{ color: "var(--color-m8-green)" }}>M8</span>
+                Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
               </span>
             </Link>
             <Link
@@ -80,7 +80,7 @@ export default function AgentsPage() {
               className="text-xl leading-relaxed max-w-2xl mx-auto font-light"
               style={{ color: "var(--muted)" }}
             >
-              RateM8 is a partnership platform for top agents. Your buyers get
+              LoanM8 is a partnership platform for top agents. Your buyers get
               a real licensed loan officer + an AI co-pilot that never sleeps.
               You get the tools, the brand, and a pipeline that closes faster.
             </p>
@@ -144,7 +144,7 @@ export default function AgentsPage() {
               </p>
             </div>
 
-            {/* The split: old way vs RateM8 way */}
+            {/* The split: old way vs LoanM8 way */}
             <div className="grid sm:grid-cols-2 gap-6 mt-12">
               <div
                 className="p-6 rounded-2xl border"
@@ -221,7 +221,7 @@ export default function AgentsPage() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <PartnerCard
                 title="Your own M8 co-branded subdomain"
-                body="agentname.ratem8.com. Your name, photo, brokerage logo on every page. The exact M8 experience your buyers love — with your brand on top."
+                body="agentname.loanm8.com. Your name, photo, brokerage logo on every page. The exact M8 experience your buyers love — with your brand on top."
               />
               <PartnerCard
                 title="An LO who actually picks up"
@@ -233,7 +233,7 @@ export default function AgentsPage() {
               />
               <PartnerCard
                 title="Co-branded marketing assets"
-                body="Pre-built flyers, listing-presentation inserts, post-close gift kits, social posts. RateM8 + your branding. Use them, modify them, or ignore them."
+                body="Pre-built flyers, listing-presentation inserts, post-close gift kits, social posts. LoanM8 + your branding. Use them, modify them, or ignore them."
               />
               <PartnerCard
                 title="Anti-steering by design"
@@ -266,7 +266,7 @@ export default function AgentsPage() {
               className="text-lg leading-relaxed font-light mb-6"
               style={{ color: "var(--muted)" }}
             >
-              RateM8 is a subscription platform for real estate agents.
+              LoanM8 is a subscription platform for real estate agents.
               Your monthly fee covers your co-branded subdomain, your
               marketing assets, your pipeline dashboard, and access to
               M8 for your buyers. That&apos;s what you pay for.

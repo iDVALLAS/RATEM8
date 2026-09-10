@@ -1,4 +1,4 @@
-# RateM8
+# LoanM8
 
 **Loan intelligence. Free for the people.**
 
@@ -37,7 +37,7 @@ git push origin main
 Then in Vercel:
 1. Import the repo
 2. Set environment variables (the two `NEXT_PUBLIC_CALENDLY_*` URLs)
-3. Add domain `ratem8.com` and `www.ratem8.com`
+3. Add domain `loanm8.com` and `www.loanm8.com`
 4. Update DNS at your registrar:
    - A record `@` → `76.76.21.21`
    - CNAME `www` → `cname.vercel-dns.com`
@@ -53,7 +53,7 @@ app/
   privacy/page.tsx    # v1 privacy statement
 components/
   Orb.tsx             # The breathing teal-green orb (brand identity)
-  Wordmark.tsx        # RateM8 wordmark + subname
+  Wordmark.tsx        # LoanM8 wordmark + subname
   Nav.tsx             # Sticky top nav
   Footer.tsx          # Compliance footer with NMLS, Equal Housing
   PrincipleCard.tsx   # Used in the 8 principles grid
@@ -79,7 +79,7 @@ See `CLAUDE_CODE_PRIMER.md` in the project root. Short version:
 - **v2 (weeks 4–6):** M8 text chat at `/chat` — Claude API integration
 - **v3 (weeks 7–12):** Live wholesale pricing + 3-card anti-steering display + soft-pull credit
 - **v4 (month 3+):** Voice agent via Vapi + ElevenLabs + Deepgram
-- **v5 (month 5+):** Co-branded agent subdomains (`agentname.ratem8.com`)
+- **v5 (month 5+):** Co-branded agent subdomains (`agentname.loanm8.com`)
 
 ---
 

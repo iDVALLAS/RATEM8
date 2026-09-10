@@ -16,7 +16,7 @@ export default function Wordmark({
       {showMark ? <Orb size="mark" /> : null}
       <span className="inline-flex flex-col leading-none">
         <span className="font-display text-xl tracking-tight">
-          Rate<span className="text-[var(--color-m8-green)]">M8</span>
+          Loan<span className="text-[var(--color-m8-green)]">M8</span>
         </span>
         {showSubname ? (
           <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--muted)] mt-1">
