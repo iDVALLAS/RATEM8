@@ -33,8 +33,18 @@ export default function DemoPasswordGate() {
       });
 
       if (res.ok) {
-        // Reload — middleware/server will pick up the new cookie
-        window.location.reload();
+        // Redirect to the homepage instead of reloading /demo.
+        // The homepage is cookie-aware (see app/page.tsx): with the
+        // new auth cookie set, the visitor lands on the full marketing
+        // homepage (breathing orb, principles, how-it-works, etc.)
+        // rather than staying on the demo chat surface. This makes
+        // /demo an auth checkpoint, not a destination — the site
+        // becomes explorable from the front door the moment they
+        // authenticate.
+        //
+        // They can still navigate to /demo (or /chat) directly to
+        // see the chat interface with the Scripted/Live M8 toggle.
+        window.location.href = "/";
       } else {
         const data = await res.json().catch(() => ({}));
         setStatus("error");
