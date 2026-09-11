@@ -6,6 +6,127 @@ picking this up — can pick up without re-explaining context.
 
 ---
 
+## v11 Tier 2 (calculators) — 12 mortgage calculators + /tools index
+
+**Scope:** All 12 calculators from the v11 Tier 2 spec, plus the two
+additions the user requested (bi-weekly, payoff acceleration) and the
+four I proposed (VA funding fee, PMI drop-off, closing costs, escrow).
+Zero compliance surface area — all educational, all client-side, no
+personal data collected.
+
+### What shipped
+
+**Shared infrastructure**
+- `lib/calc/mortgage.ts` — pure mortgage math (monthlyPI,
+  amortizationSchedule, totalInterest, payoffWithExtraPayment,
+  payoffWithLumpSum, extraNeededForTargetMonths, biWeeklyComparison).
+  All pure functions, unit-testable, no React, no I/O.
+- `lib/calc/format.ts` — display formatters (formatDollars,
+  formatDollarsCents, formatRate, formatPercent1, formatMonths).
+- `components/calc/CalcInput.tsx` — `CalcInput`, `DollarInput`,
+  `PercentInput`. Same brand card treatment across all 12 calcs.
+- `components/calc/ResultCard.tsx` — `ResultCard`, `ResultRow`.
+- `components/calc/CalcLayout.tsx` — page shell: Nav + breadcrumb +
+  hero + calculator body + soft CTA to /demo + Footer. Standardizes
+  the "Want to talk this through with M8?" close-out across all 12.
+
+**12 calculators at `/tools/[slug]`**
+
+Buying group:
+1. `/tools/monthly-payment` — full PITI + HOA, not just P&I
+2. `/tools/dti` — back-end DTI vs 43% QM guideline + 36% comfort zone
+3. `/tools/rent-vs-buy` — 7-year total cost comparison with equity math
+4. `/tools/closing-costs` — state-aware range (WA/AZ/CA/TX), explicitly
+   labeled "not a Loan Estimate" for TRID safety
+5. `/tools/escrow` — monthly escrow + RESPA cushion + prepaid tax
+
+Refinancing / payoff group:
+6. `/tools/refi-breakeven` — months until closing costs earn back
+7. `/tools/points` — discount points cost vs breakeven vs horizon
+8. `/tools/bi-weekly` — 26 half-payments = 13 monthly-equivalent,
+   with "DIY equivalent = add 1/12 to monthly" callout
+9. `/tools/payoff-acceleration` — three modes (extra $/mo, lump sum,
+   target date) sharing the same math engine
+10. `/tools/amortization` — inline SVG chart of balance/principal/
+    interest over loan life. No chart library.
+
+Program-specific group:
+11. `/tools/va-funding-fee` — first-time vs subsequent-use tier logic
+    per Public Law 116-315 rates through 2028
+12. `/tools/pmi-drop` — 78% LTV auto vs 80% request per Homeowners
+    Protection Act, projected off original amortization schedule
+
+**`/tools` index page** — three-group card grid (Buying, Refi+payoff,
+Program-specific). Same PrincipleCard visual language.
+
+**Nav updated** — `/tools` added to `PRIMARY_LINKS` in `components/Nav.tsx`
+now that the pages exist.
+
+### Design consistency
+
+Every calculator follows the same pattern per the v11 prompt:
+- Client-side React, `useMemo` for calculation, no backend calls,
+  no data persistence
+- Same `CalcLayout` shell: Nav → breadcrumb (`Tools · <calc>`) →
+  page hero → 2-column input/output grid → soft CTA → Footer
+- Single soft CTA at the bottom: *"Want to talk this through with M8?"*
+  linking to `/demo`
+- No urgency, no scarcity, no "get a quote in 60 seconds"
+- Every calculator flags its estimate nature ("rough range",
+  "confirmed on Loan Estimate", etc.) so it can't be mistaken for
+  a personalized quote
+- Uses theme tokens; works across Night/Dim/Paper
+
+### Not in this PR (deferred)
+
+Per the v11 prompt scoping ("if you run out of runway, stopping after
+Tier 2 is still a genuinely strong night's work"), the other Tier 2
+pieces will each be their own PR:
+
+- **Glossary hub at `/learn/glossary`** — 40–60 terms, SEO play
+- **Loan program comparison at `/learn/loan-types`** — conventional
+  vs FHA vs VA vs Non-QM educational tables
+- **Local market pages at `/markets/[city]`** — driven off LAUNCH_STATES
+  (Bellevue, Kirkland, Edmonds, Seattle corridor; Phoenix/Chandler)
+- **Freddie Mac PMMS rate-context module** — behind stealth, compliance
+  review flag ("does this trigger TRID advertised-rate disclosure?")
+
+Tier 1 (perf pass, JSON-LD schema, sitemap), Tier 3 (mobile rebuild,
+PDF), Tier 4 (chat polish), Tier 5 (content pipeline) — each their
+own PR.
+
+### URL-param sharing (deferred to a small follow-up)
+
+The v11 prompt calls for shareable calc URLs via URL params. Each
+calculator's `useState` inputs are ready for that pattern; I didn't
+wire the `URLSearchParams` sync in this PR to keep the diff focused
+on the calculators themselves. Straightforward add in a follow-up:
+one `useEffect` per calc that reads params on mount and writes them
+on change. Tracked in the roadmap.
+
+### Compliance surface
+
+Nothing here needs new attorney sign-off beyond the existing v10.0/
+v11 Tier 0 items:
+- No personalized quote flow
+- No credit-related content beyond neutral education
+- No collection of PII (input state is client-side only)
+- All "rate" numbers are calculator inputs (user-typed), never
+  fetched or advertised
+
+The closing-costs and VA-funding-fee pages explicitly say "estimate
+only, confirmed on Loan Estimate" in their footers. The escrow page
+notes RESPA cushion is federal max. The PMI-drop page cites the
+Homeowners Protection Act.
+
+### Verified
+
+- `npm run build` clean: 21 static pages + 3 API + middleware
+- Every `/tools/*` route returns 200 in dev-server smoke test
+- Index page renders all 12 calc titles
+
+---
+
 ## v11 Tier 0 — Rename & State-Scope Configurability
 
 **Scope:** Rename-only, plus the state-scope config foundation the v11
