@@ -7,11 +7,15 @@ import ThemeToggle from "./ThemeToggle";
 
 /* Trimmed to routes that currently exist. v8 patch shipped a Nav
  * referencing /purchase, /refinance, /home-equity, /loan-types,
- * /tools, /rates, /about, /contact — those pages aren't built yet;
+ * /rates, /about, /contact — those pages aren't built yet;
  * lib/copy.ts has the content data ready, but no page.tsx files
  * exist for them. Re-add to PRIMARY_LINKS / MORE_LINKS as the
- * subpages get built. */
+ * subpages get built.
+ *
+ * v11 Tier 2: /tools now exists (12 calculators). Added to PRIMARY.
+ */
 const PRIMARY_LINKS = [
+  { href: "/tools", label: "Calculators" },
   { href: "/chat", label: "M8 Chat" },
   { href: "/agents", label: "For agents" },
 ];
