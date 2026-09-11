@@ -6,6 +6,99 @@ picking this up — can pick up without re-explaining context.
 
 ---
 
+## Pre-Launch To-Do — MUST clear before lifting the stealth gate
+
+Ordered roughly by dependency. Most items block the day you flip
+`NEXT_PUBLIC_STEALTH_MODE=false` and open loanm8.com to real borrowers.
+
+### Compliance / legal (blocking — attorney sign-off required)
+
+1. **Attorney review of the v10.1 real M8 system prompt** — currently
+   `lib/m8.ts` ships the v10.0 PLACEHOLDER prompt. Real M8 personality
+   with brand voice, 8 principles, anti-steering rules, refusal
+   patterns still needs writing + attorney redline.
+2. **v10.2 compliance guardrails** — recording consent, transcript-
+   on-demand, audit logging, rate limiting on `/api/m8-chat` and
+   `/api/demo-auth`. None shipped yet. Blocking for public voice or
+   chat with real borrowers.
+3. **Attorney review of the generated footer disclaimer** — the
+   `buildDisclaimer()` output in `lib/licensing.ts` is patch-author
+   boilerplate. Needs redline before public.
+4. **LoanM8 trade name registration** confirmed in each licensed
+   state (WA/AZ/CA/TX). Footer claims *"LoanM8 Loan Intelligence is
+   the trade name of Shapiro Home Loans LLC"* — that must be
+   filed/registered under LoanM8, not just RateM8.
+5. **Verify sponsor NMLS numbers** on nmlsconsumeraccess.org —
+   Home Trust Loans #1761573, Home Financial AZ #1037722.
+6. **"49 STATES" badge on `/demo` LO card** — flagged in v9 for
+   attorney review. Decide: keep as platform-coverage messaging,
+   swap to per-state dynamic, or remove.
+7. **Two-party recording consent disclosure** in the UI before any
+   voice conversation feature ships in WA or CA (both LAUNCH_STATES
+   are two-party consent).
+
+### Voice conversation (deferred, wanted before public launch)
+
+8. **Vapi live push-to-talk voice chat** on the M8 orb. Tap orb →
+   ElevenLabs Aussie TTS + Deepgram STT + Claude via Vapi WebRTC.
+   ~1 focused PR of work once you have a Vapi account + assistant
+   configured. Skipping wake-word ("M8" continuous listening) per
+   user direction. See "Phase 2" write-up in session context.
+   - Prereqs: Vapi account, ElevenLabs voice picked (Charlotte
+     female / Callum male / voice-clone your own), $50 Vapi budget
+     cap set, recording-consent UI banner in place (item 7 above).
+
+### Feature completeness (nice-to-have, not strictly blocking)
+
+9. **v11 Tier 1** — JSON-LD schema on every page, per-page metadata
+   completeness, next-sitemap wiring, Lighthouse perf audit,
+   analytics event schema. Highest SEO leverage before traffic
+   arrives.
+10. **v11 Tier 2 remaining** — glossary at `/learn/glossary`
+    (40–60 terms), loan program comparison at `/learn/loan-types`,
+    local market pages at `/markets/[city]` driven off
+    LAUNCH_STATES, Freddie Mac PMMS rate-context module
+    (compliance flag on the last one).
+11. **v11 Tier 3** — mobile homepage rebuild to match approved
+    mockup, Rate Strategy Brief PDF generator, verified-trust
+    module.
+12. **v11 Tier 4** — chat polish (typing indicator, graceful SSE
+    reconnect, mobile full-screen modal), 3-card anti-steering
+    display with sample-data label.
+13. **v11 Tier 5** — MDX content pipeline, email capture via ESP,
+    agent subdomain routing scaffold (`agentname.loanm8.com`).
+14. **URL-param sharing on calculators** — every `useState` input
+    already structured; just needs a `useEffect` per calc to sync
+    inputs with `URLSearchParams`. Small follow-up.
+
+### Ops / infra (blocking, quick clicks)
+
+15. **Delete duplicate `ratem-8-m4oy` Vercel project** — every push
+    still builds twice until you do. Zero risk if only you use it.
+16. **Rotate leaked Anthropic API key** (if not already done) —
+    the one pasted mid-session lives in this transcript.
+17. **Set `$50/month spending cap`** on the Anthropic API in
+    console.anthropic.com for the chat API, and another `$50/month`
+    on Vapi when that's set up.
+
+### Content / brand (Jason's queue)
+
+18. **Fill placeholder phone number** in `lib/licensing.ts`
+    (`phone: "[(XXX) XXX-XXXX]"`) — currently unused on any live
+    page, but should be real before you build a `/contact` route.
+19. **Personal story paragraphs** for `copy.aboutPage.sections[0].body`
+    ("Why LoanM8 exists") — currently a `[Jason's personal story
+    goes here — a few paragraphs about ...]` placeholder.
+20. **Real `greeting.mp3` recording** — obviated once Vapi live
+    voice is in (Vapi handles TTS live, no static file needed).
+    Skip this if item 8 lands first.
+21. **`ratem8.com` email addresses** — currently `jason@ratem8.com`,
+    `privacy@ratem8.com`, `m8@ratem8.com` in code defaults and
+    Vercel env vars. Update to `@loanm8.com` when Jason sets up
+    loanm8.com email (or configure forwarding at Cloudflare).
+
+---
+
 ## v11 Tier 2 follow-up — Cookie-aware homepage
 
 **Scope:** Authenticated testers now see the full marketing homepage
