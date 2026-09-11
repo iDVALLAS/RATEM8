@@ -1,95 +1,53 @@
-import Link from "next/link";
-import Footer from "@/components/Footer";
-import { LAUNCH_STATES_LONG } from "@/lib/states";
+import { cookies } from "next/headers";
+import ComingSoonHomePage from "@/components/ComingSoonHomePage";
+import MarketingHomePage from "@/components/MarketingHomePage";
 
 export const metadata = {
+  // Public metadata uses the coming-soon framing since anonymous
+  // visitors (and search engines, which never carry the auth cookie)
+  // see that version. Authenticated testers just don't see the tab
+  // title change — it stays "LoanM8 — Coming soon" for them too, which
+  // is fine.
   title: "LoanM8 — Coming soon",
-  description: "LoanM8 Loan Intelligence is being built. Preview the M8 demo by invitation.",
+  description:
+    "LoanM8 Loan Intelligence is being built. Preview the M8 demo by invitation.",
   robots: { index: false, follow: false },
 };
 
 /**
- * Coming-soon homepage during stealth launch.
+ * Cookie-aware homepage selector (v11 Tier 2 follow-up).
  *
- * Per the v9 spec:
- *  - Quiet, brand-correct (breathing orb, single serif line)
- *  - Small "Preview the demo" link for friendly testers who have the password
- *  - Footer compliance disclosure stays (NMLS, Equal Housing) — this page
- *    is publicly accessible and a regulated entity's homepage has to carry
- *    those disclosures even in stealth
- *  - noindex, nofollow in metadata so search engines don't index it
+ * - Anonymous visitors (no `loanm8_demo_auth` cookie) see the
+ *   ComingSoonHomePage — the quiet "M8 is being built." page with
+ *   a link to /demo.
+ * - Authenticated testers (cookie present, signed by the current
+ *   DEMO_PASSWORD) see the full MarketingHomePage — the breathing
+ *   VoiceOrb, TermField, eight principles, how-it-works, For Agents,
+ *   About Jason. The site as it will be post-launch.
  *
- * When NEXT_PUBLIC_STEALTH_MODE=false later, this file gets replaced by
- * the actual marketing homepage. For now, it IS the homepage.
+ * The cookie check here is SHALLOW — we only verify the cookie
+ * exists. The deep hash validation still happens in /demo/page.tsx
+ * before chat content renders. So:
+ *   - Stale-cookie visitors (after DEMO_PASSWORD rotation) still
+ *     see the marketing homepage. Low risk — no confidential
+ *     content on the marketing pages, and their /demo access is
+ *     already gone.
+ *   - Anonymous visitors are always blocked from the marketing
+ *     homepage until they enter the password on /demo.
+ *
+ * When `NEXT_PUBLIC_STEALTH_MODE=false` (public launch), this file
+ * can be simplified to always render MarketingHomePage — the cookie
+ * check becomes irrelevant.
+ *
+ * `cookies()` is async in Next 15 App Router; this must be an
+ * async server component.
  */
-export default function ComingSoonPage() {
-  return (
-    <>
-      <main className="relative grain min-h-screen flex flex-col">
-        <header className="px-6 py-6">
-          <div className="mx-auto max-w-7xl flex items-center justify-between">
-            <span className="flex items-center gap-3">
-              <span className="orb" style={{ width: 20, height: 20 }} />
-              <span className="font-display font-medium tracking-tight text-lg">
-                Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
-              </span>
-            </span>
-            <Link
-              href="/demo"
-              className="font-mono text-[10px] tracking-[0.18em] uppercase transition-colors"
-              style={{ color: "var(--color-m8-green)" }}
-            >
-              Preview the demo →
-            </Link>
-          </div>
-        </header>
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const authed = !!cookieStore.get("loanm8_demo_auth");
 
-        <section className="flex-1 px-6 py-20 flex flex-col items-center justify-center text-center">
-          <div className="mb-14">
-            <span className="orb" style={{ width: 180, height: 180 }} />
-          </div>
-
-          <p className="font-mono text-[11px] tracking-[0.2em] uppercase mb-6"
-             style={{ color: "var(--color-m8-green)" }}>
-            Loan Intelligence
-          </p>
-
-          <h1
-            className="tagline text-5xl sm:text-7xl mb-10"
-            style={{ maxWidth: "20ch" }}
-          >
-            M8 is being built.
-          </h1>
-
-          <p
-            className="text-lg leading-relaxed max-w-md mx-auto font-light"
-            style={{ color: "var(--muted)" }}
-          >
-            AI-powered mortgage rate shopping, built by an originator who
-            closes every loan personally. Coming soon to {LAUNCH_STATES_LONG}{" "}
-            — with more markets to follow.
-          </p>
-
-          <div className="mt-12 flex flex-col items-center gap-4">
-            <Link
-              href="/demo"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-base transition-all"
-              style={{
-                background: "var(--color-m8-green)",
-                color: "var(--color-m8-forest)",
-              }}
-            >
-              Preview the M8 demo
-              <span>→</span>
-            </Link>
-            <p className="font-mono text-[10px] tracking-[0.15em] uppercase"
-               style={{ color: "var(--muted)" }}>
-              By invitation · Password required
-            </p>
-          </div>
-        </section>
-      </main>
-      <Footer />
-    </>
-  );
+  if (authed) {
+    return <MarketingHomePage />;
+  }
+  return <ComingSoonHomePage />;
 }

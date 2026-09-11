@@ -6,6 +6,63 @@ picking this up — can pick up without re-explaining context.
 
 ---
 
+## v11 Tier 2 follow-up — Cookie-aware homepage
+
+**Scope:** Authenticated testers now see the full marketing homepage
+at `/`; anonymous visitors still see the coming-soon page. Same URL,
+different content by auth state. Restores the v8 marketing homepage
+(breathing VoiceOrb, TermField, 8 principles, how-it-works, agents
+teaser, about Jason) from git history — it was replaced by the
+coming-soon page in v9's stealth patch and lived only in git until now.
+
+### What shipped
+
+- **New: `components/ComingSoonHomePage.tsx`** — extracted from the
+  previous `app/page.tsx` verbatim. Same "M8 is being built." UX.
+- **New: `components/MarketingHomePage.tsx`** — restored from commit
+  `4839504` (v7 + V4 term-field restore, right before v9's coming-soon
+  replaced it). Uses current copy.ts / licensing.ts values so all
+  the LoanM8 renames flow through.
+- **Rewrote `app/page.tsx`** — now an async server component that
+  reads the `loanm8_demo_auth` cookie via `next/headers` and picks
+  the right component:
+  - Cookie present → `<MarketingHomePage />`
+  - No cookie → `<ComingSoonHomePage />`
+- The route becomes dynamic (`ƒ /` in Next's route table) instead of
+  static. Same First Load JS as before (~109 kB); server-side selection
+  keeps client bundles unchanged.
+
+### Behavior
+
+| Visitor | Homepage they see |
+|---|---|
+| Anonymous (no cookie) | Coming-soon: "M8 is being built." + Preview the demo link |
+| Cookie present (any value) | Full marketing homepage: VoiceOrb, TermField, principles, how-it-works, agents, about |
+| Cookie present but STALE (DEMO_PASSWORD rotated) | Still marketing homepage (shallow check). Their `/demo` access is gone, but no confidential content on the marketing site, so low-risk. |
+
+### Cookie check is shallow on purpose
+
+The homepage only checks that the cookie EXISTS. The deep SHA-256
+hash validation still lives in `app/demo/page.tsx` before chat renders.
+Same pattern the middleware (v9.1) uses. Marketing pages are not
+sensitive; the chat is, so the chat does the strict check.
+
+### Post-launch simplification
+
+When `NEXT_PUBLIC_STEALTH_MODE=false` (public launch), `app/page.tsx`
+can be reduced to `return <MarketingHomePage />`. The
+ComingSoonHomePage component stays in the repo for future maintenance
+mode / any-return-to-stealth scenario.
+
+### Verified
+
+- `npm run build` clean; `/` correctly reports as dynamic
+- Anonymous request → coming-soon HTML with "M8 is being built"
+- Cookie'd request → marketing HTML with "What we owe you" (principles
+  heading) and "WHO CLOSES" (about eyebrow); zero coming-soon text
+
+---
+
 ## v11 Tier 2 (calculators) — 12 mortgage calculators + /tools index
 
 **Scope:** All 12 calculators from the v11 Tier 2 spec, plus the two
