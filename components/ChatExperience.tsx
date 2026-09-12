@@ -41,7 +41,7 @@ export default function ChatExperience() {
               M8
             </span>
             <span className="font-display font-bold tracking-tight">
-              LOAN<span className="text-[var(--color-m8-green)]">M8</span>
+              Loan<span className="text-[var(--color-m8-green)]">M8</span>
             </span>
           </Link>
           <span className="ml-3 hidden sm:inline font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--muted)]">
@@ -72,7 +72,7 @@ export default function ChatExperience() {
                 key={conv.id}
                 className={`px-3 py-2 rounded-md text-sm cursor-pointer transition-colors ${
                   conv.active
-                    ? "bg-[color-mix(in_srgb,var(--color-m8-green)_12%,transparent)] text-[var(--fg)]"
+                    ? "bg-[var(--active-tab-bg)] text-[var(--fg)]"
                     : "text-[var(--muted)] hover:text-[var(--fg)]"
                 }`}
               >

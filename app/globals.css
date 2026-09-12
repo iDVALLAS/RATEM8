@@ -58,6 +58,10 @@
   --grain-opacity: 0.04;
   --grain-blend: overlay;
 
+  /* Active nav-pill background (Chat sidebar conversation list, etc.)
+     — subtle green tint against dark bg reads correctly at 12%. */
+  --active-tab-bg: color-mix(in srgb, var(--color-m8-green) 12%, transparent);
+
   color-scheme: dark;
 }
 
@@ -86,6 +90,10 @@
   --rate-card-bg: color-mix(in srgb, var(--color-m8-forest) 30%, #0B1F18);
   --grain-opacity: 0.03;
   --grain-blend: overlay;
+
+  /* Active nav-pill background — same 12% as Night reads well on Dim's
+     forest bg too. */
+  --active-tab-bg: color-mix(in srgb, var(--color-m8-green) 12%, transparent);
 
   color-scheme: dark;
 }
@@ -132,6 +140,11 @@
 
   /* Rate cards: hairline border on white, not glowing forest fill. */
   --rate-card-bg: #FFFFFF;
+
+  /* Active nav-pill background — bumped from 12% (Night/Dim) to 22%
+     on paper so the tint reads clearly against the near-white bg.
+     12% was invisible; 22% still feels subtle, not shouty. */
+  --active-tab-bg: color-mix(in srgb, var(--color-m8-green) 22%, transparent);
 
   /* Grain at very low opacity, using multiply not overlay (multiply
      works correctly on light backgrounds; overlay washes out). */
