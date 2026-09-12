@@ -41,7 +41,7 @@ export default function ChatExperience() {
               M8
             </span>
             <span className="font-display font-bold tracking-tight">
-              RATE<span className="text-[var(--color-m8-green)]">M8</span>
+              LOAN<span className="text-[var(--color-m8-green)]">M8</span>
             </span>
           </Link>
           <span className="ml-3 hidden sm:inline font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--muted)]">
@@ -72,8 +72,8 @@ export default function ChatExperience() {
                 key={conv.id}
                 className={`px-3 py-2 rounded-md text-sm cursor-pointer transition-colors ${
                   conv.active
-                    ? "bg-[color-mix(in_srgb,var(--color-m8-green)_12%,transparent)] text-[var(--color-m8-paper)]"
-                    : "text-[var(--muted)] hover:text-[var(--color-m8-paper)]"
+                    ? "bg-[color-mix(in_srgb,var(--color-m8-green)_12%,transparent)] text-[var(--fg)]"
+                    : "text-[var(--muted)] hover:text-[var(--fg)]"
                 }`}
               >
                 {conv.active && (
@@ -91,7 +91,7 @@ export default function ChatExperience() {
             {c.tools.map((t) => (
               <li
                 key={t}
-                className="px-3 py-2 rounded-md text-sm text-[var(--muted)] hover:text-[var(--color-m8-paper)] cursor-pointer flex items-center gap-2"
+                className="px-3 py-2 rounded-md text-sm text-[var(--muted)] hover:text-[var(--fg)] cursor-pointer flex items-center gap-2"
               >
                 <span className="text-[var(--color-m8-green)]">·</span> {t}
               </li>
@@ -125,7 +125,7 @@ export default function ChatExperience() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="msg-meta">
-                    <span className="font-medium text-[var(--color-m8-paper)]">
+                    <span className="font-medium text-[var(--fg)]">
                       {msg.sender}
                     </span>
                     <span className="mx-2 opacity-50">·</span>
@@ -138,13 +138,13 @@ export default function ChatExperience() {
                     msg.content.map((p, j) => (
                       <p
                         key={j}
-                        className="text-[15px] leading-relaxed text-[var(--color-m8-paper)] mb-3 last:mb-0"
+                        className="text-[15px] leading-relaxed text-[var(--fg)] mb-3 last:mb-0"
                       >
                         {p}
                       </p>
                     ))
                   ) : (
-                    <p className="text-[15px] leading-relaxed text-[var(--color-m8-paper)]">
+                    <p className="text-[15px] leading-relaxed text-[var(--fg)]">
                       {msg.content}
                     </p>
                   )}
@@ -172,7 +172,7 @@ export default function ChatExperience() {
                             {r.rank}
                           </div>
                           <div>
-                            <div className="font-display font-semibold text-base text-[var(--color-m8-paper)]">
+                            <div className="font-display font-semibold text-base text-[var(--fg)]">
                               {r.lender}
                             </div>
                             <div className="font-mono text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] mt-1">
@@ -188,7 +188,7 @@ export default function ChatExperience() {
                             <div className="rate-num-secondary">{r.paymentType}</div>
                           </div>
                           <div className="text-xs text-[var(--muted)]">
-                            <div className="text-[var(--color-m8-paper)] mb-1">
+                            <div className="text-[var(--fg)] mb-1">
                               {r.pointsLabel}
                             </div>
                             <div className="leading-tight">{r.pointsDetail}</div>
@@ -292,7 +292,7 @@ export default function ChatExperience() {
             {c.m8Code.map((p) => (
               <li
                 key={p.n}
-                className="flex gap-3 text-sm text-[var(--color-m8-paper)] leading-snug"
+                className="flex gap-3 text-sm text-[var(--fg)] leading-snug"
               >
                 <span className="font-mono text-xs text-[var(--muted)] flex-shrink-0 pt-0.5">
                   {p.n}
