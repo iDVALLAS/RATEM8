@@ -41,7 +41,7 @@ export default function ChatExperience() {
               M8
             </span>
             <span className="font-display font-bold tracking-tight">
-              LOAN<span className="text-[var(--color-m8-green)]">M8</span>
+              Loan<span className="text-[var(--color-m8-green)]">M8</span>
             </span>
           </Link>
           <span className="ml-3 hidden sm:inline font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--muted)]">
