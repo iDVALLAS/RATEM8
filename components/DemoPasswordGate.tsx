@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useState } from "react";
 import Footer from "./Footer";
 
@@ -62,12 +64,12 @@ export default function DemoPasswordGate() {
       <main className="grain min-h-screen flex flex-col">
         <header className="px-6 py-6">
           <div className="mx-auto max-w-7xl flex items-center justify-between">
-            <a href="/" className="flex items-center gap-3" aria-label="Back to coming soon">
+            <Link href="/" className="flex items-center gap-3" aria-label="Back to coming soon">
               <span className="orb" style={{ width: 20, height: 20 }} />
               <span className="font-display font-medium tracking-tight text-lg">
                 Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
               </span>
-            </a>
+            </Link>
             <span className="font-mono text-[10px] tracking-[0.18em] uppercase"
                   style={{ color: "var(--muted)" }}>
               Demo · Invitation only

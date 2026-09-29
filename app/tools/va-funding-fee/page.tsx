@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import CalcLayout from "@/components/calc/CalcLayout";
-import { DollarInput, PercentInput, CalcInput } from "@/components/calc/CalcInput";
+import { DollarInput, PercentInput } from "@/components/calc/CalcInput";
 import { ResultCard, ResultRow } from "@/components/calc/ResultCard";
 import { formatDollars, formatPercent1 } from "@/lib/calc/format";
 

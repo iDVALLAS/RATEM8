@@ -1,137 +1,102 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Wordmark from "./Wordmark";
 import ThemeToggle from "./ThemeToggle";
+import { copy } from "@/lib/copy";
 
-/* Trimmed to routes that currently exist. v8 patch shipped a Nav
- * referencing /purchase, /refinance, /home-equity, /loan-types,
- * /rates, /about, /contact — those pages aren't built yet;
- * lib/copy.ts has the content data ready, but no page.tsx files
- * exist for them. Re-add to PRIMARY_LINKS / MORE_LINKS as the
- * subpages get built.
- *
- * v11 Tier 2: /tools now exists (12 calculators). Added to PRIMARY.
+/**
+ * Nav — sticky top bar.
+ * Desktop: Wordmark, Calculators, M8 Chat, For agents, Principles,
+ * About, Privacy, theme toggle. Mobile: a clean sheet menu with the
+ * same links plus the secondary set (Second Look, For MLOs, guides).
  */
-const PRIMARY_LINKS = [
-  { href: "/tools", label: "Calculators" },
-  { href: "/chat", label: "M8 Chat" },
-  { href: "/agents", label: "For agents" },
-];
-
-const MORE_LINKS = [
-  { href: "/#principles", label: "Principles" },
-  { href: "/#about", label: "About" },
-  { href: "/privacy", label: "Privacy" },
-];
-
 export function Nav() {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const isActive = (href: string) => (href.startsWith("/#") ? false : pathname === href || pathname.startsWith(`${href}/`));
 
   return (
-    <header
-      className="sticky top-0 z-40 backdrop-blur-md border-b"
-      style={{
-        background: "color-mix(in srgb, var(--bg) 75%, transparent)",
-        borderColor: "var(--rule)",
-      }}
-    >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" aria-label="LoanM8 home">
+    <header className="site-nav">
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
+        <Link href="/" aria-label="LoanM8 home" className="shrink-0">
           <Wordmark />
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-7 text-sm md:flex">
-          {PRIMARY_LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="transition-colors hover:text-[var(--accent)]"
-              style={{ color: "var(--fg-soft)" }}
-            >
+        <nav className="hidden items-center gap-6 text-sm lg:flex" aria-label="Primary">
+          {copy.nav.links.map((l) => (
+            <Link key={l.href} href={l.href} className={`nav-link ${isActive(l.href) ? "nav-link--active" : ""}`} aria-current={isActive(l.href) ? "page" : undefined}>
               {l.label}
             </Link>
           ))}
-          <span
-            className="h-4 w-px"
-            style={{ background: "var(--rule)" }}
-          />
-          {MORE_LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="transition-colors hover:text-[var(--accent)]"
-              style={{ color: "var(--muted)" }}
-            >
-              {l.label}
-            </Link>
-          ))}
-
-          {/* Theme toggle — far right, after the link list */}
           <div className="ml-2">
             <ThemeToggle />
           </div>
         </nav>
 
-        {/* Mobile hamburger + theme toggle */}
-        <div className="flex items-center gap-3 md:hidden">
+        <div className="flex items-center gap-3 lg:hidden">
           <ThemeToggle />
           <button
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="flex h-10 w-10 items-center justify-center rounded-md border"
-            style={{ borderColor: "var(--rule)" }}
+            type="button"
+            aria-label={open ? copy.nav.closeLabel : copy.nav.menuLabel}
+            aria-expanded={open}
+            aria-controls="mobile-sheet"
+            onClick={() => setOpen((o) => !o)}
+            className="nav-burger"
           >
-            <div className="flex flex-col gap-1.5">
-              <span
-                className={`block h-0.5 w-5 transition-transform ${
-                  mobileOpen ? "translate-y-2 rotate-45" : ""
-                }`}
-                style={{ background: "var(--fg)" }}
-              />
-              <span
-                className={`block h-0.5 w-5 transition-opacity ${
-                  mobileOpen ? "opacity-0" : ""
-                }`}
-                style={{ background: "var(--fg)" }}
-              />
-              <span
-                className={`block h-0.5 w-5 transition-transform ${
-                  mobileOpen ? "-translate-y-2 -rotate-45" : ""
-                }`}
-                style={{ background: "var(--fg)" }}
-              />
-            </div>
+            <span className={`nav-burger__bar ${open ? "nav-burger__bar--x1" : ""}`} />
+            <span className={`nav-burger__bar ${open ? "nav-burger__bar--hide" : ""}`} />
+            <span className={`nav-burger__bar ${open ? "nav-burger__bar--x2" : ""}`} />
           </button>
         </div>
       </div>
 
-      {/* Mobile menu panel */}
-      {mobileOpen && (
-        <div
-          className="border-t md:hidden"
-          style={{ borderColor: "var(--rule)", background: "var(--bg)" }}
-        >
-          <div className="mx-auto max-w-7xl px-6 py-6">
-            <div className="flex flex-col gap-1">
-              {[...PRIMARY_LINKS, ...MORE_LINKS].map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-md px-3 py-3 text-base transition-colors hover:text-[var(--accent)]"
-                  style={{ color: "var(--fg-soft)" }}
-                >
-                  {l.label}
-                </Link>
-              ))}
-            </div>
+      <div id="mobile-sheet" className={`nav-sheet ${open ? "nav-sheet--open" : ""}`} aria-hidden={!open}>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase mb-3" style={{ color: "var(--muted)" }}>
+            {"// menu"}
+          </div>
+          <div className="flex flex-col">
+            {copy.nav.links.map((l) => (
+              <Link key={l.href} href={l.href} className="nav-sheet__link" tabIndex={open ? 0 : -1}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase mt-8 mb-3" style={{ color: "var(--muted)" }}>
+            {"// more"}
+          </div>
+          <div className="flex flex-col">
+            {copy.nav.secondary.map((l) => (
+              <Link key={l.href} href={l.href} className="nav-sheet__link nav-sheet__link--secondary" tabIndex={open ? 0 : -1}>
+                {l.label}
+              </Link>
+            ))}
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }

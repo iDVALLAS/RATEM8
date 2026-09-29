@@ -1,106 +1,86 @@
-import type { Metadata } from "next";
-import localFont from "next/font/local";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, JetBrains_Mono } from "next/font/google";
-import { ANCHOR_LO, STATE_LIST_LONG } from "@/lib/licensing";
+import { GeistSans } from "geist/font/sans";
+import { Analytics } from "@vercel/analytics/next";
+import { CONFIG, STATE_NAMES_LINE } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import { themeBootScript } from "@/lib/theme";
+import { organizationJsonLd, personJsonLd } from "@/lib/jsonld";
+import JsonLd from "@/components/JsonLd";
+import ReferralTracker from "@/components/ReferralTracker";
 import "./globals.css";
 
 /**
- * Exo — the primary typeface for LoanM8.
- * Geometric sans-serif. Used for headlines, body, and UI.
+ * Fonts — LOCKED: Fraunces (display), Geist (body/UI), JetBrains Mono
+ * (labels/data). All self-hosted through next/font (Google fonts are
+ * downloaded at build time and served from /_next/static).
  *
- * Files live in /public/fonts/. Loaded via next/font/local for
- * automatic font optimization (preload, subset, no FOUT).
- */
-const exo = localFont({
-  src: [
-    { path: "../public/fonts/Exo-Thin.otf", weight: "100", style: "normal" },
-    { path: "../public/fonts/Exo-ThinItalic.otf", weight: "100", style: "italic" },
-    { path: "../public/fonts/Exo-ExtraLight.otf", weight: "200", style: "normal" },
-    { path: "../public/fonts/Exo-ExtraLightItalic.otf", weight: "200", style: "italic" },
-    { path: "../public/fonts/Exo-Light.otf", weight: "300", style: "normal" },
-    { path: "../public/fonts/Exo-LightItalic.otf", weight: "300", style: "italic" },
-    { path: "../public/fonts/Exo-Regular.otf", weight: "400", style: "normal" },
-    { path: "../public/fonts/Exo-Italic.otf", weight: "400", style: "italic" },
-    { path: "../public/fonts/Exo-Medium.otf", weight: "500", style: "normal" },
-    { path: "../public/fonts/Exo-MediumItalic.otf", weight: "500", style: "italic" },
-    { path: "../public/fonts/Exo-SemiBold.otf", weight: "600", style: "normal" },
-    { path: "../public/fonts/Exo-SemiBoldItalic.otf", weight: "600", style: "italic" },
-    { path: "../public/fonts/Exo-Bold.otf", weight: "700", style: "normal" },
-    { path: "../public/fonts/Exo-BoldItalic.otf", weight: "700", style: "italic" },
-    { path: "../public/fonts/Exo-ExtraBold.otf", weight: "800", style: "normal" },
-    { path: "../public/fonts/Exo-ExtraBoldItalic.otf", weight: "800", style: "italic" },
-    { path: "../public/fonts/Exo-Black.otf", weight: "900", style: "normal" },
-    { path: "../public/fonts/Exo-BlackItalic.otf", weight: "900", style: "italic" },
-  ],
-  variable: "--font-exo",
-  display: "swap",
-  fallback: ["system-ui", "-apple-system", "Helvetica Neue", "Arial", "sans-serif"],
-});
-
-/**
- * Fraunces — used only for the hero tagline ("Loan intelligence.")
- * per the v7 design. Bold serif, no italic, no wonky stylistic sets.
+ * Fraunces loads normal + italic so the accent-word treatment
+ * (italic serif in M8 Green) is real italic, not synthesized.
  */
 const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-fraunces",
   display: "swap",
-  style: ["normal"],
-  weight: ["600", "700"],
+  style: ["normal", "italic"],
+  weight: "variable",
+  axes: ["opsz", "SOFT"],
 });
 
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains",
   display: "swap",
+  weight: ["400", "500"],
 });
 
-const siteTitle = `LoanM8 — ${copy.brand.tagline}`;
-const siteDescription = `AI-powered mortgage rate shopping. Every loan closed by ${ANCHOR_LO.name}, NMLS-licensed in ${STATE_LIST_LONG}.`;
+const siteTitle = `${CONFIG.brandName} — ${copy.brand.tagline}`;
+const siteDescription = `AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer. Licensed in ${STATE_NAMES_LINE}. No lead-selling, no trigger leads, no spam.`;
 
 export const metadata: Metadata = {
-  title: siteTitle,
+  title: {
+    default: siteTitle,
+    template: `%s — ${CONFIG.brandName}`,
+  },
   description: siteDescription,
-  metadataBase: new URL("https://loanm8.com"),
+  metadataBase: new URL(CONFIG.siteUrl),
+  applicationName: CONFIG.brandName,
   openGraph: {
     title: siteTitle,
     description: siteDescription,
-    url: "https://loanm8.com",
-    siteName: "LoanM8",
+    url: CONFIG.siteUrl,
+    siteName: CONFIG.brandName,
     type: "website",
+    locale: "en_US",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+  },
+  alternates: { canonical: "/" },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const viewport: Viewport = {
+  themeColor: "#050B08",
+  width: "device-width",
+  initialScale: 1,
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${exo.variable} ${fraunces.variable} ${jetbrains.variable}`}
-      suppressHydrationWarning
-    >
+    <html lang="en" className={`${GeistSans.variable} ${fraunces.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <head>
-        {/*
-         * No-flash theme boot.
-         * This script runs synchronously before React hydrates and
-         * before any visible paint. It reads the user's saved theme
-         * from localStorage and applies it via data-theme on <html>.
-         *
-         * Without this, every page load would render in the default
-         * theme (Night) for one frame, then snap to the user's
-         * actual preference. That snap is jarring; this prevents it.
-         *
-         * `suppressHydrationWarning` on <html> is required because
-         * the server can't know what data-theme the client will set.
-         */}
+        {/* No-flash theme boot: reads the saved theme before first paint. */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        <JsonLd data={[organizationJsonLd(), ...personJsonLd()]} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Vercel Analytics only. No third-party trackers, no cookies set by us. */}
+        <Analytics />
+        <ReferralTracker />
+      </body>
     </html>
   );
 }

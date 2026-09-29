@@ -77,7 +77,7 @@ export default function CalcLayout({
             >
               These calculators run generic math on the numbers you type.
               M8 can look at your actual situation — credit, DTI, timeline
-              — and tell you what's actually smart for you.
+              — and tell you what&apos;s actually smart for you.
             </p>
             <Link
               href="/demo"
