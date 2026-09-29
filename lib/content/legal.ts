@@ -352,7 +352,7 @@ export const disclosuresContent = {
     line: AI_DISCLOSURE,
     verifies: "A licensed loan officer verifies every deal.",
     recording: "Chats may be recorded for compliance review when live chat is on. Transcripts are available on request.",
-    builtOn: CONFIG.builtOn,
+    aiLine: CONFIG.aiLine,
   },
 
   disclaimer: {

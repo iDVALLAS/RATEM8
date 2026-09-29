@@ -76,7 +76,7 @@
 }
 .ag-tag {
   font-family: var(--font-jetbrains), ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
@@ -285,6 +285,7 @@
 }
 
 .ag-later {
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -293,7 +294,7 @@
   border-radius: 9999px;
   border: 1px dashed var(--rule-strong);
   font-family: var(--font-jetbrains), ui-monospace, monospace;
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);

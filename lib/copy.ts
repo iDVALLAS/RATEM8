@@ -24,7 +24,6 @@ import {
   MLO_REF_CAP,
   HAS_TEAM,
   LICENSED_IN_LINE,
-  STATE_CODES_LINE,
   AI_DISCLOSURE,
   NOT_A_CREDIT_PULL,
 } from "./config";
@@ -38,7 +37,7 @@ export const copy = {
     // The site brief (Section 1) sets the tagline to "Free for the people."
     tagline: CONFIG.tagline,
     subname: CONFIG.brandSubname,
-    builtOn: CONFIG.builtOn,
+    aiLine: CONFIG.aiLine,
   },
 
   nav: {
@@ -77,7 +76,7 @@ export const copy = {
     secondLookCta: "Get a second look",
     secondLookSub: "Already have an offer? Drop it here and M8 decodes it.",
     mloCta: "I'm a hungry MLO. I want in.",
-    mloSub: `Licensed in ${STATE_CODES_LINE}? Build your book on LoanM8.`,
+    mloSub: "Licensed in any state? We are vetting one originator per area.",
   },
 
   trust: {
@@ -175,7 +174,7 @@ export const copy = {
     eyebrow: "// for licensed MLOs",
     heading: "Hungry? Build your book on LoanM8.",
     accent: "Build your book",
-    body: `Licensed in ${STATE_CODES_LINE}? M8 handles the intake and the paperwork of explaining. You originate.`,
+    body: "Licensed anywhere in the US? We are vetting originators in every state, one per area, and building the AI search channel that sends borrowers to them. M8 handles the intake. You originate.",
     cta: "See how it works for you",
   },
 
@@ -302,10 +301,10 @@ export const copy = {
     eyebrow: "// for licensed MLOs",
     heading: "Hungry? Build your book on LoanM8.",
     accent: "Build your book",
-    sub: "Licensed, competent, and tired of buying leads that were sold to four other people? M8 handles the intake. You originate.",
+    sub: "Licensed, competent, and tired of buying leads that were sold to four other people? We are vetting originators in every state, one per area. M8 handles the intake. You originate.",
     scenes: [
-      { label: "// 01 — hook", title: "Got a license and something to prove?", body: "This is for originators who would rather explain the math than pressure a borrower." },
-      { label: "// 02 — states", title: "Now recruiting in our four launch states.", body: "Western Washington, Arizona, California, Texas." },
+      { label: "// 01 — hook", title: "Got a license and something to prove?", body: "This is for originators, in any state, who would rather explain the math than pressure a borrower." },
+      { label: "// 02 — where", title: "Every state. One originator per area.", body: "Live today in Western Washington, Arizona, California, and Texas. Vetting licensed originators everywhere else ahead of expansion. When an area has its originator, it is closed to new applicants." },
       { label: "// 03 — intake", title: "M8 does the first conversation.", body: "A borrower talks to M8, gets the math explained, and a Rate Strategy Brief is drafted before you pick up the phone." },
       { label: "// 04 — handled", title: "You get a file, not a lead.", body: "A routed borrower, a three-option comparison laid out the anti-steering way, a pipeline, and a compliance trail." },
       { label: "// 05 — you", title: "You originate. M8 handles the intake.", body: "Book an intro call. No forms." },
@@ -323,11 +322,19 @@ export const copy = {
       pipeline: { label: "// pipeline", steps: ["Application", "LE", "Lock", "Close"] },
       compliance: { label: "// compliance", items: ["Soft pull only", "Disclosures logged", "Documented decisions"] },
     },
+    aiChannel: {
+      eyebrow: "// the channel",
+      heading: "Borrowers are starting to ask AI assistants who to call.",
+      accent: "who to call.",
+      body: "LoanM8 is built to be the source those assistants can verify and cite: machine-readable licensing, deterministic calculators, a documented process, and plain answers on /ai. When an assistant hands a borrower off, the conversation routes to the licensed originator for that area. A channel, not a lead list.",
+      note: "No borrower is shared with more than one originator. No lead is sold.",
+    },
     lookFor: {
       eyebrow: "// what we look for",
       heading: "What we look for. What to expect.",
       items: [
-        `Active NMLS license in at least one of ${STATE_CODES_LINE}.`,
+        "Active NMLS license in any state.",
+        "One originator per service area. When an area has its originator, it is closed to new applicants.",
         "Must hold an active NMLS license.",
         "Sponsorship and state licensing requirements apply.",
         "Borrower assignment is explained on the intro call.",

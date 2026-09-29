@@ -191,11 +191,26 @@ export const CONFIG = {
     agentApi: true,
   },
 
+  /**
+   * MLO recruiting scope. LoanM8 vets licensed originators in every state
+   * (ahead of expansion), one originator per service area. Borrower work
+   * happens only where LoanM8 is licensed (`states` above).
+   */
+  recruiting: {
+    nationwide: true,
+    oneOriginatorPerArea: true,
+  },
+
   /** Data retention statement for Second Look uploads. Counsel confirms. */
   secondLookRetention: "[RETENTION — confirm with counsel]",
 
-  /** "Built on Claude" label — factual, small, mono. No logos. */
-  builtOn: "Built on Claude",
+  /**
+   * The one-line description of the AI, rendered in the footer, on
+   * /disclosures, and in the tester preview. Replaces the earlier
+   * "Built on Claude" label at the owner's request. Vendor disclosure
+   * (Anthropic Claude API) stays on /privacy as a factual vendor entry.
+   */
+  aiLine: "AI built for mortgages, not borrowed from a chatbot.",
 
   /** Provenance defaults for content pages. */
   provenance: {

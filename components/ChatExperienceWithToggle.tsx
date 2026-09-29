@@ -4,7 +4,6 @@ import { useId, useState } from "react";
 import ChatShell from "@/components/chat/ChatShell";
 import M8LiveChat from "@/components/M8LiveChat";
 import { chatContent } from "@/components/chat/chatContent";
-import { CONFIG } from "@/lib/config";
 
 /**
  * ChatExperienceWithToggle — the /demo tester wrapper (password-gated).
@@ -69,7 +68,7 @@ export default function ChatExperienceWithToggle() {
           })}
         </div>
         <span className="mono-label">
-          {chatContent.demo.testerNote} · {CONFIG.builtOn}
+          {chatContent.demo.testerNote}
         </span>
       </div>
 

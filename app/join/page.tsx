@@ -52,6 +52,16 @@ export default function JoinPage() {
       {/* ─── Five scenes ─── */}
       <JoinScenes />
 
+      {/* ─── The AI search channel ─── */}
+      <section className="mx-auto max-w-3xl px-4 sm:px-6 pt-16 sm:pt-24 join-channel" aria-labelledby="join-channel-heading">
+        <p className="code-label">{j.aiChannel.eyebrow}</p>
+        <Reveal as="h2" text={j.aiChannel.heading} accent={j.aiChannel.accent} className="tagline text-3xl sm:text-5xl mt-4" />
+        <div className="prose-m8 mt-6">
+          <p>{j.aiChannel.body}</p>
+          <p className="mono-label">{j.aiChannel.note}</p>
+        </div>
+      </section>
+
       {/* ─── What we look for ─── */}
       <section className="mx-auto max-w-3xl px-4 sm:px-6 py-16 sm:py-24 join-lookfor" aria-labelledby="join-lookfor-heading">
         <p className="code-label">{j.lookFor.eyebrow}</p>

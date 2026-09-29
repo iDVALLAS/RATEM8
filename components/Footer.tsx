@@ -36,8 +36,8 @@ export default function Footer() {
             <p className="mt-3 text-sm font-light max-w-xs" style={{ color: "var(--muted)" }}>
               {copy.footer.blurb}
             </p>
-            <p className="mt-4 font-mono text-[10px] tracking-[0.18em] uppercase" style={{ color: "var(--muted)" }}>
-              {copy.brand.builtOn}
+            <p className="mt-4 text-sm max-w-xs" style={{ color: "var(--fg-soft)" }}>
+              <em className="accent-word" style={{ fontSize: "1.05rem" }}>{copy.brand.aiLine}</em>
             </p>
           </div>
 

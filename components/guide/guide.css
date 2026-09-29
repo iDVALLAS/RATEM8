@@ -25,13 +25,13 @@
   border-bottom: 2px solid var(--color-m8-charcoal);
 }
 .le-page__title { font-weight: 700; font-size: 14px; letter-spacing: -0.01em; }
-.le-page__num { font-family: var(--font-jetbrains), monospace; font-size: 9px; letter-spacing: 0.12em; color: #5F5E5A; }
+.le-page__num { font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.12em; color: #5F5E5A; }
 
 .le-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; margin-bottom: 8px; }
 @media (min-width: 640px) { .le-meta { grid-template-columns: repeat(3, 1fr); } }
 .le-meta div { display: flex; flex-direction: column; }
 .le-meta b { font-weight: 600; }
-.le-meta span { color: #5F5E5A; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+.le-meta span { color: #5F5E5A; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
 
 /* Region = one selectable section of the form */
 .le-region {
@@ -83,7 +83,7 @@
 .le-note-row { font-size: 10px; color: #5F5E5A; padding-top: 4px; }
 
 .le-sig { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.le-sig div { border-top: 1px solid var(--color-m8-charcoal); padding-top: 3px; font-size: 9.5px; color: #5F5E5A; }
+.le-sig div { border-top: 1px solid var(--color-m8-charcoal); padding-top: 3px; font-size: 10px; color: #5F5E5A; }
 
 /* Notes */
 .le-notes { display: grid; gap: 10px; }

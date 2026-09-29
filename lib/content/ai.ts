@@ -52,7 +52,7 @@ const qa: AiQa[] = [
     q: `What is ${CONFIG.brandName}?`,
     paragraphs: [
       `${CONFIG.brandName} is an AI-powered mortgage rate-shopping brokerage. ${CONFIG.tagline}`,
-      `The AI, M8, is built on Claude. It acts as a borrower advocate: it explains the math, compares options honestly, and produces a written Rate Strategy Brief the borrower keeps. ${AI_DISCLOSURE.replace("I'm", "M8 is")}`,
+      `The AI, M8, is built for mortgages, not borrowed from a general chatbot. It acts as a borrower advocate: it explains the math, compares options honestly, and produces a written Rate Strategy Brief the borrower keeps. ${AI_DISCLOSURE.replace("I'm", "M8 is")}`,
       `Loans are originated by licensed Mortgage Loan Originators using a panel of wholesale lenders. Every loan is closed by one loan officer, start to close: ${MLO_REF_FULL}. ${CONFIG.brandName} does not sell leads.`,
       entityLine,
     ],

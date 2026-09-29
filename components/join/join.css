@@ -115,7 +115,7 @@
 }
 .join-pin__label {
   font-family: var(--font-jetbrains), ui-monospace, monospace;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
@@ -129,7 +129,7 @@
   .join-pin__label {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
-    font-size: 8.5px;
+    font-size: 10px;
   }
 }
 
@@ -340,3 +340,5 @@
 /* ─── Below the animation ─────────────────────────────────────── */
 
 .join-lookfor ul { margin-top: 1.25rem; }
+/* Fifth card in scene two: the states we are vetting but not yet live in. */
+.join-state-card--vetting { border-style: dashed; }

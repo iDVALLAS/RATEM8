@@ -282,7 +282,7 @@
 [data-reduced="true"] .hm-sl__doc { transition: none; }
 .hm-sl__doc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--color-m8-charcoal); }
 .hm-sl__doc-title { font-family: var(--font-fraunces), Georgia, serif; font-weight: 600; font-size: 13px; letter-spacing: -0.01em; }
-.hm-sl__doc-meta { font-family: var(--font-jetbrains), monospace; font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5F5E5A; }
+.hm-sl__doc-meta { font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #5F5E5A; }
 .hm-sl .doc__row { padding: 5px 4px; align-items: center; }
 .hm-sl .doc__bar {
   display: block;

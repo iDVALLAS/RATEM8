@@ -109,10 +109,13 @@ social proof, testimonials, fake stats, "trusted by" (plus "six figures",
   and "Sponsorship and state licensing requirements apply."
 - `/join` has no form; the only CTA is the MLO Calendly link.
 
-## 12. "Built on Claude" as a plain mono label
+## 12. AI description line
 
-- `CONFIG.builtOn` rendered by `components/Footer.tsx` and the hero
-  eyebrow (`copy.hero.eyebrow`). No Anthropic logos anywhere.
+- The brief permitted a plain "Built on Claude" label; the owner chose
+  to drop it. `CONFIG.aiLine` ("AI built for mortgages, not borrowed
+  from a chatbot.") renders in `components/Footer.tsx` and on
+  `/disclosures`. No Anthropic logos anywhere. The Claude API remains
+  disclosed factually as a vendor on `/privacy`.
 
 ## 13. Footer "not a commitment to lend" sentence on every page
 

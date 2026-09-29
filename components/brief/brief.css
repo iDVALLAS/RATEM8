@@ -109,9 +109,9 @@
   font-size: 11px;
   line-height: 1.4;
 }
-.br-opt__flag b { font-family: var(--font-jetbrains), monospace; font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-m8-deep); display: block; margin-bottom: 2px; }
+.br-opt__flag b { font-family: var(--font-jetbrains), monospace; font-weight: 500; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-m8-deep); display: block; margin-bottom: 2px; }
 
-.br-swipe-hint { text-align: center; font-family: var(--font-jetbrains), monospace; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: #5F5E5A; margin-top: 4px; }
+.br-swipe-hint { text-align: center; font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #5F5E5A; margin-top: 4px; }
 @media (min-width: 768px) { .br-swipe-hint { display: none; } }
 
 .br-list { margin: 0; padding-left: 18px; }

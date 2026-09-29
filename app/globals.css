@@ -11,7 +11,10 @@
   --color-m8-charcoal: #1A1A19;
 
   /* Typography — LOCKED: Fraunces (display), Geist (body/UI), JetBrains Mono (labels/data) */
-  --font-display: var(--font-fraunces);
+  /* `.font-display` (the UI class used across the site) is Geist; the
+     serif display face is reached through `.tagline`, `.font-serif-display`
+     and `.accent-word`. Keep the token in step with the class. */
+  --font-display: var(--font-geist-sans);
   --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-fraunces);
   --font-mono: var(--font-jetbrains);
@@ -1108,7 +1111,7 @@ html, body {
   border-radius: 4px;
   border: 1px dashed var(--rule-strong);
   font-family: var(--font-jetbrains), monospace;
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted);
@@ -1277,7 +1280,7 @@ html, body {
 }
 .tl-label {
   font-family: var(--font-jetbrains), monospace;
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
@@ -1600,7 +1603,7 @@ input[type="range"].m8-range:focus-visible::-webkit-slider-thumb { box-shadow: 0
 }
 .doc__row { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid #E8E6E1; }
 .doc__row b { font-weight: 600; }
-.doc__section { font-family: var(--font-jetbrains), monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #5F5E5A; margin: 10px 0 4px; }
+.doc__section { font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #5F5E5A; margin: 10px 0 4px; }
 .doc__field { position: relative; transition: background-color 300ms ease-out, box-shadow 300ms ease-out; border-radius: 3px; }
 .doc__field.is-reading { background: rgba(93, 202, 165, 0.18); }
 .doc__field.is-found { background: rgba(93, 202, 165, 0.32); box-shadow: inset 0 0 0 1px var(--color-m8-deep); }
@@ -1610,7 +1613,7 @@ input[type="range"].m8-range:focus-visible::-webkit-slider-thumb { box-shadow: 0
   top: 50%;
   transform: translate(100%, -50%);
   font-family: var(--font-jetbrains), monospace;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.1em;
   color: var(--color-m8-deep);
   white-space: nowrap;
@@ -1732,3 +1735,18 @@ table.sr-only, .sr-only table { display: block; }
   .reveal--css .reveal__word { animation: none; opacity: 1; transform: none; filter: none; }
   .reveal--js .reveal__word { opacity: 1; transform: none; filter: none; }
 }
+
+/* ─── Fraunces: no wonky alternates ─────────────────────────────── */
+/* Fraunces ships "wonky" letterforms (the descending f, the swash y).
+   The brand uses the plain forms. WONK is a variable axis, so it is
+   pinned here for every element; fonts without the axis ignore it. */
+html { font-variation-settings: "WONK" 0; }
+
+/* ─── Font hygiene (site-wide audit) ─────────────────────────────── */
+/* JetBrains Mono is loaded at 400 and 500 only. Never let a <b>, a
+   heading, or an inherited weight synthesize a bold mono. */
+.mono-label, .code-label, .eyebrow, .principle-label, .sample-badge,
+.scene-label, .scene-label__text, .scene-label__counter, .doc__section,
+.doc__tag, .tl-label, .replay-btn, .pill, .state-chip, .cta__icon,
+.font-mono b, .font-mono strong, .mono-label b, .mono-label strong,
+.doc__section b, .doc__section strong { font-weight: 500; }

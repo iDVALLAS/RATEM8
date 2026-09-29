@@ -166,7 +166,7 @@ export default function DisclosuresPage() {
           <strong>{c.ai.line}</strong> {c.ai.verifies}
         </p>
         <p>{c.ai.recording}</p>
-        <p className="mono-label">{c.ai.builtOn}</p>
+        <p>{c.ai.aiLine}</p>
       </LegalSection>
 
       {/* 05 Not a commitment to lend */}

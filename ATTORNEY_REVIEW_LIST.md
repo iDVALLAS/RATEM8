@@ -44,6 +44,10 @@ conflict is recorded here.
 - "Sponsorship and state licensing requirements apply." Confirm the sponsoring-entity relationship for recruited MLOs and whether each state needs its own line.
 - The page shows a fictional three-option comparison with no figures. Confirm no advertising rule is triggered by an illustrative pipeline.
 
+- Nationwide vetting: `/join` says LoanM8 vets licensed originators in every state ahead of expansion, while borrower work happens only in the four licensed states. Confirm the recruiting copy cannot be read as an offer to originate where LoanM8 is not licensed.
+- Territory exclusivity: "One originator per service area. When an area has its originator, it is closed to new applicants." Confirm this is acceptable as a stated policy (it is written as a fact, not as urgency) and whether "service area" needs a definition.
+- AI-channel claim: "built to be the source AI assistants can verify and cite" and "routes to the licensed originator for that area" describe the product design, not results. Confirm no productivity or income implication.
+
 ## Agents page (/agents)
 
 - The sentence "No money, gifts, or marketing dollars flow between LoanM8 and agents." replaces the earlier RESPA co-marketing section. Confirm wording.

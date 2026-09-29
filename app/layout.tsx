@@ -24,6 +24,10 @@ const fraunces = Fraunces({
   display: "swap",
   style: ["normal", "italic"],
   weight: "variable",
+  // The WONK axis must be present in the served file so CSS can pin it
+  // to 0; otherwise Google's default instance ships the "wonky" f / y
+  // alternates seen in the principle titles.
+  axes: ["WONK"],
 });
 
 const jetbrains = JetBrains_Mono({
