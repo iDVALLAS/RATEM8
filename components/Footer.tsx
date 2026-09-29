@@ -37,7 +37,7 @@ export default function Footer() {
               {copy.footer.blurb}
             </p>
             <p className="mt-4 text-sm max-w-xs" style={{ color: "var(--fg-soft)" }}>
-              <em className="accent-word" style={{ fontSize: "1.05rem" }}>{copy.brand.aiLine}</em>
+              <em className="accent-word" style={{ fontSize: "1.05rem", whiteSpace: "normal" }}>{copy.brand.aiLine}</em>
             </p>
           </div>
 
