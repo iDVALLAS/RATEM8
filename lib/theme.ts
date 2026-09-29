@@ -51,6 +51,43 @@ export const THEME_DOT_COLORS: Record<Theme, string> = {
 export const THEME_KEY = "loanm8.theme";
 export const DEFAULT_THEME: Theme = "night";
 
+/**
+ * Typography variant — a side-by-side comparison switch.
+ *   "serif" = the locked stack (Fraunces display headlines, italic accent words)
+ *   "sans"  = headlines in Geist (light, tight), accent words in a green
+ *             gradient, headline text with a subtle vertical sheen
+ * Set via the Aa toggle in the nav, `?type=sans` in the URL, or
+ * localStorage. Stored under TYPE_KEY; applied as data-type on <html>.
+ */
+export type TypeVariant = "serif" | "sans";
+export const TYPE_VARIANTS: TypeVariant[] = ["serif", "sans"];
+export const TYPE_KEY = "loanm8.type";
+export const DEFAULT_TYPE: TypeVariant = "serif";
+export const TYPE_LABELS: Record<TypeVariant, string> = { serif: "Serif headlines", sans: "Sans headlines" };
+
+export function readSavedType(): TypeVariant {
+  if (typeof window === "undefined") return DEFAULT_TYPE;
+  try {
+    const q = new URLSearchParams(window.location.search).get("type");
+    if (q === "serif" || q === "sans") return q;
+    const saved = window.localStorage.getItem(TYPE_KEY);
+    if (saved === "serif" || saved === "sans") return saved;
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_TYPE;
+}
+
+export function applyType(t: TypeVariant) {
+  if (typeof document === "undefined") return;
+  document.documentElement.setAttribute("data-type", t);
+  try {
+    window.localStorage.setItem(TYPE_KEY, t);
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Read the saved theme from localStorage, or fall back to the default. */
 export function readSavedTheme(): Theme {
   if (typeof window === "undefined") return DEFAULT_THEME;
@@ -91,6 +128,15 @@ export const themeBootScript = `
     document.documentElement.setAttribute('data-theme', t);
   } catch (e) {
     document.documentElement.setAttribute('data-theme', '${DEFAULT_THEME}');
+  }
+  try {
+    var q = new URLSearchParams(location.search).get('type');
+    var y = (q === 'serif' || q === 'sans') ? q : localStorage.getItem('${TYPE_KEY}');
+    if (y !== 'serif' && y !== 'sans') y = '${DEFAULT_TYPE}';
+    if (q === 'serif' || q === 'sans') { try { localStorage.setItem('${TYPE_KEY}', y); } catch (e2) {} }
+    document.documentElement.setAttribute('data-type', y);
+  } catch (e) {
+    document.documentElement.setAttribute('data-type', '${DEFAULT_TYPE}');
   }
 })();
 `.trim();

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Wordmark from "./Wordmark";
 import ThemeToggle from "./ThemeToggle";
+import TypeToggle from "./TypeToggle";
 import { copy } from "@/lib/copy";
 
 /**
@@ -51,12 +52,14 @@ export function Nav() {
               {l.label}
             </Link>
           ))}
-          <div className="ml-2">
+          <div className="ml-2 flex items-center gap-2">
+            <TypeToggle />
             <ThemeToggle />
           </div>
         </nav>
 
-        <div className="flex items-center gap-3 lg:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
+          <TypeToggle />
           <ThemeToggle />
           <button
             type="button"

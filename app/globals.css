@@ -1750,3 +1750,106 @@ html { font-variation-settings: "WONK" 0; }
 .doc__tag, .tl-label, .replay-btn, .pill, .state-chip, .cta__icon,
 .font-mono b, .font-mono strong, .mono-label b, .mono-label strong,
 .doc__section b, .doc__section strong { font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ─── TYPOGRAPHY VARIANT: data-type="sans" ─────────────────────── */
+/* A side-by-side comparison switch (Aa in the nav, or ?type=sans).
+   Serif (default) is the locked stack. Sans borrows the reference
+   video's headline character: a light, tight geometric sans, a subtle
+   top-to-bottom sheen on headline text, and accent words set in a
+   green gradient instead of italic serif. Body, mono, buttons and the
+   orb are unchanged. */
+
+/* Aa toggle */
+.type-toggle {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 30px;
+  border-radius: 9999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--fg-soft);
+  cursor: pointer;
+  transition: border-color 150ms ease-out;
+}
+.type-toggle:hover { border-color: var(--rule-strong); }
+.type-toggle__serif, .type-toggle__sans {
+  grid-area: 1 / 1;
+  font-size: 13px;
+  line-height: 1;
+  transition: opacity 180ms ease-out, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.type-toggle__serif { font-family: var(--font-fraunces), Georgia, serif; font-weight: 600; font-style: italic; }
+.type-toggle__sans  { font-family: var(--font-geist-sans), system-ui, sans-serif; font-weight: 400; letter-spacing: -0.02em; opacity: 0; transform: translateY(4px); }
+.type-toggle[data-type="sans"] .type-toggle__serif { opacity: 0; transform: translateY(-4px); }
+.type-toggle[data-type="sans"] .type-toggle__sans  { opacity: 1; transform: none; color: var(--accent); }
+
+/* Headline faces → Geist, light and tight */
+:root[data-type="sans"] .tagline,
+:root[data-type="sans"] .font-serif-display,
+:root[data-type="sans"] .principle-card__title,
+:root[data-type="sans"] .prose-m8 h2,
+:root[data-type="sans"] .nav-sheet__link,
+:root[data-type="sans"] .reveal,
+:root[data-type="sans"] .rate-num,
+:root[data-type="sans"] .rate-money,
+:root[data-type="sans"] .scenario-value {
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-weight: 300;
+  font-style: normal;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+:root[data-type="sans"] .principle-card__title { font-weight: 400; letter-spacing: -0.025em; }
+:root[data-type="sans"] .prose-m8 h2 { font-weight: 400; letter-spacing: -0.02em; }
+:root[data-type="sans"] .nav-sheet__link { font-weight: 400; }
+
+/* Sheen: headline text fades slightly from top to bottom, like the
+   grey-gradient lines in the reference. Applied per word for Reveal
+   headlines and per element elsewhere. Fallback: plain color. */
+:root[data-type="sans"] .tagline,
+:root[data-type="sans"] .font-serif-display,
+:root[data-type="sans"] .principle-card__title,
+:root[data-type="sans"] .reveal__word {
+  color: var(--fg);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  :root[data-type="sans"] .tagline:not(.reveal),
+  :root[data-type="sans"] .font-serif-display,
+  :root[data-type="sans"] .principle-card__title,
+  :root[data-type="sans"] .reveal__word:not(.reveal__accent) {
+    background-image: linear-gradient(180deg, var(--fg) 0%, color-mix(in srgb, var(--fg) 62%, transparent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  /* Accent words: green gradient instead of italic serif. */
+  :root[data-type="sans"] .accent-word,
+  :root[data-type="sans"] .reveal__accent {
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    background-image: linear-gradient(100deg, var(--color-m8-green) 0%, var(--accent) 55%, var(--color-m8-deep) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  /* Paper surfaces: the gradient must stay AA — bias toward Deep Green. */
+  :root[data-type="sans"][data-theme="paper"] .accent-word,
+  :root[data-type="sans"][data-theme="paper"] .reveal__accent,
+  :root[data-type="sans"] .scene--paper .accent-word,
+  :root[data-type="sans"] .scene--paper .reveal__accent {
+    background-image: linear-gradient(100deg, var(--color-m8-deep) 0%, color-mix(in srgb, var(--color-m8-deep) 70%, var(--color-m8-forest)) 100%);
+  }
+}
+/* Nested markup inside a clipped element (the hand-drawn underline)
+   must not inherit the transparent fill. */
+:root[data-type="sans"] .hand-underline { -webkit-text-fill-color: initial; color: var(--accent); }
+:root[data-type="sans"] .accent-word { white-space: normal; }
+/* Word reveal: the blur+clip combination is heavy; use opacity/transform only. */
+:root[data-type="sans"] .reveal__word { filter: none !important; }
