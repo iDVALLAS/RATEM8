@@ -49,7 +49,7 @@
 }
 .ag-card.is-done {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 30px 60px rgba(0, 0, 0, 0.35);
 }
 
 .ag-card__head {

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Scene from "@/components/motion/Scene";
+import Stage from "@/components/motion/Stage";
+import SlideHeadline, { splitLines } from "@/components/motion/SlideHeadline";
 import Bento, { BentoSlot } from "@/components/motion/Bento";
 import Orb, { type OrbState } from "@/components/Orb";
 import SampleBadge from "@/components/SampleBadge";
@@ -23,11 +25,14 @@ import "./second-look.css";
  * "replay all" control remounts all five (via `runId`), which restarts
  * each one the moment it is back in the viewport, and resets the toggle.
  *
- * Backgrounds: 01–02 night, 03–04 forest, 05 paper.
+ * The five Scenes are stacked sheets on the ambient stage; chapters
+ * alternate night → forest → night → forest → paper.
  */
 
 const scenes = copy.secondLook.scenes;
 const decoded = copy.secondLook.decoded;
+/** Accent phrase per scene title (presentation only; titles are verbatim). */
+const ACCENTS = ["Drop", "reads", "Decoded.", "or credit?", "licensed human"];
 
 function OrbStrip({ state }: { state: OrbState }) {
   return (
@@ -40,10 +45,10 @@ function OrbStrip({ state }: { state: OrbState }) {
   );
 }
 
-function SceneHead({ i }: { i: number }) {
+function SceneHead({ i, dim = true }: { i: number; dim?: boolean }) {
   return (
     <>
-      <h2 className="sl-scene__title">{scenes[i].title}</h2>
+      <SlideHeadline as="h2" lines={splitLines(scenes[i].title)} accent={ACCENTS[i]} dim={dim} className="sl-scene__title" />
       <p className="sl-scene__body">{scenes[i].body}</p>
     </>
   );
@@ -74,7 +79,7 @@ export default function SecondLookDemo() {
   };
 
   return (
-    <div className="sl-demo" key={runId}>
+    <Stage className="sl-demo" key={runId}>
       {/* ── 01 — drop ── */}
       <Scene
         label={scenes[0].label}
@@ -83,10 +88,10 @@ export default function SecondLookDemo() {
         background="night"
         badge={<SampleBadge />}
         textEquivalent={TEXT_EQ.drop}
-        className="sl-scene"
+        className="sl-scene sheet-item"
       >
         {({ step, reduced }) => (
-          <div className="sl-scene__inner">
+          <div className="sl-scene__inner sheet-fill">
             <div className="sl-grid">
               <div>
                 <SceneHead i={0} />
@@ -112,17 +117,17 @@ export default function SecondLookDemo() {
         label={scenes[1].label}
         counter="02 / 05"
         steps={READ_STEPS}
-        background="night"
+        background="forest"
         badge={<SampleBadge />}
         textEquivalent={TEXT_EQ.read}
-        className="sl-scene"
+        className="sl-scene sheet-item"
       >
         {({ step, reduced }) => {
           const fieldState = Object.fromEntries(
             SAMPLE_FIELDS.map((f, i) => [f.id, readFieldState(step, i)])
           ) as Record<SampleFieldId, FieldState>;
           return (
-            <div className="sl-scene__inner">
+            <div className="sl-scene__inner sheet-fill">
               <div className="sl-grid">
                 <div>
                   <SceneHead i={1} />
@@ -160,17 +165,17 @@ export default function SecondLookDemo() {
         label={scenes[2].label}
         counter="03 / 05"
         steps={seq(0, 150, 6)}
-        background="forest"
+        background="night"
         badge={<SampleBadge />}
         textEquivalent={TEXT_EQ.decoded}
-        className="sl-scene"
+        className="sl-scene sheet-item"
       >
         {({ step, reduced }) => (
-          <div className="sl-scene__inner">
+          <div className="sl-scene__inner sheet-fill">
             <SceneHead i={2} />
             <OrbStrip state={step >= 1 ? "speaking" : "idle"} />
             <Bento cols={2} className="mt-5">
-              <BentoSlot filled={step >= 1} label="// true cost">
+              <BentoSlot filled={step >= 1} label="// true cost" className="float-card">
                 <div className="sl-card-title">{decoded.trueCost.title}</div>
                 <div className="sl-kv">
                   <span>{SL.live.labels.rate}</span>
@@ -184,7 +189,7 @@ export default function SecondLookDemo() {
                   {decoded.trueCost.body}
                 </p>
               </BentoSlot>
-              <BentoSlot filled={step >= 2} label="// negotiable vs. fixed">
+              <BentoSlot filled={step >= 2} label="// negotiable vs. fixed" className="float-card">
                 <div className="sl-card-title">{decoded.negotiable.title}</div>
                 <div className="sl-kv">
                   <span>{SL.live.labels.sectionA}</span>
@@ -198,7 +203,7 @@ export default function SecondLookDemo() {
                   {decoded.negotiable.body}
                 </p>
               </BentoSlot>
-              <BentoSlot filled={step >= 3} label="// cash to close">
+              <BentoSlot filled={step >= 3} label="// cash to close" className="float-card">
                 <div className="sl-card-title">{decoded.cashToClose.title}</div>
                 <div className="sl-kv">
                   <span>{SL.live.labels.cashToCloseField}</span>
@@ -208,14 +213,14 @@ export default function SecondLookDemo() {
                   {decoded.cashToClose.body}
                 </p>
               </BentoSlot>
-              <BentoSlot filled={step >= 4} label="// points vs. credit">
+              <BentoSlot filled={step >= 4} label="// points vs. credit" className="float-card">
                 <div className="sl-card-title">{decoded.toggle.title}</div>
                 <p className="sl-card-body" style={{ marginBottom: 12 }}>
                   {decoded.toggle.body}
                 </p>
                 <PointsToggle value={toggle} onChange={setToggle} reduced={reduced} compact idPrefix="sl-pvc-3" />
               </BentoSlot>
-              <BentoSlot filled={step >= 5} label="// questions" span="sm:col-span-2">
+              <BentoSlot filled={step >= 5} label="// questions" span="sm:col-span-2" className="float-card">
                 <div className="sl-card-title">{decoded.questions.title}</div>
                 <ol className="sl-questions">
                   {decoded.questions.items.map((q) => (
@@ -238,10 +243,10 @@ export default function SecondLookDemo() {
         background="forest"
         badge={<SampleBadge />}
         textEquivalent={TEXT_EQ.toggle}
-        className="sl-scene"
+        className="sl-scene sheet-item"
       >
         {({ step, reduced }) => (
-          <div className="sl-scene__inner">
+          <div className="sl-scene__inner sheet-fill">
             <div className="sl-grid">
               <div>
                 <SceneHead i={3} />
@@ -267,13 +272,13 @@ export default function SecondLookDemo() {
         background="paper"
         badge={<SampleBadge />}
         textEquivalent={TEXT_EQ.handoff}
-        className="sl-scene"
+        className="sl-scene sheet-item"
       >
         {({ step }) => (
-          <div className="sl-scene__inner">
+          <div className="sl-scene__inner sheet-fill">
             <div className="sl-grid">
               <div>
-                <SceneHead i={4} />
+                <SceneHead i={4} dim={false} />
                 <OrbStrip state="idle" />
                 <button type="button" className="sl-replay-all" onClick={replayAll} style={{ marginTop: 12 }}>
                   ↻ {SL.replayAll}
@@ -292,6 +297,6 @@ export default function SecondLookDemo() {
           </div>
         )}
       </Scene>
-    </div>
+    </Stage>
   );
 }

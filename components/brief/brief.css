@@ -22,6 +22,7 @@
 
 /* The document */
 .br-scene { padding-bottom: 32px; }
+.br-scene .sheet-fill { justify-content: flex-start; }
 .br-doc {
   width: 100%;
   max-width: 880px;

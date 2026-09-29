@@ -33,9 +33,12 @@ export const homeContent = {
   how: {
     sceneLabel: "// how it works",
     counterTotal: "03",
-    slotLabels: ["// talk", "// brief", "// verify"],
+    /** Accent phrase inside copy.how.heading (presentation only). */
+    accent: "No surprises.",
+    listLabel: "The three steps",
+    orbPrefix: "// m8:",
     textEquivalent:
-      "Three empty dashed slots fill in one at a time with the three steps: talk it through with M8, get a written Rate Strategy Brief, then talk to your licensed loan officer.",
+      "The three steps as a list: talk it through with M8, get a written Rate Strategy Brief, then talk to your licensed loan officer. As you scroll, the step nearest the middle of the screen reads at full contrast and the others fade. Beside them, the M8 orb changes state, listening, thinking, then idle, over a small Rate Strategy Brief card.",
   },
   secondLook: {
     counter: "loop",

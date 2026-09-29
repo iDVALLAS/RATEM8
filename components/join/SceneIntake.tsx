@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo } from "react";
 import Scene from "@/components/motion/Scene";
-import Reveal from "@/components/motion/Reveal";
+import SlideHeadline, { splitLines } from "@/components/motion/SlideHeadline";
 import Orb, { type OrbState } from "@/components/Orb";
 import SampleBadge from "@/components/SampleBadge";
 import { copy } from "@/lib/copy";
 import { AI_DISCLOSURE } from "@/lib/config";
 import { JOIN_BRIEF, JOIN_TEXT_EQUIVALENTS } from "@/lib/content/join";
+import JoinPath, { type JoinPathProps } from "./JoinPath";
 import { useSceneRun } from "./useSceneRun";
 
 const S = copy.join.scenes[2];
@@ -73,23 +74,23 @@ function orbStateAt(step: number): OrbState {
 const idxOf = (pred: (e: Ev) => boolean) => TL.events.findIndex(pred);
 
 /** `// 03 — intake`: a phone mockup plays the scripted chat, then the brief drafts. */
-export default function SceneIntake({ onStart, onOrb }: { onStart: () => void; onOrb: (s: OrbState) => void }) {
+export default function SceneIntake({ onStart, onOrb, path }: { onStart: () => void; onOrb: (s: OrbState) => void; path: JoinPathProps }) {
   return (
     <Scene
       label={S.label}
       counter="03 / 05"
       steps={TL.steps}
       background="night"
-      className="join-intake-scene"
+      className="join-intake-scene sheet-item"
       badge={<SampleBadge />}
       textEquivalent={JOIN_TEXT_EQUIVALENTS[2]}
     >
-      {({ step }) => <IntakeBody step={step} onStart={onStart} onOrb={onOrb} />}
+      {({ step }) => <IntakeBody step={step} onStart={onStart} onOrb={onOrb} path={path} />}
     </Scene>
   );
 }
 
-function IntakeBody({ step, onStart, onOrb }: { step: number; onStart: () => void; onOrb: (s: OrbState) => void }) {
+function IntakeBody({ step, onStart, onOrb, path }: { step: number; onStart: () => void; onOrb: (s: OrbState) => void; path: JoinPathProps }) {
   const run = useSceneRun(step, onStart);
   const orb = useMemo(() => orbStateAt(step), [step]);
   useEffect(() => {
@@ -101,10 +102,11 @@ function IntakeBody({ step, onStart, onOrb }: { step: number; onStart: () => voi
   const briefState = step >= doneIdx ? "is-drafted" : step >= genIdx ? "is-generating" : "";
 
   return (
-    <div className="join-scene__inner">
+    <>
+    <div className="join-scene__inner sheet-fill">
       <div className="join-intake">
         <div>
-          <Reveal key={run} as="h2" text={S.title} accent="first conversation." className="tagline join-scene__title" />
+          <SlideHeadline runKey={run} as="h2" lines={splitLines(S.title)} accent="first conversation." dim className="join-scene__title" />
           <p className={`join-scene__body step-in ${step >= 1 ? "is-on" : ""}`}>{S.body}</p>
           <div className={`join-orb-status step-in ${step >= 1 ? "is-on" : ""}`}>
             <Orb size="mark" state={orb} />
@@ -152,5 +154,7 @@ function IntakeBody({ step, onStart, onOrb }: { step: number; onStart: () => voi
         </div>
       </div>
     </div>
+    <JoinPath {...path} />
+    </>
   );
 }

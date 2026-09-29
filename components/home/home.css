@@ -238,26 +238,13 @@
 .hm-principles__grid .principle-card { display: flex; flex-direction: column; }
 .hm-principles__grid .principle-card__body { margin-top: auto; padding-top: 14px; }
 
-/* ─── How it works ──────────────────────────────────────────────── */
+/* ─── Sheets on the stage (how it works → MLO band) ─────────────── */
 
-.hm-how .bento-slot { min-height: 200px; }
-.hm-how__n {
-  font-family: var(--font-jetbrains), monospace;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--accent);
-}
-.hm-how__title {
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-weight: 600;
-  font-size: 1.4rem;
-  line-height: 1.15;
-  letter-spacing: -0.015em;
-  margin-top: 10px;
-  color: var(--fg);
-}
-.hm-how__body { margin-top: 10px; font-size: 0.92rem; line-height: 1.55; color: var(--muted); font-weight: 300; }
-.hm-how__rail { max-width: 36rem; margin: 0 auto 28px; }
+.hm-sheet__inner { padding: 24px 16px 56px; }
+@media (min-width: 640px) { .hm-sheet__inner { padding: 32px 24px 72px; } }
+.hm-sheet .hm-h2.stage-headline { color: var(--fg-soft); }
+.hm-sheet .hm-sub { color: var(--muted); }
+.hm-sheet .stage-visual { margin-left: auto; }
 
 /* ─── Second Look teaser ────────────────────────────────────────── */
 
@@ -321,7 +308,7 @@
 
 .hm-agents__grid { display: grid; gap: 12px; margin-top: 44px; }
 @media (min-width: 768px) { .hm-agents__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
-.hm-agents__card { padding: 22px; border: 1px solid var(--rule); border-radius: 18px; background: color-mix(in srgb, var(--bg) 70%, var(--bg-elevated)); }
+.hm-agents__card { padding: 22px; }
 .hm-agents__card h3 { font-family: var(--font-fraunces), Georgia, serif; font-weight: 600; font-size: 1.25rem; line-height: 1.2; letter-spacing: -0.01em; color: var(--fg); }
 .hm-agents__card p { margin-top: 10px; font-size: 0.92rem; line-height: 1.55; color: var(--muted); font-weight: 300; }
 

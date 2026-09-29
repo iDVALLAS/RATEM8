@@ -1,6 +1,7 @@
 "use client";
 
 import Scene from "@/components/motion/Scene";
+import Stage from "@/components/motion/Stage";
 import SampleBadge from "@/components/SampleBadge";
 import OptionsRow from "./OptionsRow";
 import { briefContent as c, briefSample as s } from "@/lib/content/sample-brief";
@@ -17,16 +18,18 @@ const STEPS = seq(0, 220, 6);
 
 export default function SampleBrief() {
   return (
+    <Stage>
     <Scene
       label={c.sceneLabel}
       steps={STEPS}
       background="night"
       badge={<SampleBadge />}
       textEquivalent={c.textEquivalent}
-      className="br-scene rounded-2xl"
+      className="br-scene sheet-item"
+      threshold={0.15}
     >
       {({ step }) => (
-        <div className="px-4 pt-6 sm:px-6">
+        <div className="px-4 pt-6 sm:px-6 sheet-fill">
           <article className={`doc br-doc step-scale ${step >= 0 ? "is-on" : ""}`} aria-label={`${c.docTitle} (sample)`}>
             <header className="br-doc__head">
               <div>
@@ -93,6 +96,7 @@ export default function SampleBrief() {
         </div>
       )}
     </Scene>
+    </Stage>
   );
 }
 

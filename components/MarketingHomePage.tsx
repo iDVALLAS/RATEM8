@@ -8,14 +8,16 @@ import SecondLookTeaser from "@/components/home/SecondLookTeaser";
 import AgentsBand from "@/components/home/AgentsBand";
 import MloBand from "@/components/home/MloBand";
 import About from "@/components/home/About";
+import Stage from "@/components/motion/Stage";
 import "@/components/home/home.css";
 
 /**
  * MarketingHomePage — the LoanM8 homepage (site brief, Section 8).
  *
  * Nav → Hero (orb, headline, four-button grid, trust strip) →
- * states strip → the eight principles → how it works → Second Look
- * teaser → for agents → for MLOs → about → Footer.
+ * states strip → the eight principles → [stage: how it works → Second
+ * Look teaser → for agents → for MLOs, as stacked sheets] → about →
+ * Footer.
  *
  * Uses Nav and Footer directly (not PageShell) because the hero is
  * custom. Server component; only the hero orb and the Scenes ship JS.
@@ -28,10 +30,12 @@ export default function MarketingHomePage() {
         <Hero />
         <StatesStrip />
         <Principles />
-        <HowItWorks />
-        <SecondLookTeaser />
-        <AgentsBand />
-        <MloBand />
+        <Stage>
+          <HowItWorks />
+          <SecondLookTeaser />
+          <AgentsBand />
+          <MloBand />
+        </Stage>
         <About />
       </main>
       <Footer />

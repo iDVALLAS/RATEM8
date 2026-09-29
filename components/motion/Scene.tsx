@@ -26,6 +26,8 @@ type SceneProps = {
   autoStart?: boolean;
   loop?: boolean;
   loopDelay?: number;
+  /** IntersectionObserver threshold (default 0.35). Lower it for scenes taller than ~2.5 viewports. */
+  threshold?: number;
   id?: string;
   children: (t: SceneTimeline<HTMLElement>) => React.ReactNode;
 };
@@ -41,10 +43,11 @@ export default function Scene({
   autoStart,
   loop,
   loopDelay,
+  threshold,
   id,
   children,
 }: SceneProps) {
-  const t = useSceneTimeline<HTMLElement>({ steps, autoStart, loop, loopDelay });
+  const t = useSceneTimeline<HTMLElement>({ steps, autoStart, loop, loopDelay, threshold });
   return (
     <section
       id={id}

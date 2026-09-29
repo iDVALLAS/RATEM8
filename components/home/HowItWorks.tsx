@@ -1,31 +1,33 @@
+import { Sheet } from "@/components/motion/Stage";
+import SceneLabel from "@/components/motion/SceneLabel";
+import SlideHeadline, { splitLines } from "@/components/motion/SlideHeadline";
 import { copy } from "@/lib/copy";
 import { homeContent } from "@/lib/content/home";
-import HowItWorksScene from "./HowItWorksScene";
+import HowItWorksSteps from "./HowItWorksSteps";
 
 /**
- * HowItWorks — three steps for borrowers, as a dashed-to-filled Scene.
- * Server wrapper: heading here, motion in HowItWorksScene.
+ * HowItWorks — three steps for borrowers as a forest sheet on the
+ * stage: slide headline, then a scroll-driven step list with the orb
+ * and a tiny brief card pinned beside it. Server wrapper; the step
+ * list is in HowItWorksSteps.
  */
 export default function HowItWorks() {
+  const how = homeContent.how;
   return (
-    <section className="hm-rule hm-section" aria-labelledby="how-heading">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <Sheet chapter="forest" className="hm-sheet" aria-labelledby="how-heading">
+      <SceneLabel label={how.sceneLabel} counter={`${String(copy.how.steps.length).padStart(2, "0")} / ${how.counterTotal}`} />
+      <p className="sr-only">{how.textEquivalent}</p>
+      <div className="hm-sheet__inner sheet-fill mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="max-w-2xl">
           <div className="eyebrow">{copy.how.eyebrow}</div>
-          <h2 id="how-heading" className="hm-h2 mt-4">
-            {copy.how.heading}
-          </h2>
+          <SlideHeadline id="how-heading" as="h2" lines={splitLines(copy.how.heading)} accent={how.accent} dim className="hm-h2 mt-4" />
         </div>
-        <div className="mt-10">
-          <HowItWorksScene
-            steps={copy.how.steps.map((s) => ({ n: s.n, label: s.label, title: s.title, body: s.body }))}
-            sceneLabel={homeContent.how.sceneLabel}
-            counter={`${String(copy.how.steps.length).padStart(2, "0")} / ${homeContent.how.counterTotal}`}
-            slotLabels={homeContent.how.slotLabels}
-            textEquivalent={homeContent.how.textEquivalent}
-          />
-        </div>
+        <HowItWorksSteps
+          steps={copy.how.steps.map((s) => ({ label: s.label, title: s.title, body: s.body }))}
+          ariaLabel={how.listLabel}
+          orbPrefix={how.orbPrefix}
+        />
       </div>
-    </section>
+    </Sheet>
   );
 }

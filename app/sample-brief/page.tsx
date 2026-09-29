@@ -50,8 +50,11 @@ export default function SampleBriefPage() {
           <p className="br-hero__sub">{c.sub}</p>
         </header>
 
-        <SampleBrief />
+      </div>
 
+      <SampleBrief />
+
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <section aria-labelledby="br-cta-h" className="mt-12 card card--sunken">
           <p className="eyebrow">{c.ctaEyebrow}</p>
           <h2 id="br-cta-h" className="font-serif-display mt-2 text-3xl">

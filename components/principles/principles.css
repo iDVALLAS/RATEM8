@@ -12,24 +12,13 @@
   color: var(--muted);
 }
 
-/* One principle per viewport on desktop; generous padding on mobile. */
-.pr-scene {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 72px;
-}
-@media (min-width: 1024px) {
-  .pr-scene { min-height: 100svh; padding-bottom: 0; }
-}
+/* One principle per sheet. The sheet (stage.css) supplies the
+   viewport height and the sticky stacking; this only sets the rhythm. */
+.pr-scene { padding-bottom: 48px; }
+@media (min-width: 1024px) { .pr-scene { padding-bottom: 0; } }
 
-.pr-scene__inner {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-top: 40px;
-}
-@media (min-width: 1024px) { .pr-scene__inner { padding-top: 0; } }
+.pr-scene__inner { padding-top: 24px; }
+@media (min-width: 1024px) { .pr-scene__inner { padding-top: 0; padding-bottom: 32px; } }
 
 .pr-num {
   font-family: var(--font-jetbrains), ui-monospace, monospace;

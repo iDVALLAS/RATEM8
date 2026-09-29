@@ -5,6 +5,7 @@
 
 .sl-scene { padding-bottom: 40px; }
 .sl-scene__inner {
+  width: 100%;
   max-width: 72rem;
   margin: 0 auto;
   padding: 20px 16px 0;
@@ -12,14 +13,11 @@
 @media (min-width: 640px) { .sl-scene__inner { padding: 28px 24px 0; } }
 
 .sl-scene__title {
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-weight: 600;
-  font-size: 1.6rem;
-  line-height: 1.1;
-  letter-spacing: -0.015em;
-  color: var(--fg);
+  font-size: 2rem;
+  line-height: 1.05;
 }
-@media (min-width: 640px) { .sl-scene__title { font-size: 2rem; } }
+@media (min-width: 640px) { .sl-scene__title { font-size: 2.75rem; } }
+@media (min-width: 1024px) { .sl-scene__title { font-size: 3.25rem; } }
 .sl-scene__body {
   margin-top: 8px;
   max-width: 34rem;

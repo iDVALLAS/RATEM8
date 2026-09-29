@@ -28,3 +28,13 @@ export const JOIN_TEXT_EQUIVALENTS = [
 export const JOIN_BRIEF = {
   drafted: "Rate Strategy Brief · drafted",
 };
+
+/** The recap sheet after the five scenes: a scroll-driven step list. */
+export const JOIN_RECAP = {
+  label: "// the five, at a glance",
+  counter: "05 steps",
+  ariaLabel: "The five scenes, as a list",
+  orbPrefix: "// m8:",
+  textEquivalent:
+    "The five scenes again as a list. As you scroll, the statement nearest the middle of the screen reads at full contrast and the others fade. Beside them, the M8 orb changes state with each step: listening, idle, speaking, thinking, idle.",
+};

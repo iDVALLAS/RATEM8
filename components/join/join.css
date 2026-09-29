@@ -5,22 +5,22 @@
 .join-scenes {
   position: relative;
   --join-gutter: 44px;
-  --join-progress: 0;
 }
 @media (min-width: 768px) {
   .join-scenes { --join-gutter: 128px; }
 }
 
-/* Every scene leaves the left gutter free for the path. */
+/* Every sheet leaves the left gutter free for its path segment. */
 .join-scenes .scene { padding-left: var(--join-gutter); }
 
 .join-scene__inner {
   position: relative;
+  width: 100%;
   max-width: 72rem;
   margin: 0 auto;
-  padding: 40px 16px 64px;
+  padding: 24px 16px 48px;
 }
-@media (min-width: 640px) { .join-scene__inner { padding: 56px 24px 80px; } }
+@media (min-width: 640px) { .join-scene__inner { padding: 32px 24px 64px; } }
 
 .join-scene__title {
   font-size: 2rem;
@@ -37,7 +37,7 @@
   color: var(--muted);
 }
 
-/* ─── Path overlay (decorative) ────────────────────────────────── */
+/* ─── Path overlay (decorative, one segment per sheet) ─────────── */
 
 .join-path {
   position: absolute;
@@ -45,6 +45,7 @@
   z-index: 2;
   pointer-events: none;
   overflow: hidden;
+  --join-seg: 0;
 }
 .join-path__svg {
   position: absolute;
@@ -58,7 +59,7 @@
   stroke-width: 2;
   opacity: 0.55;
   vector-effect: non-scaling-stroke;
-  stroke-dashoffset: calc(1 - var(--join-progress));
+  stroke-dashoffset: calc(1 - var(--join-seg));
   transition: stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .join-path__ghost {
@@ -77,7 +78,7 @@
   width: 48px;
   height: 48px;
   offset-rotate: 0deg;
-  offset-distance: calc(var(--join-progress) * 100%);
+  offset-distance: calc(var(--join-seg) * 100%);
   transition: offset-distance 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 @supports not (offset-distance: 0%) {
@@ -85,7 +86,7 @@
     left: var(--join-x, 20px);
     top: 0;
     margin: 0;
-    transform: translate(-50%, -50%) translateY(calc(var(--join-progress) * var(--join-h, 0px)));
+    transform: translate(-50%, -50%) translateY(calc(var(--join-seg) * var(--join-h, 0px)));
     transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
@@ -148,8 +149,7 @@
 
 /* ─── Scene 01: hook ───────────────────────────────────────────── */
 
-.join-hook { overflow: hidden; }
-.join-hook .join-scene__inner { min-height: 60vh; }
+.join-hook { overflow: clip; }
 .join-orb-peek {
   position: absolute;
   top: 8px;
@@ -333,9 +333,14 @@
 
 /* ─── Scene 05: you ────────────────────────────────────────────── */
 
-.join-you .join-scene__inner { min-height: 60vh; display: flex; flex-direction: column; justify-content: center; }
+.join-you .join-scene__inner { display: flex; flex-direction: column; justify-content: center; }
 .join-you__stack { display: flex; flex-direction: column; gap: 24px; margin-top: 28px; align-items: flex-start; }
 .join-chip-strip { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ─── Recap sheet (step list) ──────────────────────────────────── */
+
+.join-recap .steplist-root { margin-top: 8px; }
+.join-recap .stage-visual { margin-left: auto; }
 
 /* ─── Below the animation ─────────────────────────────────────── */
 

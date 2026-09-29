@@ -1,22 +1,24 @@
 import CTAButton from "@/components/CTAButton";
-import Reveal from "@/components/motion/Reveal";
+import { Sheet } from "@/components/motion/Stage";
+import SlideHeadline, { splitLines } from "@/components/motion/SlideHeadline";
 import { copy } from "@/lib/copy";
 import { homeContent } from "@/lib/content/home";
 import SecondLookScene from "./SecondLookScene";
 
 /**
  * SecondLookTeaser — a compact loop of the decode animation with a CTA
- * to /second-look. Server wrapper: heading + body + CTA here, motion
- * in SecondLookScene.
+ * to /second-look, as a night sheet on the stage. Server wrapper:
+ * heading + body + CTA here, motion in SecondLookScene (which stays a
+ * paper Scene, framed as a card inside the sheet).
  */
 export default function SecondLookTeaser() {
   const t = homeContent.secondLook;
   return (
-    <section id="second-look" className="hm-rule hm-section">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <Sheet id="second-look" chapter="night" className="hm-sheet">
+      <div className="hm-sheet__inner sheet-fill mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="max-w-2xl">
           <div className="code-label">{copy.secondLookTeaser.eyebrow}</div>
-          <Reveal as="h2" text={copy.secondLookTeaser.heading} accent={copy.secondLookTeaser.accent} className="hm-h2 mt-4" />
+          <SlideHeadline as="h2" lines={splitLines(copy.secondLookTeaser.heading)} accent={copy.secondLookTeaser.accent} dim className="hm-h2 mt-4" />
           <p className="hm-sub">{copy.secondLookTeaser.body}</p>
         </div>
 
@@ -40,6 +42,6 @@ export default function SecondLookTeaser() {
           </CTAButton>
         </div>
       </div>
-    </section>
+    </Sheet>
   );
 }

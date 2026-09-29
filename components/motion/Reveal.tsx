@@ -22,13 +22,14 @@ import Underline from "./Underline";
  * the immediate mode; JS handles the viewport mode).
  *
  * Text is a single string for screen readers; the split spans are
- * aria-hidden.
+ * aria-hidden. `as="span"` renders inline so a parent heading (see
+ * SlideHeadline) can hold several lines.
  */
 type RevealProps = {
   text: string;
   accent?: string;
   underline?: boolean;
-  as?: "h1" | "h2" | "h3" | "p";
+  as?: "h1" | "h2" | "h3" | "p" | "span";
   className?: string;
   /** ms between words. Default 90. */
   interval?: number;
@@ -83,8 +84,16 @@ export default function Reveal({
       const [before, after] = text.split(accent);
       before.split(/\s+/).filter(Boolean).forEach((w) => out.push({ word: w, accent: false, last: false }));
       const accentWords = accent.split(/\s+/).filter(Boolean);
+      // Punctuation glued to the accent ("close." with accent "close") stays
+      // attached to the last accent word instead of becoming its own token.
+      let rest = after;
+      const glued = /^[^\s\w]+/.exec(after);
+      if (glued && accentWords.length) {
+        accentWords[accentWords.length - 1] += glued[0];
+        rest = after.slice(glued[0].length);
+      }
       accentWords.forEach((w, i) => out.push({ word: w, accent: true, last: i === accentWords.length - 1 }));
-      after.split(/\s+/).filter(Boolean).forEach((w) => out.push({ word: w, accent: false, last: false }));
+      rest.split(/\s+/).filter(Boolean).forEach((w) => out.push({ word: w, accent: false, last: false }));
     } else {
       text.split(/\s+/).filter(Boolean).forEach((w) => out.push({ word: w, accent: false, last: false }));
     }

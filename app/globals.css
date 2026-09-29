@@ -1853,3 +1853,37 @@ html { font-variation-settings: "WONK" 0; }
 :root[data-type="sans"] .accent-word { white-space: normal; }
 /* Word reveal: the blur+clip combination is heavy; use opacity/transform only. */
 :root[data-type="sans"] .reveal__word { filter: none !important; }
+
+/* Every other Fraunces use on the site (page-level CSS), collected by
+   scripts at build-review time so the sans variant covers the whole site. */
+:root[data-type="sans"] .ag-beat-title,
+:root[data-type="sans"] .ag-card-title,
+:root[data-type="sans"] .ag-card__title,
+:root[data-type="sans"] .ag-quote,
+:root[data-type="sans"] .ag-section-title,
+:root[data-type="sans"] .br-doc__title,
+:root[data-type="sans"] .br-sec__title,
+:root[data-type="sans"] .calc-index-card h2,
+:root[data-type="sans"] .hm-about__name,
+:root[data-type="sans"] .hm-agents__card h3,
+:root[data-type="sans"] .hm-h2,
+:root[data-type="sans"] .hm-orb-card__title,
+:root[data-type="sans"] .hm-sl__doc-title,
+:root[data-type="sans"] .join-borrower__name,
+:root[data-type="sans"] .join-state-card__name,
+:root[data-type="sans"] .le-cta h2,
+:root[data-type="sans"] .legal-title,
+:root[data-type="sans"] .m8chat-head__title,
+:root[data-type="sans"] .m8chat-modal__title,
+:root[data-type="sans"] .market-card-rate,
+:root[data-type="sans"] .pr-body,
+:root[data-type="sans"] .sl-stat__value,
+:root[data-type="sans"] .st-hero__accent,
+:root[data-type="sans"] .st-section h3,
+:root[data-type="sans"] .stage-visual-title,
+:root[data-type="sans"] .steplist-title {
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: -0.025em;
+}

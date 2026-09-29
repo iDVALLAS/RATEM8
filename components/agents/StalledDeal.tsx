@@ -1,6 +1,7 @@
 "use client";
 
 import Scene from "@/components/motion/Scene";
+import Stage from "@/components/motion/Stage";
 import Orb, { type OrbState } from "@/components/Orb";
 import SampleBadge from "@/components/SampleBadge";
 import { copy } from "@/lib/copy";
@@ -54,6 +55,7 @@ export default function StalledDeal() {
   const c = agentsContent.scene;
 
   return (
+    <Stage>
     <Scene
       label={c.sceneLabel}
       steps={STEPS}
@@ -61,6 +63,7 @@ export default function StalledDeal() {
       badge={<SampleBadge />}
       textEquivalent={c.textEquivalent}
       id="stalled-deal"
+      className="sheet-item"
     >
       {({ step }) => {
         const beat = beatFor(step);
@@ -70,7 +73,7 @@ export default function StalledDeal() {
         const orbState = orbStateFor(step);
 
         return (
-          <div className="ag-stage-wrap">
+          <div className="ag-stage-wrap sheet-fill">
             {/* Beat strip + running counter */}
             <div className="ag-beats" aria-hidden="true">
               {scenes.map((s, i) => (
@@ -90,7 +93,7 @@ export default function StalledDeal() {
               </div>
 
               {/* The buyer card */}
-              <div className={`card ag-card step-in ${step >= 0 ? "is-on" : ""} ${done ? "is-done" : ""}`}>
+              <div className={`card float-card ag-card step-in ${step >= 0 ? "is-on" : ""} ${done ? "is-done" : ""}`}>
                 <div className="ag-card__head">
                   <div>
                     <div className="mono-label">{c.cardLabel}</div>
@@ -139,5 +142,6 @@ export default function StalledDeal() {
         );
       }}
     </Scene>
+    </Stage>
   );
 }
