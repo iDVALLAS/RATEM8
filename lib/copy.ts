@@ -70,6 +70,9 @@ export const copy = {
     // by the owner with two actions under the orb (Voice / Q & A). The
     // string stays here for reference; nothing renders it.
     orbCaption: "Tap me to say g'day.",
+    /** Line under the headline: fingerprint mark + "human authentication". */
+    authLine: "human authentication",
+    authWord: "human",
     voiceLabel: "Voice",
     qaLabel: "Q & A",
     voiceComingSoon: "Voice is coming soon. Hang in there, m8.",

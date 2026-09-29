@@ -1866,3 +1866,9 @@ html { font-variation-settings: "WONK" 0; }
   font-style: normal;
   letter-spacing: -0.025em;
 }
+
+/* ─── Underlines off ────────────────────────────────────────────── */
+/* Owner decision 2026-09-29: no hand-drawn underline under accent words,
+   anywhere. The Underline component still renders for the `underline`
+   prop, but it is hidden here so one rule controls the whole site. */
+.hand-underline { display: none !important; }

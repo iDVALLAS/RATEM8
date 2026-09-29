@@ -48,7 +48,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
   margin: 0 auto;
 }
 .hm-orb-stage { position: relative; display: flex; justify-content: center; }
@@ -126,7 +126,7 @@
 .hm-hero__emphasis .accent-word { white-space: normal; font-weight: 400; }
 
 .hm-hero__sub {
-  margin: 22px auto 0;
+  margin: 16px auto 0;
   max-width: 40rem;
   font-size: 1.05rem;
   line-height: 1.6;
@@ -155,7 +155,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin: 34px auto 0;
+  margin: 26px auto 0;
   max-width: 44rem;
   text-align: left;
 }
@@ -347,10 +347,10 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-top: 24px;
-  padding-bottom: 32px;
+  padding-top: 16px;
+  padding-bottom: 24px;
 }
-@media (min-width: 640px) { .hm-hero__inner { padding-top: 32px; padding-bottom: 40px; } }
+@media (min-width: 640px) { .hm-hero__inner { padding-top: 20px; padding-bottom: 28px; } }
 .hm-trust-band { padding: 8px 0 56px; }
 @media (min-width: 640px) { .hm-trust-band { padding: 16px 0 72px; } }
 
@@ -372,7 +372,7 @@
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-top: 6px;
+  margin-top: 0;
 }
 .stitch-btn {
   display: inline-flex;
@@ -396,7 +396,10 @@
 .stitch-btn svg { color: var(--accent); flex-shrink: 0; }
 .stitch-btn:hover { border-color: var(--accent); color: var(--fg); background: var(--accent-soft); }
 .stitch-btn:active { transform: translateY(1px); }
-.hm-orb-toastwrap { min-height: 64px; margin-top: 10px; display: flex; justify-content: center; align-items: flex-start; }
+/* The toast overlays instead of reserving space, so the first viewport
+   keeps the four actions above the fold. */
+.hm-orb-toastwrap { position: relative; height: 0; z-index: 6; }
+.hm-orb-toast { position: absolute; top: 8px; left: 0; right: 0; margin: 0 auto; width: max-content; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35); }
 .hm-orb-toast {
   display: inline-block;
   max-width: 34rem;
@@ -409,3 +412,30 @@
 .hm-orb-toast__msg { font-size: 0.95rem; color: var(--fg); }
 .hm-orb-toast__note { margin-top: 3px; font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 .hm-orb-caption, .hm-orb-caption__text, .hm-orb-card, .hm-orb-card__title, .hm-orb-card__body, .hm-orb-card__actions, .hm-orb-card__dismiss { /* retired by the orb actions */ }
+
+/* ─── "human authentication" line under the headline ────────────── */
+.hm-hero__auth {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0 0.28em;
+  margin-top: 10px;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 300;
+  font-size: 1.75rem;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--fg-soft);
+}
+@media (min-width: 640px) { .hm-hero__auth { font-size: 2.4rem; margin-top: 8px; } }
+.hm-hero__fp {
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.12em;
+  color: var(--color-m8-green);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(93, 202, 165, 0.55));
+}
+.hm-hero__auth-word { color: var(--fg); font-weight: 400; }
+.hm-hero__auth-rest { color: color-mix(in srgb, var(--fg) 55%, transparent); }
