@@ -88,7 +88,7 @@ export default function HeroOrb({ caption, cardLabel, cardTitle, cardBody, dismi
       </div>
 
       <div className="hm-orb-caption">
-        {!open ? <span className="speech-bubble">{caption}</span> : null}
+        {!open ? <span className="hm-orb-caption__text">{caption}</span> : null}
       </div>
 
       {open ? (

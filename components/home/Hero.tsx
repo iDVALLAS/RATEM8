@@ -19,7 +19,7 @@ export default function Hero() {
     <section className="hm-hero">
       <div aria-hidden="true" className="hm-hero__glow" />
 
-      <div className="relative mx-auto max-w-4xl px-4 sm:px-6 pt-6 pb-12 sm:pt-8 sm:pb-16 text-center">
+      <div className="hm-hero__inner relative mx-auto max-w-4xl px-4 sm:px-6 text-center">
         <div className="hm-in" style={{ "--d": "0ms" } as React.CSSProperties}>
           <HeroOrb
             caption={copy.hero.orbCaption}
@@ -37,7 +37,7 @@ export default function Hero() {
           />
         </div>
 
-        <div className="mt-6 sm:mt-8">
+        <div className="mt-8 sm:mt-10">
           <Reveal as="h1" text={copy.hero.tagline} immediate delay={200} className="tagline text-5xl sm:text-7xl" />
         </div>
 
@@ -48,10 +48,12 @@ export default function Hero() {
         <div className="hm-in" style={{ "--d": "220ms" } as React.CSSProperties}>
           <ActionGrid />
         </div>
+      </div>
 
-        <div className="hm-in" style={{ "--d": "280ms" } as React.CSSProperties}>
-          <TrustStrip />
-        </div>
+      {/* Trust strip sits below the first viewport on purpose: the first
+          screen is orb → headline → the four actions, nothing else. */}
+      <div className="hm-trust-band mx-auto max-w-4xl px-4 sm:px-6 text-center">
+        <TrustStrip />
       </div>
     </section>
   );

@@ -126,7 +126,7 @@
 .hm-hero__emphasis .accent-word { white-space: normal; font-weight: 400; }
 
 .hm-hero__sub {
-  margin: 18px auto 0;
+  margin: 22px auto 0;
   max-width: 40rem;
   font-size: 1.05rem;
   line-height: 1.6;
@@ -155,7 +155,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin: 24px auto 0;
+  margin: 34px auto 0;
   max-width: 44rem;
   text-align: left;
 }
@@ -191,7 +191,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin: 40px auto 0;
+  margin: 0 auto;
   max-width: 56rem;
   list-style: none;
   padding: 0;
@@ -350,3 +350,30 @@
 .hm-about__verify { display: inline-block; margin-top: 8px; font-size: 13px; color: var(--fg-soft); text-decoration: underline; text-underline-offset: 3px; min-height: 44px; line-height: 44px; }
 .hm-about__verify:hover { color: var(--accent); }
 .hm-about__bio { font-size: 0.95rem; line-height: 1.6; color: var(--fg-soft); font-weight: 300; }
+
+/* ─── First-viewport composition ─────────────────────────────────── */
+/* The hero fills the first screen (minus the sticky nav) and centers
+   its content, so what a visitor lands on is: orb, headline, sub, the
+   four actions. The trust strip is a second beat below the fold. */
+.hm-hero__inner {
+  min-height: calc(100svh - 64px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 24px;
+  padding-bottom: 32px;
+}
+@media (min-width: 640px) { .hm-hero__inner { padding-top: 32px; padding-bottom: 40px; } }
+.hm-trust-band { padding: 8px 0 56px; }
+@media (min-width: 640px) { .hm-trust-band { padding: 16px 0 72px; } }
+
+/* Plain caption under the orb — text, not a pill. */
+.hm-orb-caption__text {
+  display: inline-block;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  animation: m8-hint-in 400ms ease-out both;
+}
