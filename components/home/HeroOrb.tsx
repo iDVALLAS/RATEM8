@@ -5,113 +5,113 @@ import Orb, { type OrbState } from "@/components/Orb";
 import TermField from "@/components/TermField";
 
 /**
- * HeroOrb — the tappable hero orb.
+ * HeroOrb — the hero orb with two stitched-line actions under it.
  *
- * Tap = a one-shot pulse (700 ms), the orb "speaks" for ~1.5 s (speed,
- * amplitude, halo only — never hue or shape), and an inline card
- * appears with the AI disclosure and the booking CTA.
+ *   [ ◌ Voice ]   [ ▢ Q & A ]
  *
- * NO microphone access. NO audio. NO AI call. The card's CTA is
- * rendered by the server parent (BookingCTA reads env) and passed in
- * as `cta`.
+ * - Voice: voice is not live (CONFIG.featureFlags.voice is false), so
+ *   the button pulses the orb and shows the coming-soon line. Tapping
+ *   the orb itself does the same.
+ * - Q & A: goes where "I'm shopping a mortgage" goes (the borrower
+ *   booking link). When that link is not configured yet, it shows the
+ *   booking-coming-soon line instead of dead-linking.
+ *
+ * NO microphone access. NO audio. NO AI call. Orb state changes are
+ * speed / amplitude / halo only.
  */
 type HeroOrbProps = {
-  caption: string;
-  cardLabel: string;
-  cardTitle: string;
-  cardBody: string;
-  dismissLabel: string;
   ariaLabel: string;
-  ariaLabelOpen: string;
-  cta: React.ReactNode;
+  voiceLabel: string;
+  qaLabel: string;
+  voiceMessage: string;
+  qaComingSoon: string;
+  aiNote: string;
+  /** Borrower booking URL, or null when not configured. */
+  qaHref: string | null;
 };
 
 const PULSE_MS = 700;
 const SPEAK_MS = 1500;
+const TOAST_MS = 4200;
 
-export default function HeroOrb({ caption, cardLabel, cardTitle, cardBody, dismissLabel, ariaLabel, ariaLabelOpen, cta }: HeroOrbProps) {
-  const [open, setOpen] = useState(false);
-  const [shown, setShown] = useState(false);
+function VoiceIcon() {
+  return (
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" />
+    </svg>
+  );
+}
+
+function QaIcon() {
+  return (
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z" />
+      <path d="M9.6 8.2a2.4 2.4 0 1 1 3.4 2.2c-.7.35-1 .75-1 1.4" />
+      <path d="M12 14h.01" />
+    </svg>
+  );
+}
+
+export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voiceMessage, qaComingSoon, aiNote, qaHref }: HeroOrbProps) {
   const [pulse, setPulse] = useState(false);
   const [state, setState] = useState<OrbState>("idle");
+  const [toast, setToast] = useState<string | null>(null);
   const timers = useRef<number[]>([]);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const t = timers.current;
     return () => t.forEach((id) => window.clearTimeout(id));
   }, []);
 
-  // Mount the card, then flip `.is-on` on the next frame so the
-  // step-scale transition actually runs.
-  useEffect(() => {
-    if (!open) {
-      setShown(false);
-      return;
-    }
-    const raf = window.requestAnimationFrame(() => {
-      setShown(true);
-      cardRef.current?.focus({ preventScroll: true });
-    });
-    return () => window.cancelAnimationFrame(raf);
-  }, [open]);
-
-  const tap = useCallback(() => {
+  const wake = useCallback((message: string) => {
+    timers.current.forEach((id) => window.clearTimeout(id));
+    timers.current = [];
     setPulse(true);
     setState("speaking");
-    setOpen(true);
+    setToast(message);
     timers.current.push(window.setTimeout(() => setPulse(false), PULSE_MS));
     timers.current.push(window.setTimeout(() => setState("idle"), SPEAK_MS));
+    timers.current.push(window.setTimeout(() => setToast(null), TOAST_MS));
   }, []);
 
-  const dismiss = useCallback(() => {
-    setOpen(false);
-    btnRef.current?.focus({ preventScroll: true });
-  }, []);
+  const onVoice = useCallback(() => wake(voiceMessage), [wake, voiceMessage]);
+  const onQaFallback = useCallback(() => wake(qaComingSoon), [wake, qaComingSoon]);
 
   return (
     <div className="hm-orb-wrap">
       <div className="hm-orb-stage">
         <TermField />
-        <button
-          ref={btnRef}
-          type="button"
-          onClick={tap}
-          aria-label={open ? ariaLabelOpen : ariaLabel}
-          aria-expanded={open}
-          aria-controls={open ? "hero-orb-card" : undefined}
-          className="hm-orb-btn"
-        >
+        <button type="button" onClick={onVoice} aria-label={ariaLabel} className="hm-orb-btn">
           <Orb size="hero" state={state} className={pulse ? "orb--pulse" : ""} />
         </button>
       </div>
 
-      <div className="hm-orb-caption">
-        {!open ? <span className="hm-orb-caption__text">{caption}</span> : null}
+      <div className="hm-orb-actions" role="group" aria-label="M8 actions">
+        <button type="button" onClick={onVoice} className="stitch-btn" aria-describedby={toast ? "hero-orb-toast" : undefined}>
+          <VoiceIcon />
+          <span>{voiceLabel}</span>
+        </button>
+        {qaHref ? (
+          <a href={qaHref} target="_blank" rel="noopener noreferrer" className="stitch-btn">
+            <QaIcon />
+            <span>{qaLabel}</span>
+          </a>
+        ) : (
+          <button type="button" onClick={onQaFallback} className="stitch-btn">
+            <QaIcon />
+            <span>{qaLabel}</span>
+          </button>
+        )}
       </div>
 
-      {open ? (
-        <div
-          id="hero-orb-card"
-          ref={cardRef}
-          tabIndex={-1}
-          role="region"
-          aria-label={cardTitle}
-          aria-live="polite"
-          className={`hm-orb-card step-scale ${shown ? "is-on" : ""}`}
-        >
-          <div className="code-label">{cardLabel}</div>
-          <p className="hm-orb-card__title">{cardTitle}</p>
-          <p className="hm-orb-card__body">{cardBody}</p>
-          <div className="hm-orb-card__actions">
-            {cta}
-            <button type="button" onClick={dismiss} className="hm-orb-card__dismiss">
-              {dismissLabel}
-            </button>
+      <div className="hm-orb-toastwrap" aria-live="polite">
+        {toast ? (
+          <div id="hero-orb-toast" className="hm-orb-toast step-in is-on">
+            <p className="hm-orb-toast__msg">{toast}</p>
+            <p className="hm-orb-toast__note">{aiNote}</p>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }

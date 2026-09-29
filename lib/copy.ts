@@ -66,7 +66,14 @@ export const copy = {
     // PROPOSAL: "Free for all loan mates." → brief tagline second half.
     taglineEmphasis: "Free for the people.",
     sub: "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer. No lead-selling. No trigger leads. No spam.",
+    // PROPOSAL: the brief's orb greeting "Tap me to say g'day." was replaced
+    // by the owner with two actions under the orb (Voice / Q & A). The
+    // string stays here for reference; nothing renders it.
     orbCaption: "Tap me to say g'day.",
+    voiceLabel: "Voice",
+    qaLabel: "Q & A",
+    voiceComingSoon: "Voice is coming soon. Hang in there, m8.",
+    qaComingSoon: "Booking link coming soon.",
     orbCardTitle: "Hi, I'm M8.",
     orbCardBody: `${AI_DISCLOSURE} Chat is opening soon. Want to talk to a licensed loan officer now?`,
     orbCardCta: "Book a call with a licensed loan officer",

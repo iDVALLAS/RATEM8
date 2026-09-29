@@ -1,12 +1,16 @@
 # LoanM8 — Typography Guide
 
-**LOCKED type stack** (site brief, Section 3):
+**Type stack** (owner decision 2026-09-29, after a side-by-side; supersedes the brief's Fraunces display lock):
 
 | Role          | Font               | Used for                                                     |
 |---------------|--------------------|--------------------------------------------------------------|
-| Display       | **Fraunces**       | Headlines, the tagline, principle titles, the accent word    |
+| Display       | **Geist** (300, tight) | Headlines, the tagline, principle titles; accent words in a green gradient |
 | Body / UI     | **Geist**          | Paragraphs, buttons, nav, inputs, cards                      |
 | Labels / data | **JetBrains Mono** | Scene labels (`// 01 — drop`), eyebrows, numbers, badges     |
+
+Headline rules live under `:root[data-type="sans"]` in `app/globals.css`
+(the attribute is set statically on `<html>`). Fraunces is not
+downloaded; `--font-fraunces` aliases to Geist.
 
 "M8" in the wordmark is always M8 Green.
 

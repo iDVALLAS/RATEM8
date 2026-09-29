@@ -12,7 +12,7 @@
 
 export const homeContent = {
   hero: {
-    orbAriaLabel: "Tap M8 to say g'day",
+    orbAriaLabel: "Wake M8",
     orbAriaLabelOpen: "M8 has said g'day",
     orbCardLabel: "// m8",
     /** Rendered under the four-button grid (the hero is an intake point). */

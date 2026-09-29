@@ -364,3 +364,48 @@
   letter-spacing: -0.01em;
   animation: m8-hint-in 400ms ease-out both;
 }
+
+/* ─── Orb actions: two stitched-line buttons + a short toast ───────── */
+.hm-orb-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+.stitch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  border: 1.5px dashed color-mix(in srgb, var(--fg) 38%, transparent);
+  background: transparent;
+  color: var(--fg-soft);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 160ms ease-out, color 160ms ease-out, background-color 160ms ease-out, transform 160ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.stitch-btn svg { color: var(--accent); flex-shrink: 0; }
+.stitch-btn:hover { border-color: var(--accent); color: var(--fg); background: var(--accent-soft); }
+.stitch-btn:active { transform: translateY(1px); }
+.hm-orb-toastwrap { min-height: 64px; margin-top: 10px; display: flex; justify-content: center; align-items: flex-start; }
+.hm-orb-toast {
+  display: inline-block;
+  max-width: 34rem;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--bg) 70%, var(--bg-elevated));
+  text-align: center;
+}
+.hm-orb-toast__msg { font-size: 0.95rem; color: var(--fg); }
+.hm-orb-toast__note { margin-top: 3px; font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.hm-orb-caption, .hm-orb-caption__text, .hm-orb-card, .hm-orb-card__title, .hm-orb-card__body, .hm-orb-card__actions, .hm-orb-card__dismiss { /* retired by the orb actions */ }

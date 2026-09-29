@@ -1,6 +1,6 @@
 import Reveal from "@/components/motion/Reveal";
-import BookingCTA from "@/components/BookingCTA";
 import { copy } from "@/lib/copy";
+import { CONFIG, hasBooking } from "@/lib/config";
 import { homeContent } from "@/lib/content/home";
 import HeroOrb from "./HeroOrb";
 import ActionGrid from "./ActionGrid";
@@ -22,18 +22,13 @@ export default function Hero() {
       <div className="hm-hero__inner relative mx-auto max-w-4xl px-4 sm:px-6 text-center">
         <div className="hm-in" style={{ "--d": "0ms" } as React.CSSProperties}>
           <HeroOrb
-            caption={copy.hero.orbCaption}
-            cardLabel={homeContent.hero.orbCardLabel}
-            cardTitle={copy.hero.orbCardTitle}
-            cardBody={copy.hero.orbCardBody}
-            dismissLabel={copy.hero.orbCardDismiss}
             ariaLabel={homeContent.hero.orbAriaLabel}
-            ariaLabelOpen={homeContent.hero.orbAriaLabelOpen}
-            cta={
-              <BookingCTA kind="borrower" variant="pill" ariaLabel={copy.hero.orbCardCta}>
-                {copy.hero.orbCardCta}
-              </BookingCTA>
-            }
+            voiceLabel={copy.hero.voiceLabel}
+            qaLabel={copy.hero.qaLabel}
+            voiceMessage={copy.hero.voiceComingSoon}
+            qaComingSoon={copy.hero.qaComingSoon}
+            aiNote={copy.footer.aiNote}
+            qaHref={hasBooking(CONFIG.calendly.borrower) ? CONFIG.calendly.borrower : null}
           />
         </div>
 

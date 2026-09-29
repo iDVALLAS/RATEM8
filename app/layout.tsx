@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { Analytics } from "@vercel/analytics/next";
 import { CONFIG, STATE_NAMES_LINE } from "@/lib/config";
@@ -11,25 +11,12 @@ import ReferralTracker from "@/components/ReferralTracker";
 import "./globals.css";
 
 /**
- * Fonts — LOCKED: Fraunces (display), Geist (body/UI), JetBrains Mono
- * (labels/data). All self-hosted through next/font (Google fonts are
- * downloaded at build time and served from /_next/static).
- *
- * Fraunces loads normal + italic so the accent-word treatment
- * (italic serif in M8 Green) is real italic, not synthesized.
+ * Fonts — Geist (headlines, body, UI) + JetBrains Mono (labels/data).
+ * The site brief locked Fraunces for display; the owner chose the sans
+ * headline treatment (light Geist, gradient accent words) after a
+ * side-by-side, so Fraunces is no longer downloaded. `--font-fraunces`
+ * is aliased to Geist in globals.css for any remaining reference.
  */
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
-  display: "swap",
-  style: ["normal", "italic"],
-  weight: "variable",
-  // The WONK axis must be present in the served file so CSS can pin it
-  // to 0; otherwise Google's default instance ships the "wonky" f / y
-  // alternates seen in the principle titles.
-  axes: ["WONK"],
-});
-
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains",
@@ -75,7 +62,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${fraunces.variable} ${jetbrains.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${GeistSans.variable} ${jetbrains.variable}`} data-type="sans" suppressHydrationWarning>
       <head>
         {/* No-flash theme boot: reads the saved theme before first paint. */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
