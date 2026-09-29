@@ -23,7 +23,7 @@ export default function Hero() {
           {copy.hero.eyebrow}
         </p>
 
-        <div className="mt-10 sm:mt-12 hm-in" style={{ "--d": "80ms" } as React.CSSProperties}>
+        <div className="mt-10 sm:mt-12 hm-in" style={{ "--d": "60ms" } as React.CSSProperties}>
           <HeroOrb
             caption={copy.hero.orbCaption}
             cardLabel={homeContent.hero.orbCardLabel}
@@ -42,20 +42,20 @@ export default function Hero() {
 
         <div className="mt-10 sm:mt-12">
           <Reveal as="h1" text={copy.hero.tagline} immediate delay={200} className="tagline text-5xl sm:text-7xl" />
-          <p className="hm-hero__emphasis hm-in" style={{ "--d": "400ms" } as React.CSSProperties}>
+          <p className="hm-hero__emphasis hm-in" style={{ "--d": "160ms" } as React.CSSProperties}>
             <em className="accent-word">{copy.hero.taglineEmphasis}</em>
           </p>
         </div>
 
-        <p className="hm-hero__sub hm-in" style={{ "--d": "500ms" } as React.CSSProperties}>
+        <p className="hm-hero__sub">
           {copy.hero.sub}
         </p>
 
-        <div className="hm-in" style={{ "--d": "600ms" } as React.CSSProperties}>
+        <div className="hm-in" style={{ "--d": "220ms" } as React.CSSProperties}>
           <ActionGrid />
         </div>
 
-        <div className="hm-in" style={{ "--d": "700ms" } as React.CSSProperties}>
+        <div className="hm-in" style={{ "--d": "280ms" } as React.CSSProperties}>
           <TrustStrip />
         </div>
       </div>

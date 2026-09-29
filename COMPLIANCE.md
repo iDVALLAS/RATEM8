@@ -120,6 +120,14 @@ social proof, testimonials, fake stats, "trusted by" (plus "six figures",
   `components/Footer.tsx`, included in `lib/licensing.ts → buildDisclaimer()`,
   and in every agent API envelope (`lib/agent-api.ts`).
 
+## Where the strings live
+
+UI strings: `lib/copy.ts`. Long-form content: `lib/content/*.ts`
+(home, agents, join, calculators, states, loan-estimate, sample-brief,
+ai, legal). Shell-only labels: `components/chat/chatContent.ts`,
+`components/second-look/strings.ts`. All are inside the `check:copy`
+scan.
+
 ## 14. Principle 2 is a platform promise, not a UI claim
 
 - `lib/principles.ts` holds the verbatim principle. No other copy implies

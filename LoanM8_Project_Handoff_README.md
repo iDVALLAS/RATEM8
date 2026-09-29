@@ -465,3 +465,51 @@ Local Exo fonts, `VoiceOrb`, `useGreeting` state machine, `TermField`.
 
 `lib/licensing.ts` single source of truth for compliance data,
 `buildDisclaimer()` generator, multi-LO V2-ready schema.
+
+---
+
+## One-shot site build (2026-09-29) — the full LoanM8 site
+
+**Scope:** `docs/SITE_BRIEF.md` end to end. Every route in the brief's
+Section 2 ships; compliance rules from Section 5 are enforced in code
+and documented in `COMPLIANCE.md`; counsel items are in
+`ATTORNEY_REVIEW_LIST.md`; unfilled values are in `PLACEHOLDERS.md`.
+
+### What shipped
+- `lib/config.ts` is now the single source of truth for every fact.
+  `lib/licensing.ts` and `lib/states.ts` derive from it. Launch scope =
+  four states (WA serving Western Washington, AZ, CA, TX).
+- Fonts locked to Fraunces / Geist / JetBrains Mono (Exo removed).
+- Motion system: `lib/useSceneTimeline.ts` + `components/motion/*`
+  (Scene, Reveal, Underline, Bento, SceneLabel, ReplayButton). Orb gains
+  a `state` prop (speed / amplitude / halo only).
+- Pages: `/`, `/second-look`, `/join`, `/agents`, `/calculators` (+4),
+  `/states/[slug]`, `/principles` (+ `.md`), `/loan-estimate`,
+  `/sample-brief`, `/chat`, `/ai` (+ `.md`), `/privacy`, `/terms`,
+  `/disclosures`, `/llms.txt`, `robots`, `sitemap`, `/api/agent/*`,
+  `/api/second-look` (503 unless enabled). The 12 legacy `/tools/*`
+  calculators remain and now link to `/chat`.
+- Removed: the scripted "Sarah" chat demo (real lender names, rates,
+  invented stats), `ChatInput` email forwarding, `VoiceOrb` mic prompt.
+  `/demo` (password) still offers the live Claude tab for testers; it is
+  now also gated server-side in `/api/m8-chat`.
+- Verification: `npm run verify` = lint + `check:copy` (banned phrases)
+  + 45 unit tests + build. Playwright pass at 390px and 1280px: no
+  horizontal overflow on any route, one `h1` per page, no JS errors.
+  Lighthouse (mobile, this sandbox): Accessibility 100, Best Practices
+  96, SEO 91, Performance 81–83 (CPU-throttled container; re-measure on
+  the Vercel deployment with PageSpeed Insights).
+
+### Stealth
+`NEXT_PUBLIC_STEALTH_MODE` semantics unchanged: anything but `"false"`
+keeps stealth on. Legally/machine-required routes (`/ai`, `/llms.txt`,
+`/disclosures`, `/privacy`, `/terms`, `/states/*`, `/api/agent/*`,
+robots, sitemap) are public even in stealth. Set the var to `false` in
+Vercel to launch.
+
+### Before launch (in addition to the Pre-Launch To-Do above)
+1. Fill `PLACEHOLDERS.md`.
+2. Work `ATTORNEY_REVIEW_LIST.md` with counsel.
+3. Set the four Calendly env vars (CTAs show "coming soon" until then).
+4. Keep `ANTHROPIC_API_KEY` / `SECOND_LOOK_LIVE` unset until the two
+   DRAFT prompts in `lib/prompts/` are reviewed.

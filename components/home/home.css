@@ -37,8 +37,8 @@
   max-width: 140vw;
   transform: translate(-50%, -50%);
   border-radius: 9999px;
-  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 65%);
-  filter: blur(40px);
+  /* Gradient only: a filter here costs paint time on every frame the orb breathes. */
+  background: radial-gradient(circle, var(--accent-soft) 0%, color-mix(in srgb, var(--accent-soft) 40%, transparent) 30%, transparent 62%);
   pointer-events: none;
   z-index: -1;
 }
@@ -139,7 +139,7 @@
 .hm-in {
   opacity: 0;
   transform: translateY(10px);
-  animation: hm-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: hm-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: var(--d, 0ms);
 }
 @keyframes hm-in {

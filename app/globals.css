@@ -1682,3 +1682,53 @@ input[type="range"].m8-range:focus-visible::-webkit-slider-thumb { box-shadow: 0
 .hairline-y { width: 1px; background: var(--rule); }
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ─── Overflow safety + mobile fixes (from the 390px Playwright pass) ── */
+
+html, body { overflow-x: clip; }
+.scene { overflow-x: clip; }
+.scene-label { flex-wrap: wrap; row-gap: 8px; }
+.scene-label__right { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+@media (max-width: 480px) {
+  .sample-badge { white-space: normal; text-align: right; line-height: 1.3; }
+}
+/* A visually hidden <table> still expands layout width; force it to block so
+   the 1px sr-only box actually clips it. */
+table.sr-only, .sr-only table { display: block; }
+.prose-m8 a, .prose-m8 code, .prose-m8 li, .prose-m8 p { overflow-wrap: anywhere; }
+.doc { max-width: 100%; }
+.swipe-row > * { min-width: 0; }
+
+/* ─── Performance + contrast follow-ups (Lighthouse pass) ────────── */
+
+/* Promote the blurred halo to its own layer so the breathing transform
+   never re-rasterizes the blur. Visual output is unchanged. */
+.orb::after { will-change: transform, opacity; }
+.orb { will-change: transform; }
+
+/* Small mono labels need more contrast than the button accent on light
+   surfaces. Night/Dim keep M8 Green; Paper (theme or scene chapter) uses
+   a deeper green that clears 4.5:1 on the paper background. */
+:root, :root[data-theme="night"], :root[data-theme="dim"], .scene--night, .scene--forest { --label-accent: var(--accent); }
+:root[data-theme="paper"], .scene--paper { --label-accent: color-mix(in srgb, var(--color-m8-deep) 60%, var(--color-m8-forest)); }
+.principle-label, .eyebrow, .code-label, .scene-label__text, .subname { color: var(--label-accent, var(--accent)); }
+
+/* ─── Reveal modes (LCP-safe) ────────────────────────────────────── */
+/* Default: words are visible in server HTML. JS mode hides them until
+   the element enters the viewport; CSS mode animates from first paint. */
+.reveal .reveal__word { opacity: 1; transform: none; filter: none; }
+.reveal--js .reveal__word { opacity: 0; transform: translateY(0.35em); filter: blur(4px); }
+.reveal--js.reveal--on .reveal__word,
+.reveal--js.reveal--reduced .reveal__word { opacity: 1; transform: none; filter: none; }
+@keyframes reveal-word {
+  from { opacity: 0; transform: translateY(0.35em); filter: blur(4px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+.reveal--css .reveal__word {
+  animation: reveal-word 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal--css .reveal__word { animation: none; opacity: 1; transform: none; filter: none; }
+  .reveal--js .reveal__word { opacity: 1; transform: none; filter: none; }
+}

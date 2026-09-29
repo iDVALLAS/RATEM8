@@ -22,7 +22,7 @@ export default function StatesStrip() {
           <ul className="hm-states__chips" aria-label={homeContent.states.ariaLabel}>
             {STATES.map((s) => (
               <li key={s.slug}>
-                <Link href={`/states/${s.slug}`} className="state-chip" aria-label={`${stateDisplay(s)} ${copy.states.ctaSuffix}`}>
+                <Link href={`/states/${s.slug}`} className="state-chip" aria-label={`${stateChip(s)}: ${stateDisplay(s)} ${copy.states.ctaSuffix}`}>
                   {stateChip(s)}
                 </Link>
               </li>

@@ -19,10 +19,10 @@ export default function ActionGrid() {
   return (
     <nav aria-label={homeContent.hero.gridLabel}>
       <div className="hm-grid">
-        <BookingCTA kind="borrower" variant="primary" intake={false} ariaLabel={copy.hero.borrowerCta}>
+        <BookingCTA kind="borrower" variant="primary" intake={false}>
           {copy.hero.borrowerCta}
         </BookingCTA>
-        <CTAButton href="/agents" variant="secondary" ariaLabel={copy.hero.agentCta}>
+        <CTAButton href="/agents" variant="secondary">
           {copy.hero.agentCta}
         </CTAButton>
         <CTAButton href="/second-look" variant="outline" icon="LE" sub={copy.hero.secondLookSub}>

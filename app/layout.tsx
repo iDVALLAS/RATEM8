@@ -24,7 +24,6 @@ const fraunces = Fraunces({
   display: "swap",
   style: ["normal", "italic"],
   weight: "variable",
-  axes: ["opsz", "SOFT"],
 });
 
 const jetbrains = JetBrains_Mono({
@@ -32,6 +31,9 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
   display: "swap",
   weight: ["400", "500"],
+  // Labels only; not on the LCP path. Skip the preload so the display and
+  // body fonts get the bandwidth first on slow connections.
+  preload: false,
 });
 
 const siteTitle = `${CONFIG.brandName} — ${copy.brand.tagline}`;
