@@ -97,7 +97,7 @@ Pure black (#000) on a paper background is harsh — it creates "vibration" at b
 
 - The brand colors themselves (M8 Green, Deep Green, Forest, Night, Paper, Stone, Charcoal) — these are tokens, locked
 - The orb's interior gradient and breathing animation
-- Typography (Exo + Fraunces + JetBrains Mono in all modes)
+- Typography (Geist + Fraunces + JetBrains Mono in all modes)
 - Letter spacing, line heights, font weights
 - Layout, spacing, component proportions
 - The 8 principles, copy, all content
