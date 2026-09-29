@@ -11,7 +11,7 @@ import Footer from "./Footer";
  * Behavior:
  *  - Visitor enters password, hits enter or clicks button
  *  - POST to /api/demo-auth with the password
- *  - On success: cookie is set server-side, page reloads, ChatExperience renders
+ *  - On success: cookie is set server-side, page reloads, the chat experience renders
  *  - On failure: error shown, no cookie set
  *
  * Failed-attempt logging (in the API route) lets you see who's trying.

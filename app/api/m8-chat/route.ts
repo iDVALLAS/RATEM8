@@ -1,51 +1,43 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { M8_PLACEHOLDER_SYSTEM_PROMPT, M8_MODEL, M8_MAX_TOKENS } from "@/lib/m8";
+import { cookies } from "next/headers";
+import { getM8SystemPrompt, M8_MODEL, M8_MAX_TOKENS } from "@/lib/m8";
+import { CONFIG } from "@/lib/config";
 
 /**
- * POST /api/m8-chat  (v10.0 infrastructure only)
+ * POST /api/m8-chat — the tester-only live M8 endpoint.
  *
- * Streams a response from Claude API back to the browser as
- * Server-Sent Events. The client (ChatExperience.tsx) reads
- * the stream and appends tokens to the visible message.
+ * Streams a response from the Claude API back to the browser as
+ * Server-Sent Events. The only client is components/M8LiveChat.tsx,
+ * rendered on /demo behind the tester password. The public /chat
+ * route never calls this while CONFIG.featureFlags.chatLiveAi is false.
  *
- * WHAT THIS IS (v10.0):
- *  - Plumbing only. Placeholder system prompt.
- *  - Proves the pipeline works: message in, streamed response out.
- *  - No real M8 personality yet — that's v10.1.
- *  - No compliance guardrails yet — that's v10.2.
+ * SYSTEM PROMPT: lib/prompts/m8-system.ts (DRAFT — requires compliance
+ * counsel review before any deployment). Built from lib/config.ts facts
+ * by getM8SystemPrompt(); nothing is hardcoded here.
  *
- * WHAT THIS IS NOT:
- *  - Ready for real borrowers. Do NOT lift the /demo password
- *    gate until v10.2 ships AND a compliance attorney reviews
- *    the system prompt in v10.1.
+ * RECORDING / CONSENT NOTE:
+ *  - The UI shows the AI disclosure and the recording notice
+ *    (copy.chat.gate.body) above the input before any message is sent.
+ *  - This route does NOT yet persist transcripts. It logs only a
+ *    timestamp, IP, and message count to the server console for dev
+ *    visibility. Before any public launch: (a) counsel confirms the
+ *    retention period in copy.chat.gate.recording, (b) transcripts are
+ *    stored with that retention and a transcript-on-request path,
+ *    (c) two-party consent states (CONFIG.states[].twoPartyConsent) get
+ *    an explicit consent record before the first message.
  *
- * REQUEST FORMAT:
- *   {
- *     messages: [
- *       { role: "user" | "assistant", content: string },
- *       ...
- *     ]
- *   }
+ * GATE: the request must carry the same demo auth cookie that
+ * app/demo/page.tsx validates (SHA-256 of "loanm8:" + DEMO_PASSWORD).
+ * middleware.ts leaves /api/* public, so the route checks it itself.
+ * Fails closed when DEMO_PASSWORD or ANTHROPIC_API_KEY is unset.
  *
- *   The client sends the full conversation history each request.
- *   Claude API is stateless — memory lives in the client.
+ * REQUEST:  { messages: [{ role: "user" | "assistant", content }] }
+ *           The client sends the full history each time; the model is stateless.
+ * RESPONSE: SSE. `data: {"text": "..."}` chunks, `data: [DONE]` at the end,
+ *           `data: {"error": "..."}` on failure.
  *
- * RESPONSE FORMAT:
- *   Server-Sent Events stream. Each event is a chunk of text.
- *   The client accumulates chunks into the visible message.
- *
- * ENV REQUIRED:
- *   ANTHROPIC_API_KEY — from console.anthropic.com
- *
- * SAFETY DEFAULTS (v10.0):
- *  - Rejects requests with no messages
- *  - Rejects requests with more than 100 messages (loose conversation limit)
- *  - Rejects requests with individual messages over 4000 chars
- *  - Logs each request with IP + timestamp (server-side console)
- *  - Fail-closed if ANTHROPIC_API_KEY isn't set
- *
- * These aren't real compliance guardrails — those come in v10.2.
- * These are basic hygiene so bugs don't burn through your API budget.
+ * HYGIENE: rejects empty lists, >100 messages, messages >4000 chars,
+ * and lists that do not end with a user turn.
  */
 
 type ChatMessage = {
@@ -56,6 +48,25 @@ type ChatMessage = {
 type RequestBody = {
   messages?: ChatMessage[];
 };
+
+// --------- Gate (mirrors app/demo/page.tsx; keep the two in sync) ---------
+
+async function hashPassword(pw: string): Promise<string> {
+  if (!pw) return "";
+  const data = new TextEncoder().encode("loanm8:" + pw);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function isTesterAuthed(): Promise<boolean> {
+  const expected = await hashPassword(process.env.DEMO_PASSWORD || "");
+  if (!expected) return false;
+  const cookieStore = await cookies();
+  const authCookie = cookieStore.get("loanm8_demo_auth");
+  return !!authCookie && authCookie.value === expected;
+}
 
 // --------- Validation helpers ---------
 
@@ -74,27 +85,36 @@ function validateMessages(input: unknown): ChatMessage[] | null {
   if (!Array.isArray(input)) return null;
   if (input.length === 0 || input.length > 100) return null;
   if (!input.every(isValidMessage)) return null;
-  // Must end with a user message (otherwise there's nothing for Claude to answer)
+  // Must end with a user message (otherwise there's nothing to answer)
   const last = input[input.length - 1];
   if (last.role !== "user") return null;
   return input as ChatMessage[];
 }
 
+function json(status: number, body: Record<string, unknown>): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 // --------- Route handler ---------
 
 export async function POST(req: Request) {
+  // Tester gate first. Same cookie the /demo page validates.
+  if (!(await isTesterAuthed())) {
+    return json(401, { ok: false, error: "Tester access required." });
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   // Fail closed. If the key isn't set, don't accidentally run.
   if (!apiKey) {
     console.error("[m8-chat] ANTHROPIC_API_KEY not set");
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        error: "M8 is temporarily unavailable. Email jason@ratem8.com.",
-      }),
-      { status: 503, headers: { "Content-Type": "application/json" } }
-    );
+    return json(503, {
+      ok: false,
+      error: `M8 is temporarily unavailable. Email ${CONFIG.contactEmail}.`,
+    });
   }
 
   // Parse and validate body
@@ -102,28 +122,16 @@ export async function POST(req: Request) {
   try {
     body = (await req.json()) as RequestBody;
   } catch {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Bad request" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
+    return json(400, { ok: false, error: "Bad request" });
   }
 
   const messages = validateMessages(body.messages);
   if (!messages) {
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        error: "Message list is invalid. Try refreshing.",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
+    return json(400, { ok: false, error: "Message list is invalid. Try refreshing." });
   }
 
-  // Log the request. v10.2 will add real audit logging; this is for dev visibility.
-  const ip =
-    req.headers.get("x-forwarded-for") ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
+  // Dev-visibility log only. See RECORDING / CONSENT NOTE above.
+  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
   console.log("[m8-chat] request", {
     timestamp: new Date().toISOString(),
     ip,
@@ -131,9 +139,10 @@ export async function POST(req: Request) {
     lastMessageLength: messages[messages.length - 1].content.length,
   });
 
-  // --------- Stream from Claude API ---------
+  // --------- Stream from the Claude API ---------
 
   const client = new Anthropic({ apiKey });
+  const system = getM8SystemPrompt();
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -142,15 +151,13 @@ export async function POST(req: Request) {
         const claudeStream = client.messages.stream({
           model: M8_MODEL,
           max_tokens: M8_MAX_TOKENS,
-          system: M8_PLACEHOLDER_SYSTEM_PROMPT,
+          system,
           messages,
         });
 
         // Forward each text delta to the client as an SSE event
         claudeStream.on("text", (text: string) => {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
-          );
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
         });
 
         // Signal completion
@@ -162,11 +169,7 @@ export async function POST(req: Request) {
         claudeStream.on("error", (err: unknown) => {
           console.error("[m8-chat] stream error", err);
           controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify({
-                error: "M8 hit a snag mid-response. Try again.",
-              })}\n\n`
-            )
+            encoder.encode(`data: ${JSON.stringify({ error: "M8 hit a snag mid-response. Try again." })}\n\n`)
           );
           controller.close();
         });
@@ -177,9 +180,7 @@ export async function POST(req: Request) {
         console.error("[m8-chat] handler error", err);
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({
-              error: "M8 couldn't reach the model. Try again in a moment.",
-            })}\n\n`
+            `data: ${JSON.stringify({ error: "M8 couldn't reach the model. Try again in a moment." })}\n\n`
           )
         );
         controller.close();

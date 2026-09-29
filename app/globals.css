@@ -761,7 +761,7 @@ html, body {
  * The breathing animation matches the hero orb's 4-second rhythm
  * so the two orbs feel like the same entity in different scales.
  *
- * Click handler is wired in ChatInput.tsx. In v8, clicking
+ * Click handler lives in the chat input component. In v8, clicking
  * focuses the input. In v9, clicking will start a live M8
  * conversation (Claude API) or open voice mode (Vapi).
  */
