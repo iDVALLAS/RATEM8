@@ -1,0 +1,106 @@
+/* components/states/states.css — /states/[slug] */
+
+.st-hero { padding: 40px 0 28px; }
+@media (min-width: 640px) { .st-hero { padding: 64px 0 40px; } }
+
+.st-hero__accent {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  color: var(--accent);
+  margin-top: 10px;
+}
+@media (min-width: 640px) { .st-hero__accent { font-size: 1.75rem; } }
+
+.st-hero__sub {
+  margin-top: 18px;
+  max-width: 42rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  font-weight: 300;
+  color: var(--muted);
+}
+
+/* License block */
+.st-license { display: grid; gap: 14px; }
+@media (min-width: 640px) { .st-license { grid-template-columns: 1fr 1fr; } }
+
+.st-license__item { min-width: 0; }
+.st-license__item dt {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.st-license__item dd {
+  margin-top: 4px;
+  font-size: 0.95rem;
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.st-license__item dd a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+.st-placeholder {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.st-mlo { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 4px; }
+.st-mlo li { font-size: 0.95rem; color: var(--fg); }
+.st-mlo li span { color: var(--muted); font-family: var(--font-jetbrains), ui-monospace, monospace; font-size: 12px; }
+
+/* Counsel placeholder block */
+.st-counsel {
+  border: 1px dashed var(--rule-strong);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--bg-sunken);
+}
+.st-counsel__marker {
+  display: inline-block;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+/* Local-context sections */
+.st-sections { display: grid; gap: 20px; }
+@media (min-width: 1024px) { .st-sections { grid-template-columns: repeat(3, 1fr); } }
+.st-section h3 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin-top: 10px;
+  color: var(--fg);
+}
+.st-section .prose-m8 { margin-top: 12px; font-size: 0.95rem; }
+.st-section .prose-m8 p:last-child { margin-bottom: 0; }
+
+/* Calculator strip */
+.st-calcs { display: grid; gap: 12px; }
+@media (min-width: 640px) { .st-calcs { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .st-calcs { grid-template-columns: repeat(4, 1fr); } }
+.st-calc {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 44px;
+  text-decoration: none;
+  color: var(--fg);
+  transition: border-color 150ms ease-out;
+}
+.st-calc:hover { border-color: var(--accent); }
+.st-calc__title { font-weight: 500; }
+.st-calc__body { font-size: 0.85rem; line-height: 1.5; font-weight: 300; color: var(--muted); }
+.st-calc__go { margin-top: auto; font-family: var(--font-jetbrains), ui-monospace, monospace; font-size: 11px; color: var(--accent); }
+
+.st-others { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
