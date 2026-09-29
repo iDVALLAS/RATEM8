@@ -126,7 +126,7 @@
 .hm-hero__emphasis .accent-word { white-space: normal; font-weight: 400; }
 
 .hm-hero__sub {
-  margin: 28px auto 0;
+  margin: 18px auto 0;
   max-width: 40rem;
   font-size: 1.05rem;
   line-height: 1.6;
@@ -155,7 +155,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin: 36px auto 0;
+  margin: 24px auto 0;
   max-width: 44rem;
   text-align: left;
 }

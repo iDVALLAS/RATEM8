@@ -7,9 +7,10 @@ import ActionGrid from "./ActionGrid";
 import TrustStrip from "./TrustStrip";
 
 /**
- * Hero — eyebrow, the tappable orb over the drifting term field, the
- * word-by-word headline, the italic accent line, the sub, the
- * four-button grid and the trust strip.
+ * Hero — the tappable orb over the drifting term field, the
+ * word-by-word headline, the sub, the four-button grid and the trust
+ * strip. (The mono eyebrow and the italic tagline line were removed at
+ * the owner's request; the tagline still lives in the footer/metadata.)
  *
  * Server component. Only HeroOrb and Reveal ship JS.
  */
@@ -18,12 +19,8 @@ export default function Hero() {
     <section className="hm-hero">
       <div aria-hidden="true" className="hm-hero__glow" />
 
-      <div className="relative mx-auto max-w-4xl px-4 sm:px-6 pt-12 pb-16 sm:pt-20 sm:pb-24 text-center">
-        <p className="eyebrow hm-in" style={{ "--d": "0ms" } as React.CSSProperties}>
-          {copy.hero.eyebrow}
-        </p>
-
-        <div className="mt-10 sm:mt-12 hm-in" style={{ "--d": "60ms" } as React.CSSProperties}>
+      <div className="relative mx-auto max-w-4xl px-4 sm:px-6 pt-6 pb-12 sm:pt-8 sm:pb-16 text-center">
+        <div className="hm-in" style={{ "--d": "0ms" } as React.CSSProperties}>
           <HeroOrb
             caption={copy.hero.orbCaption}
             cardLabel={homeContent.hero.orbCardLabel}
@@ -40,11 +37,8 @@ export default function Hero() {
           />
         </div>
 
-        <div className="mt-10 sm:mt-12">
+        <div className="mt-6 sm:mt-8">
           <Reveal as="h1" text={copy.hero.tagline} immediate delay={200} className="tagline text-5xl sm:text-7xl" />
-          <p className="hm-hero__emphasis hm-in" style={{ "--d": "160ms" } as React.CSSProperties}>
-            <em className="accent-word">{copy.hero.taglineEmphasis}</em>
-          </p>
         </div>
 
         <p className="hm-hero__sub">
