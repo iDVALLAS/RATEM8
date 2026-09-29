@@ -35,11 +35,23 @@ const PUBLIC_PATHS = [
   "/sitemap.xml",
   "/favicon.ico",
   "/favicon.png",
+  // AI-agent readiness + legally required pages. These stay reachable
+  // even in stealth: crawlers, assistants, and regulators need them.
+  "/llms.txt",
+  "/ai",
+  "/ai.md",
+  "/principles.md",
+  "/calculators/methodology.md",
+  "/disclosures",
+  "/privacy",
+  "/terms",
 ];
 
 const PUBLIC_PREFIXES = [
   "/demo/",
   "/api/",
+  "/api/agent/",
+  "/states/",
   "/_next/",
   "/fonts/",
   "/audio/",
