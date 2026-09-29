@@ -1,16 +1,18 @@
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import { CALC_DISCLAIMER } from "@/lib/config";
 
 /**
  * CalcLayout — page-level shell for a calculator.
  *
  * Renders Nav + tools-breadcrumb + title/lede + the calculator body
- * + the standard soft CTA to /demo + Footer. Every calculator page
- * consumes this so the visual rhythm is identical across all 12.
+ * + the calculator disclaimer + the standard soft CTA to /chat +
+ * Footer. Every /tools page consumes this so the visual rhythm is
+ * identical across all 12.
  *
- * Per v11 spec: single soft CTA at the bottom linking to /demo.
- * No urgency, no pressure. "Want to talk this through with M8?".
+ * Single soft CTA at the bottom linking to /chat. No urgency, no
+ * pressure. "Want to talk this through with M8?".
  */
 export default function CalcLayout({
   eyebrow,
@@ -58,6 +60,14 @@ export default function CalcLayout({
 
         <section>
           <div className="mx-auto max-w-4xl px-6 py-12">{children}</div>
+          <div className="mx-auto max-w-4xl px-6 pb-12">
+            <p
+              className="text-sm leading-relaxed"
+              style={{ color: "var(--muted)", borderLeft: "3px solid var(--accent)", paddingLeft: 12 }}
+            >
+              {CALC_DISCLAIMER}
+            </p>
+          </div>
         </section>
 
         <section
@@ -80,7 +90,7 @@ export default function CalcLayout({
               — and tell you what&apos;s actually smart for you.
             </p>
             <Link
-              href="/demo"
+              href="/chat"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-base transition-all"
               style={{
                 background: "var(--accent)",
@@ -90,12 +100,6 @@ export default function CalcLayout({
               Chat with M8
               <span>→</span>
             </Link>
-            <p
-              className="mt-6 font-mono text-[10px] tracking-[0.15em] uppercase"
-              style={{ color: "var(--muted)" }}
-            >
-              Preview build · Password required · Compliance review pending
-            </p>
           </div>
         </section>
       </main>
