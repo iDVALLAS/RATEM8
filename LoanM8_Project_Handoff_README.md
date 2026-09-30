@@ -1,7 +1,7 @@
 # LoanM8 — Project Handoff README
 
-Continuity log for the LoanM8 (formerly RateM8) build. Every patch appends
-an entry here so any future session — mine, another agent's, or a human
+Continuity log for the LoanM8 (formerly RateM8) build. Every patch adds
+an entry here (newest first, after the Pre-Launch To-Do) so any future session — mine, another agent's, or a human
 picking this up — can pick up without re-explaining context.
 
 ---
@@ -96,6 +96,169 @@ Ordered roughly by dependency. Most items block the day you flip
     `privacy@ratem8.com`, `m8@ratem8.com` in code defaults and
     Vercel env vars. Update to `@loanm8.com` when Jason sets up
     loanm8.com email (or configure forwarding at Cloudflare).
+
+---
+
+## v12 — Sans headline system, orb actions, "human authentication" line, stage backdrop fix (2026-09-29 → 30)
+
+**One line:** the site-wide sans (Geist) headline treatment with gradient
+accent words, the Voice / Q & A stitched actions under the hero orb, the
+"human authentication" line with a fingerprint mark under the tagline,
+hand-drawn underlines removed, and the fix for the green stage backdrop
+that was covering the About section and the top of the footer.
+
+Numbering: the v11 tiers were the last numbered series; the one-shot
+site build (bottom of this file) sits between them and this entry. From
+here on, every patch takes the next integer. The branch is
+`claude/quirky-feynman-t01120`, PR iDVALLAS/RATEM8#19 (open, preview
+only, not promoted).
+
+### Commits in this patch
+- `5eb1449` feat(type,hero): sans headline style site-wide; Voice / Q & A
+  stitched actions under the orb
+- `0298ac0` style: remove hand-drawn underlines site-wide; "human
+  authentication" line with fingerprint mark under the hero headline
+- `100ca62` fix: clip the stage backdrop to the stage so it stops covering
+  About and the footer
+- (this commit) docs: CLAUDE.md, this entry, typography guide, `scripts/qa/`
+
+### Files created or changed
+- `app/globals.css` — sans headline rules under `:root[data-type="sans"]`
+  (Geist 300, sheen, gradient accents, 26 page-level headline selectors),
+  `.hand-underline { display: none !important }`, `main [id] { scroll-margin-top: 88px }`.
+- `app/layout.tsx` — Fraunces `next/font` import removed; `data-type="sans"`
+  set statically on `<html>`; JetBrains Mono `preload: false`.
+- `lib/theme.ts` — type-variant toggle code removed (theme boot only).
+- `components/TypeToggle.tsx` — deleted. `components/Nav.tsx` — back to
+  the theme toggle only.
+- `components/home/HeroOrb.tsx` — rewritten: orb tap + Voice button →
+  pulse / speaking / coming-soon toast; Q & A → borrower booking link or
+  coming-soon toast; toast overlays instead of pushing layout.
+- `components/home/Hero.tsx` — headline block with `FingerprintMark`
+  (inline SVG) and the "human authentication" line; trust strip moved
+  below the fold.
+- `components/home/home.css` — `.stitch-btn`, `.hm-orb-actions`,
+  `.hm-orb-toastwrap`/`.hm-orb-toast`, `.hm-hero__auth*`, `.hm-hero__fp`,
+  hero spacing so only orb → headline → sub → four boxes are on the
+  first screen.
+- `components/motion/Stage.tsx`, `components/motion/stage.css` —
+  `.stage-backdrop-layer` (absolute, `overflow: clip`) wraps the sticky
+  backdrop; the `-100svh` bottom margin is gone.
+- `lib/copy.ts` — `hero.authLine`, `hero.authWord`, `hero.voiceLabel`,
+  `hero.qaLabel`, `hero.voiceComingSoon`, `hero.qaComingSoon`
+  (`hero.orbCaption` kept but unused).
+- `lib/content/home.ts` — orb aria label wording.
+- `docs/TYPOGRAPHY_GUIDE.md` — owner's sans decision recorded; tagline
+  and accent-word sections rewritten to match the code.
+- `CLAUDE.md` — new. Project summary, brand rules, working rules, the
+  animation architecture as built, file map, dependencies, commands.
+- `scripts/qa/overflow.mjs`, `fonts.mjs`, `footer.mjs`, `about.mjs` —
+  the Playwright audits used in this patch, moved into the repo.
+
+### Completed and verified
+- `npx tsc --noEmit`: 0 errors. `npm run lint`: clean.
+- `npm run check:copy`: 179 files, no banned phrases.
+- `vitest`: 3 files, 45 tests, all pass.
+- `next build`: success, 45 static pages.
+- Browser audits against `npm start` (stealth off), Chromium:
+  overflow audit at 390px and 1280px on 21 routes, every route `ok`
+  (scrollWidth = clientWidth, exactly one `h1`); font audit 0 findings
+  (no fallback fonts, no synthesized bold/italic, no sub-10px text);
+  footer audit: stage backdrop ends at the stage's bottom edge, footer
+  fully visible, state chips render with text; About audit: nav "About"
+  lands on `#about` with the heading 218px from the top, clear of the nav.
+- Vercel: both preview projects deployed head `100ca62` Ready
+  (`Vercel – ratem-8`, `Vercel – ratem-8-m4oy` statuses success).
+
+### QA checklist
+| Item | Result |
+| --- | --- |
+| TypeScript (`tsc --noEmit`) | pass |
+| ESLint (`next lint`) | pass |
+| Banned-copy scan | pass |
+| Unit tests (45) | pass |
+| Production build | pass |
+| No horizontal overflow, 390px, all routes | pass |
+| No horizontal overflow, 1280px, all routes | pass |
+| One `h1` per route | pass |
+| Font audit (fallbacks, synthesis, <10px) | pass |
+| Footer fully visible after fix, chips readable | pass |
+| Nav "About" lands on the About section | pass |
+| Hero first screen = orb, headline, sub, four boxes (1280×900) | pass |
+| Toast never shifts the headline | pass |
+| Console errors during audit | one 404 on every route: `/_vercel/insights/script.js` (Vercel Analytics script; only exists on Vercel, expected locally) — not a bug |
+| Reduced motion | not re-tested in a browser this patch; covered by CSS/JS fallbacks listed in CLAUDE.md §4.11 |
+| Lighthouse | not re-run this patch (last: perf 81–83 in the sandbox, A11y 100) |
+
+### Known bugs, rough edges, things that feel off
+- Sheets taller than the viewport pin by their bottom edge (by design so
+  every line is readable), which means their headline slides up under
+  the sticky nav while the reader is still on that sheet. Visible on the
+  Second Look band at 1280×900. Worth eyeballing; a shorter sheet or a
+  smaller headline may feel better.
+- `components/motion/SlideHeadline.tsx` and a few comments still say
+  "Fraunces"; the CSS is Geist. Cosmetic.
+- `components/motion/Underline.tsx` and `copy.hero.orbCaption` are dead
+  code, kept in case the owner wants the underline or caption back.
+- The Voice button is a stub (coming-soon toast). `featureFlags.voice`
+  is false and there is no microphone code.
+- `Q & A` opens the borrower Calendly link only when the env var is set;
+  until then it toasts "Booking link coming soon."
+- Two Vercel projects build every push (duplicate `ratem-8-m4oy`; see
+  Pre-Launch To-Do item 15).
+- The paper theme was checked by eye on the home page only for the new
+  auth line; the gradient accent uses a deeper variant there, but a
+  contrast pass on every page in paper mode has not been done since the
+  sans switch.
+
+### Decisions made
+- **Sans over Fraunces, site-wide.** Owner decision after a side-by-side
+  ("apply to the whole site 100%"). Fraunces is no longer downloaded;
+  `--font-fraunces` aliases to Geist. The brief's typography lock is
+  superseded; `docs/TYPOGRAPHY_GUIDE.md` records it.
+- **"AI built for mortgages, not borrowed from a chatbot."** replaced
+  "Built on Claude" everywhere (owner rejected a "superintelligence LLMs"
+  line on my advice: it reads as a claim we cannot substantiate).
+- **CSS-only orb, no animation library.** Nothing in the brief asks the
+  orb to change shape ("never changes shape"), so no GSAP or flubber was
+  added. CSS keeps LCP, reduced motion, and hidden-tab behaviour simple.
+  If a shape morph is wanted later, that is a new decision.
+- **Backdrop fix as a clipped absolute layer** rather than `overflow:
+  clip` on `.stage-root`, so sheet box-shadows still spill outside the
+  stage the way they do now.
+- **`scroll-margin-top: 88px` on every `main [id]`** so in-page links
+  land clear of the sticky nav; no per-section tuning.
+- **Toast is an absolute overlay** so the four action boxes stay above
+  the fold when it appears.
+- **Nationwide MLO vetting is written as policy** ("one originator per
+  service area; when an area has its originator it is closed"), never as
+  scarcity or urgency, to stay inside `check:copy`.
+
+### Next up
+- **Nothing in this patch is half-done.** The animation design described
+  in the 2026-09-30 handoff note (orbState reducer with `engaged /
+  instructional / overlay`, LivingOrb morph, M8BallSequence,
+  M8InfoOverlay, HumanVerifyIcon draw-in) does not exist and would be a
+  new patch (v13). Get the owner's spec first; decide the library then
+  (a CSS/SVG `stroke-dashoffset` draw-in needs no library; a blob morph
+  would need flubber or GSAP MorphSVG, with a `prefers-reduced-motion`
+  and hidden-tab pause plan).
+- **Tuning passes:** (1) sheet pinning feel for tall sheets (see rough
+  edges); (2) StepList activation band (currently −45%/−45%) on short
+  phones; (3) toast duration (4200ms) and orb speaking window (1500ms)
+  once real voice exists; (4) mobile performance: run Lighthouse on the
+  Vercel preview with PageSpeed Insights, not in the sandbox.
+- **Risks when touching the animation code:** `SheetStack` measures
+  `--sheet-top` with `ResizeObserver`; any change to sheet padding or
+  the nav height must keep `--stage-nav` in sync. The backdrop must stay
+  inside `.stage-backdrop-layer`. Never put `overflow: hidden` on a
+  sheet (it kills nested sticky). Keep the hero h1 in Reveal's CSS mode
+  (`immediate`) or LCP regresses. `Reveal` glues trailing punctuation to
+  the accent word; changing the split regex can reintroduce "call ."
+  gaps. `check:copy` runs on every push; new UI strings go in
+  `lib/copy.ts` and must avoid the banned list.
+- **Owner to confirm:** the typography rule (the handoff note says
+  Fraunces + Exo; the code and the owner's 09-29 decision say Geist).
 
 ---
 

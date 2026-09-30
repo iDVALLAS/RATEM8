@@ -14,9 +14,8 @@ downloaded; `--font-fraunces` aliases to Geist.
 
 "M8" in the wordmark is always M8 Green.
 
-All three are self-hosted through `next/font` (Fraunces and JetBrains
-Mono are fetched from Google Fonts at build time and served from
-`/_next/static`; Geist ships in the `geist` npm package). CSS variables:
+Both are self-hosted (JetBrains Mono through `next/font/google`, served
+from `/_next/static`; Geist ships in the `geist` npm package). CSS variables:
 `--font-fraunces`, `--font-geist-sans`, `--font-jetbrains`. The theme
 aliases `--font-display`, `--font-sans`, `--font-serif`, `--font-mono`
 point at them in `app/globals.css`.
@@ -30,19 +29,24 @@ point at them in `app/globals.css`.
 ## The tagline
 
 ```
-Loan intelligence.        ← .tagline  (Fraunces 700, tight leading)
-Free for the people.      ← .accent-word (Fraunces italic 500, M8 Green)
+Loan intelligence.        ← .tagline  (Geist 300, tight tracking, sheen)
+human authentication      ← .hm-hero__auth (Geist 300; "human" at full
+                             contrast, the rest at 55%, fingerprint mark)
 ```
 
-The first line is the anchor. The second is the promise. Never set
-either in Geist.
+Before 2026-09-29 the tagline was Fraunces 700 with the promise line
+"Free for the people." in italic Fraunces beneath it. The owner chose
+the sans treatment after a side-by-side; the promise line now lives in
+the footer and page metadata, not under the hero headline.
 
 ## The accent word
 
-One word or short phrase per headline renders in italic Fraunces, M8
-Green (Deep Green on paper, via `--accent`). Use `Reveal` with `accent`
-or `AccentTitle` from `PrincipleCard`. Optionally a hand-drawn underline
-(`Underline`) draws itself after the words land.
+One word or short phrase per headline renders in the green gradient
+(`linear-gradient(100deg, M8 Green, accent, Deep Green)` clipped to the
+text; paper surfaces use a deeper variant for contrast). Use `Reveal`
+with `accent` or `AccentTitle` from `PrincipleCard`. Hand-drawn
+underlines are disabled site-wide (`.hand-underline { display: none }`)
+at the owner's request; `Underline.tsx` remains but is unused.
 
 Rules: one accent per headline. The accent is the *idea* of the
 sentence ("Drop it.", "Build your book", "A licensed human"), never a
