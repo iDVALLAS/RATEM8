@@ -1872,3 +1872,8 @@ html { font-variation-settings: "WONK" 0; }
    anywhere. The Underline component still renders for the `underline`
    prop, but it is hidden here so one rule controls the whole site. */
 .hand-underline { display: none !important; }
+
+/* ─── Anchor targets ─────────────────────────────────────────────── */
+/* In-page links (/#about, /#how) land with the heading clear of the
+   sticky nav instead of tucked under it. */
+main [id] { scroll-margin-top: 88px; }

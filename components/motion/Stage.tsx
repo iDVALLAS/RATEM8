@@ -24,7 +24,9 @@ type StageProps = {
 export default function Stage({ children, className = "", id }: StageProps) {
   return (
     <div id={id} className={`stage-root ${className}`.trim()}>
-      <div className="stage-backdrop" aria-hidden="true" />
+      <div className="stage-backdrop-layer" aria-hidden="true">
+        <div className="stage-backdrop" />
+      </div>
       <SheetStack>{children}</SheetStack>
     </div>
   );
