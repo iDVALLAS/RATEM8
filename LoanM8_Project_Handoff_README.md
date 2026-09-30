@@ -257,8 +257,8 @@ only, not promoted).
   the accent word; changing the split regex can reintroduce "call ."
   gaps. `check:copy` runs on every push; new UI strings go in
   `lib/copy.ts` and must avoid the banned list.
-- **Owner to confirm:** the typography rule (the handoff note says
-  Fraunces + Exo; the code and the owner's 09-29 decision say Geist).
+- **Typography confirmed (2026-09-30):** owner said "keep Geist
+  site-wide, ignore the Fraunces/Exo note." Settled; see CLAUDE.md §2.
 
 ---
 

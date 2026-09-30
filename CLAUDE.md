@@ -52,31 +52,23 @@ tokens locally so any section can flip chapter without touching
 components. Paper mode swaps `--accent` to Deep Green for AA contrast
 and turns the orb halo off.
 
-**Typography — read carefully, the owner's note and the code differ.**
+**Typography (settled by the owner, 2026-09-30): Geist site-wide.**
 
-- The owner's handoff note (2026-09-30) states: *Fraunces Bold for the
-  hero tagline, Exo for all other UI.*
-- The code on `claude/quirky-feynman-t01120` does **not** do that. On
-  2026-09-29 the owner reviewed a serif-vs-sans side-by-side and said
-  "I really like the new sans … apply to the whole site 100%." So:
-  - Headlines, tagline, body, UI: **Geist** (`geist` npm package),
-    headlines at weight 300 with tight tracking, accent words in a
-    green gradient (`background-clip: text`).
-  - Labels, eyebrows, data: **JetBrains Mono** (`next/font/google`,
-    weights 400/500, `preload: false`).
-  - **Fraunces is not downloaded.** `--font-fraunces` aliases to Geist
-    so old references still resolve. Some doc comments still say
-    "Fraunces" (for example `components/motion/SlideHeadline.tsx`);
-    they are stale, the CSS is what runs.
-  - **Exo was removed** in the one-shot build (the brief locked the
-    stack to Fraunces / Geist / JetBrains Mono; the `.otf` files are
-    gone from `public/fonts/`).
-- Do not reintroduce Exo or Fraunces on your own. Ask the owner which
-  rule wins. If they choose Fraunces for the tagline: restore the
-  `next/font/google` import in `app/layout.tsx` (weight `"variable"`,
-  `axes: ["WONK"]`, and keep `font-variation-settings: "WONK" 0` so
-  the wonky `y`/`f` glyphs stay off), point `.tagline` at it, and
-  update `docs/TYPOGRAPHY_GUIDE.md`.
+- Headlines, tagline, body, UI: **Geist** (`geist` npm package),
+  headlines at weight 300 with tight tracking, accent words in a green
+  gradient (`background-clip: text`).
+- Labels, eyebrows, data: **JetBrains Mono** (`next/font/google`,
+  weights 400/500, `preload: false`).
+- **Fraunces is not downloaded** and **Exo is gone.** `--font-fraunces`
+  aliases to Geist so old references still resolve. A few doc comments
+  still say "Fraunces" (for example `components/motion/SlideHeadline.tsx`);
+  they are stale, the CSS is what runs.
+- History, so nobody re-litigates it: the brief locked Fraunces for
+  display; on 2026-09-29 the owner chose the sans treatment after a
+  side-by-side ("apply to the whole site 100%"); a 2026-09-30 handoff
+  note mentioned "Fraunces Bold hero, Exo for UI" and the owner then
+  confirmed "keep Geist site-wide, ignore the Fraunces/Exo note."
+  Do not reintroduce Fraunces or Exo.
 - Hand-drawn underlines under accent words are disabled site-wide
   (`.hand-underline { display: none !important }`) at the owner's
   request. `components/motion/Underline.tsx` is retained but dead.
