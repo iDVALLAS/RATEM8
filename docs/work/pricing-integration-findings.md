@@ -64,7 +64,7 @@ TPO and Angel Oak from the first pass are kept in §6b for reference only.
    Rocket Pro TPO and Pennymac TPO price in their own portals and reach
    third-party software only through a product and pricing engine (PPE).
    The expectation in the brief is **confirmed**, with the caveat that
-   broker agreements for the big three are not public.
+   only Provident, Newrez and Plaza publish a broker agreement.
 2. **ARIVE has no pricing API.** Its only external interface is a
    private Zapier app for loan and lead data. Its terms prohibit
    automated access, scraping and framing, and bar giving its APIs to a
@@ -263,7 +263,7 @@ features:
   would likely feed it. Opt-out: U.
 - **Cost.** Loansifter about $79/user/month (R), Quick Quote $200/month
   (V\*), API about $100/month (R).
-- Whether UWM, Rocket Pro TPO or Pennymac TPO are among the 120+
+- Whether the owner's lenders (other than REMN) are among the 120+
   investors: **U**.
 
 ## 4. Polly
@@ -476,7 +476,7 @@ Provident posts about 8am PT; LoanStream's file names show about 8am.
 
 | Provider | Programmatic pricing | All lenders incl. ineligible (with reasons) | Rate sheet export | Consumer display allowed per ToS | Broker availability | Cost |
 | --- | --- | --- | --- | --- | --- | --- |
-| **ARIVE** | **No** (Zapier loan/lead data only; scraping banned) | U (only "eligible products" documented) | No (manual lenders typed in) | **U, leaning no** (framing banned; "technology provider" clause) | **Yes** (broker LOS/POS/PPE; UWM, Rocket, Pennymac integrated) | $49.99 to $99.99/seat/month (unconfirmed) |
+| **ARIVE** | **No** (Zapier loan/lead data only; scraping banned) | U (only "eligible products" documented) | No (manual lenders typed in) | **U, leaning no** (framing banned; "technology provider" clause) | **Yes** (broker LOS/POS/PPE; 11 of the owner's 12 lenders integrated) | $49.99 to $99.99/seat/month (unconfirmed) |
 | **Loansifter (Optimal Blue)** | **Yes** (broker API) | Partial (UI yes with reasons; API reasons U; broker's investors only) | Partial (rate sheet generator; API export U) | **Partial** (Quick Quote widget allowed; third-party aggregator use U; confidentiality clause) | **Yes** (120+ wholesale investors; NMLS required) | ~$79/user (R) + API ~$100 (R) + Quick Quote $200 (V\*) |
 | **Lender Price** | **Yes** (public OpenAPI) | **Yes** (`showDisqualify`, `showDisqualifyRules`) | Partial (Bulk Price API; broker access U) | Partial (widgets exist; ToS U) | **Yes** (free Marketplace; lender list U) | Marketplace free (V\*); API ~$99 (R) |
 | **Polly** | Yes for lenders (no public docs) | Partial (UI/AI; API U) | Lender's own sheets only | Partial (retail-site use; ToS U) | **No** direct broker access | Contact sales |
