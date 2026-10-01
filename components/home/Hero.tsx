@@ -55,8 +55,11 @@ export default function Hero() {
           </p>
         </div>
 
+        {/* Two lines (v17): a line break, not two paragraphs; each wraps naturally on phones. */}
         <p className="hm-hero__sub">
-          {copy.hero.sub}
+          {copy.hero.subLines[0]}
+          <br />
+          {copy.hero.subLines[1]}
         </p>
 
         <div className="hm-in" style={{ "--d": "220ms" } as React.CSSProperties}>

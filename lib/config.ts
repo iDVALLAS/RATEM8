@@ -15,6 +15,19 @@
  * before the stealth gate lifts.
  */
 
+/**
+ * MLO_ROUTING (v17): "true" → on, "false" → off. Unset → on for Vercel
+ * PREVIEW deployments only (owner 2026-10-01: "turn on MLO_ROUTING for
+ * the preview"), off everywhere else, production included. middleware.ts
+ * calls this with static process.env reads.
+ */
+export function mloRoutingOn(flag: string | undefined, vercelEnv: string | undefined): boolean {
+  const v = flag?.trim().toLowerCase();
+  if (v === "true") return true;
+  if (v === "false") return false;
+  return vercelEnv === "preview";
+}
+
 const env = (key: string): string | undefined => {
   const v = process.env[key];
   return v && v.trim().length > 0 ? v.trim() : undefined;
@@ -188,7 +201,7 @@ export const CONFIG = {
   contactEmail: env("NEXT_PUBLIC_CONTACT_EMAIL") ?? "[EMAIL]",
   privacyEmail: "privacy@loanm8.com",
   /** Where testers ask for the /demo password (shown on the gate). */
-  demoContactEmail: env("NEXT_PUBLIC_DEMO_CONTACT_EMAIL") ?? "jason@ratem8.com",
+  demoContactEmail: env("NEXT_PUBLIC_DEMO_CONTACT_EMAIL") ?? "info@loanm8.com",
 
   /**
    * Where the /investors "Reach out" button goes. A mailto today; swap in
@@ -305,7 +318,7 @@ export const CONFIG = {
     manual: env("PRICING_MANUAL") === "true",
     live: env("PRICING_LIVE") === "true",
     ratesheet: env("PRICING_RATESHEET") === "true",
-    mloRouting: env("MLO_ROUTING") === "true",
+    mloRouting: mloRoutingOn(env("MLO_ROUTING"), env("VERCEL_ENV")),
     /** The date printed on example pricing. Update with the fixtures. */
     examplesAsOf: "2026-10-01",
     /** A manual snapshot older than this many hours is never shown. */

@@ -99,6 +99,92 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v17 — How it works step //03, demo gate email, two-line hero subhead, routing on for previews (2026-10-01)
+
+### 1. Step //03 never activated: root cause
+- `activeStep` came from one IntersectionObserver in
+  `components/motion/StepList.tsx` with `rootMargin: "-45% 0px -45% 0px"`:
+  a step was active only while it crossed the middle 10% of the viewport.
+- There was no hardcoded count, `index < 2`, `steps.length - 1` or clamp.
+  Styling keyed only off `i === active` (`.is-active`); no `nth-child`.
+- **The cause was the container.**
+  - The How it works sheet (`.sheet-item`) is taller than the viewport, so
+    `SheetStack` pins it by its bottom edge: `top: -311px` at 1280×800,
+    -309px at 1280×720, -313px at 1440×900.
+  - Once pinned it stops moving, and the next sheet slides over it.
+  - Measured while //03 was still visible, its top never rose above 456px
+    at 1280×800, 403px at 1280×720 or 522px at 1440×900. The band was
+    360–440, 324–396 and 405–495 respectively, so //03 never entered it.
+  - //03 only "activated" once it was already covered. Phones (390×844)
+    were fine.
+  - Threshold tweaks could never fix this.
+
+### 1b. Fix (owner's pattern)
+- New `lib/useActiveStep.ts`: one observer over every step with a
+  `-40% 0px -40% 0px` band (highest visible index wins), plus an end
+  sentinel that forces the last step active.
+- `StepList` uses it:
+  - steps have `data-step` and `data-state` (before/active/after)
+  - a `.steplist-tail` spacer (35vh desktop, 8vh phones) sits before the
+    1px sentinel, inside the section
+  - styling derives only from `i === active`
+  - the pinned card renders `steps[active]`
+- `/join`'s recap (the other `StepList`) gets the same logic.
+
+**Verified** (scrolling in 25px steps, recording the active step only while
+it is actually on screen, not under the next sheet):
+
+| Viewport | Down | Up | //03 active while visible | Card at //03 |
+| --- | --- | --- | --- | --- |
+| 1280×800 | 01→02→03 | 03→02→01 | yes | "// 03 — VERIFY · Talk to your licensed loan officer. · // M8: IDLE" |
+| 1440×900 | 01→02→03 | 03→02→01 | yes | same |
+| 1280×720 | 01→02→03 | 03→02→01 | yes | same |
+| 390×844 | 01→02→03 | 03→02→01 | yes | inline visuals (no pinned card on phones) |
+
+The card never disagreed with the active step. `/join` at 1280×800 ran
+01→05 and 05→01.
+
+### 2. Demo gate email
+- `CONFIG.demoContactEmail` default `jason@ratem8.com` → `info@loanm8.com`.
+  It covers the visible text, the `mailto:` link and the `/api/demo-auth`
+  503 message (same constant).
+- Repo search for `@ratem8` / `ratem8.com`:
+  - The only live address was that constant.
+  - Everything else is history in this log (pre-launch item 21, v8/v14
+    entries) plus the `PLACEHOLDERS.md` row, now updated.
+- Nothing on `/privacy` or in metadata.
+- Pre-launch item 21 also mentions Vercel env vars with `@ratem8` values.
+  This connector can't read env vars, so check
+  `NEXT_PUBLIC_DEMO_CONTACT_EMAIL` and `NEXT_PUBLIC_CONTACT_EMAIL` in
+  Vercel; a set value overrides the default.
+
+### 3. Hero subhead
+- `copy.hero.subLines`: "AI-powered mortgage rate shopping, built for
+  humans and their AI assistants." / "Licensed, vetted loan officers at
+  every turn."
+- Rendered as one `<p>` with a `<br />`. `copy.hero.sub` joins both for
+  metadata and state pages.
+- Size, colour and line-height are unchanged: 16px/25.6px desktop,
+  14.6px/23.36px mobile.
+- Two lines at 1280px; on phones line 1 wraps naturally. The trust line is
+  unchanged.
+
+### 4. MLO_ROUTING on for the preview
+- The Vercel connector returns 403 for listing and creating project env
+  vars on both `ratem-8` and `ratem-8-m4oy`, so the variable could not be
+  set from here.
+- Instead, `mloRoutingOn()` in `lib/config.ts`, used by the config and
+  `middleware.ts`:
+  - `MLO_ROUTING=true` → on; `false` → off
+  - **unset → on for Vercel preview deployments, off in production**
+- Unit-tested.
+
+### Verified
+- `npm run verify` passes: 93 tests, build, `check:identity`,
+  `check:bundle`.
+- `qa/overflow` is clean on every route at both widths; the only console
+  error is the local Analytics 404. `qa/fonts`: 0 findings.
+
 ## v16 — Orb monogram follows the breath; hover hold on Voice / Q & A (2026-10-01)
 
 **Owner request:** "make the M8 show up every time the Orb pulses/breathes

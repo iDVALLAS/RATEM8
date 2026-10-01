@@ -126,3 +126,14 @@ describe("M8 routing facts", () => {
     expect(m8RoutingFacts(resolveRoute({ ipCountry: "US", ipRegion: "NV" })).section).toContain("There is no licensed loan officer in Nevada yet");
   });
 });
+
+describe("MLO_ROUTING flag", () => {
+  it("is on for previews by default, off in production, and the env var always wins", async () => {
+    const { mloRoutingOn } = await import("./config");
+    expect(mloRoutingOn(undefined, "preview")).toBe(true);
+    expect(mloRoutingOn(undefined, "production")).toBe(false);
+    expect(mloRoutingOn(undefined, undefined)).toBe(false);
+    expect(mloRoutingOn("false", "preview")).toBe(false);
+    expect(mloRoutingOn("true", "production")).toBe(true);
+  });
+});

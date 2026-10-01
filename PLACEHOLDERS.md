@@ -30,7 +30,7 @@ nmlsconsumeraccess.org and with counsel.
 | `contactEmail` | `[EMAIL]` (or `NEXT_PUBLIC_CONTACT_EMAIL`) | Public contact address at loanm8.com |
 | `privacyEmail` | `privacy@loanm8.com` | Confirm the mailbox exists |
 | `investorContactHref` | `mailto:investors@loanm8.com` (or `NEXT_PUBLIC_INVESTOR_CONTACT_HREF`) | Confirm the mailbox exists, or set a booking link (v14, `/investors`) |
-| `demoContactEmail` | `jason@ratem8.com` (or `NEXT_PUBLIC_DEMO_CONTACT_EMAIL`) | Where testers ask for the /demo password |
+| `demoContactEmail` | `info@loanm8.com` (or `NEXT_PUBLIC_DEMO_CONTACT_EMAIL`) | Where testers ask for the /demo password (v17); confirm the mailbox exists |
 | `lenderCountDisplay` | `null` | Leave null unless a verified, current count is approved for display |
 | `liveRatesEnabled` | `false` | Leave false until a live pricing integration and counsel sign-off exist |
 | `states[washington].entityLicense` | `[WA ENTITY LICENSE #]` | WA entity license |
@@ -120,7 +120,7 @@ grep -rnoE "\[[A-Z][A-Za-z0-9 #/—:.,'()+-]{3,}\]" lib app components --include
 
 | Item | Where | Current | Needed |
 | --- | --- | --- | --- |
-| `MLO_ROUTING` | Vercel env (server) | unset (off) | `true` to turn on state routing, the location beacon, and per-visitor names. Pages render per request while on |
+| `MLO_ROUTING` | Vercel env (server) | unset → **on for previews, off in production** (v17) | `true` turns it on in production; `false` turns it off on previews too. Pages render per request while on |
 | `NEXT_PUBLIC_CALENDLY_RYDER` | Vercel env | unset | Ryder's booking link |
 | `CONFIG.routing.stateAssignments` | `lib/config.ts` | WA/AZ/CA/TX → principal, OR → Ryder | Edit when coverage changes; the build fails on an invalid assignment |
 | Closing-costs range for Oregon | `app/tools/closing-costs/page.tsx` | not offered | Owner-supplied low/high % if Oregon should appear in that tool (ranges are never invented) |

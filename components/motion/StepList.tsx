@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { prefersReducedMotion } from "@/lib/useSceneTimeline";
+import { useActiveStep } from "@/lib/useActiveStep";
 import "./stage.css";
 
 /**
  * StepList — statements on the left, one pinned visual on the right.
  *
- * As the reader scrolls, the statement nearest the viewport centre
- * becomes active (full contrast, green marker) and the others fade to
- * 45%. The right column is sticky and shows `visual(activeIndex)`.
+ * As the reader scrolls, the statement in a band across the middle of
+ * the viewport becomes active (full contrast, green marker) and the
+ * others fade to 45%. A sentinel at the end of the list forces the last
+ * statement active, and a tail spacer lets it reach the band (v17: the
+ * last step used to be skipped when its sticky sheet pinned first; see
+ * lib/useActiveStep.ts). The right column is sticky and shows
+ * `visual(activeIndex)`.
  *
  * Reduced motion: every statement at full contrast, first visual only.
  * Phones: one column, each statement followed by its own visual, no
@@ -26,55 +31,44 @@ type StepListProps = {
 };
 
 export default function StepList({ steps, visual, className = "", ariaLabel }: StepListProps) {
-  const [active, setActive] = useState(0);
   const [reduced, setReduced] = useState(false);
-  const items = useRef<(HTMLLIElement | null)[]>([]);
-
   useEffect(() => {
-    if (prefersReducedMotion()) {
-      setReduced(true);
-      return;
-    }
-    if (typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        const hit = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!hit) return;
-        const i = Number((hit.target as HTMLElement).dataset.index);
-        if (!Number.isNaN(i)) setActive(i);
-      },
-      { rootMargin: "-45% 0px -45% 0px", threshold: 0 }
-    );
-    items.current.forEach((el) => el && io.observe(el));
-    return () => io.disconnect();
-  }, [steps.length]);
+    if (prefersReducedMotion()) setReduced(true);
+  }, []);
+  const { active, stepRefs, endRef } = useActiveStep(steps.length, !reduced);
 
   const shown = reduced ? 0 : active;
 
   return (
     <div className={`steplist-root ${reduced ? "is-reduced" : ""} ${className}`.trim()} data-active={shown}>
-      <ol className="steplist-items" aria-label={ariaLabel}>
-        {steps.map((s, i) => (
-          <li
-            key={s.title}
-            ref={(el) => {
-              items.current[i] = el;
-            }}
-            data-index={i}
-            className={`steplist-item ${!reduced && i === shown ? "is-active" : ""}`.trim()}
-          >
-            <span className="steplist-dot" aria-hidden="true" />
-            <div>
-              {s.label ? <p className="steplist-label">{s.label}</p> : null}
-              <h3 className="steplist-title">{s.title}</h3>
-              <p className="steplist-body">{s.body}</p>
-            </div>
-            <div className="steplist-visual steplist-visual--inline" aria-hidden="true">
-              {visual(i)}
-            </div>
-          </li>
-        ))}
-      </ol>
+      <div className="steplist-col">
+        <ol className="steplist-items" aria-label={ariaLabel}>
+          {steps.map((s, i) => (
+            <li
+              key={s.title}
+              ref={(el) => {
+                stepRefs.current[i] = el;
+              }}
+              data-step={i}
+              data-state={reduced ? "reduced" : i === shown ? "active" : i < shown ? "before" : "after"}
+              className={`steplist-item ${!reduced && i === shown ? "is-active" : ""}`.trim()}
+            >
+              <span className="steplist-dot" aria-hidden="true" />
+              <div>
+                {s.label ? <p className="steplist-label">{s.label}</p> : null}
+                <h3 className="steplist-title">{s.title}</h3>
+                <p className="steplist-body">{s.body}</p>
+              </div>
+              <div className="steplist-visual steplist-visual--inline" aria-hidden="true">
+                {visual(i)}
+              </div>
+            </li>
+          ))}
+        </ol>
+        {/* Room for the last step to reach the middle band, then the end sentinel. */}
+        <div className="steplist-tail" aria-hidden="true" />
+        <div ref={endRef} aria-hidden="true" style={{ height: 1 }} />
+      </div>
       <div className="steplist-pin" aria-hidden="true">
         <div className="steplist-visual" key={shown}>
           {visual(shown)}

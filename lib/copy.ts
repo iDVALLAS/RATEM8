@@ -77,10 +77,15 @@ export const copy = {
     tagline: "Loan intelligence.",
     // PROPOSAL: "Free for all loan mates." → brief tagline second half.
     taglineEmphasis: "Free for the people.",
-    // PROPOSAL: was "AI-powered mortgage rate shopping. Every loan closed by
-    // one licensed loan officer. No lead-selling. No trigger leads. No spam."
-    // Owner change list 2026-10-01 (Edit 2).
-    sub: "AI-powered mortgage rate shopping. Licensed and vetted loan officers. Built by mortgage pros for humans and their AI assistants.",
+    // PROPOSAL: was "AI-powered mortgage rate shopping. Licensed and vetted
+    // loan officers. Built by mortgage pros for humans and their AI
+    // assistants." (v14). Owner 2026-10-01 (v17): two lines, rendered with
+    // a line break in the hero; `sub` joins them for metadata and state pages.
+    subLines: [
+      "AI-powered mortgage rate shopping, built for humans and their AI assistants.",
+      "Licensed, vetted loan officers at every turn.",
+    ],
+    sub: "AI-powered mortgage rate shopping, built for humans and their AI assistants. Licensed, vetted loan officers at every turn.",
     // PROPOSAL: the brief's orb greeting "Tap me to say g'day." was replaced
     // by the owner with two actions under the orb (Voice / Q & A). The
     // string stays here for reference; nothing renders it.

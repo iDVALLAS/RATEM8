@@ -89,7 +89,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v16 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v17 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -100,7 +100,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 92 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 93 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -242,11 +242,19 @@ renders with a gap. `as="span"` lets `SlideHeadline` stack lines.
 
 ### 4.7 StepList — `components/motion/StepList.tsx`
 
-Statements left, one pinned visual right (sticky at ≥1024px). An
-IntersectionObserver with rootMargin `-45% 0px -45% 0px` makes the
-statement nearest the viewport centre active; others sit at 45%
-opacity. Phones render each statement with its own inline visual. Reduced
-motion: all statements full contrast, first visual only.
+Statements left, one pinned visual right (sticky at ≥1024px).
+Activation (v17) is `lib/useActiveStep.ts`:
+- One IntersectionObserver uses a band through the middle of the viewport
+  (`-40% 0px -40% 0px`). The highest-index step in the band wins.
+- An end sentinel after a `.steplist-tail` spacer (35vh desktop, 8vh
+  phones) forces the last step active.
+- Steps carry `data-step` and `data-state` (`before`/`active`/`after`).
+- Why: the How it works sheet pins by its bottom edge, which used to stop
+  //03 short of the old 10% band, so it never activated.
+
+Inactive steps sit at 45% opacity. Phones render each statement with its
+own inline visual. Reduced motion: all statements full contrast, first
+visual only.
 
 ### 4.8 FloatCard / StageVisual — `components/motion/FloatCard.tsx`
 
@@ -359,7 +367,8 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   - `CONFIG.routing.stateAssignments` picks the MLO in assign states.
   - `validateRouting()` runs when the module loads, so a bad registry
     fails `next build`.
-- **Resolution** (`middleware.ts`, behind `MLO_ROUTING`, default off):
+- **Resolution** (`middleware.ts`, behind `MLO_ROUTING`; `mloRoutingOn()`:
+  "true"/"false" wins, unset = on for Vercel previews, off in production):
   - Order: choice cookie `lm8_mlo` → property cookie `lm8_property_state`
     → `x-vercel-ip-country-region` → unknown ("Where's the property?").
   - The result goes to the app as the `x-lm8-route` header (ids only).

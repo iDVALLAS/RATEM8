@@ -127,6 +127,13 @@
   }
 }
 
+.steplist-col { min-width: 0; }
+/* v17: tail space so the last step can sit in the middle band before the
+   section ends (desktop sheets pin by their bottom edge). */
+.steplist-tail { height: 8vh; }
+@media (min-width: 1024px) { .steplist-tail { height: 35vh; } }
+.steplist-root.is-reduced .steplist-tail { height: 0; }
+
 .steplist-items {
   list-style: none;
   margin: 0;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { CHOICE_COOKIE, PROPERTY_COOKIE, ROUTE_HEADER, encodeRoute, resolveRoute } from "@/lib/routing";
+import { mloRoutingOn } from "@/lib/config";
 
 /**
  * LoanM8 stealth-launch middleware — v9.1 (cookie-aware version).
@@ -65,12 +66,13 @@ const PUBLIC_PREFIXES = [
  * every fact from the registry). Order: the borrower's explicit choice →
  * the property state they gave us → Vercel's IP region → nothing (ask).
  * The IP region is used in-request only and never stored. Any copy of the
- * header sent by the client is dropped. MLO_ROUTING off → no header.
+ * header sent by the client is dropped. Routing off → no header. On when
+ * MLO_ROUTING=true, or by default on Vercel previews (mloRoutingOn).
  */
 function routedHeaders(request: NextRequest): Headers {
   const h = new Headers(request.headers);
   h.delete(ROUTE_HEADER);
-  if (process.env.MLO_ROUTING === "true") {
+  if (mloRoutingOn(process.env.MLO_ROUTING, process.env.VERCEL_ENV)) {
     const route = resolveRoute({
       chosenMloId: request.cookies.get(CHOICE_COOKIE)?.value ?? null,
       propertyState: request.cookies.get(PROPERTY_COOKIE)?.value ?? null,
