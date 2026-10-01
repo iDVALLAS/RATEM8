@@ -89,7 +89,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v15.1 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v16 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -180,9 +180,17 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
   - It is a child of `.orb` (`Orb` now takes `children`), under
     `.orb--mono::before` and clipped to the circle, so it rides the
     breathing scale.
-  - Revealed once per session (`sessionStorage` key
-    `loanm8:orb-monogram-seen`, 3.5s, peak 0.62). Afterwards hover or focus
-    shows it at 0.3. Reduced motion: a static 0.4 for 3s.
+  - v16: it comes and goes with every breath. Its opacity keyframes
+    (peak 0.62 at 50%) use the same duration and easing as the orb's
+    keyframe for each state: idle 4s, listening 2.2s, speaking 1.4s,
+    thinking 0.9s, and the 700ms tap pulse. They restart together, so the
+    M8 is fullest when the orb is biggest. The gloss smudge dips to 0.3 in
+    step.
+  - Hovering (mouse) or keyboard-focusing Voice or Q & A adds
+    `.hm-orb-wrap--mono-hold`, which pins it at 0.62 with `!important`
+    while the animation keeps running underneath, so it stays in sync.
+  - Reduced motion: no breathing and no rise; the hover hold still shows
+    it. Size and placement are unchanged from v14.
 - No microphone, no audio, no AI call. `CONFIG.featureFlags.voice` is false.
 
 ### 4.3 TermField — `components/TermField.tsx`

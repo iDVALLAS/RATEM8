@@ -25,7 +25,6 @@ nmlsconsumeraccess.org and with counsel.
 | `team[Ryder Fasse].nmlsConsumerAccessUrl` | Consumer Access URL for 119822 | Verify the URL resolves to the right record |
 | `team[Ryder Fasse].bioShort` / `.photo` | `[BIO — …]` / `[PHOTO]` | Same rules as above |
 | `team[Ryder Fasse].licenses[OR]` | `NMLS ID 119822`, sponsor since `2021-08-06` (from his NMLS record, v15.1) | Done. Oregon issues no separate number |
-| Sponsor legal name for NMLS 1761573 | Config says `Home Trust Loans`; NMLS lists the company as **Adcom Group Inc** | Confirm whether the footer should read "Adcom Group Inc dba Home Trust Loans" (affects WA, OR, CA, TX) |
 | `team[Ryder Fasse].calendly` | empty (or `NEXT_PUBLIC_CALENDLY_RYDER`) | Ryder's booking link; until set, his matched visitors see "Booking link coming soon" |
 | `team[Ryder Fasse].title` | `Mortgage Loan Originator` | His signature says "Mortgage Loan Officer"; confirm which to show |
 | `contactEmail` | `[EMAIL]` (or `NEXT_PUBLIC_CONTACT_EMAIL`) | Public contact address at loanm8.com |

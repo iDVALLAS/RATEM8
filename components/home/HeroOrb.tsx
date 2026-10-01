@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Orb, { type OrbState } from "@/components/Orb";
 import TermField from "@/components/TermField";
-import { prefersReducedMotion } from "@/lib/useSceneTimeline";
 import OrbMonogram from "./OrbMonogram";
 
 /**
@@ -20,8 +19,9 @@ import OrbMonogram from "./OrbMonogram";
  * One popup at a time. Reduced motion: no animation, same timer.
  * Tapping the orb opens the Voice popup.
  *
- * The orb carries the raised monogram (Edit 7): revealed once per
- * session, then back at low opacity on hover. See OrbMonogram.
+ * The orb carries the raised monogram (Edit 7). v16: it comes and goes
+ * with every breath (CSS, synced to the orb's keyframes; home.css), and
+ * holds steady while Voice or Q & A is hovered or keyboard-focused.
  *
  * NO microphone access. NO audio. NO AI call. Orb state changes are
  * speed / amplitude / halo only.
@@ -43,12 +43,6 @@ const SPEAK_MS = 1500;
 const REDIRECT_MS = 5500;
 const CHAT_HREF = "/chat";
 
-/** Monogram reveal: once per session, a beat after the hero entrance. */
-const MONO_KEY = "loanm8:orb-monogram-seen";
-const MONO_DELAY_MS = 1200;
-const MONO_REVEAL_MS = 3500;
-const MONO_STATIC_MS = 3000;
-type MonoPhase = "idle" | "reveal" | "static" | "done";
 
 function VoiceIcon() {
   return (
@@ -73,7 +67,9 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
   const [pulse, setPulse] = useState(false);
   const [state, setState] = useState<OrbState>("idle");
   const [popup, setPopup] = useState<Popup | null>(null);
-  const [mono, setMono] = useState<MonoPhase>("idle");
+  // Voice / Q & A hovered (mouse) or focused: hold the monogram up.
+  const [holdHover, setHoldHover] = useState(false);
+  const [holdFocus, setHoldFocus] = useState(false);
   const timers = useRef<number[]>([]);
   const redirectTimer = useRef<number | null>(null);
 
@@ -89,27 +85,6 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
       clearRedirect();
     };
   }, [clearRedirect]);
-
-  // Monogram reveal, once per browser session. Storage can throw
-  // (private mode, blocked site data); then it simply plays once per load.
-  useEffect(() => {
-    let seen = false;
-    try {
-      seen = window.sessionStorage.getItem(MONO_KEY) === "1";
-      window.sessionStorage.setItem(MONO_KEY, "1");
-    } catch {
-      /* storage unavailable */
-    }
-    if (seen) {
-      setMono("done");
-      return;
-    }
-    const reduced = prefersReducedMotion();
-    const ids: number[] = [];
-    ids.push(window.setTimeout(() => setMono(reduced ? "static" : "reveal"), MONO_DELAY_MS));
-    ids.push(window.setTimeout(() => setMono("done"), MONO_DELAY_MS + (reduced ? MONO_STATIC_MS : MONO_REVEAL_MS)));
-    return () => ids.forEach((id) => window.clearTimeout(id));
-  }, []);
 
   const open = useCallback(
     (which: Popup) => {
@@ -142,7 +117,13 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
   const onVoice = useCallback(() => open("voice"), [open]);
   const onQa = useCallback(() => open("qa"), [open]);
 
-  const monoClass = mono === "idle" ? "" : `hm-orb-btn--mono-${mono}`;
+  const holdProps = {
+    onPointerEnter: (e: React.PointerEvent) => e.pointerType === "mouse" && setHoldHover(true),
+    onPointerLeave: (e: React.PointerEvent) => e.pointerType === "mouse" && setHoldHover(false),
+    // Keyboard focus only: a mouse click also focuses, and must not pin the hold.
+    onFocus: (e: React.FocusEvent<HTMLButtonElement>) => setHoldFocus(e.currentTarget.matches(":focus-visible")),
+    onBlur: () => setHoldFocus(false),
+  };
 
   const renderPopup = (which: Popup, text: string) =>
     popup === which ? (
@@ -160,10 +141,10 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
     ) : null;
 
   return (
-    <div className="hm-orb-wrap">
+    <div className={`hm-orb-wrap ${holdHover || holdFocus ? "hm-orb-wrap--mono-hold" : ""}`.trim()}>
       <div className="hm-orb-stage">
         <TermField />
-        <button type="button" onClick={onVoice} aria-label={ariaLabel} className={`hm-orb-btn ${monoClass}`.trim()}>
+        <button type="button" onClick={onVoice} aria-label={ariaLabel} className="hm-orb-btn">
           <Orb size="hero" state={state} className={`orb--mono ${pulse ? "orb--pulse" : ""}`.trim()}>
             <OrbMonogram />
           </Orb>
@@ -174,6 +155,7 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
         <button
           type="button"
           onClick={onVoice}
+          {...holdProps}
           className={`stitch-btn ${popup === "voice" ? "stitch-btn--on" : ""}`.trim()}
           aria-expanded={popup === "voice"}
         >
@@ -183,6 +165,7 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
         <button
           type="button"
           onClick={onQa}
+          {...holdProps}
           className={`stitch-btn ${popup === "qa" ? "stitch-btn--on" : ""}`.trim()}
           aria-expanded={popup === "qa"}
         >

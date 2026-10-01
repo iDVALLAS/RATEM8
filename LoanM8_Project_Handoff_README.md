@@ -99,6 +99,53 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v16 — Orb monogram follows the breath; hover hold on Voice / Q & A (2026-10-01)
+
+**Owner request:** "make the M8 show up every time the Orb pulses/breathes
+bigger and also have it stay showing/static when the mouse is hovering
+over the Voice and Q&A buttons", and "leave the sizing of the M8 but just
+have it come and go with the pulse."
+
+### What changed
+- `components/home/home.css`:
+  - The once-per-session reveal is replaced by breath-synced opacity:
+    0 → 0.62 → 0 on the orb's own keyframe duration and easing per state
+    (idle 4s, listening 2.2s, speaking 1.4s, thinking 0.9s, and the 700ms
+    tap pulse then idle).
+  - The gloss smudge dips 0.7 → 0.3 in step.
+  - `.hm-orb-wrap--mono-hold` pins it at 0.62 with `!important`, so the
+    animation keeps running underneath and stays in sync when the hover
+    ends.
+  - Size, placement, tilt, filter and the orb itself are unchanged.
+- `components/home/HeroOrb.tsx`:
+  - Removed the sessionStorage reveal.
+  - Voice and Q & A set the hold on mouse hover (pointer type mouse) and
+    on keyboard focus (`:focus-visible` only, so a click doesn't pin it).
+
+### Verified (local build, Chromium)
+- **Sync:** sampled over 4s, the correlation between orb scale and
+  monogram opacity is 1.000. Opacity is 0.62 at scale 1.05 (peak) and 0
+  at scale 1.00. It is still 1.000 after a hover ends and after a popup
+  opens and closes.
+- **Hold:**
+  - Hovering Voice or Q & A gives a steady 0.62 over 2.4s.
+  - It is released on leave.
+  - A click followed by leaving does not pin it.
+  - Tab focus on Voice holds it.
+- **Reduced motion:** 0 at rest, 0.62 on hover.
+- **Frame rate** (390px, DPR 3, headless with a software GPU):
+  - Unthrottled: about 58 fps, the same as with the monogram hidden.
+  - 4× CPU throttle: about 49 fps against about 53 baseline.
+  - Turning off the SVG filter changes nothing, so the cost is compositing
+    one more animated layer in software; a PNG fallback would not help.
+    Not measured on a real device.
+- `npm run verify` passes.
+
+### Also
+- The owner confirmed "Home Trust Loans" is the DBA for NMLS 1761573
+  (Adcom Group Inc) and is fine as shown. The v15.1 open question is
+  closed.
+
 ## v15.1 — Ryder Fasse's Oregon license from his NMLS record (2026-10-01)
 
 - Source: an NMLS Consumer Access screenshot from the owner.

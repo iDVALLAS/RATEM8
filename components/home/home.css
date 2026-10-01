@@ -572,32 +572,41 @@
 .hm-orb-mono__light { lighting-color: var(--color-m8-mist); }
 .hm-orb-mono__forest { flood-color: var(--color-m8-forest); flood-opacity: 0.75; }
 
-/* Once per session: smudge down to 25% while the monogram rises to
-   ~62%, hold, then cross-fade back. 3.5s total. */
-.hm-orb-btn--mono-reveal .hm-orb-mono { animation: hm-mono-rise 3500ms ease-in-out both; }
-.hm-orb-btn--mono-reveal .orb--mono::before { animation: hm-mono-smudge 3500ms ease-in-out both; }
-@keyframes hm-mono-rise {
-  0% { opacity: 0; }
-  24% { opacity: 0.62; }
-  72% { opacity: 0.62; }
-  100% { opacity: 0; }
-}
-@keyframes hm-mono-smudge {
-  0% { opacity: 0.7; }
-  24% { opacity: 0.25; }
-  72% { opacity: 0.25; }
-  100% { opacity: 0.7; }
-}
-/* Reduced motion: a static ~40% display for 3s, then hidden. */
-.hm-orb-btn--mono-static .hm-orb-mono { opacity: 0.4; }
-/* After the reveal, hovering (or keyboard-focusing) the orb brings it back faintly. */
-.hm-orb-btn--mono-done .hm-orb-mono { transition: opacity 400ms ease-out; }
-.hm-orb-btn--mono-done:focus-visible .hm-orb-mono { opacity: 0.3; }
-@media (hover: hover) {
-  .hm-orb-btn--mono-done:hover .hm-orb-mono { opacity: 0.3; }
-}
+/* v16: the monogram rises with every breath. Its keyframes peak at 50%
+   with the same duration and easing as the orb's own breathing keyframe
+   for each state, and they start and restart together (an animation-name
+   change restarts both), so the M8 is fullest when the orb is biggest.
+   The gloss smudge dips in step so the mark reads. The orb's colour,
+   shape and breathing are untouched; only these two layers' opacity moves. */
+.orb--mono .hm-orb-mono { animation: hm-mono-breathe 4s ease-in-out infinite; will-change: opacity; }
+.orb--mono::before { animation: hm-mono-smudge 4s ease-in-out infinite; }
+.orb--mono.orb--listening .hm-orb-mono { animation: hm-mono-breathe-wide 2.2s ease-in-out infinite; }
+.orb--mono.orb--listening::before { animation: hm-mono-smudge-wide 2.2s ease-in-out infinite; }
+.orb--mono.orb--thinking .hm-orb-mono { animation: hm-mono-breathe-tight 0.9s ease-in-out infinite; }
+.orb--mono.orb--thinking::before { animation: hm-mono-smudge-tight 0.9s ease-in-out infinite; }
+.orb--mono.orb--speaking .hm-orb-mono { animation: hm-mono-breathe-wide 1.4s ease-in-out infinite; }
+.orb--mono.orb--speaking::before { animation: hm-mono-smudge-wide 1.4s ease-in-out infinite; }
+/* The tap pulse (orb-pulse-once peaks at 35% of 700ms), then idle breathing. */
+.orb--mono.orb--pulse .hm-orb-mono { animation: hm-mono-pulse 700ms cubic-bezier(0.22, 1, 0.36, 1) 1, hm-mono-breathe 4s ease-in-out 700ms infinite; }
+.orb--mono.orb--pulse::before { animation: hm-mono-smudge-pulse 700ms cubic-bezier(0.22, 1, 0.36, 1) 1, hm-mono-smudge 4s ease-in-out 700ms infinite; }
+
+@keyframes hm-mono-breathe { 0%, 100% { opacity: 0; } 50% { opacity: 0.62; } }
+@keyframes hm-mono-breathe-wide { 0%, 100% { opacity: 0; } 50% { opacity: 0.62; } }
+@keyframes hm-mono-breathe-tight { 0%, 100% { opacity: 0; } 50% { opacity: 0.62; } }
+@keyframes hm-mono-pulse { 0% { opacity: 0; } 35% { opacity: 0.62; } 100% { opacity: 0; } }
+@keyframes hm-mono-smudge { 0%, 100% { opacity: 0.7; } 50% { opacity: 0.3; } }
+@keyframes hm-mono-smudge-wide { 0%, 100% { opacity: 0.7; } 50% { opacity: 0.3; } }
+@keyframes hm-mono-smudge-tight { 0%, 100% { opacity: 0.7; } 50% { opacity: 0.3; } }
+@keyframes hm-mono-smudge-pulse { 0% { opacity: 0.7; } 35% { opacity: 0.3; } 100% { opacity: 0.7; } }
+
+/* Hovering (or keyboard-focusing) Voice or Q & A holds the M8 up, steady.
+   !important outranks the running animation without stopping it, so the
+   M8 stays in step with the orb's breath when the hold ends. */
+.hm-orb-wrap--mono-hold .orb--mono .hm-orb-mono { opacity: 0.62 !important; }
+.hm-orb-wrap--mono-hold .orb--mono::before { opacity: 0.3 !important; }
+
+/* Reduced motion: no breathing, so no rise; the hover hold still shows it, without motion. */
 @media (prefers-reduced-motion: reduce) {
-  .hm-orb-mono,
-  .hm-orb-btn--mono-reveal .hm-orb-mono,
-  .hm-orb-btn--mono-reveal .orb--mono::before { animation: none !important; transition: none !important; }
+  .orb--mono .hm-orb-mono,
+  .orb--mono::before { animation: none !important; }
 }
