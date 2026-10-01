@@ -82,17 +82,19 @@ TPO and Angel Oak from the first pass are kept in §6b for reference only.
      disqualified products with reasons, free broker Marketplace,
      consumer pricer widgets). Which wholesale lenders it carries is
      unconfirmed.
-4. **Whether UWM, Rocket or Pennymac pricing is available through
-   Loansifter or Lender Price is unknown.** That single fact decides
-   whether an API-first engine can show the lenders brokers use most.
-5. **Rate sheets for the big three are portal-based.** We found no
-   evidence of email distribution lists or file feeds for UWM, Rocket Pro
-   TPO or Pennymac TPO brokers. The one public broker agreement (Plaza)
-   restricts its pricing tools to bona fide quotes for loans the broker
-   intends to deliver, bars using Plaza's name in ads without consent,
-   and has a confidentiality clause. **Patch C's email-ingest design may
-   not be reachable for the lenders that matter most** without written
-   permission from each lender.
+4. **For the owner's twelve lenders, ARIVE covers 11** (all but
+   Provident). Lender Price has evidence for at most 6 and Loansifter for
+   1 (REMN), all old or unconfirmed. Whether UWM, Pennymac, Freedom, The
+   Loan Store and Kind are in Loansifter or Lender Price today is the fact
+   that decides whether an API-first engine can carry the lenders in use.
+5. **Rate sheets reach an inbox for only three of the twelve** (PRMG,
+   Plaza, REMN), and **PRMG and Plaza state in writing that their sheets
+   are not for consumers.** HomeXpress marks its sheets "broker use only."
+   Provident's public broker agreement bars using its name in ads without
+   consent and requires uniform broker compensation. UWM, Pennymac,
+   Freedom, The Loan Store and Kind showed no distribution outside their
+   portals. **Patch C cannot reach most of the twelve without written
+   consent and distribution from each lender** (see §8).
 6. **No vendor or lender publishes terms that clearly allow a broker's
    consumer site to show multi-lender pricing.** Every path needs written
    display rights.
@@ -308,29 +310,165 @@ features:
 
 ---
 
-## 6. Individual wholesale lenders
+## 6. The owner's twelve lenders
 
-| Lender | Direct broker pricing API | PPEs with evidence | Rate sheet channel | Format | Reprice cadence | Terms on consumer display |
-| --- | --- | --- | --- | --- | --- | --- |
-| UWM | None found; a rates vendor says pricing is only via your PPE (R) | ARIVE (V\*); others U | EASE portal with EQ engine; app "Morning Rates" and "Daily Rates" alerts sent "whenever they change" (V\*) | U | Morning, plus intraday changes (V\*) | Broker agreement not public; site terms "informational purposes only" (V\*); Brand 360: broker owns ad compliance, no false endorsements (V\*) |
-| Rocket Pro TPO | None found (R) | ARIVE since 2025-04-22 (V\*); others U | Portal pricing calculator (V\*) | U | U | App use only "as a bona fide client" (V\*); co-branding via Marketing Hub (R) |
-| Pennymac TPO | None found | ARIVE since 2023-06-28 (V\*); others U | POWER+ portal, proprietary engine (V\* / R) | U for TPO | TPO U (correspondent sheets daily by about 7am PT, V\*) | "Scraping" banned on its home value tool (V\*); rest U |
-| Plaza | None found | ARIVE (V\*) | Portal pricing tools; one public PDF rate sheet exists (V\*) | PDF | Intraday "without notice"; Plaza sets intraday cutoffs (V\*) | **No use of Plaza's name in ads without written consent; pricing tools only for bona fide quotes, locks and registrations for loans the broker intends to deliver to Plaza; mutual confidentiality** (V\*, [broker agreement PDF](https://www.plazahomemortgage.com/documents/becomeanapproved/master-wholesale-broker-agreement.pdf)) |
-| Kind Lending | None found | ARIVE (V\*) | "Kwikie" portal (V\*) | U | Locks until midnight PST (V\*) | U |
-| Newrez Wholesale | None found | U | "Blueprint" portal with instant pricing (V\*) | PDFs with effective timestamps on a public docs site (V\*) | Timestamped intraday (one example) | U |
-| Freedom Wholesale | None found | ARIVE (V\*) | U | U | U | U |
-| Angel Oak | None; public web QuickPricer only (V\*) | U | Public web pricer | Web | "As capital markets move, rate sheets adjust" (V\*) | U |
+Second research pass, 2026-10-01, same evidence limits as §0 (search
+excerpts only; several searches hit the per-session limit, noted as U).
 
-**Verdict:** almost always through a PPE. **Confirmed** for every lender
-checked. No lender publishes a broker pricing API.
+### 6a. Coverage at a glance
 
-**Industry cadence:** lenders usually publish one sheet around 10am ET and
-reprice intraday when bonds move (R,
-[mortgagenewsdaily.com](https://www.mortgagenewsdaily.com/mortgage-rates)).
+| Lender | ARIVE | Lender Price | Loansifter | Other engines | Direct broker API |
+| --- | --- | --- | --- | --- | --- |
+| UWM | Yes (V\*) | Named in a Lender Price lender list (R) | U | LendingPad: registration and conditions only, April 2026 (V\*) | **No.** The "UWM Portal" (2023-05-04) is a two-way loan-data link to EASE, not a rate feed (V\*) |
+| The Loan Store | Yes, pricing and submission (V\*) | Named in a Lender Price lender list (R) | U | Own portal on ICE Encompass TPO Connect (V\*) | None found |
+| PRMG | Yes, with loan sync (V\*); 2019 partnership (title only) | Named in a Lender Price lender list (R) | U | ReadyPrice lender page (title only); own "LEO" portal | None found |
+| Pennymac TPO | Yes since 2023-06-28 (V\*) | Joined 2019-12-16 as "Pennymac Broker Direct"; current status U | U | POWER+ portal | None found |
+| Freedom Wholesale | Yes since 2025-01-21; "prospect pricing" visible before approval (V\*) | U | U | Calyx Point (R) | None found |
+| REMN (division of Homebridge) | Yes since 2022-03-21 (V\*); current status unconfirmed | **Yes, per REMN's own page (undated)** (V\*) | **Yes, per REMN's own page (undated)** (V\*) | "The Hub" portal | None found |
+| Provident Funding | **No evidence** | **Joined 2021-04-08** (V\*); current status U | U | Own broker app with pricing matrix (V\*) | None found; public HTML rate pages exist (see 6b) |
+| RISE TPO (OCMBC, dba) | Yes since 2026-03-11 (V\*) | U | U | Sister brand LoanStream: "The Lounge" portal | None found |
+| HomeXpress | Yes since 2026-02-26 (V\*) | U | U | Own X-CONNECT engine; "Xpress Quick Pricer" for professionals (V\* / R) | None found |
+| Newrez Wholesale | Yes (V\*) | U | U | Own "Blueprint" portal with product and pricing (V\*) | None found |
+| Kind Lending | Yes since 2024-07-24 (V\*) | Indirect at best: LendingPad (which runs Lender Price) says "real-time pricing" in a 2025-08-13 release but "registration only" in its help article (V\*, conflicting) | U | "Kwikie" portal | None found |
+| Plaza | Yes (V\*) | U | U | Calyx Wholesaler MarketPlace, lock confirmations (R); own BREEZE system | None found; agreement limits tool use |
 
-**Exclusivity risk.** UWM's 2021 "All-In" broker agreement addendum
-exists (R). Whether it limits showing UWM next to other lenders bears
-directly on the three-creditor anti-steering safe harbor. Ask UWM.
+**Read-out**
+
+- **ARIVE covers 11 of the 12.** Only Provident has no ARIVE evidence.
+- **Lender Price has evidence for at most 6** (Provident, Pennymac, REMN
+  directly; UWM, The Loan Store, PRMG only in an unattributed list), and
+  every one is old or unconfirmed today.
+- **Loansifter has evidence for 1** (REMN, undated). Its investor list is
+  not public, so absence is not proof.
+- **No lender of the twelve publishes a broker pricing API.** Confirmed
+  again.
+
+### 6b. Rate sheets and terms, lender by lender
+
+**UWM**
+- Channel: EASE portal with the EQ engine; app "Morning Rates" and "Daily
+  Rates" alerts (V\*). No public sheet, email list or file format found. U
+- Cadence: "two, three, or even four different rate sheets in a day" (R).
+- Terms: broker agreement and the 2021 "All-In" addendum are not public.
+  Press reports penalties of "$5,000 per loan or $50,000, whichever…
+  greater" for sending loans to certain competitors (R,
+  [HousingWire](https://www.housingwire.com/articles/uwm-sues-broker-shop-for-sending-loans-to-rocket-fairway/)).
+  Brand 360 / Brand Builder co-marketing reportedly allows "custom pricing
+  scenarios" on broker materials (R).
+
+**The Loan Store** (The Loan Store, Inc., Tucson, AZ)
+- Channel: TLS portal (ICE Encompass TPO Connect); lock desk
+  lockdesk@tlstpo.com (V\*). No public rate sheet sign-up found. U
+- Terms: no public broker agreement or site terms found. U
+- Licensing page shows AZ and CA licence numbers and references WA and TX
+  (V\*).
+
+**PRMG** (Paramount Residential Mortgage Group, Corona, CA)
+- Channel: **free email subscription** for the Daily Rate Sheet at
+  [tpo.prmg.net/rate-sheet-form/](https://tpo.prmg.net/rate-sheet-form/),
+  with "price alerts to get notified of sudden market changes" (V\*).
+- **Terms on the sign-up page: the service "is intended for use by real
+  estate and mortgage lending professionals only and not for distribution
+  to consumers as defined by Section 226.2 of Regulation Z"** (V\*).
+- Co-branding marketing portal (R). Broker agreement not public. U
+
+**Pennymac TPO**
+- Channel: POWER+ portal. A "Ratesheet View Only" email role is documented
+  for **correspondent** clients; whether brokers get it is U.
+- Portal locks 7:00 AM to 11:59 PM PT daily; lock desk 7 to 5 PT (V\*).
+- Site terms: "for informational purposes only," copyright reserved (V\*,
+  [tpo.pennymac.com/terms-of-use](https://tpo.pennymac.com/terms-of-use)).
+  Broker agreement not public. U
+
+**Freedom Mortgage Wholesale**
+- Channel: freedomwholesale.com portal; ARIVE "prospect pricing" (V\*).
+  Rate sheet distribution, format and terms: U.
+
+**REMN Wholesale** (a division of Homebridge Financial Services, NMLS 6521)
+- Channel: **daily rate sheet subscription**; broker-portal rate sheet page;
+  access through remnlock@remn.com (V\*). A 2012 public PDF shows PDF format;
+  current format U.
+- Pricing "on daily rate sheets or via Loansifter & Lender Price" (V\*,
+  undated).
+- Terms: none public. U
+
+**Provident Funding** (Provident Funding Associates, L.P., NMLS 3821)
+- Channel: **search-indexed HTML rate pages**, e.g. "Wholesale Daily Rate
+  Snapshot (California)" posted "08/10/2026 7:22:47 AM PT" on
+  clp.provident.com, and "Live Wholesale Mortgage Rates" on
+  pfloans.provident.com (V\*). Whether they need a login is U.
+- Rates post "at approximately 8:00 AM PST each business day"; intraday
+  changes possible (V\* / R,
+  [Rate Lock Policy](https://www.provident.com/RateLockPolicy)).
+- **Loan Origination Agreement, Rev 1-07-19** (public PDF, V\*):
+  non-exclusive; the broker shall not "use Provident Funding's name in any
+  advertising without Provident Funding's express prior written consent";
+  **broker fees "may not exceed the uniform compensation level"** set on
+  Provident's broker website, and the broker "shall not charge or collect
+  different amounts of fees from different borrowers on a loan-by-loan
+  basis."
+- Name confusion: provwholesale.com and myprovident.com are different
+  Provident banks.
+
+**RISE TPO** (a dba of OCMBC, Inc., Irvine, CA; sister brand of LoanStream)
+- Channel: [risetpo.com/rates/](https://risetpo.com/rates/) lists downloads
+  for Prime & Jumbo, HELOC, Non-QM and Closed-End Seconds (V\*); login U.
+- Sister brand LoanStream posts public, time-stamped PDFs such as
+  "Wholesale-Ratesheets-08.18.2026_07.58am.pdf" and "…-REPRICE.pdf" (V\*).
+  Whether RISE does the same: U.
+- Terms: none public. U
+
+**HomeXpress Mortgage Corp** (non-QM; acquired by Chimera 2025-10-01, R)
+- Channel: public PDFs under homexmortgage.com/wp-content/uploads; newest
+  indexed April 2024 (V\*). Current 2026 sheets U.
+- Sheets read "FOR WHOLESALE AND LOAN BROKER USE ONLY" and "does not
+  constitute a commitment to lend" (V\*).
+- **Broker Package:** agreement terms "shall be kept confidential"; no
+  licence to use the HomeXpress name or logo "unless specifically granted
+  in writing" (V\*). Offers white-label marketing materials (V\*, source
+  unclear).
+
+**Newrez Wholesale**
+- Channel: Blueprint portal (user guide v8, 07/31/2026) (V\*); lock desk to
+  8 pm ET; Pricing Dept wholesale.pricing@newrez.com (V\*).
+- **Broker Agreement** (public PDF, revision U): non-exclusive; "Pricing
+  Sheet… subject to change without notice" (V\*). No confidentiality or
+  name-use clause seen in the excerpts. The **correspondent** guide does
+  require written consent to use Newrez's name; whether brokers are bound
+  the same way is U.
+
+**Kind Lending**
+- Channel: Kwikie portal; locks until midnight PST (V\*). No public rate
+  sheets, agreement or terms found. U
+
+**Plaza Home Mortgage**
+- Channel: **email sign-up** at plazahomemortgage.com/RateSheetSignup/
+  (cited in Plaza's lock policy, V\*); a **public PDF at a fixed URL**,
+  Plaza_SLC_Rates.pdf, apparently overwritten in place (recent copy shows
+  May 2026 index values) (V\*).
+- **The public PDF says it is "for the use of approved mortgage lenders only
+  and is not intended for distribution to consumers"** (V\*).
+- Intraday: "When Plaza is re-pricing or preparing new rate sheets, website
+  transactions will be disabled" (V\*, Wholesale Broker Guide, itself marked
+  "confidential, proprietary").
+- **Master Wholesale Broker Agreement WH-AG-001 rev. 15:** no use of Plaza's
+  name in advertising without written consent; pricing tools only for bona
+  fide quotes, locks and registrations for loans the broker intends to
+  deliver to Plaza; mutual confidentiality (V\*).
+- Private Label marketing materials available after login (V\*).
+
+### 6c. Reference only (first pass, not on the owner's list)
+
+- **Rocket Pro TPO:** ARIVE since 2025-04-22; portal calculator; app use only
+  "as a bona fide client" (V\*).
+- **Angel Oak:** public web QuickPricer, no API (V\*).
+
+**Verdict:** almost always through a pricing engine. **Confirmed** for all
+twelve.
+
+**Industry cadence:** one sheet around 10am ET, intraday reprices when bonds
+move (R, [mortgagenewsdaily.com](https://www.mortgagenewsdaily.com/mortgage-rates)).
+Provident posts about 8am PT; LoanStream's file names show about 8am.
 
 ---
 
@@ -344,39 +482,46 @@ directly on the three-creditor anti-steering safe harbor. Ask UWM.
 | **Polly** | Yes for lenders (no public docs) | Partial (UI/AI; API U) | Lender's own sheets only | Partial (retail-site use; ToS U) | **No** direct broker access | Contact sales |
 | **Optimal Blue enterprise PPE** | Yes | Yes (ineligible returned) | Historical Pricing API only | Partial (Lead-Quoting API) | U (lender product) | Contact sales |
 | **Mortech** | Yes (Partner/MSA) | U | Yes (R) | Yes for quoting partners | U (brokers not listed) | From $400/month |
-| **Direct lender API** (UWM, Rocket, Pennymac, others) | **No** (none found) | n/a | Portal only for the big three | U (agreements not public; Plaza restricts) | n/a | n/a |
+| **Direct lender API** (all twelve lenders) | **No** (none found for any) | n/a | Email for PRMG, Plaza, REMN; public pages for Provident, HomeXpress, RISE; portal only for the rest | Restricted in writing by PRMG, Plaza, HomeXpress; rest U | n/a | n/a |
 | **Rate sheets (Patch C)** | Yes, in our own code | Yes, by our own rules | Only where a lender emails or posts sheets | **Needs written consent per lender** | Depends on each lender's distribution | Engineering cost |
 
 ---
 
-## 8. Rate sheets
+## 8. Rate sheets: what the twelve mean for Patch C
 
-**What we know**
+| Lender | How a sheet could reach `ratesheets@` | Consumer-display language found |
+| --- | --- | --- |
+| PRMG | **Email subscription exists** | **"not for distribution to consumers"** |
+| Plaza | **Email sign-up exists**; public PDF | **"not intended for distribution to consumers"**; confidential guide; agreement limits tool use |
+| REMN | **Subscription exists** | None found |
+| Provident | Public HTML snapshot pages | None found on display; **uniform comp** and **name-consent** clauses |
+| HomeXpress | Public PDFs (stale in index) | **"broker use only"**; confidential agreement; name/logo consent |
+| RISE TPO | /rates/ downloads | None found |
+| Newrez | "Pricing Sheet" issued periodically | None found for brokers |
+| UWM, Pennymac, Freedom, The Loan Store, Kind | Portal only as far as public evidence shows | Agreements not public |
 
-- The big three (UWM, Rocket Pro TPO, Pennymac TPO) are portal-first. No
-  public evidence of broker email lists, SFTP or file formats. U
-- UWM pushes rate alerts in its app, mornings and "whenever they change."
-  V\*
-- Plaza and Newrez publish at least some PDF rate documents with effective
-  timestamps. V\*
-- Optimal Blue ingests 45,000+ investor sheets daily, which shows lenders
-  do distribute machine-readable sheets to PPEs. Whether they do the same
-  for an individual broker: U.
+**What this means**
 
-**What this means for Patch C**
-
-- The email-ingest path in C1 only works for lenders who will add
-  `ratesheets@` to a distribution list **and** permit consumer display of
-  rates computed from those sheets. That needs to be asked lender by
-  lender, in writing, before engineering starts.
-- Portal scraping is already out of scope in the brief. Every lender
-  whose terms we could see (UWM, Rocket, Pennymac, Plaza, ARIVE) restricts
-  automated access or limits use to the broker's own bona fide business.
-- Plaza's agreement limits its pricing tools to "bona fide requests for
-  price quotes, rate locks and registrations for loans that Broker intends
-  to deliver to Plaza" and treats pricing as "only for use as an estimate
-  of a price as of a particular moment in time." Comparing Plaza against
-  other lenders on a public site may fall outside that purpose.
+1. **Technically reachable by email today: PRMG, Plaza, REMN.** Two of those
+   three (PRMG and Plaza) say in writing that their sheets are not for
+   consumers. Computing a consumer-facing price from those sheets needs each
+   lender's written consent first.
+2. **Provident's sheet is easiest to read but has a pricing rule:** its
+   uniform-compensation clause means any displayed Provident price must
+   carry the same broker compensation for every borrower. That fits a
+   flat-comp display, but the build must not vary comp by borrower for
+   Provident.
+3. **The five biggest by likely volume (UWM, Pennymac, Freedom, TLS, Kind)
+   showed no rate sheet distribution outside their portals.** Patch C cannot
+   cover them without the lender adding `ratesheets@` to a list, and no
+   portal automation is allowed (brief rule, and every visible portal term
+   restricts it).
+4. **Anti-steering safe harbor needs at least three creditors per loan
+   type.** For agency conforming 30- and 15-year fixed (Patch C's v1 scope),
+   the rate sheet path could realistically reach PRMG, Plaza, REMN and
+   Provident, and only with written consent from each. That is enough for
+   the safe harbor only if at least three say yes.
+5. Portal scraping stays out of scope.
 
 ---
 
@@ -529,6 +674,50 @@ Fill the bracketed fields.
 > [Name], [title]
 > [Brokerage legal name], NMLS #[entity NMLS]
 
+### 12b. Lender-specific additions to the email
+
+Add the matching line to each lender's copy of the email above.
+
+- **UWM:** Does the current broker agreement or All-In addendum limit how we
+  show UWM pricing next to other lenders? Can UWM Portal API keys return
+  pricing? Can Brand Builder pricing scenarios appear on our site? Is UWM
+  priced in Loansifter, Lender Price or LendingPad?
+- **The Loan Store:** Which engine powers your TPO Connect pricer? Are you
+  still live in Lender Price? Is there a rate sheet email list?
+- **PRMG:** Your rate sheet sign-up says the sheet is "not for distribution to
+  consumers." Would computing an anonymized, dated example or live price from
+  it, shown with APR, fall under that restriction? Does it also apply to
+  pricing pulled through ARIVE or LEO? What triggers a price alert?
+- **Pennymac:** Is the Lender Price listing still live under Pennymac TPO? Do
+  brokers on POWER+ get the "Ratesheet View Only" email role? Please send the
+  TPO broker agreement and lock policy.
+- **Freedom:** What does the Calyx Point integration cover? May ARIVE
+  "prospect pricing" be shown publicly? Is there a rate sheet subscription?
+- **REMN:** Are you still integrated with ARIVE, Loansifter and Lender Price
+  today? Is "Platinum" pricing tiered by broker, and may tiered pricing be
+  displayed? Do Homebridge group policies govern REMN's advertising terms?
+- **Provident:** Are the clp.provident.com and pfloans.provident.com rate
+  pages meant to be public, and may a broker read them automatically? How does
+  the uniform-compensation rule apply to a site showing example pricing? Is
+  the Lender Price listing active, and is there an ARIVE integration? Please
+  confirm WA, AZ and TX licensing.
+- **RISE TPO:** Is RISE replacing LoanStream's wholesale channel, and does the
+  LoanStream broker agreement carry over? Does /rates/ need a login? Do you
+  publish REPRICE files the way LoanStream does?
+- **HomeXpress:** Are the public rate sheet PDFs current? Is there a 2026 email
+  list? Did anything change after the Chimera acquisition? Please send the
+  current broker agreement and the full trademark clause.
+- **Newrez:** Is the posted Broker Agreement PDF current, and what is its
+  revision date? Does a name-use or confidentiality clause like the
+  correspondent guide's apply to brokers? Is there a rate sheet email list?
+- **Kind:** Does the LendingPad integration return pricing or registration
+  only? Are rate sheets distributed outside Kwikie, and in what format?
+- **Plaza:** Is Plaza_SLC_Rates.pdf meant to be public, and how often is it
+  overwritten? Does an anonymized example or live price on our site count as a
+  "bona fide request for price quotes" under WH-AG-001 rev. 15, or does it need
+  written consent? Can Private Label materials name Plaza?
+
+
 ---
 
 ## 13. Decision inputs for choosing the provider path
@@ -537,10 +726,10 @@ These are inputs, not a decision.
 
 | Path | Strengths | Blockers to clear first |
 | --- | --- | --- |
-| **ARIVE as source** | Already the brokers' PPE; UWM, Rocket, Pennymac integrated | No pricing API; scraping and framing banned; "technology provider" clause; needs written authorization (§10 Q1–4) |
-| **Loansifter API** | Broker-focused, 120+ investors, display "in any format," consumer widget precedent | Investor list U; confidentiality clause; search-data resale vs LoanM8's data promise; written OK for consumer AI display (§11) |
-| **Lender Price API** | Public docs; ineligible results with reasons built in; free Marketplace; broker rate sheets supported | Lender coverage U; licence display terms U; API access for free tier U (§11) |
-| **Native rate sheets (Patch C)** | Full control; no vendor terms | Big three appear portal-only; needs written distribution and display consent per lender (§12); heaviest engineering |
+| **ARIVE as source** | Already the brokers' PPE; carries 11 of the owner's 12 lenders | No pricing API; scraping and framing banned; "technology provider" clause; needs written authorization (§10 Q1–4) |
+| **Loansifter API** | Broker-focused, 120+ investors, display "in any format," consumer widget precedent | Only REMN of the 12 has evidence; investor list U; confidentiality clause; search-data resale vs LoanM8's data promise; written OK for consumer AI display (§11) |
+| **Lender Price API** | Public docs; ineligible results with reasons built in; free Marketplace; broker rate sheets supported | At most 6 of the 12 with evidence, none confirmed current; licence display terms U; API access for free tier U (§11) |
+| **Native rate sheets (Patch C)** | Full control; no vendor terms | Only PRMG, Plaza, REMN reach an inbox, and two of them bar consumer distribution; needs written consent per lender (§12); heaviest engineering |
 | **Mock only (A0)** | Ships now, no third-party terms | Counsel sign-off should cover Reg Z 1026.24(b) for example rates |
 
 A path that works with the evidence so far: ship A0 on the mock
@@ -560,6 +749,11 @@ browser before anyone relies on them:
 - [ ] Loansifter Licensing & Use Agreement (confidentiality, data licence)
 - [ ] Optimal Blue Broker Search Data License announcement (2025-10-16)
 - [ ] Lender Price pricing-options guide (`showDisqualify`, `showDisqualifyRules`)
-- [ ] Plaza Master Wholesale Broker Agreement WH-AG-001 rev. 15
+- [ ] Plaza Master Wholesale Broker Agreement WH-AG-001 rev. 15, Wholesale Broker Guide, Plaza_SLC_Rates.pdf
+- [ ] PRMG rate sheet sign-up page (consumer-distribution wording)
+- [ ] Provident Loan Origination Agreement Rev 1-07-19 and Rate Lock Policy
+- [ ] HomeXpress Broker Package (confidentiality and trademark clauses)
+- [ ] Newrez Broker Agreement (full text, revision date)
+- [ ] REMN page stating pricing "via Loansifter & Lender Price" (date)
 - [ ] eCFR 1026.24, 1026.36, 1014.3, 1014.5
 - [ ] WAC 208-660-440; A.R.S. § 6-909 on azleg.gov; 10 CCR § 2848; 7 TAC § 56.203
