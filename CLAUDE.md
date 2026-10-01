@@ -87,7 +87,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v12 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v13 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -98,10 +98,12 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   45 vitest tests, production build). For layout changes also run the
+   `check:identity`, 70 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
+   `npm run check:identity` fails the build on MLO names, NMLS numbers or
+   NMLS-labelled digit runs anywhere outside `lib/config.ts`.
 6. **Copy lives in `lib/copy.ts`** (UI strings) and `lib/content/*`
    (long-form). Do not invent statistics, timing promises, or
    testimonials.
@@ -277,6 +279,44 @@ Does **not** exist yet (candidates for a future patch):
   by the browser in hidden tabs but not paused.
 - No frame-rate or device-class guard.
 
+## 4b. Pricing (v13, Patch A — manual path)
+
+**Owner decision 2026-10-01:** pricing comes from a **manual pull**. A
+licensed person prices fixed scenarios in the sponsoring brokerage's
+pricing engine (ARIVE) each day and enters the results in `/mlo/pricing`
+with the source screenshot. Pricing APIs and the rate sheet engine
+(Patch C) are paused. Research: `docs/work/pricing-integration-findings.md`.
+
+- **Pipeline:** provider gathers inputs → `buildPricingRun()`
+  (`lib/pricing/build.ts`) computes APR (`apr.ts`, actuarial), payments,
+  totals, re-letters lenders (`anonymize.ts`), selects the three
+  safe-harbor options (`antiSteering.ts`), and hashes the canonical
+  inputs (`canonical.ts`). Same inputs → byte-identical run.
+- **Providers:** `providers/mock.ts` (fixtures in
+  `fixtures/pricing/examples.v1.json`: Bellevue refi, WA first-time
+  purchase, AZ purchase) and `providers/manual.ts` (latest fresh snapshot
+  from the store). `arive`, `optimal_blue`, `ratesheet` are reserved IDs.
+- **Display:** `lib/pricing/display.ts` picks a fresh manual snapshot when
+  `PRICING_MANUAL` is on, else the example. Rendered by
+  `components/pricing/PricingDisplay.tsx` on `/rates` (noindex).
+- **Tenants:** one per **sponsoring brokerage**, derived from the per-state
+  sponsors in `lib/config.ts` (`lib/pricing/tenants.ts`). MLOs are seats.
+  A brokerage's snapshots only price its own states.
+- **Lenders:** the owner's 12 in `lib/pricing/lenders.ts` (server-only).
+  PRMG, Plaza and HomeXpress cannot be published until `displayConsent`.
+- **Playbook:** per-lender fields and a screened note
+  (`lib/pricing/playbook.ts`); rendered after the cards, anonymized; never
+  an input to selection.
+- **Store:** `lib/pricing/store.ts` — write-once file store (local dev,
+  `.data/pricing/`, gitignored) behind an interface; read-only on Vercel
+  until a hosted private store is chosen. Audit log `audit.jsonl`.
+- **Admin:** `/mlo/setup`, `/mlo/pricing`; HTTP Basic auth in
+  `middleware.ts` (`MLO_ADMIN_USER` / `MLO_ADMIN_PASSWORD`, 404 when unset)
+  plus `lib/mlo/auth.ts` inside every server action.
+- **M8:** may cite example figures only as dated examples; the summary is
+  appended server-side in `app/api/m8-chat/route.ts`, never in `lib/m8.ts`
+  (a client component imports that file).
+
 ## 5. Key file paths
 
 | Area | Files |
@@ -292,11 +332,13 @@ Does **not** exist yet (candidates for a future patch):
 | Agent surface | `app/api/agent/*`, `lib/agent-api.ts`, `app/ai/*`, `app/llms.txt/*`, `AGENTS.md` |
 | Compliance docs | `COMPLIANCE.md`, `ATTORNEY_REVIEW_LIST.md`, `PLACEHOLDERS.md`, `docs/BUILD_CONTRACT.md`, `docs/SITE_BRIEF.md`, `docs/TYPOGRAPHY_GUIDE.md` |
 | Verification | `scripts/check-copy.mjs`, `scripts/qa/*.mjs`, `lib/*.test.ts`, `lib/second-look/*.test.ts` |
+| Pricing | `lib/pricing/*` (types, apr, build, antiSteering, anonymize, canonical, display, lenders, tenants, playbook, store, publish, summary, providers/mock, providers/manual), `fixtures/pricing/examples.v1.json`, `components/pricing/*`, `app/rates/page.tsx` |
+| MLO admin | `app/mlo/*` (setup, pricing, actions, MloChrome, mlo.css), `lib/mlo/auth.ts`, `lib/mlo/flash.ts`, `lib/content/mlo.ts` |
 | Patch log | `LoanM8_Project_Handoff_README.md` |
 
 ## 6. Dependencies
 
-No dependency was added in v12. Runtime (`package.json`):
+No dependency was added in v12 or v13. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,
@@ -309,7 +351,7 @@ QA scripts and is not a project dependency.
 
 ```bash
 npm run dev                     # local dev
-npm run verify                  # lint + check:copy + vitest + build
+npm run verify                  # lint + check:copy + check:identity + vitest + build + check:bundle
 npm run build && NEXT_PUBLIC_STEALTH_MODE=false PORT=3100 npm start
 node scripts/qa/overflow.mjs    # horizontal-overflow + h1 + console audit, 390px and 1280px
 node scripts/qa/fonts.mjs       # fallback fonts, synthesized bold/italic, sub-10px text

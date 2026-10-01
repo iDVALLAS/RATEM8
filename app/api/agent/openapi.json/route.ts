@@ -231,7 +231,7 @@ function buildSpec(): Schema {
       description: [
         `Public, read-only, no authentication. Rate limit: ${RATE_LIMIT.capacity} requests per ${RATE_LIMIT.windowMs / 60_000} minutes per client IP (429 with Retry-After).`,
         `Send an X-Agent-Origin header naming your assistant or product; it is the only request header we log, truncated to 64 characters. Request bodies are never logged.`,
-        `This API never returns a rate, price, or quote. Calculators use only the rate the caller sends. ${CONFIG.brandName} does not display rates while live pricing is disabled.`,
+        `This API never returns a rate, price, or quote. Calculators use only the rate the caller sends. While live pricing is disabled, ${CONFIG.brandName} shows only dated, anonymized example pricing on its website, labelled as examples and never as a quote.`,
         HUMAN_CONSENT_MESSAGE,
         `Disclaimer on every response: ${AGENT_DISCLAIMER}`,
         `Human-readable companion: ${absoluteUrl("/ai")} (Markdown: ${absoluteUrl("/ai.md")}).`,

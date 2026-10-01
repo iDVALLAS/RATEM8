@@ -9,7 +9,9 @@
     "lint": "next lint",
     "test": "vitest run",
     "check:copy": "node scripts/check-copy.mjs",
-    "verify": "npm run lint && npm run check:copy && npm test && npm run build"
+    "verify": "npm run lint && npm run check:copy && npm run check:identity && npm test && npm run build && npm run check:bundle",
+    "check:identity": "node scripts/check-identity.mjs",
+    "check:bundle": "node scripts/check-client-bundle.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

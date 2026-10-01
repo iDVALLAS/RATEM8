@@ -87,3 +87,17 @@ soon" rather than a dead link (`components/BookingCTA.tsx`).
 ```bash
 grep -rnoE "\[[A-Z][A-Za-z0-9 #/—:.,'()+-]{3,}\]" lib app components --include=*.ts --include=*.tsx | grep -v "\[slug\]\|\[tool\]\|\[DONE\]"
 ```
+
+## Pricing (v13, Patch A)
+
+| Item | Where | Current | Needed |
+| --- | --- | --- | --- |
+| `MLO_ADMIN_USER`, `MLO_ADMIN_PASSWORD` | Vercel env (server only) | unset → `/mlo` returns 404 | Set to enable the admin. Basic auth; replace with real accounts later |
+| `PRICING_MANUAL` | Vercel env | unset (off) | `true` once snapshots should replace examples on `/rates` |
+| `PRICING_DEMO_EXAMPLES` | Vercel env | unset (on) | `false` to hide example pricing |
+| `PRICING_MANUAL_STALE_HOURS` | Vercel env | unset (24) | Hours before a snapshot stops showing |
+| Hosted snapshot store | `lib/pricing/store.ts` | file store; read-only on Vercel | Choose a private hosted store (e.g. Postgres) before using `/mlo` in production; `PRICING_STORE_DIR` works on a server with a persistent disk |
+| `CONFIG.pricing.examplesAsOf` | `lib/config.ts` | `2026-10-01` | Update when fixtures change |
+| Lender `displayConsent` | `lib/pricing/lenders.ts` | all `false` | Set `true` per lender when written consent is on file (PRMG, Plaza, HomeXpress block publishing until then) |
+| Admin identity verification | `/mlo/setup` | "Not verified by an administrator" | Needs real accounts and the v21 attestation spec |
+

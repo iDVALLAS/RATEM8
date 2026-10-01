@@ -99,6 +99,100 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v13 (Patch A) — Example pricing, manual pricing snapshots, MLO admin (2026-10-01)
+
+**One line:** example pricing ships on `/rates` in the anti-steering
+three-card layout; a licensed person can publish dated, anonymized manual
+snapshots (pulled from ARIVE) through an auth-gated `/mlo` admin; numbers
+come only from code; hardcoded-identity and browser-bundle checks join
+`npm run verify`.
+
+**Numbering:** next free number in this log. If your roadmap reserves v13
+for the shop receipt spec, renumber this entry.
+
+### Decisions (owner, 2026-10-01)
+- **Provider path: manual pull.** APIs and the rate sheet engine (Patch C)
+  paused. See `docs/work/pricing-integration-findings.md` §0b.
+- **Sponsorship is data** that changes often (Patch B design; not built yet).
+- **Example pricing ships on** (owner reports counsel approval).
+
+### Files
+- New: `lib/pricing/` (types, apr, canonical, anonymize, antiSteering, build,
+  lenders, tenants, playbook, store, publish, display, summary,
+  providers/mock, providers/manual, pricing.test.ts, copy.test.ts),
+  `fixtures/pricing/examples.v1.json`, `components/pricing/PricingDisplay.tsx`
+  and `pricing.css`, `app/rates/page.tsx`, `app/mlo/` (page, setup, pricing,
+  actions, MloChrome, mlo.css), `lib/mlo/auth.ts`, `lib/mlo/flash.ts`,
+  `lib/content/mlo.ts`, `scripts/check-identity.mjs`,
+  `scripts/check-client-bundle.mjs`.
+- Changed: `lib/config.ts` (`CONFIG.pricing` flags), `lib/copy.ts`
+  (`copy.pricing`), `middleware.ts` (`/mlo` Basic auth before the stealth
+  gate), `next.config.ts` (6 MB server-action body for source uploads),
+  `lib/site.ts` + `app/sitemap.ts` (`/rates`, noindex, out of sitemap),
+  `lib/prompts/m8-system.ts` (rule 1 allows dated examples only),
+  `app/api/m8-chat/route.ts` (appends the computed example summary),
+  site-wide "LoanM8 displays no rates" claims rescoped (calculators,
+  llms.txt, /ai, OpenAPI description, state pages), `package.json`
+  (`check:identity`, `check:bundle`, `verify`), `.gitignore` (`/.data/`),
+  `scripts/qa/overflow.mjs` (+`/rates`), `COMPLIANCE.md` rule 1,
+  `ATTORNEY_REVIEW_LIST.md`, `PLACEHOLDERS.md`, `AGENTS.md`, `CLAUDE.md` §4b.
+
+### Done-when checks (brief A3)
+| Check | Result |
+| --- | --- |
+| Mock provider produces a full PricingRun that regenerates byte-identically from stored data | **Pass** (`pricing.test.ts`, all three scenarios; manual snapshots too) |
+| Changing a playbook note cannot change any ranking | **Pass** (test publishes a snapshot, rewrites every note, compares the run byte-for-byte and the selection) |
+| Credentials never in client bundles, logs, or Ledger rows | **Pass for what exists:** the manual path stores no engine credentials; admin credentials are server-side env only; `check:bundle` scans every browser file for admin variable names, lender names and server-only fields; the audit log records actor, action and hashes only |
+| Wizard works for a second tenant with no code changes | **Pass at the data and admin level:** tenants come from config sponsors; the AZ brokerage (Home Financial) publishes with no code change, and cross-brokerage publishing is refused (test + browser) |
+
+### QA
+| Item | Result |
+| --- | --- |
+| `tsc --noEmit` | pass |
+| ESLint | pass |
+| `check:copy` (208 files) | pass |
+| `check:identity` (192 files; planted name caught) | pass |
+| vitest: 5 files, 70 tests (25 new) | pass |
+| `next build` | pass |
+| `check:bundle` (86 browser files) | pass |
+| Overflow audit, 390px and 1280px, all routes incl. `/rates` and `/mlo/*` | pass |
+| Font audit | pass (0 findings) |
+| `/mlo/*` without credentials / wrong password / unset env | 401 / 401 / 404 |
+| Browser end to end: save lenders → screened note rejected → valid note saved → snapshot published with screenshot → `/rates` shows "Rate snapshot · pulled …" with the note under its letter and no real lender name in the HTML | pass |
+| Pricing copy never says "live" | pass (test) |
+
+### Not built (blocked, not skipped)
+- **Wizard step 2 (engine credentials)** — not needed on the manual path.
+- **Wizard step 6 (attest with v21 signing)** and admin-only `verified_at`
+  — need the v21 spec and real accounts; neither exists in the repo.
+- **v11a schema and Ledger** — specs not in the repo. A write-once file
+  store with an audit log stands in behind `SnapshotStore`. It is
+  **read-only on Vercel**, so production `/mlo` cannot save until a private
+  hosted store is chosen.
+- **Mobile "LIVE RATE PREVIEW" swipe card** — does not exist in the code;
+  the `/rates` eyebrow already reads "// example rate preview".
+- **Patches B and C** — not started (STOP).
+
+### Known rough edges
+- The admin uses one shared Basic-auth login; there are no per-person
+  accounts, so the audit log's actor is that username.
+- Screening is a word list. It errs toward rejecting (e.g. "senior
+  underwriter" trips the age rule); the MLO rephrases.
+- APR excludes prepaid interest, escrow, mortgage insurance and third-party
+  charges (stated on every page). Fine for the 20%-down examples; a
+  low-down-payment scenario would need mortgage insurance in the APR.
+- `/rates` is not yet linked from the nav or homepage (deliberate until
+  the owner reviews it).
+
+### Next up
+- Owner: review `/rates` on the preview; send the ARIVE email (findings
+  §10 Q2–4) and the consent emails to PRMG, Plaza and HomeXpress (§12).
+- Choose a private hosted store, then set `PRICING_MANUAL=true` and the
+  admin env vars in Vercel.
+- Patch B (state routing, sponsorship-as-data) after approval.
+
+---
+
 ## v12 — Sans headline system, orb actions, "human authentication" line, stage backdrop fix (2026-09-29 → 30)
 
 **One line:** the site-wide sans (Geist) headline treatment with gradient

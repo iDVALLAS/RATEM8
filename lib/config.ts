@@ -192,6 +192,26 @@ export const CONFIG = {
   },
 
   /**
+   * Pricing display (Patch A, manual path). Server-side env vars only.
+   * - demoExamples: counsel-approved example pricing; ON unless set "false".
+   * - manual: show the latest manual snapshot (pulled by a licensed person
+   *   in the sponsoring brokerage's pricing engine) when one is fresh.
+   * - live / ratesheet / mloRouting: OFF. No surface may say "live" while
+   *   `live` is false.
+   */
+  pricing: {
+    demoExamples: env("PRICING_DEMO_EXAMPLES") !== "false",
+    manual: env("PRICING_MANUAL") === "true",
+    live: env("PRICING_LIVE") === "true",
+    ratesheet: env("PRICING_RATESHEET") === "true",
+    mloRouting: env("MLO_ROUTING") === "true",
+    /** The date printed on example pricing. Update with the fixtures. */
+    examplesAsOf: "2026-10-01",
+    /** A manual snapshot older than this many hours is never shown. */
+    manualStaleHours: Number(env("PRICING_MANUAL_STALE_HOURS") ?? 24),
+  },
+
+  /**
    * MLO recruiting scope. LoanM8 vets licensed originators in every state
    * (ahead of expansion), one originator per service area. Borrower work
    * happens only where LoanM8 is licensed (`states` above).

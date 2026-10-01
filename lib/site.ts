@@ -19,6 +19,8 @@ export type SiteRoute = {
   llms?: boolean;
   /** Markdown mirror route, if any. */
   markdown?: string;
+  /** Page is noindex; keep it out of the sitemap. */
+  noindex?: boolean;
 };
 
 export const ROUTES: SiteRoute[] = [
@@ -26,11 +28,12 @@ export const ROUTES: SiteRoute[] = [
   { path: "/second-look", title: "Second Look", description: "Drop a Loan Estimate you already have. M8 explains every line in plain English. Sample demo live; real upload feature-flagged.", changeFrequency: "monthly", priority: 0.9, llms: true },
   { path: "/join", title: "For licensed MLOs", description: "Recruiting page for licensed Mortgage Loan Originators in WA, AZ, CA, and TX. No earnings claims; details on the intro call.", changeFrequency: "monthly", priority: 0.7, llms: true },
   { path: "/agents", title: "For real estate agents", description: "How LoanM8 works with agents. No money, gifts, or marketing dollars flow between LoanM8 and agents.", changeFrequency: "monthly", priority: 0.8, llms: true },
-  { path: "/calculators", title: "Calculators", description: "Four deterministic mortgage calculators. User-entered rates only; LoanM8 displays no rates.", changeFrequency: "monthly", priority: 0.9, llms: true, markdown: "/calculators/methodology.md" },
+  { path: "/calculators", title: "Calculators", description: "Four deterministic mortgage calculators. User-entered rates only; the calculators supply none.", changeFrequency: "monthly", priority: 0.9, llms: true, markdown: "/calculators/methodology.md" },
   { path: "/calculators/points-breakeven", title: "Points break-even calculator", description: "Monthly savings and break-even month from paying discount points.", changeFrequency: "monthly", priority: 0.8, llms: true },
   { path: "/calculators/refinance-breakeven", title: "Refinance break-even calculator", description: "Months until refinance closing costs earn back, plus total interest delta.", changeFrequency: "monthly", priority: 0.8, llms: true },
   { path: "/calculators/rent-vs-buy", title: "Rent vs. buy calculator", description: "Net cost of renting vs. owning over your horizon with a visible assumptions panel.", changeFrequency: "monthly", priority: 0.8, llms: true },
   { path: "/calculators/affordability", title: "Affordability calculator", description: "Indicative payment and price range from income, debts, down payment, and your entered rate.", changeFrequency: "monthly", priority: 0.8, llms: true },
+  { path: "/rates", title: "Example rates", description: "How M8 shows pricing: three options first (lowest rate, lowest rate without risky features, lowest points and fees), then every result. Dated examples, never a quote.", changeFrequency: "daily", priority: 0.6, noindex: true },
   { path: "/principles", title: "The eight principles", description: "The eight rules every LoanM8 loan is closed against, verbatim and versioned.", changeFrequency: "yearly", priority: 0.8, llms: true, markdown: "/principles.md" },
   { path: "/loan-estimate", title: "Loan Estimate guide", description: "An annotated, plain-English guide to every section of the standard Loan Estimate form (fictional numbers).", changeFrequency: "monthly", priority: 0.8, llms: true },
   { path: "/sample-brief", title: "Sample Rate Strategy Brief", description: "What the written brief a borrower keeps looks like. Clearly labeled sample with fictional figures.", changeFrequency: "monthly", priority: 0.7, llms: true },

@@ -39,7 +39,7 @@ export const statePageContent = {
   disclosureNote: "This block is a placeholder. Counsel replaces it with the disclosure language this state requires, if any, before launch.",
   contextEyebrow: "// local context",
   contextHeading: "What is different here",
-  calculatorsSub: "Deterministic math, nothing collected. You enter the rate; the site never displays one.",
+  calculatorsSub: "Deterministic math, nothing collected. You enter the rate; the calculators never supply one.",
   ctaEyebrow: "// next step",
   ctaHeading: "Talk it through with a person.",
   ctaSub: "A short call with a licensed loan officer. Bring a Loan Estimate if you already have one.",

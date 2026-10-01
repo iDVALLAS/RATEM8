@@ -1,0 +1,512 @@
+{
+  "schema": "loanm8.pricing.examples",
+  "version": 1,
+  "asOf": "2026-10-01",
+  "pricedAt": "2026-10-01T15:00:00.000Z",
+  "scenarios": [
+    {
+      "scenario": {
+        "id": "bellevue-refi",
+        "title": "Bellevue refinance",
+        "state": "WA",
+        "location": "Bellevue, WA (King County)",
+        "purpose": "rate_term_refi",
+        "occupancy": "primary",
+        "propertyType": "single_family",
+        "propertyValue": 1050000,
+        "loanAmount": 600000,
+        "ficoBand": "760–779",
+        "product": "30yr_fixed",
+        "termMonths": 360,
+        "assumptions": [
+          "Rate-and-term refinance in Bellevue, WA (King County).",
+          "Loan amount $600,000 on a $1,050,000 home (57.1% loan-to-value).",
+          "Credit score band 760–779.",
+          "30-year fixed, conforming.",
+          "Primary residence, single-family home.",
+          "Fixed rate for the full term.",
+          "APR includes discount points, origination and lender fees; it excludes prepaid interest, escrow, mortgage insurance and third-party fees."
+        ],
+        "persona": "Sarah (fictional)"
+      },
+      "quotes": [
+        {
+          "lenderKey": "ex-01",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.125,
+          "pointsPct": 0.75,
+          "originationFee": 0,
+          "lenderFees": 1295,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "ex-02",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.25,
+          "pointsPct": 0.125,
+          "originationFee": 0,
+          "lenderFees": 1195,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "ex-03",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.375,
+          "pointsPct": -0.375,
+          "originationFee": 0,
+          "lenderFees": 1395,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "ex-04",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.25,
+          "pointsPct": 0.0,
+          "originationFee": 1500,
+          "lenderFees": 995,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "ex-05",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.0,
+          "pointsPct": 1.25,
+          "originationFee": 0,
+          "lenderFees": 1295,
+          "lockDays": 45,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "ex-06",
+          "productLabel": "30-year fixed, interest-only first 10 years (non-QM)",
+          "eligible": true,
+          "noteRate": 5.875,
+          "pointsPct": 0.5,
+          "originationFee": 0,
+          "lenderFees": 1595,
+          "lockDays": 30,
+          "interestOnlyMonths": 120,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": true,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "ex-07",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.5,
+          "pointsPct": -0.875,
+          "originationFee": 0,
+          "lenderFees": 1295,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "ex-08",
+          "productLabel": "30-year fixed",
+          "eligible": false,
+          "ineligibleReason": "This price tier requires a credit score of 780 or higher.",
+          "noteRate": null,
+          "pointsPct": 0,
+          "originationFee": 0,
+          "lenderFees": 0,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "id": "wa-first-purchase",
+        "title": "First-time purchase",
+        "state": "WA",
+        "location": "Tacoma, WA (Pierce County)",
+        "purpose": "purchase",
+        "occupancy": "primary",
+        "propertyType": "single_family",
+        "propertyValue": 550000,
+        "loanAmount": 440000,
+        "ficoBand": "740–759",
+        "product": "30yr_fixed",
+        "termMonths": 360,
+        "assumptions": [
+          "Purchase in Tacoma, WA (Pierce County).",
+          "Loan amount $440,000 on a $550,000 home (80.0% loan-to-value).",
+          "Credit score band 740–759.",
+          "30-year fixed, conforming.",
+          "Primary residence, single-family home.",
+          "Fixed rate for the full term.",
+          "APR includes discount points, origination and lender fees; it excludes prepaid interest, escrow, mortgage insurance and third-party fees."
+        ]
+      },
+      "quotes": [
+        {
+          "lenderKey": "tp-01",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.375,
+          "pointsPct": 0.5,
+          "originationFee": 0,
+          "lenderFees": 1295,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "tp-02",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.5,
+          "pointsPct": 0.0,
+          "originationFee": 1100,
+          "lenderFees": 995,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "tp-03",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.625,
+          "pointsPct": -0.5,
+          "originationFee": 0,
+          "lenderFees": 1395,
+          "lockDays": 45,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "tp-04",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.25,
+          "pointsPct": 1.125,
+          "originationFee": 0,
+          "lenderFees": 1195,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "tp-05",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.5,
+          "pointsPct": 0.125,
+          "originationFee": 0,
+          "lenderFees": 1295,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "tp-06",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.75,
+          "pointsPct": -1.0,
+          "originationFee": 0,
+          "lenderFees": 1295,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "tp-07",
+          "productLabel": "30-year fixed",
+          "eligible": false,
+          "ineligibleReason": "This lender's first-time buyer tier allows at most 75% loan-to-value; this scenario is 80%.",
+          "noteRate": null,
+          "pointsPct": 0,
+          "originationFee": 0,
+          "lenderFees": 0,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "tp-08",
+          "productLabel": "30-year fixed",
+          "eligible": false,
+          "ineligibleReason": "Property is outside this lender's approved Washington counties in this example.",
+          "noteRate": null,
+          "pointsPct": 0,
+          "originationFee": 0,
+          "lenderFees": 0,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "id": "az-purchase",
+        "title": "Purchase",
+        "state": "AZ",
+        "location": "Phoenix, AZ (Maricopa County)",
+        "purpose": "purchase",
+        "occupancy": "primary",
+        "propertyType": "single_family",
+        "propertyValue": 480000,
+        "loanAmount": 384000,
+        "ficoBand": "720–739",
+        "product": "30yr_fixed",
+        "termMonths": 360,
+        "assumptions": [
+          "Purchase in Phoenix, AZ (Maricopa County).",
+          "Loan amount $384,000 on a $480,000 home (80.0% loan-to-value).",
+          "Credit score band 720–739.",
+          "30-year fixed, conforming.",
+          "Primary residence, single-family home.",
+          "Fixed rate for the full term.",
+          "APR includes discount points, origination and lender fees; it excludes prepaid interest, escrow, mortgage insurance and third-party fees."
+        ]
+      },
+      "quotes": [
+        {
+          "lenderKey": "az-01",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.5,
+          "pointsPct": 0.375,
+          "originationFee": 0,
+          "lenderFees": 1195,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "az-02",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.625,
+          "pointsPct": 0.0,
+          "originationFee": 0,
+          "lenderFees": 1295,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "az-03",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.375,
+          "pointsPct": 0.875,
+          "originationFee": 0,
+          "lenderFees": 1395,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "az-04",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.75,
+          "pointsPct": -0.625,
+          "originationFee": 0,
+          "lenderFees": 1095,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "az-05",
+          "productLabel": "30-year fixed",
+          "eligible": true,
+          "noteRate": 6.625,
+          "pointsPct": 0.0,
+          "originationFee": 950,
+          "lenderFees": 895,
+          "lockDays": 45,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        },
+        {
+          "lenderKey": "az-06",
+          "productLabel": "30-year fixed",
+          "eligible": false,
+          "ineligibleReason": "This product requires a credit score of 740 or higher.",
+          "noteRate": null,
+          "pointsPct": 0,
+          "originationFee": 0,
+          "lenderFees": 0,
+          "lockDays": 30,
+          "interestOnlyMonths": 0,
+          "features": {
+            "negativeAmortization": false,
+            "prepaymentPenalty": false,
+            "interestOnly": false,
+            "balloonFirst7Years": false,
+            "demandFeature": false,
+            "sharedEquityOrAppreciation": false
+          }
+        }
+      ]
+    }
+  ]
+}

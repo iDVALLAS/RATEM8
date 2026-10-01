@@ -49,7 +49,7 @@ export default function PointsBreakevenCalc() {
           max={15}
           step={0.125}
           suffix="%"
-          hint="From your quote or Loan Estimate. LoanM8 does not display rates."
+          hint="From your quote or Loan Estimate. This calculator never supplies a rate."
         />
         <Slider label="Rate with points — enter your own" value={rateWith} onChange={setRateWith} min={0} max={15} step={0.125} suffix="%" />
         <Slider

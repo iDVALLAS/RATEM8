@@ -525,6 +525,57 @@ export const copy = {
    * them rewritten.
    */
 
+  /**
+   * Pricing display (Patch A). Never the word "live" while
+   * CONFIG.pricing.live is false (lib/pricing/copy.test.ts enforces it).
+   * {date} and {n} are filled in by the component.
+   */
+  pricing: {
+    eyebrowExample: "// example rate preview",
+    eyebrowSnapshot: "// rate snapshot",
+    labelExample: "Example pricing · {date} · not a quote or commitment to lend.",
+    labelSnapshot: "Rate snapshot · pulled {date} · not a quote or commitment to lend.",
+    heading: "Three options first. Then every result.",
+    headingAccent: "every result.",
+    sub: "When M8 shows pricing, it leads with the three options federal anti-steering rules describe: the lowest rate, the lowest rate without risky features, and the lowest points and origination fees. Then every other result, including lenders that said no and why.",
+    scenarioNav: "Scenarios",
+    personaPrefix: "Scenario for",
+    cards: {
+      lowestRate: "Lowest rate",
+      lowestNoRisk: "Lowest rate without risky features",
+      lowestCost: "Lowest points and origination fees",
+    },
+    riskyBadge: "Includes a risky feature",
+    fields: {
+      apr: "APR",
+      points: "Points",
+      credit: "Lender credit",
+      noPoints: "No points",
+      origination: "Origination fee",
+      lenderFees: "Lender fees",
+      lock: "Lock",
+      payment: "Principal and interest",
+      afterIO: "After the interest-only period",
+      perMonth: "/mo",
+      days: "days",
+    },
+    whyHeading: "Why this one",
+    fullField: "Every result",
+    eligibleHeading: "Eligible",
+    ineligibleHeading: "Not eligible",
+    notesHeading: "Your loan officer's notes",
+    notesSub: "These come after the three options and never change which lenders appear or in what order.",
+    assumptionsHeading: "What these numbers assume",
+    anonymized: "Lenders are shown by letter, and the letters change with every snapshot.",
+    creditorCount: "{n} eligible lenders compared.",
+    fewerThanThree: "Fewer than three lenders were eligible for this scenario, so this is not a full three-lender comparison.",
+    unavailable: "Pricing isn't available for this scenario right now.",
+    lockNote: "Lock periods are as shown for each lender. Payments are principal and interest only.",
+    exampleSource: "Fictional lenders and figures for illustration. Not an offer, a quote, or a commitment to lend.",
+    snapshotSource: "Prices as shown in the sponsoring brokerage's pricing engine when they were pulled, entered by a licensed loan officer, with lenders shown by letter. Prices change during the day. Not an offer, a quote, or a commitment to lend.",
+    cta: "Talk to a licensed loan officer",
+  },
+
   notFound: {
     eyebrow: "// 404",
     heading: "That page isn't here.",

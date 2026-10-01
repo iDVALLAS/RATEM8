@@ -98,7 +98,7 @@ const qa: AiQa[] = [
       ...(CONFIG.liveRatesEnabled
         ? []
         : [
-            `No rate quotes online. ${CONFIG.brandName} does not display rates anywhere on this site, and the agent API returns no rates or pricing. Calculators use only the rate the borrower enters. M8 never quotes a rate from memory.`,
+            `No rate quotes online. ${CONFIG.brandName} shows only dated, anonymized example pricing, labelled as examples and never as a quote or commitment to lend, and the agent API returns no rates or pricing. Calculators use only the rate the borrower enters. M8 never quotes a rate from memory.`,
           ]),
       `No credit pulls online. ${NOT_A_CREDIT_PULL} Nothing on this site, in chat, or in the API pulls credit. A soft pull happens only when a borrower asks a licensed loan officer for one; a hard pull only when the borrower decides to apply.`,
       `No approvals. M8 does not approve, deny, pre-approve, or commit. ${NOT_A_COMMITMENT}`,

@@ -10,7 +10,7 @@ import "@/components/calc/calc.css";
 
 export const metadata: Metadata = {
   title: "Calculators",
-  description: "Four deterministic mortgage calculators: points break-even, refinance break-even, rent vs. buy, and affordability. You enter the rate. LoanM8 displays none.",
+  description: "Four deterministic mortgage calculators: points break-even, refinance break-even, rent vs. buy, and affordability. You enter the rate. The calculators never supply one.",
   alternates: { canonical: "/calculators" },
 };
 

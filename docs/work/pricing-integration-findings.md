@@ -52,7 +52,11 @@ TPO and Angel Oak from the first pass are kept in §6b for reference only.
    - The footer disclosure, MLO card and state license line read from the
      same resolved record, so a sponsor change updates every surface at
      once.
-2. **Lenders in use (12):** UWM, The Loan Store, PRMG, Pennymac,
+2. **Provider path chosen: manual pull.** A licensed person pulls pricing
+   daily in ARIVE (sponsoring brokerage account), enters it anonymized with
+   the source screenshot attached. Pricing APIs and the rate sheet engine are
+   paused. Built in v13 (Patch A).
+3. **Lenders in use (12):** UWM, The Loan Store, PRMG, Pennymac,
    Freedom Mortgage, REMN, Provident, Rise, HomeXpress, Newrez, Kind
    Lending, Plaza. §6, §8 and §12 cover these.
 

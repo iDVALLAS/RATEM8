@@ -78,7 +78,7 @@ export function pointsBreakeven(input: PointsBreakevenInput): PointsBreakevenRes
       { key: "amortization", label: "Amortization", value: "Standard fixed-rate, level payment" },
       { key: "savings", label: "Savings basis", value: "Principal & interest only", note: "Taxes, insurance, and MI are unchanged by points and are excluded." },
       { key: "timeValue", label: "Time value of money", value: "Ignored", note: "Break-even is a simple payback, not a discounted one." },
-      { key: "rates", label: "Rates", value: "User-entered", note: "LoanM8 does not display rates." },
+      { key: "rates", label: "Rates", value: "User-entered", note: "The calculators never supply a rate." },
     ],
   };
 }

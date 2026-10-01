@@ -45,7 +45,7 @@ export default function AffordabilityCalc() {
         <Slider label="Annual gross income" value={annualIncome} onChange={setAnnualIncome} min={10_000} max={600_000} step={1_000} prefix="$" hint="Before taxes. All borrowers combined." />
         <Slider label="Monthly debt payments" value={monthlyDebts} onChange={setMonthlyDebts} min={0} max={10_000} step={25} prefix="$" hint="Minimum payments on cards, auto, student loans, support orders." />
         <Slider label="Down payment" value={downPayment} onChange={setDownPayment} min={0} max={500_000} step={1_000} prefix="$" />
-        <Slider label="Your rate — enter your own" value={rate} onChange={setRate} min={0} max={15} step={0.125} suffix="%" hint="From a quote. LoanM8 does not display rates." />
+        <Slider label="Your rate — enter your own" value={rate} onChange={setRate} min={0} max={15} step={0.125} suffix="%" hint="From a quote. This calculator never supplies a rate." />
 
         <p className="principle-label" style={{ marginTop: 8 }}>
           Optional

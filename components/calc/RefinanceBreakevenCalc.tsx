@@ -74,7 +74,7 @@ export default function RefinanceBreakevenCalc() {
           max={15}
           step={0.125}
           suffix="%"
-          hint="From the quote you are considering. LoanM8 does not display rates."
+          hint="From the quote you are considering. This calculator never supplies a rate."
         />
         <Slider label="New term" value={newTermYears} onChange={setNewTermYears} min={5} max={40} step={1} suffix="yrs" />
         <Slider label="Closing costs" value={closingCosts} onChange={setClosingCosts} min={0} max={30_000} step={250} prefix="$" hint="Total from the Loan Estimate, treated as paid in cash." />

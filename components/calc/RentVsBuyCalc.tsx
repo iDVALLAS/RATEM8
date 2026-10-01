@@ -98,7 +98,7 @@ export default function RentVsBuyCalc() {
         <Slider label="Monthly rent" value={monthlyRent} onChange={setMonthlyRent} min={300} max={10_000} step={50} prefix="$" hint="What you pay now, or would pay." />
         <Slider label="Home price" value={homePrice} onChange={setHomePrice} min={50_000} max={2_500_000} step={5_000} prefix="$" />
         <Slider label="Down payment" value={downPaymentPct} onChange={setDownPaymentPct} min={0} max={100} step={1} suffix="%" hint={`${formatDollars(homePrice * (downPaymentPct / 100))} of the price.`} />
-        <Slider label="Your rate — enter your own" value={rate} onChange={setRate} min={0} max={15} step={0.125} suffix="%" hint="From your quote. LoanM8 does not display rates." />
+        <Slider label="Your rate — enter your own" value={rate} onChange={setRate} min={0} max={15} step={0.125} suffix="%" hint="From your quote. This calculator never supplies a rate." />
         <Slider label="Horizon" value={horizonYears} onChange={setHorizonYears} min={1} max={30} step={1} suffix="yrs" hint="How long you expect to stay before selling." />
 
         <div className={`calc-panel ${panelOpen ? "is-open" : ""}`}>

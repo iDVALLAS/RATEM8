@@ -63,7 +63,49 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+/** Length-independent string comparison (edge runtime has no timingSafeEqual). */
+function safeEqual(a: string, b: string): boolean {
+  let diff = a.length ^ b.length;
+  const n = Math.max(a.length, b.length);
+  for (let i = 0; i < n; i++) diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return diff === 0;
+}
+
+/**
+ * /mlo/* is the loan officer admin (lenders, playbook, manual pricing
+ * snapshots). HTTP Basic auth against MLO_ADMIN_USER / MLO_ADMIN_PASSWORD
+ * (server-side env only). Unset credentials → the area does not exist (404).
+ * Checked before the stealth gate, so stealth never exposes it. A stand-in
+ * for real accounts, which do not exist in this repo yet.
+ */
+function adminGate(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+  if (pathname !== "/mlo" && !pathname.startsWith("/mlo/")) return null;
+  const user = process.env.MLO_ADMIN_USER;
+  const pass = process.env.MLO_ADMIN_PASSWORD;
+  if (!user || !pass) return new NextResponse("Not found", { status: 404 });
+  const header = request.headers.get("authorization") ?? "";
+  if (header.startsWith("Basic ")) {
+    try {
+      const decoded = atob(header.slice(6));
+      const i = decoded.indexOf(":");
+      if (i > 0 && safeEqual(decoded.slice(0, i), user) && safeEqual(decoded.slice(i + 1), pass)) {
+        const res = NextResponse.next();
+        res.headers.set("x-robots-tag", "noindex, nofollow");
+        res.headers.set("cache-control", "no-store");
+        return res;
+      }
+    } catch {
+      /* fall through to 401 */
+    }
+  }
+  return new NextResponse("Authentication required", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="LoanM8 MLO admin", charset="UTF-8"' } });
+}
+
 export function middleware(request: NextRequest) {
+  const gated = adminGate(request);
+  if (gated) return gated;
+
   const stealthMode = process.env.NEXT_PUBLIC_STEALTH_MODE !== "false";
 
   // Stealth off → site is fully public. Middleware no-ops.

@@ -69,7 +69,10 @@ so the analytics dimension in `docs/ai-visibility-checklist.md` works.
 
 **No rates, no pricing.** While `CONFIG.liveRatesEnabled` is false the
 API never returns a rate the caller did not send. The calculators are
-pure functions of the caller's inputs.
+pure functions of the caller's inputs. The website's `/rates` page shows
+dated, anonymized example pricing (and, when enabled, dated manual
+snapshots), always labelled as not a quote; none of it is exposed through
+the API, and agents must not present it as a borrower's rate.
 
 ## 3. Guardrails (enforced in code, stated on /ai)
 

@@ -97,3 +97,17 @@ conflict is recorded here.
 - `lib/copy.ts` tagline changed from "Free for all loan mates." to the brief's "Free for the people."; the earlier string is preserved in a comment.
 - `lib/copy.ts` removed legacy sections (`purchase`, `refinance`, `equity`, `rates`, `aboutPage`, `contact`) that implied live rate display or lender counts and were not rendered anywhere.
 - `lib/principles.ts` bodies now match the brief's verbatim text (earlier bodies named a person and referenced "kickbacks").
+
+## Pricing display (v13, Patch A — manual path)
+
+- **Example pricing approval scope.** The owner reports counsel approved example pricing. Confirm the approval covers Reg Z 1026.24(b) ("actually are or will be arranged or offered") for fictional example figures, and the exact label "Example pricing · [date] · not a quote or commitment to lend."
+- **Manual snapshots as advertising.** Confirm the required disclosures for a dated snapshot pulled from the sponsoring brokerage's pricing engine: APR prominence (WAC 208-660-440), trigger terms (1026.24(d)) given the displayed principal-and-interest payment, the Texas requirement to show company and originator names and NMLS IDs on rate ads (7 TAC § 56.203), and California DRE criteria (10 CCR § 2848).
+- **Record retention.** Confirm the write-once snapshot + source screenshot + audit log satisfies Reg N 1014.5 (24 months) and WAC 208-660-440 (supporting rate information and APR calculation), and set the retention period.
+- **Sponsoring brokerage approval.** Confirm each sponsor (Home Trust Loans; Home Financial) must approve the display before it goes public, and whether the snapshot must reflect the sponsor's compensation plan.
+- **ARIVE terms.** Confirm with ARIVE in writing that a licensed user copying results by hand onto the brokerage's own site is permitted (Terms of Use "compete" clause; Platform Subscription Agreement "software vendor or technology provider" clause), and what changes once other LOs pay LoanM8 a subscription.
+- **Lender terms.** PRMG and Plaza rate materials say "not for distribution to consumers"; HomeXpress sheets say "broker use only"; Plaza limits pricing tools to bona fide quotes. These lenders are excluded until written consent. Confirm anonymization cures the name-use clauses (Provident, Plaza, HomeXpress, Newrez) and that Provident's uniform-compensation clause is satisfied by a flat-compensation display.
+- **Anti-steering presentation.** Confirm the three-card layout, the "Includes a risky feature" badge, and the rationale wording; and that showing fewer than three eligible creditors with the stated notice is acceptable.
+- **Loan officer notes.** Confirm the screening categories and the placement ("Your loan officer's notes", after the three options, lender anonymized) avoid steering and fair-lending risk.
+- **M8 and examples.** Confirm M8 may cite the dated example figures as examples in the tester-only live chat.
+- **noindex.** `/rates` is noindex and out of the sitemap so dated figures are not presented by search engines as current offers. Confirm.
+

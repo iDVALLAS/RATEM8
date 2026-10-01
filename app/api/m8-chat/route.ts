@@ -1,7 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { cookies } from "next/headers";
 import { getM8SystemPrompt, M8_MODEL, M8_MAX_TOKENS } from "@/lib/m8";
+import { exampleSummaryText } from "@/lib/pricing/summary";
+
 import { CONFIG } from "@/lib/config";
+
+/** The M8 prompt plus, when example pricing is on, the computed example figures (server-only). */
+function systemPrompt(): string {
+  const base = getM8SystemPrompt();
+  return CONFIG.pricing.demoExamples ? `${base}\n\n${exampleSummaryText()}` : base;
+}
 
 /**
  * POST /api/m8-chat — the tester-only live M8 endpoint.
@@ -13,7 +21,7 @@ import { CONFIG } from "@/lib/config";
  *
  * SYSTEM PROMPT: lib/prompts/m8-system.ts (DRAFT — requires compliance
  * counsel review before any deployment). Built from lib/config.ts facts
- * by getM8SystemPrompt(); nothing is hardcoded here.
+ * by systemPrompt(); nothing is hardcoded here.
  *
  * RECORDING / CONSENT NOTE:
  *  - The UI shows the AI disclosure and the recording notice
@@ -142,7 +150,7 @@ export async function POST(req: Request) {
   // --------- Stream from the Claude API ---------
 
   const client = new Anthropic({ apiKey });
-  const system = getM8SystemPrompt();
+  const system = systemPrompt();
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

@@ -11,13 +11,47 @@ contributors: `docs/BUILD_CONTRACT.md`.
 
 ---
 
-## 1. No rates displayed anywhere while `liveRatesEnabled` is false
+## 1. Rates appear only as dated examples or dated manual snapshots, never as quotes
 
-- `lib/config.ts` → `CONFIG.liveRatesEnabled = false` and `lenderCountDisplay = null`.
-- Calculators take user-entered rates only: `components/calc/Slider.tsx` labels the field "Your rate — enter your own"; `lib/calc.ts` assumptions blocks say `Rates: User-entered`; `CALC_DISCLAIMER` (`lib/config.ts`) renders on every calculator page and in every `/api/agent/calc/*` response.
-- Sample figures in demos (Second Look, sample brief, Loan Estimate guide, join page) are fictional and every frame carries `components/SampleBadge.tsx` ("SAMPLE — ILLUSTRATIVE ONLY").
-- The legacy scripted chat with real lender names and rates (`lib/demoChat.ts`, `components/ChatExperience.tsx`) was deleted.
-- The agent API never returns a rate the caller did not send (`app/api/agent/calc/[tool]/route.ts`).
+Changed 2026-10-01 (v13, Patch A). The owner reports that counsel approved
+showing example pricing. Live pricing stays off.
+
+- **Flags** (`lib/config.ts` → `CONFIG.pricing`, server-side env only):
+  `PRICING_DEMO_EXAMPLES` on unless set to `"false"`; `PRICING_MANUAL`,
+  `PRICING_LIVE`, `PRICING_RATESHEET`, `MLO_ROUTING` off by default.
+  `CONFIG.liveRatesEnabled` stays false and `lenderCountDisplay` stays null.
+- **Where rates may appear:** `/rates` only (noindex, not in the sitemap),
+  plus the setup preview inside the auth-gated `/mlo` admin. Nowhere else.
+- **Every pricing surface** shows the label "Example pricing · [date] · not
+  a quote or commitment to lend." or "Rate snapshot · pulled [time] · not a
+  quote or commitment to lend.", pinned at the top and repeated under the
+  cards. Never the word "live" while `PRICING_LIVE` is off
+  (`lib/pricing/copy.test.ts`).
+- **Every rate shows its APR**, points or credit, origination and lender
+  fees, lock period, payment, and the scenario assumptions.
+- **Numbers come from code.** `lib/pricing/build.ts` computes APR
+  (actuarial method), payments, totals and the anti-steering set from
+  stored inputs. M8 never generates, rounds or infers a rate; its prompt
+  may cite the example figures only as dated examples
+  (`lib/prompts/m8-system.ts` rule 1, `lib/pricing/summary.ts`).
+- **Three options first** (Reg Z 1026.36(e)(3)): lowest rate; lowest rate
+  without risky features; lowest points plus origination fees. Computed
+  from normalized quotes only; loan officer notes cannot change them
+  (`lib/pricing/pricing.test.ts`).
+- **Lenders are anonymized** and re-lettered per snapshot. Real names and
+  the letter mapping stay server-side (`npm run check:bundle` fails the
+  build if a lender name reaches the browser).
+- **Lender consent.** Lenders whose terms restrict consumer display (PRMG,
+  Plaza, HomeXpress) cannot be published until written consent is recorded
+  in `lib/pricing/lenders.ts` (`publishSnapshot` refuses them).
+- **Manual snapshots** require an attached source screenshot or PDF, are
+  stored write-once with their sha256, and go stale after
+  `PRICING_MANUAL_STALE_HOURS` (default 24). Every write is in the audit log.
+- **Calculators** still take user-entered rates only and never supply one;
+  `CALC_DISCLAIMER` renders on every calculator page and API response.
+- **The agent API** still never returns a rate the caller did not send.
+- The legacy scripted chat with real lender names and rates stays deleted;
+  the "Sarah" Bellevue scenario returns only as a fictional fixture.
 
 ## 2. Banned phrases
 

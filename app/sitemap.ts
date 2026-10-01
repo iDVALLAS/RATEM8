@@ -25,7 +25,7 @@ const TOOL_SLUGS = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const registry: MetadataRoute.Sitemap = ROUTES.map((r) => ({
+  const registry: MetadataRoute.Sitemap = ROUTES.filter((r) => !r.noindex).map((r) => ({
     url: absoluteUrl(r.path),
     lastModified: LAST_MODIFIED,
     changeFrequency: r.changeFrequency,
