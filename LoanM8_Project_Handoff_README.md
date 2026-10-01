@@ -99,6 +99,20 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v15.1 — Ryder Fasse's Oregon license from his NMLS record (2026-10-01)
+
+- Source: an NMLS Consumer Access screenshot from the owner.
+  - Oregon MLO license, "Lic/Reg #: None", Approved, renewed through 2026.
+  - Authorized to represent NMLS 1761573 since 08/06/2021.
+- `lib/config.ts`: Ryder's OR license is now `NMLS ID 119822` (Oregon uses
+  the NMLS ID) and `sponsorSince` is `2021-08-06`. Both were placeholders.
+- His record also lists AZ and WA licenses. Per the owner he is
+  **Oregon only on this site**, so they are not added.
+- Open question: NMLS names 1761573 **Adcom Group Inc**, but config says
+  "Home Trust Loans". Confirm the legal name or DBA to print before
+  launch.
+- Verified: `npm run verify` passes.
+
 ## v15 (Patch B) — State-based MLO routing, location beacon, Oregon (2026-10-01)
 
 **One line:**

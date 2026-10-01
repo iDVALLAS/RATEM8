@@ -154,8 +154,13 @@ export const CONFIG = {
       photo: "[PHOTO]",
       calendly: env("NEXT_PUBLIC_CALENDLY_RYDER") ?? "",
       licenses: [
-        // Owner 2026-10-01: same sponsor as the operator (Home Trust Loans), Oregon only.
-        { state: "OR", license: "[OR MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+        // Owner 2026-10-01: Oregon only on this site (his NMLS record also
+        // lists WA and AZ licenses; the owner is the site's WA loan officer).
+        // NMLS Consumer Access (owner screenshot 2026-10-01): Oregon MLO
+        // license, "Lic/Reg #: None" (Oregon uses the NMLS ID), Approved,
+        // renewed through 2026; authorized to represent NMLS 1761573 since
+        // 08/06/2021.
+        { state: "OR", license: "NMLS ID 119822", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "2021-08-06" },
       ],
     },
   ] as Mlo[],
