@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { M8Message } from "@/lib/m8";
 import { M8_SESSION_KEY } from "@/lib/m8";
-import { AI_DISCLOSURE, CONFIG } from "@/lib/config";
+import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
+import { usStateName } from "@/lib/us-states";
+import { useMloContext, useNamedMlo } from "@/components/mlo/MloContext";
 
 /**
  * M8LiveChat — the live M8 conversation UI. TESTER PREVIEW ONLY.
@@ -29,12 +31,24 @@ import { copy } from "@/lib/copy";
  * CONSENT NOTE in app/api/m8-chat/route.ts.
  */
 
-const M8_OPENING = `G'day. ${AI_DISCLOSURE} I'm M8, in a preview build. I can explain how a mortgage works and write up what we discuss. I can't quote a rate here, and a licensed loan officer verifies every deal. What are you trying to do?`;
+/** M8's opening line; the loan officer part follows MloContext (v15). */
+function useOpening(): string {
+  const ctx = useMloContext();
+  const mlo = useNamedMlo();
+  const o = copy.chat.liveOpening;
+  const st = ctx.stateName ?? "";
+  let mid = o.generic;
+  if (mlo) mid = o.named.replace("{name}", mlo.name).replace("{state}", st).replace("{nmls}", mlo.nmls);
+  else if (ctx.status === "unlicensed") mid = o.unlicensed.replace("{state}", st);
+  const moved = mlo && ctx.moved && ctx.ipState ? o.moved.replace("{state}", st).replace("{ip}", usStateName(ctx.ipState) ?? ctx.ipState) : "";
+  return `${o.lead}${mid}${moved}${o.close}`;
+}
 
 /** Where testers go when the model is unavailable. From config, never typed here. */
 const CONTACT = CONFIG.contactEmail;
 
 export default function M8LiveChat() {
+  const opening = useOpening();
   const [messages, setMessages] = useState<M8Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -239,7 +253,7 @@ export default function M8LiveChat() {
                 className="text-[15px] leading-relaxed"
                 style={{ color: "var(--fg)" }}
               >
-                {M8_OPENING}
+                {opening}
               </p>
             </div>
           </div>

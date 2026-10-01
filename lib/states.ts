@@ -2,7 +2,7 @@
  * lib/states.ts — state scope helpers, derived from lib/config.ts.
  *
  * LAUNCH_STATES = where LoanM8 markets. The one-shot build launches in
- * exactly four states (WA, AZ, CA, TX), so launch scope equals the
+ * the licensed states in CONFIG.states (five since v15), so launch scope equals the
  * licensed footprint. Both derive from CONFIG.states — one edit, every
  * consumer regenerates.
  */

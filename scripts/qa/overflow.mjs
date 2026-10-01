@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import { chromium } from "playwright";
 const base = "http://localhost:3100";
-const routes = ["/","/second-look","/join","/agents","/investors","/calculators","/calculators/points-breakeven","/calculators/refinance-breakeven","/calculators/rent-vs-buy","/calculators/affordability","/states/washington","/states/texas","/principles","/rates","/loan-estimate","/sample-brief","/chat","/ai","/privacy","/terms","/disclosures","/tools","/tools/points"];
+const routes = ["/","/second-look","/join","/agents","/investors","/calculators","/calculators/points-breakeven","/calculators/refinance-breakeven","/calculators/rent-vs-buy","/calculators/affordability","/states/washington","/states/oregon","/states/texas","/principles","/rates","/loan-estimate","/sample-brief","/chat","/ai","/privacy","/terms","/disclosures","/tools","/tools/points"];
 const shots = new Set(["/","/second-look","/join","/agents","/investors","/calculators/points-breakeven","/principles","/rates","/loan-estimate","/sample-brief","/chat","/ai","/states/washington","/disclosures"]);
 const out = process.argv[2] || process.env.QA_OUT || "/tmp/loanm8-qa";
 fs.mkdirSync(out, { recursive: true });

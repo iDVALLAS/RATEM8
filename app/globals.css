@@ -1951,3 +1951,108 @@ html { font-variation-settings: "WONK" 0; }
 /* In-page links (/#about, /#how) land with the heading clear of the
    sticky nav instead of tucked under it. */
 main [id] { scroll-margin-top: 88px; }
+
+/* ─── Location beacon (v15, Patch B) ───────────────────────────────
+   "[State] · matched with [MLO]" + Change. Breathing dot on the orb's
+   4s rhythm (still under reduced motion). Nav variant: a slim right-
+   aligned row under the main bar with a solid popover; inline and card
+   variants expand in place. */
+.beacon { position: relative; font-size: 0.8rem; color: var(--fg-soft); }
+.beacon__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.beacon__dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--color-m8-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-m8-green) 22%, transparent);
+  animation: beacon-breathe 4s ease-in-out infinite;
+}
+@keyframes beacon-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.7); opacity: 0.65; }
+}
+.beacon__outline { flex-shrink: 0; width: 18px; height: 18px; color: var(--accent); }
+.beacon__text { min-width: 0; }
+.beacon__moved { margin-top: 4px; font-size: 0.75rem; color: var(--muted); }
+.beacon-link {
+  border: 0;
+  padding: 2px 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.beacon-link:disabled { opacity: 0.5; cursor: default; }
+.beacon-btn {
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-m8-green);
+  border-radius: 9999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.beacon-btn:hover { background: color-mix(in srgb, var(--color-m8-green) 14%, transparent); }
+.beacon-btn:disabled { opacity: 0.5; cursor: default; }
+
+.beacon-panel {
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--color-m8-green);
+  border-radius: 14px;
+  background: var(--color-m8-panel);
+  color: var(--color-m8-paper);
+  text-align: left;
+}
+.beacon-panel__label { display: block; font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-m8-green); }
+.beacon-panel__hint { margin-top: 4px; font-size: 0.8rem; color: color-mix(in srgb, var(--color-m8-paper) 70%, transparent); }
+.beacon-panel__row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.beacon-panel__select {
+  flex: 1 1 160px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--color-m8-paper) 25%, transparent);
+  border-radius: 10px;
+  background: var(--color-m8-night);
+  color: var(--color-m8-paper);
+  font: inherit;
+}
+.beacon-panel .beacon-link { color: var(--color-m8-green); }
+.beacon-panel__foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; font-size: 0.8rem; }
+.beacon-panel__error { margin-top: 8px; font-size: 0.8rem; color: var(--color-m8-green); }
+
+.beacon-choose { margin-top: 12px; }
+.beacon-choose__heading { font-weight: 500; }
+.beacon-choose__sub { margin-top: 2px; font-size: 0.8rem; opacity: 0.75; }
+.beacon-choose__list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.beacon-choose__item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.beacon-choose__name { display: block; font-weight: 500; }
+.beacon-choose__meta { display: block; font-size: 0.75rem; opacity: 0.75; }
+.beacon-choose__disclosure { margin-top: 10px; font-size: 0.75rem; opacity: 0.75; }
+
+/* Nav: slim row under the main bar, right-aligned; the picker floats. */
+.nav-beacon { display: flex; justify-content: flex-end; padding: 0 0 8px; font-family: var(--font-jetbrains), monospace; font-size: 11px; letter-spacing: 0.04em; }
+.nav-beacon .beacon__moved { text-align: right; }
+.nav-beacon .beacon-panel { position: absolute; top: 100%; right: 0; z-index: 45; width: 340px; font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 0.875rem; letter-spacing: 0; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45); }
+.nav-beacon { flex-direction: column; align-items: flex-end; }
+
+/* Mobile hero: under the trust strip. */
+.hm-beacon { margin-top: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.hm-beacon .beacon-panel { width: 100%; }
+
+/* MLO card */
+.beacon--card { margin-top: 10px; }
+.hm-about__cred { margin-top: 6px; font-size: 0.8rem; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .beacon__dot { animation: none; }
+}
+.hm-about__cred .hm-about__nmls,
+.hm-about__cred .hm-about__verify { margin: 0; min-height: 0; line-height: inherit; display: inline; }

@@ -8,6 +8,7 @@ import { themeBootScript } from "@/lib/theme";
 import { organizationJsonLd } from "@/lib/jsonld";
 import JsonLd from "@/components/JsonLd";
 import { MloProvider } from "@/components/mlo/MloContext";
+import { routeContext } from "@/lib/route-context";
 import ReferralTracker from "@/components/ReferralTracker";
 import "./globals.css";
 
@@ -61,7 +62,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // MLO_ROUTING off → NO_MLO without reading headers, so pages stay static.
+  const mloValue = await routeContext();
   return (
     <html lang="en" className={`${GeistSans.variable} ${jetbrains.variable}`} data-type="sans" suppressHydrationWarning>
       <head>
@@ -71,8 +74,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <JsonLd data={organizationJsonLd()} />
       </head>
       <body>
-        {/* MloContext: no match for anyone until Patch B fills it (source "none"). */}
-        <MloProvider>{children}</MloProvider>
+        {/* MloContext: resolved per request by middleware (v15) when MLO_ROUTING is on; generic otherwise. */}
+        <MloProvider value={mloValue}>{children}</MloProvider>
         {/* Vercel Analytics only. No third-party trackers, no cookies set by us. */}
         <Analytics />
         <ReferralTracker />

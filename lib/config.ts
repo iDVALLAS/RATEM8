@@ -20,10 +20,13 @@ const env = (key: string): string | undefined => {
   return v && v.trim().length > 0 ? v.trim() : undefined;
 };
 
-export type StateSlug = "washington" | "arizona" | "california" | "texas";
-export type StateCode = "WA" | "AZ" | "CA" | "TX";
+export type StateSlug = "washington" | "oregon" | "arizona" | "california" | "texas";
+export type StateCode = "WA" | "OR" | "AZ" | "CA" | "TX";
 
-export type StateConfig = {
+export type Sponsor = { name: string; idLabel: string; idNumber: string };
+
+/** The per-state facts typed into CONFIG.states. */
+export type StateBase = {
   slug: StateSlug;
   code: StateCode;
   name: string;
@@ -31,14 +34,10 @@ export type StateConfig = {
   serviceArea: string;
   /** Entity-level license identifier for this state. */
   entityLicense: string;
-  /** The principal MLO's individual license identifier for this state. */
-  mloLicense: string;
   /** Regulator display name. */
   regulatorName: string;
   /** Regulator URL (consumer complaint / license lookup). */
   regulatorUrl: string;
-  /** Sponsoring entity that originates loans in this state (carried over). */
-  sponsor: { name: string; idLabel: string; idNumber: string };
   /**
    * Any state-mandated disclosure language. Rendered verbatim on the
    * state page and /disclosures when non-empty. Counsel fills this in.
@@ -48,7 +47,38 @@ export type StateConfig = {
   twoPartyConsent: boolean;
 };
 
+/**
+ * A state as consumers see it: the typed facts plus what is DERIVED from
+ * the MLO registry (v15, Patch B). Sponsorship lives on each MLO's
+ * per-state license, so a sponsor change is one edit in MLO_REGISTRY.
+ */
+export type StateConfig = StateBase & {
+  /** Sponsoring entity of the MLO assigned to this state (or the first serving MLO). */
+  sponsor: Sponsor;
+  /** Every sponsoring entity with an MLO serving this state. */
+  sponsors: Sponsor[];
+  /** Individual MLO license number(s) for this state, from the registry. */
+  mloLicense: string;
+};
+
+/**
+ * One state license held by an MLO. Sponsorship is per MLO, per state,
+ * and changes often: edit `sponsor` and `sponsorSince` here (or ask the
+ * agent to). Routing re-derives everything from this list.
+ */
+export type MloLicense = {
+  state: StateCode;
+  /** Individual license number for this state (NMLS-issued states may reuse the NMLS ID). */
+  license: string;
+  /** The brokerage that sponsors this MLO's license in this state. */
+  sponsor: Sponsor;
+  /** When the current sponsorship took effect (ISO date) or a placeholder. */
+  sponsorSince: string;
+};
+
 export type Mlo = {
+  /** Stable, neutral id used by routing and the borrower's choice cookie (never a name). */
+  id: string;
   name: string;
   firstName: string;
   nmls: string;
@@ -56,15 +86,20 @@ export type Mlo = {
   bioShort: string;
   /** Link to the MLO's NMLS Consumer Access record. */
   nmlsConsumerAccessUrl: string;
+  /** Headshot path under /public, or a placeholder (not rendered while bracketed). */
+  photo: string;
+  /** Borrower booking link. Empty → "coming soon". */
+  calendly: string;
+  licenses: MloLicense[];
 };
 
-const SPONSOR_HOME_TRUST = {
+const SPONSOR_HOME_TRUST: Sponsor = {
   name: "Home Trust Loans",
   idLabel: "NMLS",
   idNumber: "1761573", // carried over — VERIFY on nmlsconsumeraccess.org
 };
 
-const SPONSOR_HOME_FINANCIAL_AZ = {
+const SPONSOR_HOME_FINANCIAL_AZ: Sponsor = {
   name: "Home Financial",
   idLabel: "AZ License",
   idNumber: "1037722", // carried over — VERIFY on nmlsconsumeraccess.org
@@ -83,10 +118,12 @@ export const CONFIG = {
   entityNmls: "[ENTITY NMLS #]",
 
   /**
-   * The principal MLO. When `team.length > 0`, public copy switches to
-   * "your licensed loan officer" and the About section renders as a team.
+   * The platform operator's MLO (LoanM8 is owned by this loan officer).
+   * Routing's "same sponsoring entity" rule compares every MLO against the
+   * sponsors this record holds. Also the first entry in ALL_MLOS.
    */
   principalMlo: {
+    id: "mlo-001",
     name: "Jason Shapiro", // carried over — VERIFY
     firstName: "Jason", // carried over
     nmls: "1844143", // carried over — VERIFY on nmlsconsumeraccess.org
@@ -94,10 +131,54 @@ export const CONFIG = {
     bioShort: "[BIO — two or three plain sentences. No years-in-business or volume claims unless verifiable.]",
     nmlsConsumerAccessUrl:
       "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/1844143", // carried over — VERIFY
+    photo: "[PHOTO]",
+    calendly: env("NEXT_PUBLIC_CALENDLY_BORROWER") ?? "",
+    licenses: [
+      { state: "WA", license: "[WA MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+      { state: "AZ", license: "[AZ MLO LICENSE #]", sponsor: SPONSOR_HOME_FINANCIAL_AZ, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+      { state: "CA", license: "[CA MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+      { state: "TX", license: "[TX MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+    ],
   } satisfies Mlo,
 
-  /** Additional MLOs. Empty at launch. Add records here as MLOs onboard. */
-  team: [] as Mlo[],
+  /** Additional MLOs. Add records here as MLOs onboard (v15: Ryder Fasse, Oregon). */
+  team: [
+    {
+      id: "mlo-002",
+      name: "Ryder Fasse", // owner-supplied 2026-10-01 — VERIFY
+      firstName: "Ryder",
+      nmls: "119822", // owner-supplied — VERIFY on nmlsconsumeraccess.org
+      title: "Mortgage Loan Originator",
+      bioShort: "[BIO — two or three plain sentences. No years-in-business or volume claims unless verifiable.]",
+      nmlsConsumerAccessUrl: "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/119822", // VERIFY
+      photo: "[PHOTO]",
+      calendly: env("NEXT_PUBLIC_CALENDLY_RYDER") ?? "",
+      licenses: [
+        // Owner 2026-10-01: same sponsor as the operator (Home Trust Loans), Oregon only.
+        { state: "OR", license: "[OR MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+      ],
+    },
+  ] as Mlo[],
+
+  /**
+   * State routing (v15, Patch B). Behind MLO_ROUTING (default OFF).
+   * - stateAssignments: which MLO an `assign` state routes to.
+   * - routingModeOverride: force a state to `choose`. Forcing `assign` on a
+   *   state that must be `choose` fails the build (lib/routing.ts).
+   * A state is `assign` only when every MLO serving it is sponsored by one
+   * of the operator's sponsoring companies; otherwise it is `choose`.
+   */
+  routing: {
+    operatorMloId: "mlo-001",
+    stateAssignments: {
+      WA: "mlo-001",
+      OR: "mlo-002",
+      AZ: "mlo-001",
+      CA: "mlo-001",
+      TX: "mlo-001",
+    } as Partial<Record<StateCode, string>>,
+    routingModeOverride: {} as Partial<Record<StateCode, "assign" | "choose">>,
+  },
 
   contactEmail: env("NEXT_PUBLIC_CONTACT_EMAIL") ?? "[EMAIL]",
   privacyEmail: "privacy@loanm8.com",
@@ -132,12 +213,22 @@ export const CONFIG = {
       name: "Washington",
       serviceArea: "Washington",
       entityLicense: "[WA ENTITY LICENSE #]",
-      mloLicense: "[WA MLO LICENSE #]",
       regulatorName: "[WA regulator name — e.g. Washington State Department of Financial Institutions]",
       regulatorUrl: "[WA regulator URL]",
-      sponsor: SPONSOR_HOME_TRUST,
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
       twoPartyConsent: true,
+    },
+    {
+      slug: "oregon",
+      code: "OR",
+      name: "Oregon",
+      serviceArea: "Oregon",
+      entityLicense: "[OR ENTITY LICENSE #]",
+      regulatorName: "[OR regulator name — e.g. Oregon Division of Financial Regulation]",
+      regulatorUrl: "[OR regulator URL]",
+      requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
+      // Recording consent: counsel to confirm for phone/online chat (ORS 165.540).
+      twoPartyConsent: false,
     },
     {
       slug: "arizona",
@@ -145,10 +236,8 @@ export const CONFIG = {
       name: "Arizona",
       serviceArea: "Arizona",
       entityLicense: "[AZ ENTITY LICENSE #]",
-      mloLicense: "[AZ MLO LICENSE #]",
       regulatorName: "[AZ regulator name — e.g. Arizona Department of Insurance and Financial Institutions]",
       regulatorUrl: "[AZ regulator URL]",
-      sponsor: SPONSOR_HOME_FINANCIAL_AZ,
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
       twoPartyConsent: false,
     },
@@ -158,10 +247,8 @@ export const CONFIG = {
       name: "California",
       serviceArea: "California",
       entityLicense: "[CA ENTITY LICENSE #]",
-      mloLicense: "[CA MLO LICENSE #]",
       regulatorName: "[CA regulator name — e.g. California Department of Financial Protection and Innovation]",
       regulatorUrl: "[CA regulator URL]",
-      sponsor: SPONSOR_HOME_TRUST,
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel: CA licensing language]",
       twoPartyConsent: true,
     },
@@ -171,14 +258,12 @@ export const CONFIG = {
       name: "Texas",
       serviceArea: "Texas",
       entityLicense: "[TX ENTITY LICENSE #]",
-      mloLicense: "[TX MLO LICENSE #]",
       regulatorName: "[TX regulator name — e.g. Texas Department of Savings and Mortgage Lending]",
       regulatorUrl: "[TX regulator URL]",
-      sponsor: SPONSOR_HOME_TRUST,
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel: TX recovery-fund / complaint notice]",
       twoPartyConsent: false,
     },
-  ] as StateConfig[],
+  ] as StateBase[],
 
   /**
    * Calendly links. Every consumer CTA on the site is one of these.
@@ -255,7 +340,41 @@ export const CONFIG = {
 
 export type Config = typeof CONFIG;
 
-export const STATES = CONFIG.states;
+/** All MLOs, principal (the operator) first. */
+export const ALL_MLOS: Mlo[] = [CONFIG.principalMlo, ...CONFIG.team];
+
+export function mloById(id: string | null | undefined): Mlo | undefined {
+  return id ? ALL_MLOS.find((m) => m.id === id) : undefined;
+}
+
+/** The MLOs holding a license in this state. */
+export function mlosServing(code: string): Mlo[] {
+  return ALL_MLOS.filter((m) => m.licenses.some((l) => l.state === code));
+}
+
+export function licenseIn(m: Mlo, code: string): MloLicense | undefined {
+  return m.licenses.find((l) => l.state === code);
+}
+
+const sponsorKey = (sp: Sponsor) => `${sp.name}|${sp.idNumber}`;
+
+function deriveState(base: StateBase): StateConfig {
+  const serving = mlosServing(base.code);
+  const assigned = mloById(CONFIG.routing.stateAssignments[base.code]);
+  const ordered = assigned ? [assigned, ...serving.filter((m) => m.id !== assigned.id)] : serving;
+  const lic = ordered.map((m) => licenseIn(m, base.code)!).filter(Boolean);
+  const seen = new Set<string>();
+  const sponsors = lic.map((l) => l.sponsor).filter((sp) => (seen.has(sponsorKey(sp)) ? false : (seen.add(sponsorKey(sp)), true)));
+  return {
+    ...base,
+    sponsor: sponsors[0] ?? { name: "[SPONSOR]", idLabel: "NMLS", idNumber: "[#]" },
+    sponsors,
+    mloLicense: lic.length ? lic.map((l) => l.license).join(", ") : "[NO MLO LICENSED]",
+  };
+}
+
+/** Every licensed state, with sponsors and MLO licenses derived from the registry. */
+export const STATES: StateConfig[] = CONFIG.states.map(deriveState);
 
 export function stateBySlug(slug: string): StateConfig | undefined {
   return STATES.find((s) => s.slug === slug);
@@ -290,8 +409,15 @@ export const LICENSED_IN_LINE = formatList(STATES.map(stateDisplay));
 /** "Washington, Arizona, California, and Texas" */
 export const STATE_NAMES_LINE = formatList(STATES.map((s) => s.name));
 
-/** "WA · AZ · CA · TX" */
+/** "WA · OR · AZ · CA · TX" */
 export const STATE_CODES_LINE = STATES.map((s) => s.code).join(" · ");
+
+/** "WA, OR, AZ, CA, and TX" */
+export const STATE_CODES_LIST = formatList(STATES.map((s) => s.code));
+
+/** "Five" — the licensed-state count as a capitalised word (for headings). */
+export const STATE_COUNT_WORD =
+  ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"][STATES.length] ?? String(STATES.length);
 
 /** True when more than one MLO is configured. */
 export const HAS_TEAM = CONFIG.team.length > 0;
@@ -305,8 +431,6 @@ export const MLO_REF = "your licensed loan officer";
 export const MLO_REF_CAP = "Your licensed loan officer";
 export const MLO_REF_FULL = "a licensed, vetted loan officer";
 
-/** All MLOs, principal first. */
-export const ALL_MLOS: Mlo[] = [CONFIG.principalMlo, ...CONFIG.team];
 
 /** The standard footer sentence — rendered on every page. Locked text. */
 export const NOT_A_COMMITMENT =

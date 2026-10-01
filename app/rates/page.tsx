@@ -6,6 +6,7 @@ import PricingDisplay from "@/components/pricing/PricingDisplay";
 import Reveal from "@/components/motion/Reveal";
 import { copy } from "@/lib/copy";
 import { displayScenarios, resolveDisplay } from "@/lib/pricing/display";
+import { routeContext } from "@/lib/route-context";
 
 /**
  * /rates — example pricing (and, when PRICING_MANUAL is on, the latest
@@ -31,6 +32,9 @@ export default async function RatesPage({ searchParams }: Props) {
   const { s } = await searchParams;
   const active = scenarios.find((x) => x.id === s) ?? scenarios[0];
   const display = active ? await resolveDisplay(active.id) : null;
+  // v15: no licensed loan officer for the visitor's state → no pricing, an honest line instead.
+  const route = await routeContext();
+  const unlicensed = route.status === "unlicensed" ? copy.routing.unlicensedRates.replace("{state}", route.stateName ?? "") : null;
 
   return (
     <PageShell crumbs={[{ name: "Home", path: "/" }, { name: "Example rates", path: "/rates" }]}>
@@ -52,7 +56,7 @@ export default async function RatesPage({ searchParams }: Props) {
           </ul>
         </nav>
 
-        {display ? <PricingDisplay display={display} /> : <p className="card">{c.unavailable}</p>}
+        {unlicensed ? <p className="card">{unlicensed}</p> : display ? <PricingDisplay display={display} /> : <p className="card">{c.unavailable}</p>}
 
         <div className="mt-10">
           <BookingCTA kind="borrower">{c.cta}</BookingCTA>

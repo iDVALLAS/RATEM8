@@ -1,5 +1,6 @@
 import { CONFIG, hasBooking, NOT_A_CREDIT_PULL } from "@/lib/config";
 import CTAButton from "./CTAButton";
+import { MloBookingButton } from "./mlo/MloContext";
 
 /**
  * BookingCTA — every consumer CTA on the site is a Calendly booking.
@@ -24,7 +25,12 @@ export default function BookingCTA({ kind, children, variant = "primary", sub, i
   const ok = hasBooking(url);
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
-      {ok ? (
+      {kind === "borrower" && CONFIG.pricing.mloRouting ? (
+        // v15: per-visitor booking link (the matched MLO's), resolved client-side from MloContext.
+        <MloBookingButton fallbackUrl={url} variant={variant} sub={sub} ariaLabel={ariaLabel}>
+          {children}
+        </MloBookingButton>
+      ) : ok ? (
         <CTAButton href={url} variant={variant} sub={sub} ariaLabel={ariaLabel}>
           {children}
         </CTAButton>

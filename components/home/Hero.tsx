@@ -3,6 +3,7 @@ import { copy } from "@/lib/copy";
 import HeroOrb from "./HeroOrb";
 import ActionGrid from "./ActionGrid";
 import TrustStrip from "./TrustStrip";
+import LocationBeacon from "@/components/LocationBeacon";
 
 /**
  * Hero — the tappable orb over the drifting term field, the
@@ -67,6 +68,10 @@ export default function Hero() {
           screen is orb → headline → the four actions, nothing else. */}
       <div className="hm-trust-band mx-auto max-w-4xl px-4 sm:px-6 text-center">
         <TrustStrip />
+        {/* v15 location beacon on phones (desktop has it in the nav). */}
+        <div className="lg:hidden">
+          <LocationBeacon variant="inline" className="hm-beacon" />
+        </div>
       </div>
     </section>
   );

@@ -2,7 +2,9 @@
 
 import { createContext, useContext } from "react";
 import { NO_MLO, fillMlo, nameableMlo, type MloContextValue } from "@/lib/mlo-match";
-import type { Mlo } from "@/lib/config";
+import { hasBooking, type Mlo } from "@/lib/config";
+import { copy } from "@/lib/copy";
+import CTAButton from "@/components/CTAButton";
 
 /**
  * MloContext — which loan officer (if any) this visitor is matched to
@@ -39,18 +41,78 @@ export function MloText({ generic, named }: { generic: string; named?: string })
 }
 
 /**
- * Footer line: "Name, Title, NMLS #…" for the matched MLO, nothing
- * otherwise. Keeps the rule "whenever an individual is named on a page,
- * their NMLS number is on the same page" true on every page.
+ * Footer line for the matched MLO: name, title, NMLS number, the state
+ * license number and the sponsoring entity, all from ONE context value so
+ * a page can never mix two MLOs. Nothing when no one is named. Keeps
+ * "whenever an individual is named on a page, their NMLS number is on
+ * the same page" true on every page.
  */
 export function MloFooterLine() {
-  const mlo = useNamedMlo();
+  const ctx = useContext(MloContext);
+  const mlo = nameableMlo(ctx);
   if (!mlo) return null;
+  const l = ctx.license;
+  if (!l) {
+    return (
+      <>
+        {" "}
+        {mlo.name}, {mlo.title}, NMLS #{mlo.nmls}.
+      </>
+    );
+  }
   return (
     <>
       {" "}
-      {mlo.name}, {mlo.title}, NMLS #{mlo.nmls}.
+      {copy.routing.footerLine
+        .replace("{name}", mlo.name)
+        .replace("{title}", mlo.title)
+        .replace("{nmls}", mlo.nmls)
+        .replace("{state}", ctx.stateName ?? l.state)
+        .replace("{license}", l.license)
+        .replace("{sponsor}", l.sponsor.name)
+        .replace("{sponsorLabel}", l.sponsor.idLabel)
+        .replace("{sponsorId}", l.sponsor.idNumber)}
     </>
+  );
+}
+
+/**
+ * Borrower booking button (v15): the matched MLO's own booking link when
+ * routing has a match; "coming soon" if theirs isn't set; an honest
+ * "no licensed loan officer in X yet" in an unlicensed state; otherwise
+ * the site-wide link the server passed in.
+ */
+export function MloBookingButton({
+  fallbackUrl,
+  variant,
+  sub,
+  ariaLabel,
+  children,
+}: {
+  fallbackUrl: string;
+  variant: "primary" | "secondary" | "outline" | "pill";
+  sub?: string;
+  ariaLabel?: string;
+  children: React.ReactNode;
+}) {
+  const ctx = useContext(MloContext);
+  const mlo = ctx.status === "matched" ? ctx.mlo : null;
+  if (ctx.status === "unlicensed") {
+    return (
+      <CTAButton href="#" variant={variant} sub={copy.routing.unlicensedBooking.replace("{state}", ctx.stateName ?? "")} ariaLabel={ariaLabel} disabled>
+        {children}
+      </CTAButton>
+    );
+  }
+  const url = mlo ? mlo.calendly : fallbackUrl;
+  return hasBooking(url) ? (
+    <CTAButton href={url} variant={variant} sub={sub} ariaLabel={ariaLabel}>
+      {children}
+    </CTAButton>
+  ) : (
+    <CTAButton href="#" variant={variant} sub={sub ?? "Booking link coming soon"} ariaLabel={ariaLabel} disabled>
+      {children}
+    </CTAButton>
   );
 }
 
@@ -63,8 +125,22 @@ export function MloNamedOnly({ children }: { children: React.ReactNode }) {
  * State page "Loan originators" row: the matched MLO with NMLS number
  * and lookup link, or a generic line plus the public lookup.
  */
-export function MloLicenseItem({ nmlsLabel, generic, lookupLabel, lookupHref }: { nmlsLabel: string; generic: string; lookupLabel: string; lookupHref: string }) {
-  const mlo = useNamedMlo();
+export function MloLicenseItem({
+  stateCode,
+  nmlsLabel,
+  generic,
+  lookupLabel,
+  lookupHref,
+}: {
+  /** The page's state: a matched MLO shows only if licensed here (never another state's MLO). */
+  stateCode: string;
+  nmlsLabel: string;
+  generic: string;
+  lookupLabel: string;
+  lookupHref: string;
+}) {
+  const named = useNamedMlo();
+  const mlo = named && named.licenses.some((l) => l.state === stateCode) ? named : null;
   if (!mlo) {
     return (
       <li>

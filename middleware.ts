@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { CHOICE_COOKIE, PROPERTY_COOKIE, ROUTE_HEADER, encodeRoute, resolveRoute } from "@/lib/routing";
 
 /**
  * LoanM8 stealth-launch middleware — v9.1 (cookie-aware version).
@@ -58,6 +59,33 @@ const PUBLIC_PREFIXES = [
   "/images/",
 ];
 
+/**
+ * v15 (Patch B): state-based MLO routing, resolved here once per request
+ * and handed to the app as a request header (ids only; the layout re-reads
+ * every fact from the registry). Order: the borrower's explicit choice →
+ * the property state they gave us → Vercel's IP region → nothing (ask).
+ * The IP region is used in-request only and never stored. Any copy of the
+ * header sent by the client is dropped. MLO_ROUTING off → no header.
+ */
+function routedHeaders(request: NextRequest): Headers {
+  const h = new Headers(request.headers);
+  h.delete(ROUTE_HEADER);
+  if (process.env.MLO_ROUTING === "true") {
+    const route = resolveRoute({
+      chosenMloId: request.cookies.get(CHOICE_COOKIE)?.value ?? null,
+      propertyState: request.cookies.get(PROPERTY_COOKIE)?.value ?? null,
+      ipCountry: request.headers.get("x-vercel-ip-country"),
+      ipRegion: request.headers.get("x-vercel-ip-country-region"),
+    });
+    h.set(ROUTE_HEADER, encodeRoute(route));
+  }
+  return h;
+}
+
+function passThrough(request: NextRequest): NextResponse {
+  return NextResponse.next({ request: { headers: routedHeaders(request) } });
+}
+
 function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true;
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -90,7 +118,7 @@ function adminGate(request: NextRequest): NextResponse | null {
       const decoded = atob(header.slice(6));
       const i = decoded.indexOf(":");
       if (i > 0 && safeEqual(decoded.slice(0, i), user) && safeEqual(decoded.slice(i + 1), pass)) {
-        const res = NextResponse.next();
+        const res = passThrough(request);
         res.headers.set("x-robots-tag", "noindex, nofollow");
         res.headers.set("cache-control", "no-store");
         return res;
@@ -109,12 +137,12 @@ export function middleware(request: NextRequest) {
   const stealthMode = process.env.NEXT_PUBLIC_STEALTH_MODE !== "false";
 
   // Stealth off → site is fully public. Middleware no-ops.
-  if (!stealthMode) return NextResponse.next();
+  if (!stealthMode) return passThrough(request);
 
   const { pathname } = request.nextUrl;
 
   // Public paths are always allowed (homepage, demo route, assets, robots, etc.)
-  if (isPublic(pathname)) return NextResponse.next();
+  if (isPublic(pathname)) return passThrough(request);
 
   // ─── v9.1 NEW: cookie-aware all-access for authenticated testers ───
   //
@@ -132,7 +160,7 @@ export function middleware(request: NextRequest) {
   //     demo prompts for password again (chat still gated)
   const authCookie = request.cookies.get("loanm8_demo_auth");
   if (authCookie?.value) {
-    return NextResponse.next();
+    return passThrough(request);
   }
 
   // No cookie, not a public path → redirect to coming-soon

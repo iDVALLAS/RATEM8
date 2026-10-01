@@ -18,7 +18,16 @@ nmlsconsumeraccess.org and with counsel.
 | `principalMlo.nmls` | `1844143` (carried over) | Verify on NMLS Consumer Access |
 | `principalMlo.nmlsConsumerAccessUrl` | Consumer Access URL for 1844143 (carried over) | Verify the URL resolves to the right record |
 | `principalMlo.bioShort` | `[BIO — …]` | Two or three plain sentences; no years-in-business or volume claims unless verifiable |
-| `team` | `[]` | Add MLO records as they onboard (name, nmls, title, bioShort, nmlsConsumerAccessUrl) |
+| `principalMlo.photo` | `[PHOTO]` | Optional headshot path under `/public` (not rendered while bracketed) |
+| `principalMlo.licenses[WA/AZ/CA/TX].license` | `[WA MLO LICENSE #]` etc. | Individual state license numbers (v15: moved here from `states[*].mloLicense`) |
+| `principalMlo.licenses[*].sponsorSince` | `[SPONSOR EFFECTIVE DATE]` | Date each current sponsorship took effect |
+| `team[Ryder Fasse].name` / `.nmls` | `Ryder Fasse` / `119822` (owner-supplied 2026-10-01) | Verify on NMLS Consumer Access |
+| `team[Ryder Fasse].nmlsConsumerAccessUrl` | Consumer Access URL for 119822 | Verify the URL resolves to the right record |
+| `team[Ryder Fasse].bioShort` / `.photo` | `[BIO — …]` / `[PHOTO]` | Same rules as above |
+| `team[Ryder Fasse].licenses[OR].license` | `[OR MLO LICENSE #]` | Ryder's Oregon license number (if different from the NMLS ID) |
+| `team[Ryder Fasse].licenses[OR].sponsorSince` | `[SPONSOR EFFECTIVE DATE]` | Date his Home Trust Loans sponsorship took effect |
+| `team[Ryder Fasse].calendly` | empty (or `NEXT_PUBLIC_CALENDLY_RYDER`) | Ryder's booking link; until set, his matched visitors see "Booking link coming soon" |
+| `team[Ryder Fasse].title` | `Mortgage Loan Originator` | His signature says "Mortgage Loan Officer"; confirm which to show |
 | `contactEmail` | `[EMAIL]` (or `NEXT_PUBLIC_CONTACT_EMAIL`) | Public contact address at loanm8.com |
 | `privacyEmail` | `privacy@loanm8.com` | Confirm the mailbox exists |
 | `investorContactHref` | `mailto:investors@loanm8.com` (or `NEXT_PUBLIC_INVESTOR_CONTACT_HREF`) | Confirm the mailbox exists, or set a booking link (v14, `/investors`) |
@@ -26,23 +35,22 @@ nmlsconsumeraccess.org and with counsel.
 | `lenderCountDisplay` | `null` | Leave null unless a verified, current count is approved for display |
 | `liveRatesEnabled` | `false` | Leave false until a live pricing integration and counsel sign-off exist |
 | `states[washington].entityLicense` | `[WA ENTITY LICENSE #]` | WA entity license |
-| `states[washington].mloLicense` | `[WA MLO LICENSE #]` | WA individual MLO license |
 | `states[washington].regulatorName` / `regulatorUrl` | `[WA regulator name — …]` / `[WA regulator URL]` | Regulator display name and consumer URL |
 | `states[washington].requiredDisclosure` | `[STATE-SPECIFIC DISCLOSURE — confirm with counsel]` | Any WA-mandated disclosure text, or empty string if none |
-| `states[washington].sponsor` | Home Trust Loans, NMLS 1761573 (carried over) | Verify sponsor and number |
-| `states[arizona].entityLicense` / `mloLicense` | `[AZ ENTITY LICENSE #]` / `[AZ MLO LICENSE #]` | AZ licenses |
+| Sponsors (all states) | Home Trust Loans, NMLS 1761573 (WA, OR, CA, TX); Home Financial, AZ License 1037722 (AZ) — carried over | Verify. v15: set per MLO, per state in `licenses[].sponsor`; `states[*].sponsor` is derived |
+| `states[arizona].entityLicense` | `[AZ ENTITY LICENSE #]` | AZ entity license |
 | `states[arizona].regulatorName` / `regulatorUrl` | placeholders | AZ regulator |
 | `states[arizona].requiredDisclosure` | placeholder | AZ disclosure text or empty |
-| `states[arizona].sponsor` | Home Financial, AZ License 1037722 (carried over) | Verify |
-| `states[california].entityLicense` / `mloLicense` | placeholders | CA licenses |
+| `states[california].entityLicense` | placeholder | CA entity license |
 | `states[california].regulatorName` / `regulatorUrl` | placeholders | CA regulator |
 | `states[california].requiredDisclosure` | `[… CA licensing language]` | CA-mandated licensing language |
-| `states[california].sponsor` | Home Trust Loans (carried over) | Verify |
-| `states[texas].entityLicense` / `mloLicense` | placeholders | TX licenses |
+| `states[texas].entityLicense` | placeholder | TX entity license |
 | `states[texas].regulatorName` / `regulatorUrl` | placeholders | TX regulator |
 | `states[texas].requiredDisclosure` | `[… TX recovery-fund / complaint notice]` | TX-mandated complaint / recovery fund notice |
-| `states[texas].sponsor` | Home Trust Loans (carried over) | Verify |
-| `states[*].twoPartyConsent` | WA true, AZ false, CA true, TX false | Confirm with counsel |
+| `states[oregon].entityLicense` | `[OR ENTITY LICENSE #]` | The entity's Oregon license (v15) |
+| `states[oregon].regulatorName` / `regulatorUrl` | `[OR regulator name — e.g. Oregon Division of Financial Regulation]` / `[OR regulator URL]` | Oregon regulator |
+| `states[oregon].requiredDisclosure` | placeholder | Any Oregon-mandated disclosure, or empty |
+| `states[*].twoPartyConsent` | WA true, OR false, AZ false, CA true, TX false | Confirm with counsel (Oregon: phone/online chat vs. in-person rules, ORS 165.540) |
 | `secondLookRetention` | `[RETENTION — confirm with counsel]` | Retention period for Second Look uploads (also used on /privacy and in the consent screen) |
 
 ## Environment variables (`.env.local.example` → Vercel project settings)
@@ -108,3 +116,17 @@ grep -rnoE "\[[A-Z][A-Za-z0-9 #/—:.,'()+-]{3,}\]" lib app components --include
 | File | Current | Fill with |
 | --- | --- | --- |
 | `public/brand/m8-monogram.svg` | **Placeholder**: a circle with an M and an 8, drawn as outlines | The real M8 monogram: single-colour outline on transparent. Any stroke colour; the hero orb recolours it from its alpha channel |
+
+## Routing (v15, Patch B)
+
+| Item | Where | Current | Needed |
+| --- | --- | --- | --- |
+| `MLO_ROUTING` | Vercel env (server) | unset (off) | `true` to turn on state routing, the location beacon, and per-visitor names. Pages render per request while on |
+| `NEXT_PUBLIC_CALENDLY_RYDER` | Vercel env | unset | Ryder's booking link |
+| `CONFIG.routing.stateAssignments` | `lib/config.ts` | WA/AZ/CA/TX → principal, OR → Ryder | Edit when coverage changes; the build fails on an invalid assignment |
+| Closing-costs range for Oregon | `app/tools/closing-costs/page.tsx` | not offered | Owner-supplied low/high % if Oregon should appear in that tool (ranges are never invented) |
+| `/standards` page | — | does not exist | Brief B4: "vetted" in credential copy only once a page describes the vetting process. v14's owner-approved hero/agents copy already says "vetted" |
+| Choose-mode sort options | `lib/routing.ts` | random order only | Distance / language / availability need data per MLO before they can be offered |
+| Notify-me for unlicensed states | — | not built (optional in the brief) | Decide whether to collect an email and where it goes |
+| Rate Strategy Brief / attestation block swap | — | no live brief or attestation block exists yet | Swap them through MloContext when v13 receipt / v21 attestation are built |
+

@@ -10,10 +10,11 @@ import JoinPath, { type JoinPathProps } from "./JoinPath";
 import { useSceneRun } from "./useSceneRun";
 
 const S = copy.join.scenes[1];
-// title → cards (≤150 ms apart) → body line
-const STEPS = [0, 250, 400, 550, 700, 850, 1150];
+// title → one card per licensed state (150 ms apart) → "every other state" → body line
+const N = STATES.length;
+const STEPS = [0, ...STATES.map((_, i) => 250 + i * 150), 250 + N * 150, 550 + N * 150];
 
-/** `// 02 — states`: four state cards stack in, one at a time. */
+/** `// 02 — states`: one card per licensed state stacks in, one at a time. */
 export default function SceneStates({ onStart, path }: { onStart: () => void; path: JoinPathProps }) {
   return (
     <Scene label={S.label} counter="02 / 05" steps={STEPS} background="forest" className="join-states sheet-item" textEquivalent={JOIN_TEXT_EQUIVALENTS[1]}>
@@ -38,7 +39,7 @@ function StatesBody({ step, onStart, path }: { step: number; onStart: () => void
               </span>
             </Link>
           ))}
-          <div className={`card join-state-card join-state-card--vetting step-in ${step >= 5 ? "is-on" : ""}`} aria-label="Every other state: vetting now">
+          <div className={`card join-state-card join-state-card--vetting step-in ${step >= N + 1 ? "is-on" : ""}`} aria-label="Every other state: vetting now">
             <span className="join-state-card__chip">US</span>
             <span className="join-state-card__name">Every other state</span>
             <span className="join-state-card__arrow" aria-hidden="true">
@@ -46,7 +47,7 @@ function StatesBody({ step, onStart, path }: { step: number; onStart: () => void
             </span>
           </div>
         </div>
-        <p className={`join-scene__body step-in ${step >= 6 ? "is-on" : ""}`}>{S.body}</p>
+        <p className={`join-scene__body step-in ${step >= N + 2 ? "is-on" : ""}`}>{S.body}</p>
       </div>
       <JoinPath {...path} />
     </>

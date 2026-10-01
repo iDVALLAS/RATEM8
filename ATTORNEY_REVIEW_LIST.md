@@ -116,3 +116,26 @@ conflict is recorded here.
 - **`/investors`** (`copy.investors`): confirm the fine print ("This page is for informational purposes only and is not an offer to sell, or a solicitation of an offer to buy, any securities.") is sufficient, and that "Interested in investing in LoanM8's growth? Let's start with a conversation." is acceptable general solicitation language for the entity's securities posture. The page carries no raise amount, valuation, terms, returns or structure.
 - **Naming loan officers** (`lib/mlo-match.ts`): public pages are generic by default. A named MLO appears only after the borrower states a region or ZIP, picks an MLO, or (assign states only) is matched by IP, and the footer then shows that MLO's name and NMLS number on the same page. Confirm this satisfies each state's advertising rules (company NMLS on every page; individual NMLS whenever an individual is named). `/disclosures` still lists every MLO with their NMLS number.
 
+
+## v15 additions — Patch B: state routing, location beacon, Oregon (2026-10-01)
+
+### Routing and assignment
+- **Assign vs choose rule** (`lib/routing.ts`). A state auto-assigns a loan officer only when every MLO serving it is sponsored by one of the operator's sponsoring companies (today Home Trust Loans and Home Financial). The moment an MLO from another brokerage serves a state, it becomes "choose": every licensed MLO is listed in random order, nothing is pre-selected, and there is no paid placement. Confirm this satisfies RESPA §8 for the current single-sponsor setup, and for future independent subscribers. The rule is enforced by a build check, not by convention.
+- **Choose-mode disclosure** (`copy.routing.chooseDisclosure`): "Loan officers pay LoanM8 the same flat software fee. Placement is never paid. LoanM8 is owned by {operator} (NMLS #…), a loan officer on this platform." Confirm the wording, and that the "same flat software fee" statement will be true when shown. No fee arrangement exists in this repo.
+- **Resolution order**: the borrower's choice cookie, then the property state they gave us, then the IP region, then asking. Licensing follows the property. When the IP state differs, the site and M8 say so plainly. Confirm that an IP-based starting guess may name a loan officer in assign states before the borrower confirms the property state (v14's rule allows it; choose states never name on IP).
+- **Unlicensed states**: no assignment and no pricing, plus "We don't have a licensed loan officer in {State} yet." Confirm that no further disclosure is needed when a visitor from an unlicensed state still reads general content.
+- **Oregon**:
+  - Entity license number, regulator and any required disclosure are placeholders.
+  - Recording consent is set to one-party for phone and online chat (ORS 165.540); confirm.
+  - Confirm Home Trust Loans' sponsorship of Ryder Fasse's Oregon license, and the "Licensed in Oregon … through Home Trust Loans (NMLS #1761573)" line.
+- **Cookies and privacy**: two first-party, httpOnly cookies (property state, chosen MLO) for 30 days. The IP region is used in-request only and never stored. Confirm the `/privacy` paragraph "Matching you with a loan officer".
+
+### Lender-note display (Patch A, still pending)
+- Playbook notes are shown under anonymized lender letters after the three cards. They are screened for fair-housing proxies and never feed selection. Confirm the display, and that notes can't re-identify a lender.
+
+### Pricing display (Patch A, still pending)
+- With routing on, a visitor whose state has no licensed loan officer sees no pricing on `/rates`. Example pricing stays dated and labelled as examples; manual snapshots stay dated and anonymized. Confirm example and snapshot pricing may be shown to visitors from any licensed state, regardless of which state the fixture scenario is in.
+
+### Credential copy
+- The line under the MLO card reads "Licensed in [State] · NMLS #[ID] · Verify on NMLS Consumer Access →". Per the brief it avoids "vetted", because no `/standards` page describes the vetting process. The owner's v14 copy elsewhere ("Licensed and vetted loan officers", "A licensed, vetted loan officer of your choosing") does use "vetted". Confirm, or require a `/standards` page first.
+- The footer swaps name, NMLS number, state license number and sponsoring entity together for the matched MLO, so a page never shows two MLOs. Confirm the order and wording: "{Name}, {Title}, NMLS #{n}. Licensed in {State} (license {#}) through {Sponsor} ({label} #{id})."

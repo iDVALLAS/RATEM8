@@ -6,7 +6,7 @@ import { MloFooterLine } from "@/components/mlo/MloContext";
 import { groupBySponsor } from "@/lib/licensing";
 
 /**
- * Footer — LOCKED compliance block, restructured for four states.
+ * Footer — LOCKED compliance block, one line per licensed state.
  *
  * Contains, on every page:
  *   - wordmark + tagline + link columns

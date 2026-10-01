@@ -8,6 +8,10 @@ const mlo = {
   title: "Mortgage Loan Originator",
   bioShort: "",
   nmlsConsumerAccessUrl: "",
+  id: "test",
+  photo: "",
+  calendly: "",
+  licenses: [],
 };
 
 const v = (over: Partial<MloContextValue>): MloContextValue => ({ mlo, source: "none", ...over });

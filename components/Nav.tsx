@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import Wordmark from "./Wordmark";
 import ThemeToggle from "./ThemeToggle";
 import PartnerMenu from "./PartnerMenu";
+import LocationBeacon from "./LocationBeacon";
 import { copy } from "@/lib/copy";
 
 /**
@@ -87,6 +88,13 @@ export function Nav() {
             <span className={`nav-burger__bar ${open ? "nav-burger__bar--hide" : ""}`} />
             <span className={`nav-burger__bar ${open ? "nav-burger__bar--x2" : ""}`} />
           </button>
+        </div>
+      </div>
+
+      {/* v15 location beacon (desktop). Renders nothing while MLO_ROUTING is off. */}
+      <div className="hidden lg:block">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <LocationBeacon variant="nav" className="nav-beacon" />
         </div>
       </div>
 

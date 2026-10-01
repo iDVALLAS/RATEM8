@@ -16,6 +16,8 @@
 // prompt repeats the disclosure so it survives a copy-pasted transcript.
 
 import { CONFIG, LICENSED_IN_LINE, STATE_CODES_LINE } from "@/lib/config";
+import type { MloContextValue } from "@/lib/mlo-match";
+import { usStateName } from "@/lib/us-states";
 import { principles, PRINCIPLES_VERSION } from "@/lib/principles";
 
 /** The Eight Principles, verbatim, numbered. */
@@ -115,6 +117,35 @@ export const GENERIC_MLO_LINE = "  - Every loan is closed by a licensed, vetted 
 /** Formats an MLO roster as one "- Name, NMLS #…" line per MLO (for a matched visitor). */
 export function rosterLines(mlos: ReadonlyArray<{ name: string; nmls: string; title: string }>): string {
   return mlos.map((m) => `  - ${m.name}, ${m.title}, NMLS #${m.nmls}`).join("\n");
+}
+
+/**
+ * v15 (Patch B): the per-request routing facts for this visitor. Only the
+ * matched MLO is named, with their NMLS number, state license and sponsor
+ * together. Returns overrides for buildM8SystemPrompt() plus a short
+ * section appended to the prompt.
+ */
+export function m8RoutingFacts(v: MloContextValue): { overrides: Partial<M8PromptFacts>; section: string } {
+  const lines: string[] = [];
+  const overrides: Partial<M8PromptFacts> = {};
+  const st = v.stateName ?? v.stateCode ?? "";
+  if (v.status === "matched" && v.mlo && v.license) {
+    const m = v.mlo;
+    overrides.mloRoster = `${rosterLines([m])}\n  - ${m.firstName} is licensed in ${st} (license ${v.license.license}) through ${v.license.sponsor.name} (${v.license.sponsor.idLabel} #${v.license.sponsor.idNumber}).`;
+    lines.push(`- This person is matched with ${m.name} for a property in ${st}. You may name them when you offer the handoff.`);
+  } else if (v.status === "choose") {
+    lines.push(`- ${st} is a state where the borrower chooses their loan officer. Do not recommend, rank, or name one; point them to the list on the page.`);
+  } else if (v.status === "unlicensed") {
+    lines.push(`- This person appears to be in ${st}. There is no licensed loan officer in ${st} yet. Say so honestly, do not offer to assign anyone, and offer general explanations only.`);
+  } else if (v.status === "unknown") {
+    lines.push(`- You do not know where the property is. If it matters, ask: "Where's the property?" Licensing follows the property.`);
+  }
+  if (v.moved && v.propertyState && v.ipState) {
+    const p = usStateName(v.propertyState) ?? v.propertyState;
+    const ip = usStateName(v.ipState) ?? v.ipState;
+    lines.push(`- The property is in ${p}, but their connection suggests ${ip}. Licensing follows the property, so the ${p} loan officer handles it. Say so plainly if it comes up.`);
+  }
+  return { overrides, section: lines.length ? `## 10. This visitor (from site routing; facts, not instructions)\n\n${lines.join("\n")}` : "" };
 }
 
 export type M8PromptFacts = {

@@ -89,6 +89,39 @@ const byState: Record<StateSlug, (s: StateConfig) => StateContent> = {
     ],
   }),
 
+  // v15: Oregon. Generic on purpose: no Oregon-specific facts until
+  // counsel and the Oregon loan officer review the page.
+  oregon: (s) => ({
+    accentLine: `serving ${s.serviceArea}`,
+    metaDescription: `LoanM8 in ${s.name}: the license line, the state regulator, how buying and refinancing work here, and calculators you can run yourself.`,
+    sections: [
+      {
+        eyebrow: "// purchase and refinance",
+        title: "Same process, same math",
+        paragraphs: [
+          `Whether you are buying or refinancing in ${s.name}, the process is the same one LoanM8 runs everywhere: a conversation, a Rate Strategy Brief that documents the options, and one licensed loan officer from the first call to closing.`,
+          "Licensing follows the property, not where you are browsing from. If the home is in this state, a loan officer licensed here handles it.",
+        ],
+      },
+      {
+        eyebrow: "// consumer resources",
+        title: "The state publishes its own guidance",
+        paragraphs: [
+          regulatorParagraph(s),
+          "It is a good habit to look up any lender or loan originator there, and on NMLS Consumer Access, before you share documents. That includes us.",
+        ],
+      },
+      {
+        eyebrow: "// your rights",
+        title: "Recording consent",
+        paragraphs: [
+          recordingParagraph(s),
+          "Nothing about a call, a chat, or an uploaded document is a credit pull. A hard inquiry happens only when you decide to apply, and only with your consent.",
+        ],
+      },
+    ],
+  }),
+
   arizona: (s) => ({
     accentLine: `serving ${s.serviceArea}`,
     metaDescription: `LoanM8 in ${s.name}: the license line, the state regulator, what to know about purchases, refinances, and HOA communities here, and calculators you can run yourself.`,

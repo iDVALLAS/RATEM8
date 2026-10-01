@@ -12,7 +12,9 @@
 
 import {
   CONFIG,
+  ALL_MLOS,
   STATES,
+  type Mlo,
   STATE_NAMES_LINE,
   STATE_CODES_LINE,
   NOT_A_COMMITMENT,
@@ -54,30 +56,34 @@ export const FEATURES = {
   showAnchorLoPublicly: true,
 } as const;
 
-const anchor: LoanOfficer = {
-  id: "principal",
-  name: CONFIG.principalMlo.name,
-  firstName: CONFIG.principalMlo.firstName,
-  email: CONFIG.contactEmail,
-  phone: "[(XXX) XXX-XXXX]",
-  title: CONFIG.principalMlo.title,
-  nmls: CONFIG.principalMlo.nmls,
-  operatingEntity: {
-    legalName: CONFIG.entityLegalName,
-    tradeName: CONFIG.entityTradeName,
-  },
-  states: STATES.map((s) => ({
-    state: s.code,
-    fullName: s.name,
-    sponsor: s.sponsor,
-    individualLicense: s.mloLicense,
-  })),
-  calendlyBorrower: CONFIG.calendly.borrower,
-  calendlyAgent: CONFIG.calendly.agent,
-  isAnchor: true,
-};
+/** v15: one LoanOfficer per registry MLO, licensed only where their record says. */
+function toLoanOfficer(m: Mlo): LoanOfficer {
+  return {
+    id: m.id,
+    name: m.name,
+    firstName: m.firstName,
+    email: CONFIG.contactEmail,
+    phone: "[(XXX) XXX-XXXX]",
+    title: m.title,
+    nmls: m.nmls,
+    operatingEntity: {
+      legalName: CONFIG.entityLegalName,
+      tradeName: CONFIG.entityTradeName,
+    },
+    states: m.licenses.map((l) => ({
+      state: l.state,
+      fullName: STATES.find((s) => s.code === l.state)?.name ?? l.state,
+      sponsor: l.sponsor,
+      individualLicense: l.license,
+    })),
+    calendlyBorrower: m.calendly,
+    calendlyAgent: CONFIG.calendly.agent,
+    isAnchor: m.id === CONFIG.routing.operatorMloId,
+  };
+}
 
-export const LOAN_OFFICERS: LoanOfficer[] = [anchor];
+export const LOAN_OFFICERS: LoanOfficer[] = ALL_MLOS.map(toLoanOfficer);
+const anchor: LoanOfficer = LOAN_OFFICERS.find((lo) => lo.isAnchor) ?? LOAN_OFFICERS[0];
 
 export function getAnchorLo(): LoanOfficer {
   return anchor;
@@ -88,7 +94,7 @@ export function getEligibleLos(state: StateCode): LoanOfficer[] {
 }
 
 export function getActiveStates(): StateCode[] {
-  return anchor.states.map((s) => s.state);
+  return STATES.map((s) => s.code);
 }
 
 export function getStateListShort(): string {
@@ -112,9 +118,17 @@ function formatList(items: string[]): string {
 
 type SponsorGroup = { sponsor: SponsoringEntity; states: StateLicense[] };
 
-export function groupBySponsor(lo: LoanOfficer = anchor): SponsorGroup[] {
+/**
+ * Sponsor sentences. With no argument: the platform view, every licensed
+ * state grouped by each sponsor that has an MLO there (footer,
+ * /disclosures). With a loan officer: that MLO's own licenses.
+ */
+export function groupBySponsor(lo?: LoanOfficer): SponsorGroup[] {
+  const pairs: StateLicense[] = lo
+    ? lo.states
+    : STATES.flatMap((st) => st.sponsors.map((sp) => ({ state: st.code, fullName: st.name, sponsor: sp })));
   const map = new Map<string, SponsorGroup>();
-  for (const s of lo.states) {
+  for (const s of pairs) {
     const key = `${s.sponsor.name}|${s.sponsor.idNumber}`;
     if (!map.has(key)) map.set(key, { sponsor: s.sponsor, states: [] });
     map.get(key)!.states.push(s);

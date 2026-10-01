@@ -22,6 +22,8 @@ import {
   CONFIG,
   MLO_REF,
   LICENSED_IN_LINE,
+  STATE_NAMES_LINE,
+  STATE_COUNT_WORD,
   AI_DISCLOSURE,
   NOT_A_CREDIT_PULL,
 } from "./config";
@@ -127,7 +129,7 @@ export const copy = {
 
   states: {
     label: "// licensed in",
-    heading: "Four states. One standard.",
+    heading: `${STATE_COUNT_WORD} states. One standard.`,
     sub: `Licensed in ${LICENSED_IN_LINE}.`,
     ctaSuffix: "state page",
   },
@@ -353,7 +355,7 @@ export const copy = {
     sub: "Licensed, competent, and tired of buying leads that were sold to four other people? We are vetting originators in every state, one per area. M8 handles the intake. You originate.",
     scenes: [
       { label: "// 01 — hook", title: "Got a license and something to prove?", body: "This is for originators, in any state, who would rather explain the math than pressure a borrower." },
-      { label: "// 02 — where", title: "Every state. One originator per area.", body: "Live today in Washington, Arizona, California, and Texas. Vetting licensed originators everywhere else ahead of expansion. When an area has its originator, it is closed to new applicants." },
+      { label: "// 02 — where", title: "Every state. One originator per area.", body: `Live today in ${STATE_NAMES_LINE}. Vetting licensed originators everywhere else ahead of expansion. When an area has its originator, it is closed to new applicants.` },
       { label: "// 03 — intake", title: "M8 does the first conversation.", body: "A borrower talks to M8, gets the math explained, and a Rate Strategy Brief is drafted before you pick up the phone." },
       { label: "// 04 — handled", title: "You get a file, not a lead.", body: "A routed borrower, a three-option comparison laid out the anti-steering way, a pipeline, and a compliance trail." },
       { label: "// 05 — you", title: "You originate. M8 handles the intake.", body: "Book an intro call. No forms." },
@@ -444,6 +446,41 @@ export const copy = {
     cta: "Book a 20-min partner intro call",
   },
 
+  /* ───────────── ROUTING (v15, Patch B) ───────────── */
+  // Tokens: {state} {ip} {name} {first} {nmls} {operator}. A name never
+  // renders without its NMLS number on the same page (footer line).
+
+  routing: {
+    beaconLabel: "Your state and loan officer",
+    matched: "{state} · matched with {name}",
+    choose: "{state} · choose your loan officer",
+    unlicensed: "We don't have a licensed loan officer in {state} yet.",
+    unknown: "Where's the property?",
+    change: "Not right? Change",
+    set: "Set it",
+    moved: "Matched for the property in {state}, not {ip}. Licensing follows the property.",
+    pickerLabel: "Property state",
+    pickerHint: "Licensing follows the property, not where you're browsing from.",
+    pickerPlaceholder: "Choose a state",
+    pickerSave: "Use this state",
+    pickerForget: "Forget my state",
+    pickerClose: "Close",
+    pickerError: "That didn't save. Try again.",
+    credential: {
+      licensedIn: "Licensed in {state}",
+      nmls: "NMLS #{nmls}",
+      verify: "Verify on NMLS Consumer Access →",
+    },
+    chooseHeading: "Choose your loan officer in {state}",
+    chooseSub: "Every loan officer licensed for this state, in random order. Nothing is pre-selected.",
+    chooseButton: "Choose {first}",
+    chooseDisclosure: "Loan officers pay LoanM8 the same flat software fee. Placement is never paid. LoanM8 is owned by {operator} (NMLS #{nmls}), a loan officer on this platform.",
+    unlicensedBooking: "No licensed loan officer in {state} yet",
+    /** Footer, atomically for one MLO: identity, state license and sponsor together. */
+    footerLine: "{name}, {title}, NMLS #{nmls}. Licensed in {state} (license {license}) through {sponsor} ({sponsorLabel} #{sponsorId}).",
+    unlicensedRates: "We don't have a licensed loan officer in {state} yet, so there is no pricing to show for it. If the property is somewhere else, change the state.",
+  },
+
   /* ───────────── INVESTORS (v14, Edit 5b) ───────────── */
   // No raise amount, valuation, terms, returns, or structure on this page.
 
@@ -494,6 +531,18 @@ export const copy = {
 
   chat: {
     title: "M8 Chat",
+    /**
+     * Live M8 opening line (tester preview). v15: the loan officer part
+     * swaps with MloContext; a name always travels with its NMLS number.
+     */
+    liveOpening: {
+      lead: `G'day. ${AI_DISCLOSURE} I'm M8, in a preview build. I can explain how a mortgage works and write up what we discuss. I can't quote a rate here`,
+      generic: ", and a licensed loan officer verifies every deal.",
+      named: ", and {name}, a licensed loan officer for {state} (NMLS #{nmls}), verifies every deal.",
+      unlicensed: ", and we don't have a licensed loan officer in {state} yet, so I can explain things but can't hand you off there.",
+      moved: " Licensing follows the property, so you're matched for {state}, not {ip}.",
+      close: " What are you trying to do?",
+    },
     gate: {
       eyebrow: "// before we start",
       body: "I'm M8, an AI, not a person. A licensed loan officer verifies every deal. This chat may be recorded for compliance; ask for a transcript any time. It is not a credit pull.",

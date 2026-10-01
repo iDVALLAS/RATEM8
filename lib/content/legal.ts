@@ -60,6 +60,12 @@ export const privacyContent = {
         body: "LoanM8 sets no cookies for tracking. Hosting analytics (Vercel Analytics) records page-level usage in aggregate; we do not see who you are. Your theme choice (Night, Dim, or Paper) is stored in your browser's local storage and is never sent to us.",
       },
       {
+        // v15 (Patch B). Shown whatever the flag, with its current state.
+        label: "Matching you with a loan officer",
+        status: CONFIG.pricing.mloRouting ? "currently on" : "currently off",
+        body: "To show the loan officer licensed for your state, the site reads the approximate state your connection comes from (your IP region, supplied by our host). It is used for that one page request and never stored. We never show a ZIP code or city from it. If you tell us where the property is, or pick a loan officer, we keep that choice in two first-party cookies (the property state and the loan officer you picked) for 30 days so the site stays consistent. They are not used for tracking or advertising, and \"Forget my state\" deletes them.",
+      },
+      {
         label: "Booking a call",
         body: "Booking runs on Calendly, a third-party scheduling vendor. Whatever you type into the booking form (name, email, notes) is collected by Calendly under its own privacy policy and shared with us so we can hold the call.",
       },
@@ -330,6 +336,7 @@ export const disclosuresContent = {
   nmls: {
     lead: "The Nationwide Multistate Licensing System (NMLS) identifier for the entity and for each licensed loan officer. Consumer Access links open the public NMLS record.",
     entityLabel: "Entity",
+    licensedIn: "Licensed in",
     consumerAccessLabel: "NMLS Consumer Access",
     consumerAccessPending: "Consumer Access link pending",
   },

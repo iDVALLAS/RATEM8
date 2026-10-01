@@ -1,6 +1,8 @@
 "use client";
 
-import { useNamedMlo, MloText } from "@/components/mlo/MloContext";
+import { useMloContext, useNamedMlo, MloText } from "@/components/mlo/MloContext";
+import LocationBeacon, { MloChooser } from "@/components/LocationBeacon";
+import { copy } from "@/lib/copy";
 
 /**
  * AboutCards — the "who closes your loan" heading, sub and card
@@ -24,7 +26,9 @@ const isUrl = (s: string) => /^https?:\/\//.test(s);
 const isPlaceholder = (s: string) => /^\[.*\]$/.test(s.trim());
 
 export default function AboutCards({ s }: { s: Strings }) {
+  const ctx = useMloContext();
   const mlo = useNamedMlo();
+  const cred = copy.routing.credential;
   const bio = mlo && !isPlaceholder(mlo.bioShort) && mlo.bioShort ? mlo.bioShort : null;
   return (
     <>
@@ -43,15 +47,20 @@ export default function AboutCards({ s }: { s: Strings }) {
             <div className="hm-about__id">
               <div className="hm-about__name">{mlo.name}</div>
               <div className="hm-about__title">{mlo.title}</div>
-              <div className="hm-about__nmls">
-                {s.nmlsPrefix}
-                {mlo.nmls}
-              </div>
-              {isUrl(mlo.nmlsConsumerAccessUrl) ? (
-                <a href={mlo.nmlsConsumerAccessUrl} target="_blank" rel="noopener noreferrer" className="hm-about__verify">
-                  {s.verify}
-                </a>
-              ) : null}
+              {/* B4 credential line: Licensed in [State] · NMLS #[ID] · Verify → */}
+              <p className="hm-about__cred">
+                {ctx.stateName ? <span>{cred.licensedIn.replace("{state}", ctx.stateName)} · </span> : null}
+                <span className="hm-about__nmls">{cred.nmls.replace("{nmls}", mlo.nmls)}</span>
+                {isUrl(mlo.nmlsConsumerAccessUrl) ? (
+                  <>
+                    {" · "}
+                    <a href={mlo.nmlsConsumerAccessUrl} target="_blank" rel="noopener noreferrer" className="hm-about__verify">
+                      {cred.verify}
+                    </a>
+                  </>
+                ) : null}
+              </p>
+              <LocationBeacon variant="card" />
             </div>
             {bio ? (
               <div>
@@ -60,10 +69,15 @@ export default function AboutCards({ s }: { s: Strings }) {
               </div>
             ) : null}
           </li>
+        ) : ctx.status === "choose" ? (
+          <li className="hm-about__card hm-about__card--choose">
+            <MloChooser />
+          </li>
         ) : (
           <li className="hm-about__card">
             <div className="hm-about__id">
               <div className="hm-about__name">{s.generic.title}</div>
+              <LocationBeacon variant="card" />
               <a href={s.lookupHref} target="_blank" rel="noopener noreferrer" className="hm-about__verify">
                 {s.generic.verify}
               </a>

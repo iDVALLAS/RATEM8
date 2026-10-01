@@ -23,6 +23,7 @@ const RULES = [
   // Copy names an MLO only through MloContext templates ({first}/{name}).
   { name: "MLO first name", re: /\b(?:jason|ryder)\b/i },
   { name: "NMLS number", re: /\b1844143\b/ },
+  { name: "NMLS number", re: /\b119822\b/ },
   { name: "NMLS-labelled number", re: /NMLS\s*(?:ID|No\.?|number)?\s*[:#]?\s*#?\s*\d{4,8}\b/i },
 ];
 

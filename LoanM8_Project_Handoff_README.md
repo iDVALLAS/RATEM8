@@ -99,6 +99,141 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v15 (Patch B) — State-based MLO routing, location beacon, Oregon (2026-10-01)
+
+**One line:**
+- Oregon is the fifth licensed state.
+- Ryder Fasse (NMLS 119822, Home Trust Loans) is added for Oregon.
+- Sponsorship is now data: per MLO, per state, with a date.
+- Routing derives assign/choose per state, and the build fails on an
+  invalid setup.
+- Middleware resolves each visitor (choice → property state → IP region →
+  ask). One context swaps the loan officer everywhere.
+- A location beacon shows the state and match.
+- All of it sits behind `MLO_ROUTING`, which is off by default.
+
+### Decisions (owner, 2026-10-01)
+- Ryder Fasse: NMLS 119822; sponsor Home Trust Loans (NMLS 1761573; his
+  signature's "Home Trust Financial" was confirmed as Home Trust Loans).
+  **Oregon only.** The principal MLO stays the loan officer for WA (and
+  AZ/CA/TX).
+- Add Oregon as a fifth licensed state.
+
+### What shipped (brief B1–B5)
+- **B1 config** (`lib/config.ts`):
+  - `Mlo` gains `id` (neutral: `mlo-001`, `mlo-002`), `photo`, `calendly`
+    and `licenses[]` (state, license, sponsor, `sponsorSince`).
+  - `CONFIG.routing` holds `operatorMloId`, `stateAssignments` and
+    `routingModeOverride`.
+  - `STATES` derives `sponsor`, `sponsors` and `mloLicense` from the
+    licenses. Oregon state entry added.
+  - `lib/routing.ts`:
+    - derives `assign`/`choose` with the same-sponsoring-entity rule
+    - `validateRouting()` throws when the module loads, which fails
+      `next build`
+  - Pricing tenants now take seats from the MLOs each sponsor actually
+    sponsors.
+- **B2 resolution:**
+  - `middleware.ts` runs `resolveRoute()` per request and forwards
+    `x-lm8-route` (ids only; a client-sent copy is dropped).
+  - The layout decodes it with `lib/route-context.ts` and fills
+    `MloProvider`.
+  - The property state wins over the IP state (`moved`).
+  - Unlicensed state: no assignment, no `/rates` pricing, and an honest
+    line.
+- **B3 swap:**
+  - Footer `MloFooterLine` shows name, title, NMLS, state license number
+    and sponsor together.
+  - About card shows the matched MLO, a choose list, or the generic card.
+  - Booking CTA uses the matched MLO's own link.
+  - State-page originator row only names an MLO licensed in that state.
+  - M8 system prompt gets a "This visitor" section via `m8RoutingFacts()`,
+    and the live opening line swaps the same way.
+  - `/disclosures` lists each MLO's licensed states, and the per-state
+    MLO licenses and sponsors.
+- **B4 credential line:** "Licensed in [State] · NMLS #[ID] · Verify on
+  NMLS Consumer Access →". No "vetted", since `/standards` doesn't exist.
+- **B5 beacon** (`components/LocationBeacon.tsx`):
+  - breathing dot on the orb's 4s rhythm, still under reduced motion
+  - simplified state outline SVG (`StateOutline.tsx`; pin for other
+    states)
+  - "[State] · matched with [MLO]" plus "Not right? Change"
+  - The picker sets `lm8_property_state` (and `lm8_mlo` in choose
+    states) via `POST /api/route-choice`, which returns 404 while the flag
+    is off. "Forget my state" clears both.
+  - Placement: under the desktop nav, under the mobile hero trust strip,
+    and on the MLO card.
+  - Privacy gets a "Matching you with a loan officer" paragraph.
+- **Oregon everywhere:**
+  - `/states/oregon` (generic content; recording consent set one-party,
+    flagged for counsel)
+  - "Five states. One standard."
+  - Join cards and text equivalents derive from `STATES`; `/join` grid is
+    three columns.
+  - The closing-costs tool leaves Oregon out until a range is supplied.
+- **Checks:**
+  - `check:identity` also flags 119822.
+  - MLO ids are neutral, so no first name appears in code.
+  - 14 new tests (92 total).
+
+### Done-when checks (brief B6)
+| Check | Result |
+| --- | --- |
+| Forced headers CA, OR, unlicensed render three internally consistent sites | **Pass.** CA: Jason Shapiro in the beacon (nav and mobile), About card, footer (NMLS 1844143, CA license, Home Trust Loans). OR: Ryder Fasse in all of them (NMLS 119822, OR license, Home Trust Loans). NV: no name anywhere, "We don't have a licensed loan officer in Nevada yet." in the beacon, `/rates` and booking. Each page carries one MLO's name only (7 occurrences, no other). |
+| CA IP with an OR property routes to the OR MLO | **Pass.** Cookie `lm8_property_state=OR` + CA header → Ryder Fasse, plus "Matched for the property in Oregon, not California. Licensing follows the property." Unit-tested too. |
+| Hardcoded-name CI check passes | **Pass** (207 files). |
+| `assign` build fails when an MLO's entity doesn't match | **Pass.** With Ryder's OR sponsor temporarily changed, `next build` exits 1: "OR is assigned to mlo-002, whose OR sponsor is not one of the operator's sponsoring companies. Assign mode requires the same entity; this state must be "choose"." Restored afterwards. Also covered by tests. |
+
+Also verified:
+- `npm run verify` passes with the flag off (pages stay static,
+  `/states/oregon` prerendered).
+- Built and run with `MLO_ROUTING=true`, the browser flow works at 1280px:
+  pick Oregon → Ryder plus the move note → footer swaps → "Forget my
+  state" → back to California, with cookies cleared.
+- The mobile beacon and About card were checked at 390px. No overflow, no
+  hydration errors; the only console error is the local Analytics 404.
+
+### Every `[PLACEHOLDER]` (see `PLACEHOLDERS.md`)
+- **Principal MLO:**
+  - `[BIO — …]` and `[PHOTO]`
+  - `[WA MLO LICENSE #]`, `[AZ MLO LICENSE #]`, `[CA MLO LICENSE #]`,
+    `[TX MLO LICENSE #]`
+  - `[SPONSOR EFFECTIVE DATE]` ×4
+- **Ryder Fasse:**
+  - `[BIO — …]` and `[PHOTO]`
+  - `[OR MLO LICENSE #]`
+  - `[SPONSOR EFFECTIVE DATE]`
+  - booking link (`NEXT_PUBLIC_CALENDLY_RYDER`, unset)
+  - title to confirm (Originator vs Officer)
+- **Oregon:**
+  - `[OR ENTITY LICENSE #]`
+  - `[OR regulator name — e.g. Oregon Division of Financial Regulation]`
+    and `[OR regulator URL]`
+  - `[STATE-SPECIFIC DISCLOSURE — confirm with counsel]`
+- **Carried over and still open:** entity NMLS, other states' entity
+  licenses, regulators and disclosures, and `[EMAIL]`.
+- **Not built (owner decision or data needed):**
+  - `/standards`
+  - choose-mode sort data (distance, language, availability)
+  - notify-me for unlicensed states
+  - the Oregon closing-costs range
+  - the Rate Strategy Brief and attestation swap (neither exists yet)
+
+### Attorney review
+See `ATTORNEY_REVIEW_LIST.md` → "v15 additions": routing and assignment
+(assign/choose rule, choose disclosure, IP naming, unlicensed handling,
+Oregon, cookies), lender-note display, pricing display, and credential
+copy.
+
+### Rough edges and next up
+- With `MLO_ROUTING=true`, every page renders per request; caching
+  trade-off accepted.
+- The brief's `config/mlos.ts` and `config/states.ts` paths were kept in
+  `lib/config.ts`, the repo's single source of truth.
+- Local runs need the `x-vercel-ip-country(-region)` headers; Vercel sets
+  them in production.
+- Next: Patch C (rate sheet engine) only on approval.
+
 ## v14 — Site change list: hero popups, Partner nav, /investors, generic MLO wording, orb monogram (2026-10-01)
 
 **One line:** the owner's seven-edit change list. Voice and Q & A open

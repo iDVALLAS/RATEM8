@@ -20,7 +20,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
   model vendor.
 - **Stack:** Next.js 15.5 App Router, React 19, TypeScript strict,
   Tailwind v4 with CSS-variable tokens, Vercel hosting, Vercel
-  Analytics only (no third-party trackers, no cookies set by us).
+  Analytics only (no third-party trackers, no tracking cookies). With
+  `MLO_ROUTING` on, two functional first-party cookies hold the
+  borrower's stated property state and chosen loan officer (§4c).
 - **Stealth:** while `NEXT_PUBLIC_STEALTH_MODE` is anything but
   `"false"`, anonymous visitors get the coming-soon page. Legally and
   machine-required routes stay public (`/ai`, `/llms.txt`,
@@ -87,7 +89,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v14 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v15 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -98,7 +100,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 78 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 92 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -333,17 +335,46 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   appended server-side in `app/api/m8-chat/route.ts`, never in `lib/m8.ts`
   (a client component imports that file).
 
-## 4c. Loan officer naming — `MloContext` (v14)
+## 4c. Loan officers, states and routing (v14 naming, v15 Patch B routing)
 
-- `lib/mlo-match.ts` is the rule. `source: "none"` (everyone today) gives
-  generic copy. `borrower_stated` or `chosen` names the matched MLO.
-  `ip` names one only when `borrowerChooses === false` (an assign state);
-  unknown counts as choose.
-- `components/mlo/MloContext.tsx`: `MloProvider` (in `app/layout.tsx`),
-  `useNamedMlo`, `MloText`, `MloFooterLine` (name + NMLS # in the footer
-  whenever a name shows), `MloLicenseItem` (state pages).
-- `/disclosures` is the one page that lists every MLO with their NMLS
-  number (and the Person JSON-LD). Patch B fills the provider's value.
+- **Registry:** `lib/config.ts`.
+  - `CONFIG.principalMlo` (the operator, id `mlo-001`) and `CONFIG.team`
+    (Ryder Fasse, `mlo-002`, Oregon). Ids are neutral and never names.
+  - Each MLO has `licenses[]`: state, license number, **sponsor**, and
+    `sponsorSince`. Sponsorship changes are made there.
+  - `STATES` derives `sponsor`, `sponsors` and `mloLicense` from those
+    licenses. Five states: WA, OR, AZ, CA, TX.
+- **Routing:** `lib/routing.ts`.
+  - A state is `assign` only if every MLO serving it is under one of the
+    operator's sponsoring companies; otherwise it's `choose` (random
+    order, nothing pre-selected, with the flat-fee/ownership disclosure).
+  - `CONFIG.routing.stateAssignments` picks the MLO in assign states.
+  - `validateRouting()` runs when the module loads, so a bad registry
+    fails `next build`.
+- **Resolution** (`middleware.ts`, behind `MLO_ROUTING`, default off):
+  - Order: choice cookie `lm8_mlo` → property cookie `lm8_property_state`
+    → `x-vercel-ip-country-region` → unknown ("Where's the property?").
+  - The result goes to the app as the `x-lm8-route` header (ids only).
+    `lib/route-context.ts` decodes it for the layout and `/rates`.
+  - Flag off: `NO_MLO` and static pages.
+- **Naming rule:** `lib/mlo-match.ts`, unchanged from v14. With source
+  `none` copy is generic; `ip` names only in assign states.
+- **Context:** `components/mlo/MloContext.tsx` provides:
+  - `MloProvider`, `useMloContext`, `useNamedMlo`, `MloText`
+  - `MloFooterLine` (name, NMLS, state license and sponsor together)
+  - `MloLicenseItem` (only an MLO licensed in that page's state)
+  - `MloBookingButton` (the matched MLO's booking link; honest text in
+    unlicensed states)
+- **Beacon:** `components/LocationBeacon.tsx`.
+  - Shows "[State] · matched with [MLO]" with a "Not right? Change" picker
+    (`POST /api/route-choice`) and `MloChooser` for choose states.
+  - Placement: under the desktop nav, under the mobile hero trust strip,
+    and on the MLO card. State name only, never ZIP or city.
+- **M8:** `m8RoutingFacts()` in `lib/prompts/m8-system.ts` names only the
+  matched MLO and tells M8 about the mover case. The live opening line
+  swaps the same way.
+- `/disclosures` lists every MLO with their NMLS number and licensed
+  states (the register).
 
 ## 4d. Nav — `components/Nav.tsx`, `components/PartnerMenu.tsx` (v14)
 
@@ -371,7 +402,7 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 | Home bands | `components/MarketingHomePage.tsx`, `components/home/StatesStrip.tsx`, `Principles.tsx`, `PrinciplesScene.tsx`, `HowItWorks.tsx`, `HowItWorksSteps.tsx`, `SecondLookTeaser.tsx`, `SecondLookScene.tsx`, `AgentsBand.tsx`, `MloBand.tsx`, `About.tsx` |
 | Other animated pages | `components/join/*`, `components/agents/*`, `components/second-look/*`, `components/chat/*`, `components/brief/*` |
 | Nav and footer | `components/Nav.tsx`, `components/PartnerMenu.tsx`, `components/Footer.tsx`, `components/ThemeToggle.tsx`, `components/Wordmark.tsx` |
-| Loan officer naming | `lib/mlo-match.ts`, `components/mlo/MloContext.tsx`, `components/home/AboutCards.tsx` |
+| Loan officers and routing | `lib/config.ts` (registry, `CONFIG.routing`), `lib/routing.ts`, `lib/route-context.ts`, `lib/mlo-match.ts`, `lib/us-states.ts`, `middleware.ts`, `app/api/route-choice/route.ts`, `components/mlo/*`, `components/LocationBeacon.tsx`, `components/home/AboutCards.tsx` |
 | Investors | `app/investors/page.tsx` (`copy.investors`, `CONFIG.investorContactHref`) |
 | Agent surface | `app/api/agent/*`, `lib/agent-api.ts`, `app/ai/*`, `app/llms.txt/*`, `AGENTS.md` |
 | Compliance docs | `COMPLIANCE.md`, `ATTORNEY_REVIEW_LIST.md`, `PLACEHOLDERS.md`, `docs/BUILD_CONTRACT.md`, `docs/SITE_BRIEF.md`, `docs/TYPOGRAPHY_GUIDE.md` |
@@ -382,7 +413,7 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 
 ## 6. Dependencies
 
-No dependency was added in v12, v13 or v14. Runtime (`package.json`):
+No dependency was added in v12, v13, v14 or v15. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,

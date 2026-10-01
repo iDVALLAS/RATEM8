@@ -5,7 +5,7 @@
  * secondary links. If a route exists, it is here.
  */
 
-import { CONFIG, STATES } from "./config";
+import { CONFIG, STATES, STATE_CODES_LIST } from "./config";
 
 export type SiteRoute = {
   path: string;
@@ -26,7 +26,7 @@ export type SiteRoute = {
 export const ROUTES: SiteRoute[] = [
   { path: "/", title: "LoanM8 — Loan intelligence. Free for the people.", description: "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer. No lead-selling, no trigger leads, no spam.", changeFrequency: "weekly", priority: 1, llms: true },
   { path: "/second-look", title: "Second Look", description: "Drop a Loan Estimate you already have. M8 explains every line in plain English. Sample demo live; real upload feature-flagged.", changeFrequency: "monthly", priority: 0.9, llms: true },
-  { path: "/join", title: "For licensed MLOs", description: "Recruiting page for licensed Mortgage Loan Originators in WA, AZ, CA, and TX. No earnings claims; details on the intro call.", changeFrequency: "monthly", priority: 0.7, llms: true },
+  { path: "/join", title: "For licensed MLOs", description: `Recruiting page for licensed Mortgage Loan Originators in ${STATE_CODES_LIST}. No earnings claims; details on the intro call.`, changeFrequency: "monthly", priority: 0.7, llms: true },
   { path: "/agents", title: "For real estate agents", description: "How LoanM8 works with agents. No money, gifts, or marketing dollars flow between LoanM8 and agents.", changeFrequency: "monthly", priority: 0.8, llms: true },
   { path: "/investors", title: "Investors", description: "For capital, strategic, and industry partners. Informational only; not an offer of securities.", changeFrequency: "monthly", priority: 0.4, llms: true },
   { path: "/calculators", title: "Calculators", description: "Four deterministic mortgage calculators. User-entered rates only; the calculators supply none.", changeFrequency: "monthly", priority: 0.9, llms: true, markdown: "/calculators/methodology.md" },

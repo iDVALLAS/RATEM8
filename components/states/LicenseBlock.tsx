@@ -67,7 +67,7 @@ export default function LicenseBlock({ state }: { state: StateConfig }) {
           <dt>{t.originatorsLabel}</dt>
           <dd>
             <ul className="st-mlo">
-              <MloLicenseItem nmlsLabel={t.nmlsLabel} generic={t.originatorsGeneric} lookupLabel={t.originatorsLookup} lookupHref={CONFIG.nmlsConsumerAccessHome} />
+              <MloLicenseItem stateCode={state.code} nmlsLabel={t.nmlsLabel} generic={t.originatorsGeneric} lookupLabel={t.originatorsLookup} lookupHref={CONFIG.nmlsConsumerAccessHome} />
             </ul>
           </dd>
         </div>

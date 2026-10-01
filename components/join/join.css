@@ -165,7 +165,7 @@
   margin-top: 28px;
 }
 @media (min-width: 640px) { .join-state-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; } }
-@media (min-width: 1024px) { .join-state-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1024px) { .join-state-grid { grid-template-columns: repeat(3, 1fr); } } /* v15: five states + "every other state" = 2 rows */
 
 .join-state-card {
   display: flex;

@@ -1,14 +1,21 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { cookies } from "next/headers";
-import { getM8SystemPrompt, M8_MODEL, M8_MAX_TOKENS } from "@/lib/m8";
+import { cookies, headers } from "next/headers";
+import { M8_MODEL, M8_MAX_TOKENS } from "@/lib/m8";
+import { buildM8SystemPrompt, m8RoutingFacts } from "@/lib/prompts/m8-system";
+import { decodeRoute, ROUTE_HEADER } from "@/lib/routing";
 import { exampleSummaryText } from "@/lib/pricing/summary";
 
 import { CONFIG } from "@/lib/config";
 
 /** The M8 prompt plus, when example pricing is on, the computed example figures (server-only). */
-function systemPrompt(): string {
-  const base = getM8SystemPrompt();
-  return CONFIG.pricing.demoExamples ? `${base}\n\n${exampleSummaryText()}` : base;
+async function systemPrompt(): Promise<string> {
+  // v15: with MLO_ROUTING on, the visitor's route (resolved in middleware)
+  // names the matched MLO only, and tells M8 about the mover case.
+  const routing = CONFIG.pricing.mloRouting ? m8RoutingFacts(decodeRoute((await headers()).get(ROUTE_HEADER))) : { overrides: {}, section: "" };
+  const parts = [buildM8SystemPrompt(routing.overrides)];
+  if (routing.section) parts.push(routing.section);
+  if (CONFIG.pricing.demoExamples) parts.push(exampleSummaryText());
+  return parts.join("\n\n");
 }
 
 /**
@@ -150,7 +157,7 @@ export async function POST(req: Request) {
   // --------- Stream from the Claude API ---------
 
   const client = new Anthropic({ apiKey });
-  const system = systemPrompt();
+  const system = await systemPrompt();
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

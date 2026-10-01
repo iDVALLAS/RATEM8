@@ -3,7 +3,7 @@ import Link from "next/link";
 import LegalPage from "@/components/legal/LegalPage";
 import LegalSection from "@/components/legal/LegalSection";
 import CounselReview from "@/components/legal/CounselReview";
-import { CONFIG, STATES, ALL_MLOS, NOT_A_COMMITMENT, isPlaceholder, stateDisplay } from "@/lib/config";
+import { CONFIG, STATES, ALL_MLOS, NOT_A_COMMITMENT, isPlaceholder, stateDisplay, stateByCode, mlosServing, licenseIn } from "@/lib/config";
 import { groupBySponsor, buildDisclaimer } from "@/lib/licensing";
 import { personJsonLd } from "@/lib/jsonld";
 import JsonLd from "@/components/JsonLd";
@@ -70,7 +70,7 @@ export default function DisclosuresPage() {
             <div key={m.nmls}>
               <dt>{m.name}</dt>
               <dd>
-                {m.title} · NMLS #{m.nmls}
+                {m.title} · NMLS #{m.nmls} · {c.nmls.licensedIn} {m.licenses.map((l) => stateByCode(l.state)?.name ?? l.state).join(", ")}
                 {isPlaceholder(m.nmlsConsumerAccessUrl) ? (
                   <span className="mono-label block mt-1">{c.nmls.consumerAccessPending}</span>
                 ) : (
@@ -112,13 +112,21 @@ export default function DisclosuresPage() {
                   <Fact value={st.entityLicense} />
                 </td>
                 <td data-label={c.licenses.columns.mloLicense}>
-                  <Fact value={st.mloLicense} />
+                  {mlosServing(st.code).map((m) => (
+                    <span key={m.id} className="block">
+                      {m.name}: <Fact value={licenseIn(m, st.code)?.license ?? ""} />
+                    </span>
+                  ))}
                 </td>
                 <td data-label={c.licenses.columns.regulator}>
                   <RegulatorLink name={st.regulatorName} url={st.regulatorUrl} />
                 </td>
                 <td data-label={c.licenses.columns.sponsor}>
-                  {st.sponsor.name} ({st.sponsor.idLabel} #{st.sponsor.idNumber})
+                  {st.sponsors.map((sp) => (
+                    <span key={sp.name + sp.idNumber} className="block">
+                      {sp.name} ({sp.idLabel} #{sp.idNumber})
+                    </span>
+                  ))}
                 </td>
               </tr>
             ))}
