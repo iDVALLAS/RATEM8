@@ -27,12 +27,34 @@ Tags used throughout:
 All sources were accessed 2026-10-01. A page's own date is given where the
 excerpt showed one.
 
-**Lenders covered.** The brief asks for rate sheet detail "for each
-lender I name." No list was supplied, so this covers the three lenders
-named in the brief (UWM, Rocket Pro TPO, Pennymac TPO) plus five large
-wholesale lenders with public evidence (Plaza, Kind Lending, Newrez
-Wholesale, Freedom Wholesale, Angel Oak). Send the real list and §6 and
-§8 will be redone for it.
+**Lenders covered.** The owner's twelve lenders (see §0b). Rocket Pro
+TPO and Angel Oak from the first pass are kept in §6b for reference only.
+
+---
+
+## 0b. Owner decisions recorded 2026-10-01
+
+1. **Ryder Fasse** is currently under the same sponsoring entity as the
+   principal MLO. **Sponsorship changes often**, so Patch B must treat it
+   as data, not code:
+   - Sponsorship is stored **per MLO, per state, with an effective date**
+     (today the repo stores it per state only: Home Trust Loans for WA,
+     CA and TX; Home Financial for AZ; see `lib/config.ts`).
+   - It is editable from an **admin-only backend setting** (no deploy
+     needed), with `lib/config.ts` as the seed and fallback. A one-line
+     config edit also works for a session agent.
+   - Every change is versioned and written to the audit log with who
+     changed it and when.
+   - `assign` vs `choose` routing per state is **derived** from those
+     records at request time, never hand-set: if every MLO serving a
+     state shares the platform operator's sponsor in that state, the state
+     may `assign`; the moment one does not, it flips to `choose`.
+   - The footer disclosure, MLO card and state license line read from the
+     same resolved record, so a sponsor change updates every surface at
+     once.
+2. **Lenders in use (12):** UWM, The Loan Store, PRMG, Pennymac,
+   Freedom Mortgage, REMN, Provident, Rise, HomeXpress, Newrez, Kind
+   Lending, Plaza. §6, §8 and §12 cover these.
 
 ---
 
