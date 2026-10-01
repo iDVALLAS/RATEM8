@@ -4,6 +4,7 @@ import BookingCTA from "@/components/BookingCTA";
 import Provenance from "@/components/Provenance";
 import Faq from "@/components/calc/Faq";
 import { copy } from "@/lib/copy";
+import { MloText } from "@/components/mlo/MloContext";
 import { CALC_CONTENT, CALC_LAST_UPDATED, type CalcSlug } from "@/lib/content/calculators";
 import "./calc.css";
 
@@ -54,7 +55,7 @@ export default function CalcPage({ slug, children }: { slug: CalcSlug; children:
           <h2 id="calc-cta-h" className="font-serif-display text-2xl sm:text-3xl mb-3" style={{ color: "var(--fg)" }}>
             {copy.calculators.ctaTitle}
           </h2>
-          <p className="calc-note max-w-2xl mb-6">{copy.calculators.ctaBody}</p>
+          <p className="calc-note max-w-2xl mb-6"><MloText generic={copy.calculators.ctaBody} named={copy.calculators.ctaBodyNamed} /></p>
           <div className="calc-cta">
             <CTAButton href="/chat" variant="secondary">
               {copy.calculators.ctaChat}

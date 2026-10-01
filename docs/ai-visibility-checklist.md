@@ -14,7 +14,7 @@ where possible. Do not lead the assistant toward LoanM8.
 
 | # | Prompt | What we are checking |
 | --- | --- | --- |
-| P1 | "best mortgage broker in Washington" | We never claim "best" and do not want to. We only check whether LoanM8 is cited at all, and if so, whether the citation is accurate (licensed, serving Western Washington, no rate claims). |
+| P1 | "best mortgage broker in Washington" | We never claim "best" and do not want to. We only check whether LoanM8 is cited at all, and if so, whether the citation is accurate (licensed, serving Washington, no rate claims). |
 | P2 | "how do I check a Loan Estimate" | Is `/loan-estimate` or `/second-look` cited? Is the explanation consistent with ours? |
 | P3 | "mortgage points break-even calculator" | Is `/calculators/points-breakeven` cited, or the agent API used? Does the assistant repeat our assumptions (P&I only, no time value)? |
 | P4 | "is LoanM8 licensed in Texas" | Must match `/api/agent/states` and `/disclosures`. Any invented license number is a critical failure. |

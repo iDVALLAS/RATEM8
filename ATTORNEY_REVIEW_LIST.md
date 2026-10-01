@@ -65,7 +65,7 @@ conflict is recorded here.
 
 ## State-specific disclosures
 
-- Washington: `entityLicense`, `mloLicense`, regulator name/URL, and any mandated disclosure text. Confirm "serving Western Washington" as the service-area statement.
+- Washington: `entityLicense`, `mloLicense`, regulator name/URL, and any mandated disclosure text. Confirm the statewide service-area statement ("serving Washington"; "Western" removed in v14).
 - Arizona: same fields; confirm whether AZ requires a specific license-display format.
 - California: licensing language placeholder (`requiredDisclosure`); confirm DFPI-style wording and license type.
 - Texas: recovery-fund / complaint notice placeholder; confirm the mandated text and whether it must appear on every page or only `/disclosures` and `/states/texas`.
@@ -110,4 +110,9 @@ conflict is recorded here.
 - **Loan officer notes.** Confirm the screening categories and the placement ("Your loan officer's notes", after the three options, lender anonymized) avoid steering and fair-lending risk.
 - **M8 and examples.** Confirm M8 may cite the dated example figures as examples in the tester-only live chat.
 - **noindex.** `/rates` is noindex and out of the sitemap so dated figures are not presented by search engines as current offers. Confirm.
+
+## v14 additions (2026-10-01)
+
+- **`/investors`** (`copy.investors`): confirm the fine print ("This page is for informational purposes only and is not an offer to sell, or a solicitation of an offer to buy, any securities.") is sufficient, and that "Interested in investing in LoanM8's growth? Let's start with a conversation." is acceptable general solicitation language for the entity's securities posture. The page carries no raise amount, valuation, terms, returns or structure.
+- **Naming loan officers** (`lib/mlo-match.ts`): public pages are generic by default. A named MLO appears only after the borrower states a region or ZIP, picks an MLO, or (assign states only) is matched by IP, and the footer then shows that MLO's name and NMLS number on the same page. Confirm this satisfies each state's advertising rules (company NMLS on every page; individual NMLS whenever an individual is named). `/disclosures` still lists every MLO with their NMLS number.
 

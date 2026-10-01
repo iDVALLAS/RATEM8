@@ -30,7 +30,7 @@ export const briefSample = {
   date: "Sample date",
   situation: [
     ["Goal", "Purchase, primary residence"],
-    ["Area", "Western Washington"],
+    ["Area", "Washington"],
     ["Sale price", "$500,000"],
     ["Down payment", "$100,000 (20%)"],
     ["Loan amount", "$400,000"],
@@ -132,7 +132,7 @@ export const briefContent = {
   },
   swipeHint: "Swipe to compare",
   textEquivalent:
-    "A paper document titled Rate Strategy Brief unfolds and its sections appear in order: the borrower's situation (a fictional purchase in Western Washington), three loan options labeled A, B, and C with fictional rates, APRs, points or credits, monthly payments, and cash to close from lenders numbered 1, 2, and 3, then plain-English tradeoffs, questions to ask, and next steps. Every page is marked SAMPLE.",
+    "A paper document titled Rate Strategy Brief unfolds and its sections appear in order: the borrower's situation (a fictional purchase in Washington), three loan options labeled A, B, and C with fictional rates, APRs, points or credits, monthly payments, and cash to close from lenders numbered 1, 2, and 3, then plain-English tradeoffs, questions to ask, and next steps. Every page is marked SAMPLE.",
   ctaEyebrow: "// next step",
   ctaHeading: "Want one with your numbers in it?",
   ctaSub: "A short call with a licensed loan officer starts it. Nothing is pulled and nothing is locked until you say so.",

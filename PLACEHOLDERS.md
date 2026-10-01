@@ -21,6 +21,8 @@ nmlsconsumeraccess.org and with counsel.
 | `team` | `[]` | Add MLO records as they onboard (name, nmls, title, bioShort, nmlsConsumerAccessUrl) |
 | `contactEmail` | `[EMAIL]` (or `NEXT_PUBLIC_CONTACT_EMAIL`) | Public contact address at loanm8.com |
 | `privacyEmail` | `privacy@loanm8.com` | Confirm the mailbox exists |
+| `investorContactHref` | `mailto:investors@loanm8.com` (or `NEXT_PUBLIC_INVESTOR_CONTACT_HREF`) | Confirm the mailbox exists, or set a booking link (v14, `/investors`) |
+| `demoContactEmail` | `jason@ratem8.com` (or `NEXT_PUBLIC_DEMO_CONTACT_EMAIL`) | Where testers ask for the /demo password |
 | `lenderCountDisplay` | `null` | Leave null unless a verified, current count is approved for display |
 | `liveRatesEnabled` | `false` | Leave false until a live pricing integration and counsel sign-off exist |
 | `states[washington].entityLicense` | `[WA ENTITY LICENSE #]` | WA entity license |
@@ -101,3 +103,8 @@ grep -rnoE "\[[A-Z][A-Za-z0-9 #/—:.,'()+-]{3,}\]" lib app components --include
 | Lender `displayConsent` | `lib/pricing/lenders.ts` | all `false` | Set `true` per lender when written consent is on file (PRMG, Plaza, HomeXpress block publishing until then) |
 | Admin identity verification | `/mlo/setup` | "Not verified by an administrator" | Needs real accounts and the v21 attestation spec |
 
+## Brand assets (v14)
+
+| File | Current | Fill with |
+| --- | --- | --- |
+| `public/brand/m8-monogram.svg` | **Placeholder**: a circle with an M and an 8, drawn as outlines | The real M8 monogram: single-colour outline on transparent. Any stroke colour; the hero orb recolours it from its alpha channel |

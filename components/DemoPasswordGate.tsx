@@ -17,7 +17,7 @@ import Footer from "./Footer";
  * Failed-attempt logging (in the API route) lets you see who's trying.
  * No rate limiting yet — soft gate, low stakes, easily added if needed.
  */
-export default function DemoPasswordGate() {
+export default function DemoPasswordGate({ contactEmail }: { contactEmail: string }) {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -149,11 +149,11 @@ export default function DemoPasswordGate() {
                style={{ color: "var(--muted)" }}>
               No password yet? Email{" "}
               <a
-                href="mailto:jason@ratem8.com"
+                href={`mailto:${contactEmail}`}
                 className="hover:underline"
                 style={{ color: "var(--color-m8-green)" }}
               >
-                jason@ratem8.com
+                {contactEmail}
               </a>
             </p>
           </div>

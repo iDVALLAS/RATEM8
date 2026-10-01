@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import ChatExperienceWithToggle from "@/components/ChatExperienceWithToggle";
 import DemoPasswordGate from "@/components/DemoPasswordGate";
+import { CONFIG } from "@/lib/config";
 
 export const metadata = {
   title: "M8 Preview — LoanM8",
@@ -39,7 +40,7 @@ export default async function DemoPage() {
     !!authCookie && !!expectedHash && authCookie.value === expectedHash;
 
   if (!authed) {
-    return <DemoPasswordGate />;
+    return <DemoPasswordGate contactEmail={CONFIG.demoContactEmail} />;
   }
 
   return <ChatExperienceWithToggle />;

@@ -5,8 +5,9 @@ import { Analytics } from "@vercel/analytics/next";
 import { CONFIG, STATE_NAMES_LINE } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import { themeBootScript } from "@/lib/theme";
-import { organizationJsonLd, personJsonLd } from "@/lib/jsonld";
+import { organizationJsonLd } from "@/lib/jsonld";
 import JsonLd from "@/components/JsonLd";
+import { MloProvider } from "@/components/mlo/MloContext";
 import ReferralTracker from "@/components/ReferralTracker";
 import "./globals.css";
 
@@ -66,10 +67,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* No-flash theme boot: reads the saved theme before first paint. */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
-        <JsonLd data={[organizationJsonLd(), ...personJsonLd()]} />
+        {/* Person JSON-LD (MLO name + NMLS) lives on /disclosures only (v14, Edit 6). */}
+        <JsonLd data={organizationJsonLd()} />
       </head>
       <body>
-        {children}
+        {/* MloContext: no match for anyone until Patch B fills it (source "none"). */}
+        <MloProvider>{children}</MloProvider>
         {/* Vercel Analytics only. No third-party trackers, no cookies set by us. */}
         <Analytics />
         <ReferralTracker />

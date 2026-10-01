@@ -19,6 +19,9 @@ const EXT = new Set([".ts", ".tsx", ".js", ".mjs", ".md", ".txt", ".json"]);
 const RULES = [
   { name: "MLO name", re: /jason\s+shapiro/i },
   { name: "MLO name", re: /ryder\s+fasse/i },
+  // v14: first names alone too (a "Talk to Jason" slipped through before).
+  // Copy names an MLO only through MloContext templates ({first}/{name}).
+  { name: "MLO first name", re: /\b(?:jason|ryder)\b/i },
   { name: "NMLS number", re: /\b1844143\b/ },
   { name: "NMLS-labelled number", re: /NMLS\s*(?:ID|No\.?|number)?\s*[:#]?\s*#?\s*\d{4,8}\b/i },
 ];

@@ -5,6 +5,8 @@ import LegalSection from "@/components/legal/LegalSection";
 import CounselReview from "@/components/legal/CounselReview";
 import { CONFIG, STATES, ALL_MLOS, NOT_A_COMMITMENT, isPlaceholder, stateDisplay } from "@/lib/config";
 import { groupBySponsor, buildDisclaimer } from "@/lib/licensing";
+import { personJsonLd } from "@/lib/jsonld";
+import JsonLd from "@/components/JsonLd";
 import { disclosuresContent as c, LEGAL_STATUS } from "@/lib/content/legal";
 
 /**
@@ -52,6 +54,8 @@ export default function DisclosuresPage() {
       sections={s}
       footer={<p className="legal-note">{c.placeholderNote}</p>}
     >
+      {/* The licensing register: every MLO by name with their NMLS number (v14 keeps it here). */}
+      <JsonLd data={personJsonLd()} />
       {/* 01 NMLS */}
       <LegalSection {...s[0]} index={0}>
         <p>{c.nmls.lead}</p>

@@ -99,6 +99,193 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v14 — Site change list: hero popups, Partner nav, /investors, generic MLO wording, orb monogram (2026-10-01)
+
+**One line:** the owner's seven-edit change list. Voice and Q & A open
+solid popups that route to `/chat` after 5.5s. The hero subhead and trust
+line are rewritten. "Western" is gone from Washington. The nav gets the
+two-group layout with a "Partner" dropdown, and there is a new
+`/investors` page. Loan officers are generic everywhere, with a minimal
+`MloContext` for naming a matched MLO. The hero orb carries a raised
+M8 monogram, which is still a placeholder.
+
+### Edits
+1. **Voice / Q & A popups** (`HeroOrb.tsx`, `home.css`):
+   - Each popup is a solid `--color-m8-panel` (#0d1a15) panel with a 1px M8
+     Green border, at z-index 30 inside the hero orb column, which is lifted
+     to z-index 5 (`.hm-hero__orbcol`).
+   - Placement: Voice opens to the left of the button row and Q & A to the
+     right, both centred vertically, 230px wide, with a 10px gap. Below
+     768px both drop under the button row at full width.
+   - Each popup has a breathing dot and a progress line that fills over
+     5.5s and then calls `router.push("/chat")`. Tapping the popup goes to
+     `/chat` immediately; × or Esc cancels.
+   - Only one popup is open at a time. The open button switches to a solid
+     green border.
+   - Reduced motion turns off the animations but keeps the timer.
+   - The old toast and the "M8 is an AI, not a person…" line are removed.
+     Tapping the orb opens the Voice popup.
+2. **Hero subhead:** new copy. Desktop 18.4px → 16px; mobile 16.8px →
+   14.6px (same ratio). Line-height stays 1.6.
+3. **Trust line under the grid:** `copy.hero.trustLine`. Phrases are joined
+   with non-breaking spaces, so the line wraps only at the dots.
+4. **"Western" removed:**
+   - `CONFIG.states[WA].serviceArea` is now "Washington" and `stateChip()`
+     returns "WA".
+   - The WA state page's "Why 'Western Washington'" section is now
+     "Serving Washington" (statewide).
+   - Also updated: the join copy and text equivalent, the sample-brief area
+     row and alt text, and the docs (`README.md`, `docs/SITE_BRIEF.md`,
+     `ATTORNEY_REVIEW_LIST.md`, `docs/ai-visibility-checklist.md`).
+5. **Nav and `/investors`:**
+   - New `components/PartnerMenu.tsx`, using the disclosure pattern:
+     - opens on hover, click or tap
+     - closes on outside click or Esc, with focus returning to the trigger
+     - Enter or Space toggles; arrow keys, Home and End move between items
+   - A click right after a hover-open keeps the menu open.
+   - Groups: Calculators, M8 Chat and Partner in `--fg-soft`, a thin
+     divider, then Principles, About and Privacy in `--muted`.
+   - Mobile: Partner expands inline, with a horizontal rule between the two
+     groups.
+   - The footer Partners column now matches the dropdown labels.
+   - `/investors`: orb, headline, three cards, a "Reach out" button pointing
+     at `CONFIG.investorContactHref` (mailto today; swappable through env),
+     and the securities fine print. There is no raise amount, valuation,
+     terms, returns or structure.
+6. **Generic loan officer wording and `MloContext`:**
+   - `lib/mlo-match.ts` holds the rule (`source: none | ip | borrower_stated
+     | chosen`; in borrower-choose states, or when the state's routing is
+     unknown, IP alone never names anyone).
+   - `components/mlo/MloContext.tsx` provides `MloProvider` (in
+     `app/layout.tsx`, default `source: "none"`), `MloText`,
+     `MloFooterLine`, `MloLicenseItem` and `MloNamedOnly`.
+   - Each MLO string in copy has a generic version and a `…Named` template
+     (`{first}` / `{name}`).
+   - Whenever a name renders, the footer line renders that MLO's name, title
+     and NMLS number on the same page.
+7. **Orb monogram** (`OrbMonogram.tsx`, `home.css`):
+   - The SVG filter colours the asset M8 Green, adds a specular bevel lit
+     from the upper left (surfaceScale 4, exponent 18, light `--color-m8-mist`
+     #E1F5EE), and drops a Forest shadow at 75% (offset 1.8/2.4, blur 1.6).
+   - Placement: 14–55% from the left and 11–52% from the top of the orb.
+     It sits under `.orb::before` and over the base gradient, clipped to the
+     orb, with perspective 180px, `rotateY(-24deg) rotateX(20deg)
+     scale(1.02)`, and a radial mask solid to 48% and faded by 76%.
+   - Reveal: once per session (`sessionStorage`), 3.5s. The smudge drops to
+     25% while the monogram rises to 62%. After that, hover or focus shows
+     it at 30%.
+   - Reduced motion: a static 40% display for 3s.
+   - Hero orb only. `aria-label="M8, LoanM8's AI assistant"`.
+
+### Edit 6a replacements (file, old → new)
+| File | Old | New |
+| --- | --- | --- |
+| `lib/copy.ts` agents card "One person owns the file." | "Jason. Not a processor…" (via `MLO_REF_CAP`) | "A licensed, vetted loan officer of your choosing. Not a processor in another time zone. You call once, you get the answer." (named: "{first}. Not a processor…") |
+| `lib/copy.ts` how-it-works step 03 | "Jason checks the file, answers the hard questions, and closes the loan. One person, start to close." | "A licensed loan officer checks the file…" (named: "{first} checks the file…") |
+| `lib/copy.ts` About heading | "Jason Shapiro." | "Licensed loan officers. No call center." (named: "{name}.") |
+| `lib/copy.ts` About sub | "NMLS-licensed Mortgage Loan Originator. M8 is the tool. I'm the human on the line." | "Every loan on LoanM8 is closed by one NMLS-licensed Mortgage Loan Originator, start to finish. M8 is the tool. A human is on the line." (named: original line) |
+| `components/home/About.tsx` card | Jason Shapiro · title · NMLS # | Generic card "A licensed, vetted loan officer" + NMLS Consumer Access lookup (named: that MLO's card with their NMLS #) |
+| `lib/copy.ts` /agents "The basics" | "You introduce a buyer. Jason answers during business hours…" | "…Your licensed loan officer answers during business hours…" (named: "{first} answers…") |
+| `lib/copy.ts` calculators CTA | "…Jason can look at your actual situation." | "…A licensed loan officer can look at your actual situation." (named: "{first} can…") |
+| `lib/config.ts` `MLO_REF*` (feeds `/ai`, `/ai.md`) | "Jason" / "Jason Shapiro, NMLS #…" | "your licensed loan officer" / "a licensed, vetted loan officer" |
+| `components/Footer.tsx` | "Jason Shapiro, Mortgage Loan Originator, NMLS #…" on every page | `MloFooterLine` (nothing until matched; then name + NMLS #) |
+| `components/states/LicenseBlock.tsx` "Loan originators" | Jason Shapiro NMLS #… | Generic line + NMLS Consumer Access lookup (named: MLO + NMLS #) |
+| `lib/prompts/m8-system.ts` facts | roster "Jason Shapiro, Mortgage Loan Originator, NMLS #…" | `GENERIC_MLO_LINE` + "never name an individual loan officer unless one is listed above" |
+| `app/layout.tsx` JSON-LD | Person (Jason Shapiro, NMLS) on every page | moved to `/disclosures` only |
+| `app/tools/va-funding-fee/page.tsx` | "Talk to Jason" / "Jason confirms via COE at file start." | "Ask your loan officer" / "Your loan officer confirms it from your Certificate of Eligibility (COE) when the file starts." |
+| `components/DemoPasswordGate.tsx`, `app/api/demo-auth/route.ts` | `jason@ratem8.com` typed inline | `CONFIG.demoContactEmail` (same address, now in config) |
+
+### Files
+- New:
+  - `components/PartnerMenu.tsx`
+  - `app/investors/page.tsx`
+  - `components/mlo/MloContext.tsx` and `MloContext.test.tsx`
+  - `lib/mlo-match.ts` and `mlo-match.test.ts`
+  - `components/home/AboutCards.tsx`
+  - `components/home/OrbMonogram.tsx`
+  - `public/brand/m8-monogram.svg` (placeholder)
+- Changed:
+  - Config and copy: `lib/copy.ts`, `lib/config.ts`, `lib/site.ts`,
+    `lib/content/{home,join,sample-brief,states}.ts`,
+    `lib/prompts/m8-system.ts`
+  - Styles: `app/globals.css`, `components/home/home.css`
+  - App: `app/layout.tsx`, `app/agents/page.tsx`, `app/disclosures/page.tsx`,
+    `app/demo/page.tsx`, `app/api/demo-auth/route.ts`,
+    `app/tools/va-funding-fee/page.tsx`
+  - Components: `components/{Nav,Footer,Orb,DemoPasswordGate}.tsx`,
+    `components/home/{Hero,HeroOrb,ActionGrid,About,AgentsBand,HowItWorks}.tsx`,
+    `components/motion/StepList.tsx` (`body: ReactNode`),
+    `components/calc/CalcPage.tsx`, `components/states/LicenseBlock.tsx`
+  - Checks and tests: `scripts/check-identity.mjs` (now also flags first
+    names), `scripts/qa/overflow.mjs` (+`/investors`), `vitest.config.mts`
+    (component tests, JSX transform)
+  - Docs: `README.md`, `docs/SITE_BRIEF.md`,
+    `docs/ai-visibility-checklist.md`, `ATTORNEY_REVIEW_LIST.md`,
+    `PLACEHOLDERS.md`, `CLAUDE.md`
+
+### Verified
+- `npm run verify` passes: lint, `check:copy`, `check:identity`, 78 tests,
+  build and `check:bundle`.
+- Browser, 1280px and 390px:
+  - **Popups:**
+    - The popup is on top at its centre and corners on both widths.
+    - Redirects landed after 5.57s on desktop and 5.57s on mobile.
+    - × cancels (still on `/` after 6s). Tapping the popup goes in 60–110ms.
+    - Reduced motion: animations off, redirect still at 5.5s.
+    - Only one popup at a time; the open button shows a solid border.
+  - **Partner dropdown:**
+    - Hover, click, touch tap (desktop width and the mobile sheet), and
+      outside click all work.
+    - Keyboard: Enter, Space, the arrow keys, Home, End and Esc all work,
+      including wrap-around and focus returning to the trigger.
+    - The panel is solid with a green border and sits on top of page
+      content.
+  - **Monogram** (measured opacity):
+    - 0 → 0.62 → hold → 0 over 3.5s, with the smudge going 0.7 → 0.25 →
+      0.7.
+    - Hover shows 0.3. A second load in the same session does not replay.
+    - Reduced motion: a static 0.4 for 3s, then hidden.
+    - Rendered only on the hero orb.
+  - **Frame rate**, headless Chromium with a software GPU at 390px, DPR 3:
+    about 58 fps during the reveal both unthrottled and at 4× CPU throttle,
+    with no drop against the no-reveal baseline. No PNG fallback was
+    needed. This is not a real-device measurement.
+- `scripts/qa` audits: overflow is clean on every route at both widths,
+  including `/investors`; the only console error is the local Vercel
+  Analytics 404. Fonts: 0 findings. Footer chips are uncovered. About
+  lands clear of the nav.
+- Rendered-HTML sweep of 27 routes:
+  - Zero "Western" anywhere.
+  - "Jason" appears only on `/disclosures` (the licensing register,
+    deliberately kept) and on the `/demo` gate's contact email.
+  - The individual NMLS number appears only on `/disclosures`.
+
+### Flags and decisions for the owner
+- **Monogram asset is a placeholder.** `public/brand/m8-monogram.svg` is a
+  circle with an M and an 8. Drop the real single-colour outline file in at
+  the same path; nothing else changes.
+- **The two-group nav did not exist before this patch.** The brief said to
+  keep it "exactly"; it was a flat list. It is built here to the brief's
+  description.
+- **`/disclosures` still names every MLO with their NMLS number** (and now
+  carries the Person JSON-LD). It is the licensing register; say if you want
+  it context-driven too.
+- **Q & A no longer opens the booking link**; per the brief it routes to
+  `/chat`.
+- **Popups and the dropdown are the dark panel in Paper theme as well**
+  (fixed colour per the brief).
+- **Demo gate email** `jason@ratem8.com` is unchanged, but it now lives in
+  config (`NEXT_PUBLIC_DEMO_CONTACT_EMAIL` overrides it).
+- **"Western" left alone:** none in shipped code. Two mentions remain in
+  docs, both history: the "One-shot site build (2026-09-29)" entry of this log ("WA serving Western
+  Washington", a dated record) and the `docs/SITE_BRIEF.md` note recording
+  that "Western" was dropped.
+
+### Next up
+- Patch B (state routing, location beacon, sponsorship as data) fills
+  `MloContext`. Its value needs `borrowerChooses` per state so that IP
+  matches can name an MLO in assign states.
+
 ## v13 (Patch A) — Example pricing, manual pricing snapshots, MLO admin (2026-10-01)
 
 **One line:** example pricing ships on `/rates` in the anti-steering

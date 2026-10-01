@@ -10,6 +10,12 @@
   --color-m8-stone: #E8E6E1;
   --color-m8-charcoal: #1A1A19;
 
+  /* Fixed surfaces (v14): solid panel behind the hero popups and the nav
+     dropdown in every theme, and the pale-green light that bevels the
+     orb monogram. */
+  --color-m8-panel: #0d1a15;
+  --color-m8-mist: #E1F5EE;
+
   /* Typography — LOCKED: Fraunces (display), Geist (body/UI), JetBrains Mono (labels/data) */
   /* `.font-display` (the UI class used across the site) is Geist; the
      serif display face is reached through `.tagline`, `.font-serif-display`
@@ -1467,6 +1473,74 @@ html, body {
 }
 .nav-sheet__link--secondary { font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 1rem; font-weight: 400; color: var(--fg-soft); padding: 12px 4px; }
 .nav-sheet__link:hover { color: var(--accent); }
+
+/* ─── Nav groups + Partner dropdown (v14, Edit 5) ──────────────────
+   Group 1 (Calculators, M8 Chat, Partner) keeps the brighter --fg-soft;
+   group 2 (Principles, About, Privacy) sits after a thin vertical
+   divider in the dimmer --muted. Both hover to the accent. The Partner
+   label turns M8 Green while its dropdown is open; the chevron follows
+   the label colour. The panel is solid in every theme. */
+.nav-group { display: flex; align-items: center; gap: 24px; }
+.nav-group--more .nav-link { color: var(--muted); }
+.nav-group--more .nav-link:hover,
+.nav-group--more .nav-link--active { color: var(--accent); }
+.nav-divider { display: block; width: 1px; height: 16px; margin: 0 22px; background: var(--rule-strong); }
+
+.nav-partner { position: relative; }
+.nav-partner__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.nav-partner--bar .nav-partner__trigger { font: inherit; }
+.nav-partner--sheet .nav-partner__trigger { border-bottom: 1px solid var(--rule); }
+.nav-partner.is-open > .nav-partner__trigger { color: var(--color-m8-green); }
+.nav-partner__chev { flex-shrink: 0; transition: transform 160ms ease-out; }
+.nav-partner.is-open .nav-partner__chev { transform: rotate(180deg); }
+.nav-partner--bar .nav-partner__panel {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  z-index: 45;
+  width: 300px;
+  padding-top: 12px; /* hover bridge between the trigger and the panel */
+  transform: translateX(-50%);
+}
+.nav-partner__list {
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--color-m8-green);
+  border-radius: 14px;
+  background: var(--color-m8-panel);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+.nav-partner__item {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background-color 150ms ease-out;
+}
+.nav-partner__item:hover,
+.nav-partner__item:focus-visible { background: color-mix(in srgb, var(--color-m8-green) 14%, transparent); }
+.nav-partner__item:focus-visible { outline: 2px solid var(--color-m8-green); outline-offset: -2px; }
+.nav-partner__label { display: block; font-size: 0.9rem; font-weight: 500; line-height: 1.3; color: var(--color-m8-paper); }
+.nav-partner__item:hover .nav-partner__label { color: var(--color-m8-green); }
+.nav-partner__desc { display: block; margin-top: 2px; font-size: 0.8rem; font-weight: 300; line-height: 1.4; color: color-mix(in srgb, var(--color-m8-paper) 68%, transparent); }
+
+/* Mobile sheet: Partner expands inline; the two groups are split by a
+   horizontal rule; group 2 is dimmer. */
+.nav-partner--sheet .nav-partner__trigger { width: 100%; justify-content: space-between; text-align: left; }
+.nav-partner--sheet .nav-partner__panel { padding: 10px 0 12px; }
+.nav-sheet__divider { margin: 18px 0 6px; border: 0; border-top: 1px solid var(--rule-strong); }
+.nav-sheet__link--more { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  .nav-partner__chev, .nav-partner__item { transition: none; }
+}
 
 /* ─── Footer ────────────────────────────────────────────────────── */
 

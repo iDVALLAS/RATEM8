@@ -1,7 +1,5 @@
 import Reveal from "@/components/motion/Reveal";
 import { copy } from "@/lib/copy";
-import { CONFIG, hasBooking } from "@/lib/config";
-import { homeContent } from "@/lib/content/home";
 import HeroOrb from "./HeroOrb";
 import ActionGrid from "./ActionGrid";
 import TrustStrip from "./TrustStrip";
@@ -35,15 +33,15 @@ export default function Hero() {
       <div aria-hidden="true" className="hm-hero__glow" />
 
       <div className="hm-hero__inner relative mx-auto max-w-4xl px-4 sm:px-6 text-center">
-        <div className="hm-in" style={{ "--d": "0ms" } as React.CSSProperties}>
+        <div className="hm-in hm-hero__orbcol" style={{ "--d": "0ms" } as React.CSSProperties}>
           <HeroOrb
-            ariaLabel={homeContent.hero.orbAriaLabel}
+            ariaLabel={copy.hero.orbAriaLabel}
             voiceLabel={copy.hero.voiceLabel}
             qaLabel={copy.hero.qaLabel}
-            voiceMessage={copy.hero.voiceComingSoon}
-            qaComingSoon={copy.hero.qaComingSoon}
-            aiNote={copy.footer.aiNote}
-            qaHref={hasBooking(CONFIG.calendly.borrower) ? CONFIG.calendly.borrower : null}
+            voicePopup={copy.hero.voicePopup}
+            qaPopup={copy.hero.qaPopup}
+            cancelLabel={copy.hero.popupCancel}
+            redirectNote={copy.hero.popupRedirectNote}
           />
         </div>
 

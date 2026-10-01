@@ -2,6 +2,7 @@ import CTAButton from "@/components/CTAButton";
 import { Sheet } from "@/components/motion/Stage";
 import SlideHeadline, { splitLines } from "@/components/motion/SlideHeadline";
 import { copy } from "@/lib/copy";
+import { MloText } from "@/components/mlo/MloContext";
 
 /**
  * AgentsBand — "Your buyers stall when financing is murky. M8 unsticks
@@ -22,7 +23,7 @@ export default function AgentsBand() {
           {copy.agents.cards.map((c) => (
             <li key={c.title} className="hm-agents__card float-card">
               <h3>{c.title}</h3>
-              <p>{c.body}</p>
+              <p>{"bodyNamed" in c ? <MloText generic={c.body} named={c.bodyNamed} /> : c.body}</p>
             </li>
           ))}
         </ul>

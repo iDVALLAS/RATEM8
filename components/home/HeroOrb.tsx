@@ -1,20 +1,27 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Orb, { type OrbState } from "@/components/Orb";
 import TermField from "@/components/TermField";
+import { prefersReducedMotion } from "@/lib/useSceneTimeline";
+import OrbMonogram from "./OrbMonogram";
 
 /**
  * HeroOrb — the hero orb with two stitched-line actions under it.
  *
- *   [ ◌ Voice ]   [ ▢ Q & A ]
+ *   [popup ←][ ◌ Voice ]   [ ▢ Q & A ][→ popup]
  *
- * - Voice: voice is not live (CONFIG.featureFlags.voice is false), so
- *   the button pulses the orb and shows the coming-soon line. Tapping
- *   the orb itself does the same.
- * - Q & A: goes where "I'm shopping a mortgage" goes (the borrower
- *   booking link). When that link is not configured yet, it shows the
- *   booking-coming-soon line instead of dead-linking.
+ * Voice and Q & A each open a solid popup (Edit 1, patch v14): Voice to
+ * the left of its button, Q & A to the right; on phones both drop below
+ * the button row. A progress line fills over REDIRECT_MS, then the
+ * visitor is routed to /chat. Tapping the popup goes now; × cancels.
+ * One popup at a time. Reduced motion: no animation, same timer.
+ * Tapping the orb opens the Voice popup.
+ *
+ * The orb carries the raised monogram (Edit 7): revealed once per
+ * session, then back at low opacity on hover. See OrbMonogram.
  *
  * NO microphone access. NO audio. NO AI call. Orb state changes are
  * speed / amplitude / halo only.
@@ -23,16 +30,25 @@ type HeroOrbProps = {
   ariaLabel: string;
   voiceLabel: string;
   qaLabel: string;
-  voiceMessage: string;
-  qaComingSoon: string;
-  aiNote: string;
-  /** Borrower booking URL, or null when not configured. */
-  qaHref: string | null;
+  voicePopup: string;
+  qaPopup: string;
+  cancelLabel: string;
+  redirectNote: string;
 };
+
+type Popup = "voice" | "qa";
 
 const PULSE_MS = 700;
 const SPEAK_MS = 1500;
-const TOAST_MS = 4200;
+const REDIRECT_MS = 5500;
+const CHAT_HREF = "/chat";
+
+/** Monogram reveal: once per session, a beat after the hero entrance. */
+const MONO_KEY = "loanm8:orb-monogram-seen";
+const MONO_DELAY_MS = 1200;
+const MONO_REVEAL_MS = 3500;
+const MONO_STATIC_MS = 3000;
+type MonoPhase = "idle" | "reveal" | "static" | "done";
 
 function VoiceIcon() {
   return (
@@ -52,65 +68,131 @@ function QaIcon() {
   );
 }
 
-export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voiceMessage, qaComingSoon, aiNote, qaHref }: HeroOrbProps) {
+export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qaPopup, cancelLabel, redirectNote }: HeroOrbProps) {
+  const router = useRouter();
   const [pulse, setPulse] = useState(false);
   const [state, setState] = useState<OrbState>("idle");
-  const [toast, setToast] = useState<string | null>(null);
+  const [popup, setPopup] = useState<Popup | null>(null);
+  const [mono, setMono] = useState<MonoPhase>("idle");
   const timers = useRef<number[]>([]);
+  const redirectTimer = useRef<number | null>(null);
+
+  const clearRedirect = useCallback(() => {
+    if (redirectTimer.current !== null) window.clearTimeout(redirectTimer.current);
+    redirectTimer.current = null;
+  }, []);
 
   useEffect(() => {
     const t = timers.current;
-    return () => t.forEach((id) => window.clearTimeout(id));
+    return () => {
+      t.forEach((id) => window.clearTimeout(id));
+      clearRedirect();
+    };
+  }, [clearRedirect]);
+
+  // Monogram reveal, once per browser session. Storage can throw
+  // (private mode, blocked site data); then it simply plays once per load.
+  useEffect(() => {
+    let seen = false;
+    try {
+      seen = window.sessionStorage.getItem(MONO_KEY) === "1";
+      window.sessionStorage.setItem(MONO_KEY, "1");
+    } catch {
+      /* storage unavailable */
+    }
+    if (seen) {
+      setMono("done");
+      return;
+    }
+    const reduced = prefersReducedMotion();
+    const ids: number[] = [];
+    ids.push(window.setTimeout(() => setMono(reduced ? "static" : "reveal"), MONO_DELAY_MS));
+    ids.push(window.setTimeout(() => setMono("done"), MONO_DELAY_MS + (reduced ? MONO_STATIC_MS : MONO_REVEAL_MS)));
+    return () => ids.forEach((id) => window.clearTimeout(id));
   }, []);
 
-  const wake = useCallback((message: string) => {
-    timers.current.forEach((id) => window.clearTimeout(id));
-    timers.current = [];
-    setPulse(true);
-    setState("speaking");
-    setToast(message);
-    timers.current.push(window.setTimeout(() => setPulse(false), PULSE_MS));
-    timers.current.push(window.setTimeout(() => setState("idle"), SPEAK_MS));
-    timers.current.push(window.setTimeout(() => setToast(null), TOAST_MS));
-  }, []);
+  const open = useCallback(
+    (which: Popup) => {
+      timers.current.forEach((id) => window.clearTimeout(id));
+      timers.current = [];
+      clearRedirect();
+      setPulse(true);
+      setState("speaking");
+      setPopup(which);
+      timers.current.push(window.setTimeout(() => setPulse(false), PULSE_MS));
+      timers.current.push(window.setTimeout(() => setState("idle"), SPEAK_MS));
+      redirectTimer.current = window.setTimeout(() => router.push(CHAT_HREF), REDIRECT_MS);
+    },
+    [clearRedirect, router],
+  );
 
-  const onVoice = useCallback(() => wake(voiceMessage), [wake, voiceMessage]);
-  const onQaFallback = useCallback(() => wake(qaComingSoon), [wake, qaComingSoon]);
+  const cancel = useCallback(() => {
+    clearRedirect();
+    setPopup(null);
+  }, [clearRedirect]);
+
+  // Esc cancels, like the ×.
+  useEffect(() => {
+    if (!popup) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && cancel();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [popup, cancel]);
+
+  const onVoice = useCallback(() => open("voice"), [open]);
+  const onQa = useCallback(() => open("qa"), [open]);
+
+  const monoClass = mono === "idle" ? "" : `hm-orb-btn--mono-${mono}`;
+
+  const renderPopup = (which: Popup, text: string) =>
+    popup === which ? (
+      <div className={`hm-pop hm-pop--${which === "voice" ? "left" : "right"}`} key={which}>
+        <Link href={CHAT_HREF} className="hm-pop__body" onClick={clearRedirect}>
+          <span aria-hidden="true" className="hm-pop__dot" />
+          <span className="hm-pop__text">{text}</span>
+          <span className="sr-only"> {redirectNote}</span>
+        </Link>
+        <button type="button" className="hm-pop__x" onClick={cancel} aria-label={cancelLabel}>
+          <span aria-hidden="true">×</span>
+        </button>
+        <span aria-hidden="true" className="hm-pop__bar" style={{ "--pop-ms": `${REDIRECT_MS}ms` } as React.CSSProperties} />
+      </div>
+    ) : null;
 
   return (
     <div className="hm-orb-wrap">
       <div className="hm-orb-stage">
         <TermField />
-        <button type="button" onClick={onVoice} aria-label={ariaLabel} className="hm-orb-btn">
-          <Orb size="hero" state={state} className={pulse ? "orb--pulse" : ""} />
+        <button type="button" onClick={onVoice} aria-label={ariaLabel} className={`hm-orb-btn ${monoClass}`.trim()}>
+          <Orb size="hero" state={state} className={`orb--mono ${pulse ? "orb--pulse" : ""}`.trim()}>
+            <OrbMonogram />
+          </Orb>
         </button>
       </div>
 
       <div className="hm-orb-actions" role="group" aria-label="M8 actions">
-        <button type="button" onClick={onVoice} className="stitch-btn" aria-describedby={toast ? "hero-orb-toast" : undefined}>
+        <button
+          type="button"
+          onClick={onVoice}
+          className={`stitch-btn ${popup === "voice" ? "stitch-btn--on" : ""}`.trim()}
+          aria-expanded={popup === "voice"}
+        >
           <VoiceIcon />
           <span>{voiceLabel}</span>
         </button>
-        {qaHref ? (
-          <a href={qaHref} target="_blank" rel="noopener noreferrer" className="stitch-btn">
-            <QaIcon />
-            <span>{qaLabel}</span>
-          </a>
-        ) : (
-          <button type="button" onClick={onQaFallback} className="stitch-btn">
-            <QaIcon />
-            <span>{qaLabel}</span>
-          </button>
-        )}
-      </div>
-
-      <div className="hm-orb-toastwrap" aria-live="polite">
-        {toast ? (
-          <div id="hero-orb-toast" className="hm-orb-toast step-in is-on">
-            <p className="hm-orb-toast__msg">{toast}</p>
-            <p className="hm-orb-toast__note">{aiNote}</p>
-          </div>
-        ) : null}
+        <button
+          type="button"
+          onClick={onQa}
+          className={`stitch-btn ${popup === "qa" ? "stitch-btn--on" : ""}`.trim()}
+          aria-expanded={popup === "qa"}
+        >
+          <QaIcon />
+          <span>{qaLabel}</span>
+        </button>
+        <div className="hm-pop-layer" aria-live="polite">
+          {renderPopup("voice", voicePopup)}
+          {renderPopup("qa", qaPopup)}
+        </div>
       </div>
     </div>
   );

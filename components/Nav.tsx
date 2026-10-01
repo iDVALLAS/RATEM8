@@ -5,13 +5,18 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Wordmark from "./Wordmark";
 import ThemeToggle from "./ThemeToggle";
+import PartnerMenu from "./PartnerMenu";
 import { copy } from "@/lib/copy";
 
 /**
  * Nav — sticky top bar.
- * Desktop: Wordmark, Calculators, M8 Chat, For agents, Principles,
- * About, Privacy, theme toggle. Mobile: a clean sheet menu with the
- * same links plus the secondary set (Second Look, For MLOs, guides).
+ * Desktop: Wordmark, then two groups split by a thin vertical divider:
+ *   group 1 (brighter): Calculators, M8 Chat, Partner ▾
+ *   group 2 (dimmer):   Principles, About, Privacy
+ * then the theme toggle. Partner is a dropdown (MLOs, agents,
+ * investors; see PartnerMenu). Mobile: a sheet with the same two groups
+ * split by a horizontal divider (Partner expands inline), then the
+ * secondary set (Second Look, guides, For AI assistants).
  */
 export function Nav() {
   const [open, setOpen] = useState(false);
@@ -34,6 +39,7 @@ export function Nav() {
   }, [open]);
 
   const isActive = (href: string) => (href.startsWith("/#") ? false : pathname === href || pathname.startsWith(`${href}/`));
+  const partnerActive = copy.nav.partner.items.some((i) => isActive(i.href));
 
   return (
     <header className="site-nav">
@@ -45,13 +51,24 @@ export function Nav() {
           <Wordmark />
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm lg:flex" aria-label="Primary">
-          {copy.nav.links.map((l) => (
-            <Link key={l.href} href={l.href} className={`nav-link ${isActive(l.href) ? "nav-link--active" : ""}`} aria-current={isActive(l.href) ? "page" : undefined}>
-              {l.label}
-            </Link>
-          ))}
-          <div className="ml-2">
+        <nav className="hidden items-center text-sm lg:flex" aria-label="Primary">
+          <div className="nav-group nav-group--primary">
+            {copy.nav.links.map((l) => (
+              <Link key={l.href} href={l.href} className={`nav-link ${isActive(l.href) ? "nav-link--active" : ""}`} aria-current={isActive(l.href) ? "page" : undefined}>
+                {l.label}
+              </Link>
+            ))}
+            <PartnerMenu active={partnerActive} />
+          </div>
+          <span aria-hidden="true" className="nav-divider" />
+          <div className="nav-group nav-group--more">
+            {copy.nav.more.map((l) => (
+              <Link key={l.href} href={l.href} className={`nav-link ${isActive(l.href) ? "nav-link--active" : ""}`} aria-current={isActive(l.href) ? "page" : undefined}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+          <div className="ml-8">
             <ThemeToggle />
           </div>
         </nav>
@@ -81,6 +98,15 @@ export function Nav() {
           <div className="flex flex-col">
             {copy.nav.links.map((l) => (
               <Link key={l.href} href={l.href} className="nav-sheet__link" tabIndex={open ? 0 : -1}>
+                {l.label}
+              </Link>
+            ))}
+            <PartnerMenu variant="sheet" sheetOpen={open} />
+          </div>
+          <hr className="nav-sheet__divider" />
+          <div className="flex flex-col">
+            {copy.nav.more.map((l) => (
+              <Link key={l.href} href={l.href} className="nav-sheet__link nav-sheet__link--more" tabIndex={open ? 0 : -1}>
                 {l.label}
               </Link>
             ))}

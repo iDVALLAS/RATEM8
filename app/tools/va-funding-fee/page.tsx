@@ -138,8 +138,8 @@ export default function VAFundingFeePage() {
           <ResultCard>
             <ResultRow
               label="Exempt from the fee?"
-              value="Talk to Jason"
-              hint="Veterans receiving VA disability compensation, DIC-receiving surviving spouses, and active-duty Purple Heart recipients are exempt. Jason confirms via COE at file start."
+              value="Ask your loan officer"
+              hint="Veterans receiving VA disability compensation, DIC-receiving surviving spouses, and active-duty Purple Heart recipients are exempt. Your loan officer confirms it from your Certificate of Eligibility (COE) when the file starts."
             />
           </ResultCard>
 

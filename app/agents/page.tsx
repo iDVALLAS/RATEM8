@@ -5,6 +5,7 @@ import BookingCTA from "@/components/BookingCTA";
 import Provenance from "@/components/Provenance";
 import StalledDeal from "@/components/agents/StalledDeal";
 import { copy } from "@/lib/copy";
+import { MloText } from "@/components/mlo/MloContext";
 import { agentsContent } from "@/lib/content/agents";
 
 /**
@@ -12,7 +13,8 @@ import { agentsContent } from "@/lib/content/agents";
  *
  * Copy comes from `copy.agentsPage` and `copy.agents` (locked) plus the
  * structural strings in `lib/content/agents.ts`. Facts come from
- * config. Nothing here names a person, a count, a rate, or a timeline.
+ * config. Nothing here names a person (unless MloContext has a match),
+ * a count, a rate, or a timeline.
  *
  * Money: none flows between LoanM8 and agents. The page says so twice,
  * once in the sections and once as the pull-quote.
@@ -60,7 +62,7 @@ export default function AgentsPage() {
                 {s.title}
                 {i === 2 ? <span className="ag-later">coming later</span> : null}
               </h3>
-              <p className="ag-card-body">{s.body}</p>
+              <p className="ag-card-body">{"bodyNamed" in s ? <MloText generic={s.body} named={s.bodyNamed} /> : s.body}</p>
             </article>
           ))}
         </div>
@@ -92,7 +94,7 @@ export default function AgentsPage() {
           {band.cards.map((c) => (
             <article key={c.title} className="card">
               <h3 className="ag-card-title">{c.title}</h3>
-              <p className="ag-card-body">{c.body}</p>
+              <p className="ag-card-body">{"bodyNamed" in c ? <MloText generic={c.body} named={c.bodyNamed} /> : c.body}</p>
             </article>
           ))}
         </div>

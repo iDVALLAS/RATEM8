@@ -128,12 +128,14 @@
 .hm-hero__sub {
   margin: 16px auto 0;
   max-width: 40rem;
-  font-size: 1.05rem;
+  /* v14: 2px smaller than before (desktop 18.4px → 16px; mobile scaled
+     by the same ratio, 16.8px → 14.6px). */
+  font-size: 0.9125rem;
   line-height: 1.6;
   font-weight: 300;
   color: var(--muted);
 }
-@media (min-width: 640px) { .hm-hero__sub { font-size: 1.15rem; } }
+@media (min-width: 640px) { .hm-hero__sub { font-size: 1rem; } }
 
 /* Hero entrance (plays once on load; static under reduced motion). */
 .hm-in {
@@ -396,21 +398,113 @@
 .stitch-btn svg { color: var(--accent); flex-shrink: 0; }
 .stitch-btn:hover { border-color: var(--accent); color: var(--fg); background: var(--accent-soft); }
 .stitch-btn:active { transform: translateY(1px); }
-/* The toast overlays instead of reserving space, so the first viewport
-   keeps the four actions above the fold. */
-.hm-orb-toastwrap { position: relative; height: 0; z-index: 6; }
-.hm-orb-toast { position: absolute; top: 8px; left: 0; right: 0; margin: 0 auto; width: max-content; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35); }
-.hm-orb-toast {
-  display: inline-block;
-  max-width: 34rem;
-  padding: 10px 16px;
+.stitch-btn--on,
+.stitch-btn--on:hover { border-style: solid; border-color: var(--color-m8-green); color: var(--fg); }
+
+/* ─── Voice / Q & A popups (v14, Edit 1) ───────────────────────────
+   Solid panel, M8 Green hairline, above every hero layer (the orb
+   column is lifted to z-index 5 in .hm-hero__orbcol; the popups sit at
+   30 inside it). Desktop: Voice opens to the left of the button row,
+   Q & A to the right, vertically centred on the buttons, 10px gap.
+   Below 768px there is no room beside the buttons, so both drop under
+   the row, full width inside the page padding. */
+.hm-hero__orbcol { position: relative; z-index: 5; }
+.hm-pop-layer { position: absolute; inset: 0; z-index: 30; pointer-events: none; }
+.hm-pop {
+  position: absolute;
+  top: 50%;
+  width: 230px;
+  transform: translateY(-50%);
+  pointer-events: auto;
+  border: 1px solid var(--color-m8-green);
   border-radius: 14px;
-  border: 1px solid var(--rule);
-  background: color-mix(in srgb, var(--bg) 70%, var(--bg-elevated));
-  text-align: center;
+  background: var(--color-m8-panel);
+  color: var(--color-m8-paper);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  text-align: left;
+  animation: hm-pop-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.hm-orb-toast__msg { font-size: 0.95rem; color: var(--fg); }
-.hm-orb-toast__note { margin-top: 3px; font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.hm-pop--left { right: calc(100% + 10px); }
+.hm-pop--right { left: calc(100% + 10px); }
+@keyframes hm-pop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.hm-pop__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 30px 14px 12px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  font-weight: 400;
+}
+.hm-pop__body:hover .hm-pop__text { color: var(--color-m8-paper); }
+.hm-pop__body:focus-visible { outline: 2px solid var(--color-m8-green); outline-offset: -4px; border-radius: 12px; }
+.hm-pop__text { color: color-mix(in srgb, var(--color-m8-paper) 92%, transparent); }
+.hm-pop__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 9999px;
+  background: var(--color-m8-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-m8-green) 22%, transparent);
+  animation: hm-pop-breathe 2.2s ease-in-out infinite;
+}
+@keyframes hm-pop-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.72); opacity: 0.7; }
+}
+.hm-pop__x {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: color-mix(in srgb, var(--color-m8-paper) 70%, transparent);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.hm-pop__x:hover { color: var(--color-m8-paper); }
+.hm-pop__x:focus-visible { outline: 2px solid var(--color-m8-green); outline-offset: -2px; }
+/* Progress line: fills left to right over the redirect timer. */
+.hm-pop__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-m8-green);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: hm-pop-fill var(--pop-ms, 5500ms) linear forwards;
+}
+@keyframes hm-pop-fill { to { transform: scaleX(1); } }
+
+@media (max-width: 767px) {
+  .hm-orb-actions { position: static; }
+  .hm-pop-layer { inset: auto 0 auto 0; top: 100%; height: 0; }
+  .hm-pop,
+  .hm-pop--left,
+  .hm-pop--right { left: 0; right: 0; top: 10px; width: auto; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-pop, .hm-pop__dot { animation: none; }
+  /* The timer still runs; the line shows full instead of filling. */
+  .hm-pop__bar { animation: none; transform: none; opacity: 0.6; }
+}
+
 .hm-orb-caption, .hm-orb-caption__text, .hm-orb-card, .hm-orb-card__title, .hm-orb-card__body, .hm-orb-card__actions, .hm-orb-card__dismiss { /* retired by the orb actions */ }
 
 /* ─── "human authentication" line under the headline ────────────── */
@@ -439,3 +533,71 @@
 }
 .hm-hero__auth-word { color: var(--fg); font-weight: 400; }
 .hm-hero__auth-rest { color: color-mix(in srgb, var(--fg) 55%, transparent); }
+
+/* ─── Raised M8 monogram inside the hero orb (v14, Edit 7) ─────────
+   Hero orb only (HeroOrb passes .orb--mono and <OrbMonogram/>). The
+   layer sits over the base gradient and under the gloss highlight
+   (.orb::before lifted to z-index 1), clipped to the orb circle, and
+   rides the orb's breathing scale because it is a child of .orb.
+   Colour, shape and breathing of the orb are untouched. */
+.orb--mono::before { z-index: 1; }
+.hm-orb-mono {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 9999px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
+/* The highlight smudge: ~14–55% from the left, ~11–52% from the top. */
+.hm-orb-mono__curve {
+  position: absolute;
+  left: 14%;
+  top: 11%;
+  width: 41%;
+  height: 41%;
+  perspective: 180px;
+}
+.hm-orb-mono__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotateY(-24deg) rotateX(20deg) scale(1.02);
+  -webkit-mask-image: radial-gradient(circle at center, #000 48%, transparent 76%);
+  mask-image: radial-gradient(circle at center, #000 48%, transparent 76%);
+}
+.hm-orb-mono__green { flood-color: var(--color-m8-green); }
+.hm-orb-mono__light { lighting-color: var(--color-m8-mist); }
+.hm-orb-mono__forest { flood-color: var(--color-m8-forest); flood-opacity: 0.75; }
+
+/* Once per session: smudge down to 25% while the monogram rises to
+   ~62%, hold, then cross-fade back. 3.5s total. */
+.hm-orb-btn--mono-reveal .hm-orb-mono { animation: hm-mono-rise 3500ms ease-in-out both; }
+.hm-orb-btn--mono-reveal .orb--mono::before { animation: hm-mono-smudge 3500ms ease-in-out both; }
+@keyframes hm-mono-rise {
+  0% { opacity: 0; }
+  24% { opacity: 0.62; }
+  72% { opacity: 0.62; }
+  100% { opacity: 0; }
+}
+@keyframes hm-mono-smudge {
+  0% { opacity: 0.7; }
+  24% { opacity: 0.25; }
+  72% { opacity: 0.25; }
+  100% { opacity: 0.7; }
+}
+/* Reduced motion: a static ~40% display for 3s, then hidden. */
+.hm-orb-btn--mono-static .hm-orb-mono { opacity: 0.4; }
+/* After the reveal, hovering (or keyboard-focusing) the orb brings it back faintly. */
+.hm-orb-btn--mono-done .hm-orb-mono { transition: opacity 400ms ease-out; }
+.hm-orb-btn--mono-done:focus-visible .hm-orb-mono { opacity: 0.3; }
+@media (hover: hover) {
+  .hm-orb-btn--mono-done:hover .hm-orb-mono { opacity: 0.3; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hm-orb-mono,
+  .hm-orb-btn--mono-reveal .hm-orb-mono,
+  .hm-orb-btn--mono-reveal .orb--mono::before { animation: none !important; transition: none !important; }
+}

@@ -18,6 +18,8 @@ type OrbProps = {
   /** Override pixel size for special placements (footer 18px, etc.). */
   px?: number;
   style?: React.CSSProperties;
+  /** Layers inside the orb body (the hero monogram). Rides the breathing scale. */
+  children?: React.ReactNode;
 };
 
 const sizeMap: Record<NonNullable<OrbProps["size"]>, number> = {
@@ -26,7 +28,7 @@ const sizeMap: Record<NonNullable<OrbProps["size"]>, number> = {
   mark: 24,
 };
 
-export default function Orb({ size = "hero", state = "idle", className = "", px, style }: OrbProps) {
+export default function Orb({ size = "hero", state = "idle", className = "", px, style, children }: OrbProps) {
   const dim = px ?? sizeMap[size];
   const stateClass = state === "idle" ? "" : `orb--${state}`;
   return (
@@ -35,6 +37,8 @@ export default function Orb({ size = "hero", state = "idle", className = "", px,
       data-orb-state={state}
       className={`orb ${stateClass} ${className}`.trim()}
       style={{ width: dim, height: dim, ...style }}
-    />
+    >
+      {children}
+    </span>
   );
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PLACEHOLDER — not the LoanM8 monogram. A circle with an M and an 8,
+     single-colour outline on transparent. Replace this file with the real
+     outline asset at the same path; nothing else needs to change (the hero
+     orb recolours it from its alpha channel). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="50" cy="50" r="44"/>
+  <path d="M20 66V34l13 20 13-20v32"/>
+  <circle cx="66" cy="40" r="9"/>
+  <circle cx="66" cy="59" r="10"/>
+</svg>

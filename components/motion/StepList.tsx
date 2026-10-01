@@ -16,7 +16,7 @@ import "./stage.css";
  * sticky. Visuals are decorative (aria-hidden); the statements carry
  * the text.
  */
-export type StepItem = { title: string; body: string; label?: string };
+export type StepItem = { title: string; body: ReactNode; label?: string };
 
 type StepListProps = {
   steps: readonly StepItem[];

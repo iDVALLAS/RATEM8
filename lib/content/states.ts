@@ -20,7 +20,7 @@ export type StateSection = {
 };
 
 export type StateContent = {
-  /** Italic accent line under the h1, e.g. "serving Western Washington". */
+  /** Italic accent line under the h1, e.g. "serving Washington". */
   accentLine: string;
   metaDescription: string;
   sections: StateSection[];
@@ -35,6 +35,9 @@ export const statePageContent = {
   regulatorLabel: "State regulator",
   nmlsLabel: "NMLS",
   originatorsLabel: "Loan originators",
+  /** v14: shown until MloContext has a match; then the matched MLO and NMLS #. */
+  originatorsGeneric: "Licensed, vetted loan officers, matched by state. Your loan officer's name and NMLS number appear here once you are matched.",
+  originatorsLookup: "Look up a license on NMLS Consumer Access",
   disclosureMarker: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
   disclosureNote: "This block is a placeholder. Counsel replaces it with the disclosure language this state requires, if any, before launch.",
   contextEyebrow: "// local context",
@@ -64,10 +67,10 @@ const byState: Record<StateSlug, (s: StateConfig) => StateContent> = {
     sections: [
       {
         eyebrow: "// service area",
-        title: `Why "${s.serviceArea}"`,
+        title: `Serving ${s.serviceArea}`,
         paragraphs: [
-          `LoanM8 is licensed in ${s.name}, and the service area we actively work is ${s.serviceArea}. That is a statement about where the loan officer's day-to-day knowledge is deepest, not a limit on who can call.`,
-          "If you are buying or refinancing elsewhere in the state, say so on the first call. You will get a straight answer about whether this is the right fit, and a plain referral if it is not.",
+          `LoanM8 is licensed in ${s.name} and works with borrowers buying or refinancing anywhere in the state.`,
+          "Tell us where the property is on the first call. You will get a straight answer about whether this is the right fit, and a plain referral if it is not.",
         ],
       },
       {

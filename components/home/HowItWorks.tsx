@@ -4,6 +4,7 @@ import SlideHeadline, { splitLines } from "@/components/motion/SlideHeadline";
 import { copy } from "@/lib/copy";
 import { homeContent } from "@/lib/content/home";
 import HowItWorksSteps from "./HowItWorksSteps";
+import { MloText } from "@/components/mlo/MloContext";
 
 /**
  * HowItWorks — three steps for borrowers as a forest sheet on the
@@ -23,7 +24,7 @@ export default function HowItWorks() {
           <SlideHeadline id="how-heading" as="h2" lines={splitLines(copy.how.heading)} accent={how.accent} dim className="hm-h2 mt-4" />
         </div>
         <HowItWorksSteps
-          steps={copy.how.steps.map((s) => ({ label: s.label, title: s.title, body: s.body }))}
+          steps={copy.how.steps.map((s) => ({ label: s.label, title: s.title, body: "bodyNamed" in s ? <MloText generic={s.body} named={s.bodyNamed} /> : s.body }))}
           ariaLabel={how.listLabel}
           orbPrefix={how.orbPrefix}
         />

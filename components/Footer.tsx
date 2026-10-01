@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Orb from "./Orb";
 import { copy } from "@/lib/copy";
-import { CONFIG, STATES, stateDisplay, NOT_A_COMMITMENT, ALL_MLOS, isPlaceholder } from "@/lib/config";
+import { CONFIG, STATES, stateDisplay, NOT_A_COMMITMENT, isPlaceholder } from "@/lib/config";
+import { MloFooterLine } from "@/components/mlo/MloContext";
 import { groupBySponsor } from "@/lib/licensing";
 
 /**
@@ -10,7 +11,9 @@ import { groupBySponsor } from "@/lib/licensing";
  * Contains, on every page:
  *   - wordmark + tagline + link columns
  *   - "licensed in" strip with each state's page link
- *   - NMLS numbers (entity + each MLO), sponsor sentences
+ *   - NMLS numbers (entity; plus the matched MLO's name and NMLS #
+ *     when MloContext has one — never a name without its number),
+ *     sponsor sentences
  *   - per-state license lines (entity + MLO license, regulator)
  *   - Equal Housing Lender with an accessible text label
  *   - entity / trade-name disclaimer
@@ -81,12 +84,8 @@ export default function Footer() {
             <p className="mb-3">
               {CONFIG.entityTradeName} is a trade name of {CONFIG.entityLegalName}
               {isPlaceholder(CONFIG.entityNmls) ? "" : ` (NMLS #${CONFIG.entityNmls})`}.
-              {ALL_MLOS.map((m) => (
-                <span key={m.nmls}>
-                  {" "}
-                  {m.name}, {m.title}, NMLS #{m.nmls}.
-                </span>
-              ))}
+              {/* An individual MLO (with NMLS #) only when MloContext has a match. */}
+              <MloFooterLine />
             </p>
             <p className="mb-3">
               {sponsorGroups.map((g, i) => (

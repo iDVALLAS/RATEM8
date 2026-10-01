@@ -101,6 +101,17 @@ export const CONFIG = {
 
   contactEmail: env("NEXT_PUBLIC_CONTACT_EMAIL") ?? "[EMAIL]",
   privacyEmail: "privacy@loanm8.com",
+  /** Where testers ask for the /demo password (shown on the gate). */
+  demoContactEmail: env("NEXT_PUBLIC_DEMO_CONTACT_EMAIL") ?? "jason@ratem8.com",
+
+  /**
+   * Where the /investors "Reach out" button goes. A mailto today; swap in
+   * a booking link (any https URL) without touching the page.
+   */
+  investorContactHref: env("NEXT_PUBLIC_INVESTOR_CONTACT_HREF") ?? "mailto:investors@loanm8.com",
+
+  /** Public license lookup (for generic "verify a license" links). */
+  nmlsConsumerAccessHome: "https://www.nmlsconsumeraccess.org/",
 
   /**
    * Show "N wholesale lenders" ONLY when this is a verified, current number.
@@ -119,7 +130,7 @@ export const CONFIG = {
       slug: "washington",
       code: "WA",
       name: "Washington",
-      serviceArea: "Western Washington",
+      serviceArea: "Washington",
       entityLicense: "[WA ENTITY LICENSE #]",
       mloLicense: "[WA MLO LICENSE #]",
       regulatorName: "[WA regulator name — e.g. Washington State Department of Financial Institutions]",
@@ -254,16 +265,15 @@ export function stateByCode(code: string): StateConfig | undefined {
   return STATES.find((s) => s.code === code);
 }
 
-/** "Washington (serving Western Washington)" or just "Arizona". */
+/** "Washington (serving <area>)" when the service area is narrower than the state, else just "Arizona". */
 export function stateDisplay(s: StateConfig): string {
   return s.serviceArea && s.serviceArea !== s.name
     ? `${s.name} (serving ${s.serviceArea})`
     : s.name;
 }
 
-/** Short chip label: "Western WA", "AZ", "CA", "TX". */
+/** Short chip label: "WA", "AZ", "CA", "TX". */
 export function stateChip(s: StateConfig): string {
-  if (s.code === "WA") return "Western WA";
   return s.code;
 }
 
@@ -274,7 +284,7 @@ function formatList(items: string[]): string {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
-/** "Washington (serving Western Washington), Arizona, California, and Texas" */
+/** "Washington, Arizona, California, and Texas" (with "(serving …)" for any narrower service area) */
 export const LICENSED_IN_LINE = formatList(STATES.map(stateDisplay));
 
 /** "Washington, Arizona, California, and Texas" */
@@ -287,15 +297,13 @@ export const STATE_CODES_LINE = STATES.map((s) => s.code).join(" · ");
 export const HAS_TEAM = CONFIG.team.length > 0;
 
 /**
- * How copy refers to the closer. Principle 1 ("one loan officer, start to
- * close") holds per borrower; a single named person is only promised when
- * there is exactly one MLO.
+ * How copy refers to the closer. Always generic since v14 (Edit 6): an
+ * individual is named only for a matched visitor, client-side, through
+ * MloContext (lib/mlo-match.ts), with their NMLS number on the same page.
  */
-export const MLO_REF = HAS_TEAM ? "your licensed loan officer" : CONFIG.principalMlo.firstName;
-export const MLO_REF_CAP = HAS_TEAM ? "Your licensed loan officer" : CONFIG.principalMlo.firstName;
-export const MLO_REF_FULL = HAS_TEAM
-  ? "a licensed loan officer"
-  : `${CONFIG.principalMlo.name}, NMLS #${CONFIG.principalMlo.nmls}`;
+export const MLO_REF = "your licensed loan officer";
+export const MLO_REF_CAP = "Your licensed loan officer";
+export const MLO_REF_FULL = "a licensed, vetted loan officer";
 
 /** All MLOs, principal first. */
 export const ALL_MLOS: Mlo[] = [CONFIG.principalMlo, ...CONFIG.team];

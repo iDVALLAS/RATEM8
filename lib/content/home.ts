@@ -12,11 +12,8 @@
 
 export const homeContent = {
   hero: {
-    orbAriaLabel: "Wake M8",
     orbAriaLabelOpen: "M8 has said g'day",
     orbCardLabel: "// m8",
-    /** Rendered under the four-button grid (the hero is an intake point). */
-    intakeLine: "Free · No spam",
     gridLabel: "Start here",
     trustLabel: "What you can count on",
   },

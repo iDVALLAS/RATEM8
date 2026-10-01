@@ -1,7 +1,6 @@
 import BookingCTA from "@/components/BookingCTA";
 import CTAButton from "@/components/CTAButton";
 import { copy } from "@/lib/copy";
-import { NOT_A_CREDIT_PULL } from "@/lib/config";
 import { homeContent } from "@/lib/content/home";
 
 /**
@@ -12,8 +11,9 @@ import { homeContent } from "@/lib/content/home";
  *   [ Get a second look (outline, LE)   ] [ I'm a hungry MLO (outline, //)     ]
  *
  * Row 2 is outlined + mono icon: distinct, never louder than primary.
- * The hero is an intake point, so the not-a-credit-pull line sits
- * under the grid (once, spanning both columns).
+ * The hero is an intake point, so the trust line (copy.hero.trustLine,
+ * starting with "This is not a credit pull") sits under the grid once,
+ * spanning both columns.
  */
 export default function ActionGrid() {
   return (
@@ -32,8 +32,14 @@ export default function ActionGrid() {
           {copy.hero.mloCta}
         </CTAButton>
       </div>
+      {/* Non-breaking spaces inside each phrase: the line wraps only at the dots. */}
       <p className="hm-grid__note">
-        {NOT_A_CREDIT_PULL} · {homeContent.hero.intakeLine}
+        {copy.hero.trustLine.map((item, i) => (
+          <span key={item}>
+            {i > 0 ? " · " : null}
+            {item.replace(/ /g, "\u00a0")}
+          </span>
+        ))}
       </p>
     </nav>
   );

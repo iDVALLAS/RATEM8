@@ -8,7 +8,7 @@ advocate: it explains the math, compares options honestly, and produces a
 written Rate Strategy Brief the borrower keeps. Loans are originated by
 licensed Mortgage Loan Originators. LoanM8 does not sell leads.
 
-Launch states: Washington (serving Western Washington), Arizona,
+Launch states: Washington (serving Washington), Arizona,
 California, Texas. Every fact on the site comes from `lib/config.ts`.
 
 ---

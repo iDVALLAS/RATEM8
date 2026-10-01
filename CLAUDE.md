@@ -87,7 +87,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v13 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v14 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -98,12 +98,15 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 70 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 78 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
-   `npm run check:identity` fails the build on MLO names, NMLS numbers or
-   NMLS-labelled digit runs anywhere outside `lib/config.ts`.
+   `npm run check:identity` fails the build on MLO names (full or first),
+   NMLS numbers or NMLS-labelled digit runs anywhere outside
+   `lib/config.ts`. Copy never names a loan officer directly: it carries a
+   generic string plus a `…Named` template (`{first}` / `{name}`) rendered
+   through `MloText` (see §4c).
 6. **Copy lives in `lib/copy.ts`** (UI strings) and `lib/content/*`
    (long-form). Do not invent statistics, timing promises, or
    testimonials.
@@ -155,16 +158,29 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 ### 4.2 HeroOrb — `components/home/HeroOrb.tsx`, `components/home/home.css`
 
-- Orb tap and the **Voice** stitched button call `wake(message)`:
-  `PULSE_MS = 700` (adds `.orb--pulse`), `SPEAK_MS = 1500` (state
-  `speaking`, then `idle`), `TOAST_MS = 4200` (toast visible). Timers
-  are cleared on re-wake and unmount.
-- **Q & A** is an `<a target="_blank">` to `CONFIG.calendly.borrower`
-  when configured (same destination as "I'm shopping a mortgage"), else
-  a button that toasts `copy.hero.qaComingSoon`.
-- The toast lives in `.hm-orb-toastwrap` (height 0, absolute child) so
-  it overlays and never pushes the headline or the four action boxes
-  below the fold.
+- **Voice** and **Q & A** (and an orb tap, which acts as Voice) open a solid
+  popup (v14):
+  - Panel `--color-m8-panel` #0d1a15 with a 1px M8 Green border, at
+    z-index 30 inside `.hm-hero__orbcol` (z-index 5), so it covers the
+    headline and the term field.
+  - Desktop: Voice opens left of the button row and Q & A right, 230px
+    wide, 10px gap. Below 768px both drop under the row at full width.
+  - Breathing dot, plus a progress line that fills over `REDIRECT_MS = 5500`
+    and then routes to `/chat`. Tapping the popup goes now; × or Esc
+    cancels. One popup at a time; the open button gets a solid green border.
+  - Reduced motion: no animation, same timer.
+- `PULSE_MS = 700` (`.orb--pulse`) and `SPEAK_MS = 1500` (`speaking`, then
+  `idle`) still play on open.
+- Raised monogram (`OrbMonogram.tsx`, hero orb only):
+  - An `<image>` of `public/brand/m8-monogram.svg` (placeholder until the
+    real asset lands) under an SVG filter: M8 Green flood, a specular bevel
+    lit from the upper left, and a Forest shadow.
+  - It is a child of `.orb` (`Orb` now takes `children`), under
+    `.orb--mono::before` and clipped to the circle, so it rides the
+    breathing scale.
+  - Revealed once per session (`sessionStorage` key
+    `loanm8:orb-monogram-seen`, 3.5s, peak 0.62). Afterwards hover or focus
+    shows it at 0.3. Reduced motion: a static 0.4 for 3s.
 - No microphone, no audio, no AI call. `CONFIG.featureFlags.voice` is false.
 
 ### 4.3 TermField — `components/TermField.tsx`
@@ -317,6 +333,32 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   appended server-side in `app/api/m8-chat/route.ts`, never in `lib/m8.ts`
   (a client component imports that file).
 
+## 4c. Loan officer naming — `MloContext` (v14)
+
+- `lib/mlo-match.ts` is the rule. `source: "none"` (everyone today) gives
+  generic copy. `borrower_stated` or `chosen` names the matched MLO.
+  `ip` names one only when `borrowerChooses === false` (an assign state);
+  unknown counts as choose.
+- `components/mlo/MloContext.tsx`: `MloProvider` (in `app/layout.tsx`),
+  `useNamedMlo`, `MloText`, `MloFooterLine` (name + NMLS # in the footer
+  whenever a name shows), `MloLicenseItem` (state pages).
+- `/disclosures` is the one page that lists every MLO with their NMLS
+  number (and the Person JSON-LD). Patch B fills the provider's value.
+
+## 4d. Nav — `components/Nav.tsx`, `components/PartnerMenu.tsx` (v14)
+
+- Desktop has two groups split by `.nav-divider`. Group 1 (Calculators,
+  M8 Chat, Partner ▾) is `--fg-soft`; group 2 (Principles, About, Privacy)
+  is `--muted`.
+- Partner is a disclosure dropdown (MLOs → `/join`, agents → `/agents`,
+  investors → `/investors`):
+  - opens on hover, click or tap
+  - closes on Esc or outside click
+  - arrow keys, Home and End move between items
+  - solid panel
+- The mobile sheet expands Partner inline, with a horizontal rule between
+  the groups.
+
 ## 5. Key file paths
 
 | Area | Files |
@@ -324,11 +366,13 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 | Config and facts | `lib/config.ts`, `lib/licensing.ts`, `lib/states.ts`, `lib/site.ts`, `lib/copy.ts`, `lib/content/*` |
 | Theme and global CSS | `lib/theme.ts`, `app/globals.css`, `app/layout.tsx` |
 | Orb | `components/Orb.tsx`, `components/TermField.tsx` |
-| Hero | `components/home/Hero.tsx` (includes `FingerprintMark`), `components/home/HeroOrb.tsx`, `components/home/ActionGrid.tsx`, `components/home/TrustStrip.tsx`, `components/home/home.css` |
+| Hero | `components/home/Hero.tsx` (includes `FingerprintMark`), `components/home/HeroOrb.tsx`, `components/home/OrbMonogram.tsx`, `public/brand/m8-monogram.svg`, `components/home/ActionGrid.tsx`, `components/home/TrustStrip.tsx`, `components/home/home.css` |
 | Motion primitives | `lib/useSceneTimeline.ts`, `components/motion/Scene.tsx`, `Reveal.tsx`, `SlideHeadline.tsx`, `Stage.tsx`, `SheetStack.tsx`, `StepList.tsx`, `FloatCard.tsx`, `Bento.tsx`, `SceneLabel.tsx`, `ReplayButton.tsx`, `Underline.tsx` (dead), `stage.css` |
 | Home bands | `components/MarketingHomePage.tsx`, `components/home/StatesStrip.tsx`, `Principles.tsx`, `PrinciplesScene.tsx`, `HowItWorks.tsx`, `HowItWorksSteps.tsx`, `SecondLookTeaser.tsx`, `SecondLookScene.tsx`, `AgentsBand.tsx`, `MloBand.tsx`, `About.tsx` |
 | Other animated pages | `components/join/*`, `components/agents/*`, `components/second-look/*`, `components/chat/*`, `components/brief/*` |
-| Nav and footer | `components/Nav.tsx`, `components/Footer.tsx`, `components/ThemeToggle.tsx`, `components/Wordmark.tsx` |
+| Nav and footer | `components/Nav.tsx`, `components/PartnerMenu.tsx`, `components/Footer.tsx`, `components/ThemeToggle.tsx`, `components/Wordmark.tsx` |
+| Loan officer naming | `lib/mlo-match.ts`, `components/mlo/MloContext.tsx`, `components/home/AboutCards.tsx` |
+| Investors | `app/investors/page.tsx` (`copy.investors`, `CONFIG.investorContactHref`) |
 | Agent surface | `app/api/agent/*`, `lib/agent-api.ts`, `app/ai/*`, `app/llms.txt/*`, `AGENTS.md` |
 | Compliance docs | `COMPLIANCE.md`, `ATTORNEY_REVIEW_LIST.md`, `PLACEHOLDERS.md`, `docs/BUILD_CONTRACT.md`, `docs/SITE_BRIEF.md`, `docs/TYPOGRAPHY_GUIDE.md` |
 | Verification | `scripts/check-copy.mjs`, `scripts/qa/*.mjs`, `lib/*.test.ts`, `lib/second-look/*.test.ts` |
@@ -338,7 +382,7 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 
 ## 6. Dependencies
 
-No dependency was added in v12 or v13. Runtime (`package.json`):
+No dependency was added in v12, v13 or v14. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,

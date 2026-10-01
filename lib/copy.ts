@@ -21,15 +21,11 @@
 import {
   CONFIG,
   MLO_REF,
-  MLO_REF_CAP,
-  HAS_TEAM,
   LICENSED_IN_LINE,
   AI_DISCLOSURE,
   NOT_A_CREDIT_PULL,
 } from "./config";
-import { NMLS_BADGE, PRIVACY_EMAIL } from "./licensing";
-
-const mlo = CONFIG.principalMlo;
+import { PRIVACY_EMAIL } from "./licensing";
 
 export const copy = {
   brand: {
@@ -41,17 +37,31 @@ export const copy = {
   },
 
   nav: {
+    // PROPOSAL: was one flat list (Calculators, M8 Chat, For agents,
+    // Principles, About, Privacy). Owner change list 2026-10-01 (Edit 5):
+    // two groups, and "For agents" becomes the "Partner" dropdown.
+    /** Group 1 (brighter): Calculators, M8 Chat, then the Partner dropdown. */
     links: [
       { href: "/calculators", label: "Calculators" },
       { href: "/chat", label: "M8 Chat" },
-      { href: "/agents", label: "For agents" },
+    ],
+    partner: {
+      label: "Partner",
+      items: [
+        { href: "/join", label: "Mortgage loan originators", description: "Join the platform in your state" },
+        { href: "/agents", label: "Real estate agents", description: "A lender partner that won't spam your buyers" },
+        { href: "/investors", label: "Investors", description: "Back what we're building" },
+      ],
+    },
+    /** Group 2 (dimmer), after the vertical divider. */
+    more: [
       { href: "/principles", label: "Principles" },
       { href: "/#about", label: "About" },
       { href: "/privacy", label: "Privacy" },
     ],
+    /** Mobile sheet only, under "// more". */
     secondary: [
       { href: "/second-look", label: "Second Look" },
-      { href: "/join", label: "For MLOs" },
       { href: "/loan-estimate", label: "Loan Estimate guide" },
       { href: "/sample-brief", label: "Sample brief" },
       { href: "/ai", label: "For AI assistants" },
@@ -65,7 +75,10 @@ export const copy = {
     tagline: "Loan intelligence.",
     // PROPOSAL: "Free for all loan mates." → brief tagline second half.
     taglineEmphasis: "Free for the people.",
-    sub: "AI-powered mortgage rate shopping. Every loan closed by one licensed loan officer. No lead-selling. No trigger leads. No spam.",
+    // PROPOSAL: was "AI-powered mortgage rate shopping. Every loan closed by
+    // one licensed loan officer. No lead-selling. No trigger leads. No spam."
+    // Owner change list 2026-10-01 (Edit 2).
+    sub: "AI-powered mortgage rate shopping. Licensed and vetted loan officers. Built by mortgage pros for humans and their AI assistants.",
     // PROPOSAL: the brief's orb greeting "Tap me to say g'day." was replaced
     // by the owner with two actions under the orb (Voice / Q & A). The
     // string stays here for reference; nothing renders it.
@@ -75,8 +88,22 @@ export const copy = {
     authWord: "human",
     voiceLabel: "Voice",
     qaLabel: "Q & A",
-    voiceComingSoon: "Voice is coming soon. Hang in there, m8.",
-    qaComingSoon: "Booking link coming soon.",
+    // PROPOSAL: was "Voice is coming soon. Hang in there, m8." (toast) and
+    // "Booking link coming soon." (Q & A fallback). Owner change list
+    // 2026-10-01 (Edit 1): both buttons open a popup that routes to /chat.
+    voicePopup: "My voice chat tech is being upgraded, be back soon. Chat with me in the meantime — M8",
+    qaPopup: "Opening M8 Chat — ask me anything about rates, points, or your loan. — M8",
+    /** × on the popup: cancels the redirect and stays on the homepage. */
+    popupCancel: "Cancel and stay on this page",
+    /** Screen-reader hint read after the popup text. */
+    popupRedirectNote: "Opening M8 Chat in a few seconds.",
+    /** aria-label on the hero orb (Edit 7). */
+    orbAriaLabel: "M8, LoanM8's AI assistant",
+    /**
+     * Trust line under the four-button grid (Edit 3). Rendered with
+     * non-breaking spaces inside each phrase so it wraps only at the dots.
+     */
+    trustLine: ["This is not a credit pull", "No lead selling", "No trigger leads", "Free", "No spam"],
     orbCardTitle: "Hi, I'm M8.",
     orbCardBody: `${AI_DISCLOSURE} Chat is opening soon. Want to talk to a licensed loan officer now?`,
     orbCardCta: "Book a call with a licensed loan officer",
@@ -139,9 +166,9 @@ export const copy = {
         n: "03",
         label: "// 03 — verify",
         title: "Talk to your licensed loan officer.",
-        body: HAS_TEAM
-          ? "A licensed human checks the file, answers the hard questions, and closes the loan. One person, start to close."
-          : `${mlo.firstName} checks the file, answers the hard questions, and closes the loan. One person, start to close.`,
+        // v14 (Edit 6): generic unless the visitor is matched (MloContext).
+        body: "A licensed loan officer checks the file, answers the hard questions, and closes the loan. One person, start to close.",
+        bodyNamed: "{first} checks the file, answers the hard questions, and closes the loan. One person, start to close.",
       },
     ],
   },
@@ -174,7 +201,11 @@ export const copy = {
       },
       {
         title: "One person owns the file.",
-        body: `${MLO_REF_CAP}. Not a processor in another time zone. You call once, you get the answer.`,
+        // PROPOSAL: was "<MLO first name>. Not a processor in another time
+        // zone. …" Owner change list 2026-10-01 (Edit 6a). The name returns
+        // only for a matched visitor (bodyNamed, via MloContext).
+        body: "A licensed, vetted loan officer of your choosing. Not a processor in another time zone. You call once, you get the answer.",
+        bodyNamed: "{first}. Not a processor in another time zone. You call once, you get the answer.",
       },
     ],
     cta: "Book a partner intro call",
@@ -189,12 +220,18 @@ export const copy = {
   },
 
   about: {
-    eyebrow: HAS_TEAM ? "WHO CLOSES YOUR LOAN" : "WHO CLOSES YOUR LOAN",
-    heading: HAS_TEAM ? "Licensed loan officers. No call center." : `${mlo.name}.`,
-    sub: HAS_TEAM
-      ? "Every loan on LoanM8 is closed by one NMLS-licensed Mortgage Loan Originator, start to finish. M8 is the tool. A human is on the line."
-      : "NMLS-licensed Mortgage Loan Originator. M8 is the tool. I'm the human on the line.",
-    nmls: NMLS_BADGE,
+    eyebrow: "WHO CLOSES YOUR LOAN",
+    // v14 (Edit 6): generic unless matched; then the matched MLO's name
+    // and card (with their NMLS number) render instead.
+    heading: "Licensed loan officers. No call center.",
+    headingNamed: "{name}.",
+    sub: "Every loan on LoanM8 is closed by one NMLS-licensed Mortgage Loan Originator, start to finish. M8 is the tool. A human is on the line.",
+    subNamed: "NMLS-licensed Mortgage Loan Originator. M8 is the tool. I'm the human on the line.",
+    genericCard: {
+      title: "A licensed, vetted loan officer",
+      body: "Matched to your state. Their name and NMLS number show here once you are matched, and every license can be checked on NMLS Consumer Access.",
+      verify: "Look up a license on NMLS Consumer Access",
+    },
     verify: "Verify on NMLS Consumer Access",
     bioLabel: "// bio",
   },
@@ -214,9 +251,11 @@ export const copy = {
       },
       {
         title: "Partners",
+        // v14: labels match the nav's Partner dropdown.
         links: [
-          { href: "/agents", label: "For real estate agents" },
-          { href: "/join", label: "For licensed MLOs" },
+          { href: "/join", label: "Mortgage loan originators" },
+          { href: "/agents", label: "Real estate agents" },
+          { href: "/investors", label: "Investors" },
           { href: "/ai", label: "For AI assistants" },
         ],
       },
@@ -314,7 +353,7 @@ export const copy = {
     sub: "Licensed, competent, and tired of buying leads that were sold to four other people? We are vetting originators in every state, one per area. M8 handles the intake. You originate.",
     scenes: [
       { label: "// 01 — hook", title: "Got a license and something to prove?", body: "This is for originators, in any state, who would rather explain the math than pressure a borrower." },
-      { label: "// 02 — where", title: "Every state. One originator per area.", body: "Live today in Western Washington, Arizona, California, and Texas. Vetting licensed originators everywhere else ahead of expansion. When an area has its originator, it is closed to new applicants." },
+      { label: "// 02 — where", title: "Every state. One originator per area.", body: "Live today in Washington, Arizona, California, and Texas. Vetting licensed originators everywhere else ahead of expansion. When an area has its originator, it is closed to new applicants." },
       { label: "// 03 — intake", title: "M8 does the first conversation.", body: "A borrower talks to M8, gets the math explained, and a Rate Strategy Brief is drafted before you pick up the phone." },
       { label: "// 04 — handled", title: "You get a file, not a lead.", body: "A routed borrower, a three-option comparison laid out the anti-steering way, a pipeline, and a compliance trail." },
       { label: "// 05 — you", title: "You originate. M8 handles the intake.", body: "Book an intro call. No forms." },
@@ -327,7 +366,7 @@ export const copy = {
     ],
     briefGenerating: "Rate Strategy Brief · generating",
     handled: {
-      borrower: { label: "// routed borrower", name: "Sample borrower", detail: "Purchase · Western WA · pre-approval requested", sample: "fictional" },
+      borrower: { label: "// routed borrower", name: "Sample borrower", detail: "Purchase · WA · pre-approval requested", sample: "fictional" },
       comparison: { label: "// wholesale comparison", options: ["Lowest rate suitable", "Lowest rate, no risky features", "Lowest total points & fees"], note: "Anti-steering layout. Fictional labels, no figures." },
       pipeline: { label: "// pipeline", steps: ["Application", "LE", "Lock", "Close"] },
       compliance: { label: "// compliance", items: ["Soft pull only", "Disclosures logged", "Documented decisions"] },
@@ -373,7 +412,8 @@ export const copy = {
         title: "The basics",
         // PROPOSAL: was "...answers in business hours, same day. Pre-approval
         // letter ... delivered within 24 hours." Timing claims removed.
-        body: `You introduce a buyer. ${MLO_REF_CAP} answers during business hours. A written pre-approval letter, fully underwritten where possible. You get cc'd on every status change.`,
+        body: "You introduce a buyer. Your licensed loan officer answers during business hours. A written pre-approval letter, fully underwritten where possible. You get cc'd on every status change.",
+        bodyNamed: "You introduce a buyer. {first} answers during business hours. A written pre-approval letter, fully underwritten where possible. You get cc'd on every status change.",
       },
       {
         title: "What we will never do",
@@ -404,6 +444,26 @@ export const copy = {
     cta: "Book a 20-min partner intro call",
   },
 
+  /* ───────────── INVESTORS (v14, Edit 5b) ───────────── */
+  // No raise amount, valuation, terms, returns, or structure on this page.
+
+  investors: {
+    metaTitle: "Investors — LoanM8",
+    metaDescription: "Capital, strategic, and industry partners interested in mortgage rate shopping that works for the borrower. Informational only; not an offer of securities.",
+    crumb: "Investors",
+    eyebrow: "INVESTORS",
+    heading: "Back the borrower's side of the table.",
+    accent: "borrower's side of the table.",
+    body: "LoanM8 is building mortgage rate shopping that works for the borrower: AI that shops the math, and a licensed loan officer who verifies every deal. If you're interested in where this goes next, as a capital partner, strategic partner, or industry partner, we'd like to hear from you.",
+    cards: [
+      { title: "Capital partners", body: "Interested in investing in LoanM8's growth? Let's start with a conversation." },
+      { title: "Strategic partners", body: "Technology, data, and platform companies that make shopping more transparent for borrowers." },
+      { title: "Industry partners", body: "Brokerages, lenders, and pricing providers who want to reach borrowers without buying leads." },
+    ],
+    cta: "Reach out",
+    finePrint: "This page is for informational purposes only and is not an offer to sell, or a solicitation of an offer to buy, any securities.",
+  },
+
   /* ───────────── CALCULATORS ───────────── */
 
   calculators: {
@@ -424,9 +484,8 @@ export const copy = {
     faq: "Questions",
     lastUpdated: "Last updated",
     ctaTitle: "Want to talk this through?",
-    ctaBody: HAS_TEAM
-      ? "M8 can explain the math in a conversation. A licensed loan officer can look at your actual situation."
-      : `M8 can explain the math in a conversation. ${mlo.firstName} can look at your actual situation.`,
+    ctaBody: "M8 can explain the math in a conversation. A licensed loan officer can look at your actual situation.",
+    ctaBodyNamed: "M8 can explain the math in a conversation. {first} can look at your actual situation.",
     ctaChat: "Talk to M8",
     ctaBook: "Book a call",
   },

@@ -14,7 +14,7 @@ A consumer-facing, AI-powered mortgage rate-shopping brokerage. The AI, **M8**, 
 
 **Brand voice:** populist, technically grounded, calm, honest, specific. Never corporate, never pressuring, never effusive.
 
-**Launch states (exactly four):** Washington (service area: Western Washington), Arizona, California, Texas.
+**Launch states (exactly four):** Washington (statewide; "Western" dropped by the owner 2026-10-01, patch v14), Arizona, California, Texas.
 
 ---
 
@@ -89,7 +89,7 @@ export const CONFIG = {
   lenderCountDisplay: null as number | null,   // show "N wholesale lenders" ONLY if non-null and verified
   liveRatesEnabled: false,                     // gates any rate-display UI and the "live pricing" mentions beyond the principle itself
   states: [
-    { slug: "washington", name: "Washington", serviceArea: "Western Washington",
+    { slug: "washington", name: "Washington", serviceArea: "Washington",
       entityLicense: "[WA ENTITY LICENSE #]", mloLicense: "[WA MLO LICENSE #]", regulator: "[WA regulator name + URL]" },
     { slug: "arizona",    name: "Arizona",    serviceArea: "Arizona", entityLicense: "[AZ #]", mloLicense: "[AZ #]", regulator: "[...]" },
     { slug: "california", name: "California", serviceArea: "California", entityLicense: "[CA #]", mloLicense: "[CA #]", regulator: "[...]" },
@@ -101,7 +101,7 @@ export const CONFIG = {
 ```
 
 Rules that follow from this:
-- Anywhere the site says "Licensed in," render it from `states`. Washington reads "Washington (serving Western Washington)."
+- Anywhere the site says "Licensed in," render it from `states`. Washington reads "Washington" (statewide since v14).
 - **Principle 1** says "one loan officer, start to close." That holds per borrower. Any copy that says a single *named* person closes every loan must render from `principalMlo` and read "your licensed loan officer" when more than one MLO exists. Build the About section so it works for one MLO or a team.
 - The lender-count badge (the "14 lenders" chip in the mobile mockup) renders only if `lenderCountDisplay` is non-null.
 
@@ -200,7 +200,7 @@ Row 2 buttons are visually distinct from row 1 (outlined, with a mono icon), not
 **Trust strip** (2×2 on mobile, one row on desktop): Soft pull only · One loan officer · Never shared · Free to use. Use the same icons as the current mockup.
 
 **Sections below the hero, in order:**
-1. **States strip:** four state chips (Western WA, AZ, CA, TX), each linking to its state page. Mono label `// licensed in`.
+1. **States strip:** four state chips (WA, AZ, CA, TX), each linking to its state page. Mono label `// licensed in`.
 2. **The eight principles:** op-ed feel, not a feature grid. On desktop, asymmetric grid of `PrincipleCard`s. Link to `/principles` for the full manifesto.
 3. **How it works (borrowers):** 3 steps: Talk it through with M8 → Get a written Rate Strategy Brief → Talk to your licensed loan officer. Scene-label animation, dashed-to-filled.
 4. **Second Look teaser:** a compact loop of the decode animation (Section 9) with a CTA.
@@ -247,7 +247,7 @@ A scroll-triggered five-scene animation using a **fictional** Loan Estimate. Eve
 Scroll-driven, five scenes, background flips between scenes. A single SVG path draws itself down the page while the orb travels along it; four state pins light up as the path passes.
 
 1. `// 01 — hook`: "Got a license and something to prove?" Orb peeks in from the corner.
-2. `// 02 — states`: four state cards stack in one at a time: Western WA, AZ, CA, TX. Copy: "Now recruiting in our four launch states."
+2. `// 02 — states`: four state cards stack in one at a time: WA, AZ, CA, TX. Copy: "Now recruiting in our four launch states."
 3. `// 03 — intake`: phone mockup: M8 talking to a borrower (a short scripted chat), then a Rate Strategy Brief "generating."
 4. `// 04 — handled`: dashed-to-filled bento: routed borrower (fictional), wholesale-panel comparison (3-option anti-steering layout, fictional labels), pipeline dots (Application → LE → Lock → Close), and a compliance card ("Soft pull only · Disclosures logged · Documented decisions").
 5. `// 05 — you`: flips to light background. "You originate. *M8 handles the intake.*" Wordmark, "Book an intro call" pill (MLO Calendly), state strip.

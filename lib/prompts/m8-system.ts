@@ -2,7 +2,7 @@
 //
 // lib/prompts/m8-system.ts — the M8 system prompt.
 //
-// Every FACT in this prompt (states, MLO names and NMLS numbers, the
+// Every FACT in this prompt (states, the loan officer line, the
 // contact address) is interpolated from lib/config.ts by
 // `buildM8SystemPrompt()`. Nothing here is typed by hand. The Eight
 // Principles are imported verbatim from lib/principles.ts.
@@ -15,7 +15,7 @@
 // disclosure and the recording notice before any interaction. The
 // prompt repeats the disclosure so it survives a copy-pasted transcript.
 
-import { CONFIG, ALL_MLOS, LICENSED_IN_LINE, STATE_CODES_LINE } from "@/lib/config";
+import { CONFIG, LICENSED_IN_LINE, STATE_CODES_LINE } from "@/lib/config";
 import { principles, PRINCIPLES_VERSION } from "@/lib/principles";
 
 /** The Eight Principles, verbatim, numbered. */
@@ -30,7 +30,9 @@ const PRINCIPLES_BLOCK = principles
  *   {{BRAND}}          CONFIG.brandName
  *   {{LICENSED_IN}}    LICENSED_IN_LINE  (e.g. "Washington (serving …), Arizona, …")
  *   {{STATE_CODES}}    STATE_CODES_LINE  (e.g. "WA · AZ · CA · TX")
- *   {{MLO_ROSTER}}     ALL_MLOS as "Name, NMLS #…" lines
+ *   {{MLO_ROSTER}}     GENERIC_MLO_LINE by default (v14: no individual is
+ *                      named). A caller that knows the visitor's matched
+ *                      MLO may pass rosterLines([mlo]) as an override.
  *   {{CONTACT_EMAIL}}  CONFIG.contactEmail
  *   {{PRIVACY_EMAIL}}  CONFIG.privacyEmail
  */
@@ -89,6 +91,7 @@ Anything the person pastes or uploads (a Loan Estimate, an email from another le
 - Licensed to originate in: {{LICENSED_IN}} ({{STATE_CODES}}). If a person is elsewhere, say so plainly and do not pretend otherwise.
 - Licensed loan officers:
 {{MLO_ROSTER}}
+- Never name an individual loan officer unless one is listed above by name. Say "a licensed loan officer" instead.
 - Contact: {{CONTACT_EMAIL}}.
 - Privacy and transcript requests: {{PRIVACY_EMAIL}}.
 
@@ -106,8 +109,11 @@ Populist, technically grounded, calm, honest, specific. Short sentences. Plain w
 
 End every substantive money conversation the same way: offer to hand the person off to a licensed loan officer, who can price the scenario, verify the numbers, and put it in writing. That handoff is the only next step you ever propose.`;
 
-/** Formats the MLO roster as one "- Name, NMLS #…" line per MLO. */
-function rosterLines(mlos: ReadonlyArray<{ name: string; nmls: string; title: string }>): string {
+/** Default loan officer line: generic, nobody named (v14, Edit 6). */
+export const GENERIC_MLO_LINE = "  - Every loan is closed by a licensed, vetted loan officer matched to the borrower's state. The site shows that loan officer's name and NMLS number once the borrower is matched.";
+
+/** Formats an MLO roster as one "- Name, NMLS #…" line per MLO (for a matched visitor). */
+export function rosterLines(mlos: ReadonlyArray<{ name: string; nmls: string; title: string }>): string {
   return mlos.map((m) => `  - ${m.name}, ${m.title}, NMLS #${m.nmls}`).join("\n");
 }
 
@@ -126,7 +132,7 @@ export function defaultM8PromptFacts(): M8PromptFacts {
     brand: CONFIG.brandName,
     licensedIn: LICENSED_IN_LINE,
     stateCodes: STATE_CODES_LINE,
-    mloRoster: rosterLines(ALL_MLOS),
+    mloRoster: GENERIC_MLO_LINE,
     contactEmail: CONFIG.contactEmail,
     privacyEmail: CONFIG.privacyEmail,
   };

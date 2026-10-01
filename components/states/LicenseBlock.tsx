@@ -1,4 +1,5 @@
-import { ALL_MLOS, CONFIG, isPlaceholder, type StateConfig } from "@/lib/config";
+import { CONFIG, isPlaceholder, type StateConfig } from "@/lib/config";
+import { MloLicenseItem } from "@/components/mlo/MloContext";
 import { copy } from "@/lib/copy";
 import { statePageContent as t } from "@/lib/content/states";
 import "./states.css";
@@ -66,20 +67,7 @@ export default function LicenseBlock({ state }: { state: StateConfig }) {
           <dt>{t.originatorsLabel}</dt>
           <dd>
             <ul className="st-mlo">
-              {ALL_MLOS.map((m) => (
-                <li key={m.nmls}>
-                  {isPlaceholder(m.nmlsConsumerAccessUrl) ? (
-                    m.name
-                  ) : (
-                    <a href={m.nmlsConsumerAccessUrl} target="_blank" rel="noopener noreferrer">
-                      {m.name}
-                    </a>
-                  )}{" "}
-                  <span>
-                    {t.nmlsLabel} #{m.nmls}
-                  </span>
-                </li>
-              ))}
+              <MloLicenseItem nmlsLabel={t.nmlsLabel} generic={t.originatorsGeneric} lookupLabel={t.originatorsLookup} lookupHref={CONFIG.nmlsConsumerAccessHome} />
             </ul>
           </dd>
         </div>
