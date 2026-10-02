@@ -99,6 +99,44 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v20 — Mobile menu opened to 0px tall on iPhone (2026-10-02)
+
+**Owner report:** the ☰ menu on mobile "doesn't do anything".
+
+**Root cause:**
+- The mobile sheet (`position: fixed`) was rendered inside `<header
+  class="site-nav">`, which has `backdrop-filter: blur(12px)`.
+- In Safari (and Firefox), backdrop-filter makes the header the
+  containing block for fixed descendants.
+- So the sheet's `inset: 0` resolved against the 69px header, and with
+  `top: 69px` it opened at **0px tall**. The ☰ turned into ✕ and scrolling
+  locked, but nothing appeared.
+- Headless Chromium doesn't apply the blur, so the v18 audit passed.
+
+**Fix:** `components/Nav.tsx` now renders the sheet as a sibling after the
+header, not inside it. Nothing else changes: same z-index (39, under the
+header's 40), same measured `top`, same close rules.
+
+**Verified:**
+- The header was forced into a containing block, to reproduce Safari:
+  - before the fix: sheet height 0
+  - after the fix: 775px at a 390×844 viewport
+- With touch taps:
+  - opens
+  - closes on the toggle, Esc, an outside tap, a same-page link
+    (`/#about`) and a page link (`/calculators`)
+- With `MLO_ROUTING` on, the location line heads the menu.
+- `npm run verify` and the QA audits pass.
+
+**Also reported (no change):**
+- The owner sees no loan officer match at the top on mobile. Production
+  has `MLO_ROUTING` unset, which means off in production (v17 design).
+  The pill only shows on previews, or in production once
+  `MLO_ROUTING=true`.
+- A mockup of the as-built pill (Option A) and a sticky-header variant
+  (Option B) went to the owner for a decision. Nothing is implemented
+  until then.
+
 ## v19 — Round 3 Item 3: savings copy live; "national average" comparison built, OFF (2026-10-02)
 
 Owner approval to continue past the Item 2 STOP: "counsel has already

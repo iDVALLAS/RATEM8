@@ -23,7 +23,8 @@ import { copy } from "@/lib/copy";
  * away; the header stays clean) and the full location line heads the
  * menu. The menu closes on Esc, the toggle, a tap outside it, and any
  * link tap (same-page links too), and starts at the measured header
- * height.
+ * height. v20: the sheet is rendered after the header, not inside it (the
+ * header's backdrop-filter collapsed it to 0px in Safari/Firefox).
  */
 export function Nav() {
   const [open, setOpen] = useState(false);
@@ -125,54 +126,56 @@ export function Nav() {
             <LocationBeacon variant="nav" className="nav-beacon" />
           </div>
         </div>
-
-        <div
-          id="mobile-sheet"
-          ref={sheetRef}
-          className={`nav-sheet ${open ? "nav-sheet--open" : ""}`}
-          aria-hidden={!open}
-          style={navH ? { top: navH } : undefined}
-          onClick={(e) => {
-            // Any link closes the menu, including same-page links (/#about),
-            // and so does a tap on the sheet's empty area.
-            if ((e.target as Element).closest("a") || e.target === e.currentTarget) setOpen(false);
-          }}
-        >
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
-            {/* v18: the full location line heads the mobile menu (nothing while routing is off). */}
-            <LocationBeacon variant="menu" className="nav-sheet__beacon" />
-            <div className="font-mono text-[10px] tracking-[0.2em] uppercase mb-3" style={{ color: "var(--muted)" }}>
-              {"// menu"}
-            </div>
-            <div className="flex flex-col">
-              {copy.nav.links.map((l) => (
-                <Link key={l.href} href={l.href} className="nav-sheet__link" tabIndex={open ? 0 : -1}>
-                  {l.label}
-                </Link>
-              ))}
-              <PartnerMenu variant="sheet" sheetOpen={open} />
-            </div>
-            <hr className="nav-sheet__divider" />
-            <div className="flex flex-col">
-              {copy.nav.more.map((l) => (
-                <Link key={l.href} href={l.href} className="nav-sheet__link nav-sheet__link--more" tabIndex={open ? 0 : -1}>
-                  {l.label}
-                </Link>
-              ))}
-            </div>
-            <div className="font-mono text-[10px] tracking-[0.2em] uppercase mt-8 mb-3" style={{ color: "var(--muted)" }}>
-              {"// more"}
-            </div>
-            <div className="flex flex-col">
-              {copy.nav.secondary.map((l) => (
-                <Link key={l.href} href={l.href} className="nav-sheet__link nav-sheet__link--secondary" tabIndex={open ? 0 : -1}>
-                  {l.label}
-                </Link>
-              ))}
-            </div>
+      </header>
+      {/* v20: the mobile sheet lives OUTSIDE the header. The header's
+          backdrop-filter makes it the containing block for fixed children in
+          Safari and Firefox, which collapsed the sheet to 0px tall there. */}
+      <div
+        id="mobile-sheet"
+        ref={sheetRef}
+        className={`nav-sheet ${open ? "nav-sheet--open" : ""}`}
+        aria-hidden={!open}
+        style={navH ? { top: navH } : undefined}
+        onClick={(e) => {
+          // Any link closes the menu, including same-page links (/#about),
+          // and so does a tap on the sheet's empty area.
+          if ((e.target as Element).closest("a") || e.target === e.currentTarget) setOpen(false);
+        }}
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
+          {/* v18: the full location line heads the mobile menu (nothing while routing is off). */}
+          <LocationBeacon variant="menu" className="nav-sheet__beacon" />
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase mb-3" style={{ color: "var(--muted)" }}>
+            {"// menu"}
+          </div>
+          <div className="flex flex-col">
+            {copy.nav.links.map((l) => (
+              <Link key={l.href} href={l.href} className="nav-sheet__link" tabIndex={open ? 0 : -1}>
+                {l.label}
+              </Link>
+            ))}
+            <PartnerMenu variant="sheet" sheetOpen={open} />
+          </div>
+          <hr className="nav-sheet__divider" />
+          <div className="flex flex-col">
+            {copy.nav.more.map((l) => (
+              <Link key={l.href} href={l.href} className="nav-sheet__link nav-sheet__link--more" tabIndex={open ? 0 : -1}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase mt-8 mb-3" style={{ color: "var(--muted)" }}>
+            {"// more"}
+          </div>
+          <div className="flex flex-col">
+            {copy.nav.secondary.map((l) => (
+              <Link key={l.href} href={l.href} className="nav-sheet__link nav-sheet__link--secondary" tabIndex={open ? 0 : -1}>
+                {l.label}
+              </Link>
+            ))}
           </div>
         </div>
-      </header>
+      </div>
       {/* v18 mobile location pill: directly under the header, in the page flow (not sticky). */}
       <div className="lg:hidden mx-auto w-full max-w-7xl px-4 sm:px-6">
         <LocationBeacon variant="pill" />

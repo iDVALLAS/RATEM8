@@ -93,7 +93,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v19 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v20 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -454,6 +454,10 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   - solid panel
 - The mobile sheet expands Partner inline, with a horizontal rule between
   the groups.
+- v20: the mobile sheet is rendered **after** `<header>`, never inside
+  it. The header's `backdrop-filter` makes it the containing block for
+  fixed children in Safari/Firefox, which collapsed the sheet to 0px.
+  Headless Chromium QA does not catch this.
 - v18 mobile sheet: starts at the measured header height. It closes on the
   toggle, Esc, an outside tap, a tap on its empty area, and any link tap
   (same-page links too). The location line sits at the top.
