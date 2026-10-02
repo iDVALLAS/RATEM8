@@ -99,6 +99,174 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v19 — Round 3 Item 3: savings copy live; "national average" comparison built, OFF (2026-10-02)
+
+Owner approval to continue past the Item 2 STOP: "counsel has already
+confirmed you are good to go on that with no stop on the data you
+mentioned" (the prep-flow data question from v18).
+
+### 3a, savings copy (live)
+All strings in `copy.savings` (`lib/copy.ts`).
+- **Homepage:** a short band at the bottom of the How it works sheet,
+  under step //03 (`components/home/HowItWorks.tsx`, `.hm-savings` in
+  `home.css`).
+  - Eyebrow "// why it costs less".
+  - h3 "Less overhead. Lower costs." ("Lower costs." in the accent).
+  - Body verbatim from the brief: "M8 does the research a back office
+    used to do: shopping lenders, running the math, drafting the
+    paperwork. That cuts our overhead, and we pass the savings on to you."
+  - Two columns at ≥768px, stacked on phones. It sits inside the sheet,
+    so it is fully readable before Second Look slides over (checked at
+    1280 and 390).
+- **"/about":** there is no `/about` route. "About" in the nav is the
+  homepage `#about` section, so the paragraph goes there, under the
+  loan officer card (`components/home/About.tsx`, `copy.savings.about`).
+  It is generic for every visitor:
+  "Why it costs less: M8 does the work a back office used to do. It shops
+  lenders, runs the math, and drafts the paperwork, so your loan officer
+  spends their time on your file instead of on busywork. That keeps our
+  overhead low, and we pass the savings on to you."
+- **`/agents`:** "Your buyers get lower costs because our overhead is
+  lower." This sits under "What your buyer gets".
+- **`/join`:** "Your borrowers get lower costs because our overhead is
+  lower." This is in "The channel" section, before the "No lead is sold"
+  note. It contains no earnings or compensation language.
+- **Step //03 is unchanged, as asked.** Note: it does **not** currently
+  say "we pass those savings on to you". It reads "A licensed loan
+  officer checks the file, answers the hard questions, and closes the
+  loan. One person, start to close." The new band right under it now
+  carries that sentence.
+
+### 3b, `RateVsAverage` (built, OFF)
+- **Flag:** `CONFIG.pricing.benchmarkComparison.enabled` is true only
+  when `SHOW_NATIONAL_AVG_COMPARISON` is exactly `"true"`. It is unset
+  everywhere.
+- **Benchmark:** entered by hand in
+  `CONFIG.pricing.benchmarkComparison.benchmark`.
+  - Source: Freddie Mac Primary Mortgage Market Survey (PMMS), 30-year
+    fixed, https://www.freddiemac.com/pmms.
+  - The week, rate, fees and points, and the source's stated basis are
+    **bracketed placeholders**. Nothing was looked up or filled in.
+- **Example side:** the "Lowest rate without risky features" option of
+  the WA first-time purchase example (80% LTV, 30-year fixed), as of
+  `examplesAsOf`. The numbers come from `buildPricingRun()`, never from
+  the model.
+- **Logic** (`lib/pricing/benchmark.ts`, pure, tested). It returns
+  nothing unless all of these hold:
+  - every benchmark field is filled (no brackets), with an https source,
+    an ISO date, and plain decimals
+  - same product as the scenario
+  - the benchmark week is within 6 days of the example date
+  - the run is a dated **example**, never a manual snapshot
+  - the option has no risky feature
+- **"Below" is computed, never asserted.** The heading says "priced below"
+  only when the example rate is lower **and** its points plus origination
+  (% of loan) are no higher than the benchmark's fees and points. A lower
+  rate bought with more points gets the neutral heading "This example
+  next to the national average…".
+- **Rendered** (`components/pricing/RateVsAverage.tsx`, server, no JS):
+  - two cards: example (rate, points + origination, APR, other lender
+    fees) and benchmark (rate, fees and points; APR and lender fees "Not
+    compared")
+  - the rate difference, both dates, a 6-point assumptions footnote, and
+    a source link
+  - strings in `lib/content/rate-vs-average.ts`
+- **Placement:** `/rates`, under the three cards, only on its own
+  scenario tab (`?s=wa-first-purchase`), only in example mode, and not
+  for unlicensed-state visitors. `/rates` is noindex.
+- **Guard:** `check:copy` now fails the build on "national average",
+  "below/under/lower than/less than/better than/beats (the) (national/
+  market/industry) average" in any shipped file except the component,
+  its strings, its logic, and their tests.
+- **M8 prompt** (DRAFT) hard rule 1 gains: "Never compare any rate,
+  example or otherwise, with a published survey, index, or benchmark
+  rate, and never describe LoanM8 pricing as lower or better than what
+  other lenders or the market charge."
+
+### Report back: every place a rate-comparison claim would appear
+For counsel, before `SHOW_NATIONAL_AVG_COMPARISON` is turned on.
+1. **The only render site:** `/rates?s=wa-first-purchase` →
+   `RateVsAverage`. Exact strings (`lib/content/rate-vs-average.ts`):
+   - Eyebrow: "// dated comparison · example pricing"
+   - Heading when computed below: "On {date}, this example priced below
+     the national average for a {product} loan that week."
+   - Heading otherwise: "This example next to the national average for a
+     {product} loan that week."
+   - Card labels: "LoanM8 example, {date}" and "{source}, week of {date}".
+   - Rows: Rate; "Points and origination, % of loan" (example) / "Fees
+     and points, % of loan" (benchmark); APR and "Other lender fees"
+     (example only, "Not compared").
+   - "Rate difference: {diff} percentage points."
+   - Footnotes:
+     1. not a quote, offer or commitment
+     2. which example option and scenario, and its date
+     3. benchmark source, product and week, plus the source's own basis
+        (quoted)
+     4. how points are compared, and when "below" is used
+     5. APR and fees not compared
+     6. an average is not what any one borrower is offered
+2. **Nowhere else, by construction:**
+   - not the homepage, state pages, `/sample-brief`, calculators, M8 chat
+     (new prompt rule), Second Look (never compares pricing)
+   - not `/ai`, `/llms.txt`, `/api/agent/*`, or the pricing summary
+     appended to M8 (`lib/pricing/summary.ts` has no benchmark)
+   - not metadata, JSON-LD, or the sitemap
+   - `check:copy` enforces this.
+3. **Related cost claims, live now, for counsel to read alongside** (cost
+   structure, not rate comparisons; no baseline is named):
+   - homepage band "Less overhead. Lower costs." plus its body
+   - the About paragraph
+   - the `/agents` line
+   - the `/join` line
+   - Question: is "lower costs" without a stated comparison acceptable,
+     or should it name what it is lower than?
+4. **Questions to settle before the flag goes on:**
+   - Does a stated example rate next to a benchmark trigger Reg Z
+     §1026.24 advertising terms? APR is shown. Is the scenario's
+     assumption list on the same page enough?
+   - Reg N (MAP rule) comparisons: is "below" on a single dated example
+     with this footnote acceptable?
+   - Attribution or permission terms for quoting Freddie Mac PMMS.
+   - Whether PMMS still publishes fees and points for the week. If it
+     does not, the component cannot render (by design) until counsel
+     decides how to show the cost side.
+   - Who enters the weekly figures, and that they always match
+     `examplesAsOf`.
+
+### Verified
+- `npm run verify` passes: lint, `check:copy` (a temporary stray "below the national
+  average" line in `lib/` failed it, then was removed), `check:identity`, 110 tests (10 new),
+  build, `check:bundle`.
+- **Production build, `/rates?s=wa-first-purchase`:** no comparison
+  markup with the flag off, and none with the flag on while the
+  benchmark holds placeholders.
+- **Local-only render** with fictional benchmark values (reverted, never
+  committed), at 1280 and 390:
+  - two cards side by side, stacked on phones
+  - no horizontal overflow
+  - absent on the other scenario tabs
+- **Savings copy:** checked on the homepage band (night and paper, 1280
+  and 390), About, `/agents` and `/join`.
+- `qa/overflow` clean (the only console error is the local Analytics 404);
+  `qa/fonts` 0 findings; `qa/footer` and `qa/about` pass.
+
+### Files
+- `lib/copy.ts` (`savings`), `lib/config.ts` (`pricing.benchmarkComparison`)
+- `lib/pricing/benchmark.ts` (+ test)
+- `lib/content/rate-vs-average.ts`
+- `components/pricing/RateVsAverage.tsx` (+ test), `pricing.css`
+- `components/home/HowItWorks.tsx`, `About.tsx`, `home.css`
+- `app/agents/page.tsx`, `app/join/page.tsx`, `app/rates/page.tsx`
+- `lib/prompts/m8-system.ts`, `scripts/check-copy.mjs`
+- Docs: this log, `CLAUDE.md`, `PLACEHOLDERS.md`, `ATTORNEY_REVIEW_LIST.md`
+
+### Next up
+- Owner: the benchmark figures (only once counsel clears it), then set
+  `SHOW_NATIONAL_AVG_COMPARISON=true` on a preview first.
+- Owner items still open from v18: `APPLICATION_URL_MLO_001`/`_002`,
+  the Vercel contact-email check, the real monogram asset, and Patch C
+  approval.
+
 ## v18 — Round 3: mobile beacon pill, mobile menu fixes, paper contrast, "AI" shimmer, trust line, Start your application + M8 prep (2026-10-02)
 
 Order followed: audits (Items 1, 4) → fixes (5, 6, 7) → builds (1, 4) →

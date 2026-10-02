@@ -66,3 +66,13 @@
 
 .px-assumptions { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-weight: 300; line-height: 1.6; }
 .px-fine { margin-top: 14px; font-size: 0.85rem; color: var(--muted); font-weight: 300; line-height: 1.6; }
+
+/* ─── v19: RateVsAverage (off by default) ─── */
+.px-vs { border-top: 1px solid var(--rule); padding-top: 22px; }
+.px-vs h2 { max-width: 44rem; line-height: 1.35; }
+.px-vs__fn-h { margin-top: 18px; font-size: 0.95rem; font-weight: 400; color: var(--fg); }
+.px-vs__fn { list-style: decimal; }
+.px-vs a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.px-vs__grid { display: grid; gap: 14px; margin-top: 16px; }
+@media (min-width: 768px) { .px-vs__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.px-vs__grid .px-card__kicker { overflow-wrap: anywhere; }

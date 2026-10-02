@@ -3,6 +3,8 @@ import Link from "next/link";
 import PageShell from "@/components/PageShell";
 import NextStepActions from "@/components/NextStepActions";
 import PricingDisplay from "@/components/pricing/PricingDisplay";
+import RateVsAverage from "@/components/pricing/RateVsAverage";
+import { CONFIG } from "@/lib/config";
 import Reveal from "@/components/motion/Reveal";
 import { copy } from "@/lib/copy";
 import { displayScenarios, resolveDisplay } from "@/lib/pricing/display";
@@ -57,6 +59,8 @@ export default async function RatesPage({ searchParams }: Props) {
         </nav>
 
         {unlicensed ? <p className="card">{unlicensed}</p> : display ? <PricingDisplay display={display} /> : <p className="card">{c.unavailable}</p>}
+        {/* v19 (Item 3b): OFF by default; only beside its own dated example, never beside a snapshot. */}
+        {!unlicensed && display?.mode === "example" && active?.id === CONFIG.pricing.benchmarkComparison.scenarioId ? <RateVsAverage /> : null}
 
         <div className="mt-10 max-w-md">
           <NextStepActions label={c.cta} />

@@ -610,3 +610,16 @@
   .orb--mono .hm-orb-mono,
   .orb--mono::before { animation: none !important; }
 }
+
+/* ─── v19: "Less overhead. Lower costs." band under How it works ─── */
+.hm-savings {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+@media (min-width: 768px) { .hm-savings { grid-template-columns: 1fr 1.3fr; gap: 48px; align-items: end; } }
+.hm-savings__h { font-weight: 300; font-size: clamp(1.6rem, 3.2vw, 2.4rem); line-height: 1.1; letter-spacing: -0.02em; color: var(--fg); }
+.hm-savings__body { margin-top: 0; max-width: 36rem; }
+.hm-about__savings { margin-top: 28px; }

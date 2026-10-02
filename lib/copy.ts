@@ -187,6 +187,18 @@ export const copy = {
     ],
   },
 
+  // v19 (Round 3, Item 3a): why LoanM8 costs less. A cost-structure
+  // statement, not a rate claim; rates are never compared here.
+  savings: {
+    eyebrow: "// why it costs less",
+    heading: "Less overhead. Lower costs.",
+    accent: "Lower costs.",
+    body: "M8 does the research a back office used to do: shopping lenders, running the math, drafting the paperwork. That cuts our overhead, and we pass the savings on to you.",
+    about: "Why it costs less: M8 does the work a back office used to do. It shops lenders, runs the math, and drafts the paperwork, so your loan officer spends their time on your file instead of on busywork. That keeps our overhead low, and we pass the savings on to you.",
+    agentsLine: "Your buyers get lower costs because our overhead is lower.",
+    joinLine: "Your borrowers get lower costs because our overhead is lower.",
+  },
+
   secondLookTeaser: {
     eyebrow: "// second look",
     heading: "Got an offer? Drop it. M8 reads it.",

@@ -90,6 +90,7 @@ export default function AgentsPage() {
       <section className="mx-auto max-w-6xl px-4 sm:px-6 py-6">
         <p className="code-label">{h.buyersEyebrow}</p>
         <h2 className="ag-section-title">{h.buyers}</h2>
+        <p className="ag-card-body mt-3 max-w-2xl">{copy.savings.agentsLine}</p>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {band.cards.map((c) => (
             <article key={c.title} className="card">

@@ -80,7 +80,9 @@ and turns the orb halo off.
 **Voice and compliance copy:** populist, calm, specific, never
 pressuring. `npm run check:copy` fails the build on banned phrases
 ("guaranteed", "best rates", "lowest rates", scarcity, urgency,
-testimonials, "commission", "referral fee", earnings claims). No rates
+testimonials, "commission", "referral fee", earnings claims). Since v19
+it also fails on "national average" / "below (the) average" anywhere
+except `RateVsAverage` and its strings (§4b). No rates
 are ever displayed while `CONFIG.liveRatesEnabled` is false. Second Look
 never compares pricing. AI disclosure precedes every AI interaction.
 Recruiting copy on `/join` is policy language ("one originator per
@@ -91,7 +93,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v18 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v19 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -102,7 +104,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 100 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 110 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -359,7 +361,27 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   plus `lib/mlo/auth.ts` inside every server action.
 - **M8:** may cite example figures only as dated examples; the summary is
   appended server-side in `app/api/m8-chat/route.ts`, never in `lib/m8.ts`
-  (a client component imports that file).
+  (a client component imports that file). Since v19, M8 may never compare
+  any rate with a survey, index or benchmark.
+- **Savings copy (v19, live):** `copy.savings`.
+  - "Less overhead. Lower costs." band at the bottom of the How it works
+    sheet.
+  - A paragraph in the homepage About section (there is no `/about`
+    route).
+  - One line each on `/agents` and `/join`.
+  - Cost structure only, never a rate claim.
+- **RateVsAverage (v19, OFF):**
+  - Flag: `SHOW_NATIONAL_AVG_COMPARISON` must be exactly `"true"`.
+  - The benchmark (Freddie Mac PMMS, 30-year fixed) is hand-entered in
+    `CONFIG.pricing.benchmarkComparison`. Its figures are placeholders,
+    so nothing renders even with the flag on.
+  - `lib/pricing/benchmark.ts` requires the same product, the same week
+    (≤6 days), example mode only, and no risky feature.
+  - "Below" is computed: the rate must be lower AND points + origination
+    no higher.
+  - Rendered only on `/rates?s=wa-first-purchase`. Strings in
+    `lib/content/rate-vs-average.ts`.
+  - Counsel's list of every claim location is in the v19 patch log entry.
 
 ## 4c. Loan officers, states and routing (v14 naming, v15 Patch B routing)
 
@@ -453,13 +475,13 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 | Agent surface | `app/api/agent/*`, `lib/agent-api.ts`, `app/ai/*`, `app/llms.txt/*`, `AGENTS.md` |
 | Compliance docs | `COMPLIANCE.md`, `ATTORNEY_REVIEW_LIST.md`, `PLACEHOLDERS.md`, `docs/BUILD_CONTRACT.md`, `docs/SITE_BRIEF.md`, `docs/TYPOGRAPHY_GUIDE.md` |
 | Verification | `scripts/check-copy.mjs`, `scripts/qa/*.mjs`, `lib/*.test.ts`, `lib/second-look/*.test.ts` |
-| Pricing | `lib/pricing/*` (types, apr, build, antiSteering, anonymize, canonical, display, lenders, tenants, playbook, store, publish, summary, providers/mock, providers/manual), `fixtures/pricing/examples.v1.json`, `components/pricing/*`, `app/rates/page.tsx` |
+| Pricing | `lib/pricing/*` (types, apr, build, antiSteering, anonymize, canonical, display, lenders, tenants, playbook, store, publish, summary, benchmark, providers/mock, providers/manual), `fixtures/pricing/examples.v1.json`, `components/pricing/*` (incl. `RateVsAverage.tsx`), `lib/content/rate-vs-average.ts`, `app/rates/page.tsx` |
 | MLO admin | `app/mlo/*` (setup, pricing, actions, MloChrome, mlo.css), `lib/mlo/auth.ts`, `lib/mlo/flash.ts`, `lib/content/mlo.ts` |
 | Patch log | `LoanM8_Project_Handoff_README.md` |
 
 ## 6. Dependencies
 
-No dependency was added in v12 through v18. Runtime (`package.json`):
+No dependency was added in v12 through v19. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,

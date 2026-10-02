@@ -159,7 +159,31 @@ conflict is recorded here.
   - Confirm this falls short of a TRID "application" (name, income, SSN,
     property address, estimated value, loan amount) and of an ECOA/Reg B
     application. Confirm the copy "This is prep, not an application".
+  - **Owner, 2026-10-02:** counsel confirmed the prep data is fine as
+    built ("good to go … no stop on the data").
 - **M8 system prompt §10** (DRAFT) adds the ready-to-apply hand-off and
   the never-ask list; review with the rest of the prompt.
 - **Paper-mode accent** changed to #0F6E56 for contrast; no copy change.
 
+
+## v19 additions (2026-10-02)
+
+- **Savings copy (live):** "Less overhead. Lower costs." and "…we pass
+  the savings on to you" (homepage band and About paragraph); "Your
+  buyers / borrowers get lower costs because our overhead is lower."
+  (`/agents`, `/join`). These are cost-structure statements and name no
+  baseline. Confirm they are acceptable as written.
+- **`RateVsAverage` (built, OFF behind `SHOW_NATIONAL_AVG_COMPARISON`):**
+  a dated example rate next to the Freddie Mac PMMS weekly average for the
+  same product and week. It shows both rates, points/fees, dates and an
+  assumptions footnote, and says "below" only when the rate is lower and
+  the points are no higher.
+  - The full list of claim locations and exact strings is in the v19 patch
+    log entry.
+  - Before the flag goes on, confirm:
+    - Reg Z §1026.24 advertising terms
+    - Reg N comparison rules
+    - PMMS attribution and permission
+    - the cost-side method if PMMS does not publish fees and points
+- **M8 prompt rule 1** (DRAFT) now bars comparing any rate with a survey,
+  index or benchmark.

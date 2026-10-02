@@ -47,6 +47,19 @@ const BANNED = [
 // "save $X" — a dollar-savings promise in marketing copy.
 const BANNED_REGEX = [/\bsave \$\s?\d/i, /\bsave up to \$/i];
 
+// v19 (Round 3, Item 3b): a rate-vs-average claim may only appear inside
+// RateVsAverage, next to the dated comparison it rests on. These files are
+// the component, its strings, and its logic + tests; everywhere else the
+// phrases below fail the build.
+const AVERAGE_CLAIM = [/national[\s-]+average/i, /\b(below|under|lower than|less than|beats?|beating|better than)\s+(the\s+)?(national\s+|market\s+|industry\s+)?average\b/i];
+const AVERAGE_CLAIM_ALLOWED = new Set([
+  "components/pricing/RateVsAverage.tsx",
+  "lib/content/rate-vs-average.ts",
+  "lib/pricing/benchmark.ts",
+  "lib/pricing/benchmark.test.ts",
+  "components/pricing/RateVsAverage.test.tsx",
+]);
+
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {
     const p = join(dir, entry);
@@ -92,6 +105,14 @@ for (const file of files) {
       if (re.test(line)) {
         failures++;
         console.error(`✗ ${relative(ROOT, file)}:${i + 1}  ${re}`);
+      }
+    }
+    if (!AVERAGE_CLAIM_ALLOWED.has(relative(ROOT, file))) {
+      for (const re of AVERAGE_CLAIM) {
+        if (re.test(line)) {
+          failures++;
+          console.error(`✗ ${relative(ROOT, file)}:${i + 1}  ${re} (rate-vs-average claims live only in RateVsAverage)`);
+        }
       }
     }
   });

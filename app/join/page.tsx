@@ -58,6 +58,7 @@ export default function JoinPage() {
         <Reveal as="h2" text={j.aiChannel.heading} accent={j.aiChannel.accent} className="tagline text-3xl sm:text-5xl mt-4" />
         <div className="prose-m8 mt-6">
           <p>{j.aiChannel.body}</p>
+          <p>{copy.savings.joinLine}</p>
           <p className="mono-label">{j.aiChannel.note}</p>
         </div>
       </section>

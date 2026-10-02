@@ -130,3 +130,16 @@ grep -rnoE "\[[A-Z][A-Za-z0-9 #/—:.,'()+-]{3,}\]" lib app components --include
 | Notify-me for unlicensed states | — | not built (optional in the brief) | Decide whether to collect an email and where it goes |
 | Rate Strategy Brief / attestation block swap | — | no live brief or attestation block exists yet | Swap them through MloContext when v13 receipt / v21 attestation are built |
 
+
+## Rate vs. national average (v19, Round 3 Item 3b) — OFF
+
+Nothing renders until **all** of these are real and counsel has signed off
+(see the v19 patch log entry for the claim-location list).
+
+| Item | Where | Current | Needed |
+| --- | --- | --- | --- |
+| `SHOW_NATIONAL_AVG_COMPARISON` | Vercel env (server) | unset → off | `true` only after counsel review; try a preview first |
+| `benchmark.weekOf` | `lib/config.ts` `pricing.benchmarkComparison` | `[PMMS WEEK — …]` | The PMMS release date (YYYY-MM-DD) for the same week as `examplesAsOf` |
+| `benchmark.rate` | same | `[PMMS 30-YEAR FIXED AVERAGE RATE — percent]` | That week's published 30-year fixed average, e.g. `6.30` |
+| `benchmark.feesAndPoints` | same | `[PMMS 30-YEAR FIXED AVERAGE FEES AND POINTS — percent of loan]` | That week's published fees and points. If the source doesn't publish it, the component stays off until counsel decides |
+| `benchmark.basis` | same | `[PMMS BASIS — …]` | The release's own description of what its average assumes, quoted |

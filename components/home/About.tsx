@@ -30,6 +30,8 @@ export default function About() {
             lookupHref: CONFIG.nmlsConsumerAccessHome,
           }}
         />
+        {/* v19 (Item 3a): the overhead / savings idea, generic for every visitor. */}
+        <p className="hm-sub hm-about__savings max-w-2xl">{copy.savings.about}</p>
       </div>
     </section>
   );

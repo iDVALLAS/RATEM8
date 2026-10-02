@@ -10,7 +10,8 @@ import { MloText } from "@/components/mlo/MloContext";
  * HowItWorks — three steps for borrowers as a forest sheet on the
  * stage: slide headline, then a scroll-driven step list with the orb
  * and a tiny brief card pinned beside it. Server wrapper; the step
- * list is in HowItWorksSteps.
+ * list is in HowItWorksSteps. Under the steps, the "Less overhead.
+ * Lower costs." band (v19).
  */
 export default function HowItWorks() {
   const how = homeContent.how;
@@ -28,6 +29,14 @@ export default function HowItWorks() {
           ariaLabel={how.listLabel}
           orbPrefix={how.orbPrefix}
         />
+        {/* v19 (Item 3a): a short band under the steps. Cost structure only; no rate claim. */}
+        <div className="hm-savings">
+          <div>
+            <div className="code-label">{copy.savings.eyebrow}</div>
+            <SlideHeadline id="savings-heading" as="h3" lines={splitLines(copy.savings.heading)} accent={copy.savings.accent} className="hm-savings__h mt-3" />
+          </div>
+          <p className="hm-sub hm-savings__body">{copy.savings.body}</p>
+        </div>
       </div>
     </Sheet>
   );

@@ -332,6 +332,34 @@ export const CONFIG = {
     examplesAsOf: "2026-10-01",
     /** A manual snapshot older than this many hours is never shown. */
     manualStaleHours: Number(env("PRICING_MANUAL_STALE_HOURS") ?? 24),
+    /**
+     * v19 (Round 3, Item 3b): the dated example-vs-benchmark comparison
+     * (components/pricing/RateVsAverage.tsx). OFF unless
+     * SHOW_NATIONAL_AVG_COMPARISON is exactly "true", and pending counsel
+     * review of every surface listed in the v19 patch log entry.
+     *
+     * The benchmark is entered by hand from the published release for the
+     * SAME week as `examplesAsOf` and the same product as the scenario.
+     * Bracketed placeholders render nothing (lib/pricing/benchmark.ts);
+     * never fill them from memory or another source.
+     */
+    benchmarkComparison: {
+      enabled: env("SHOW_NATIONAL_AVG_COMPARISON") === "true",
+      /** The example scenario compared (purchase, 80% LTV, 30-year fixed). */
+      scenarioId: "wa-first-purchase",
+      /** Which of the three anti-steering options is the example's side. */
+      option: "lowestRateWithoutRiskyFeatures" as const,
+      benchmark: {
+        source: "Freddie Mac Primary Mortgage Market Survey (PMMS)",
+        sourceUrl: "https://www.freddiemac.com/pmms",
+        product: "30yr_fixed" as const,
+        productLabel: "30-year fixed",
+        weekOf: "[PMMS WEEK — release date, YYYY-MM-DD, same week as examplesAsOf]",
+        rate: "[PMMS 30-YEAR FIXED AVERAGE RATE — percent]",
+        feesAndPoints: "[PMMS 30-YEAR FIXED AVERAGE FEES AND POINTS — percent of loan]",
+        basis: "[PMMS BASIS — quote the release's stated assumptions]",
+      },
+    },
   },
 
   /**
