@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import PageShell from "@/components/PageShell";
 import JsonLd from "@/components/JsonLd";
-import BookingCTA from "@/components/BookingCTA";
+import NextStepActions from "@/components/NextStepActions";
 import Provenance from "@/components/Provenance";
 import LicenseBlock from "@/components/states/LicenseBlock";
 import { STATES, stateBySlug, stateChip, stateDisplay, CONFIG } from "@/lib/config";
@@ -130,7 +130,7 @@ export default async function StatePage({ params }: { params: Promise<Params> })
             {t.ctaSub}
           </p>
           <div className="mt-6 max-w-md">
-            <BookingCTA kind="borrower">{copy.statePage.cta}</BookingCTA>
+            <NextStepActions label={copy.statePage.cta} />
           </div>
         </section>
 

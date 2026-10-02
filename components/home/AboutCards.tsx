@@ -3,6 +3,7 @@
 import { useMloContext, useNamedMlo, MloText } from "@/components/mlo/MloContext";
 import LocationBeacon, { MloChooser } from "@/components/LocationBeacon";
 import { copy } from "@/lib/copy";
+import ApplyCta from "@/components/mlo/ApplyCta";
 
 /**
  * AboutCards — the "who closes your loan" heading, sub and card
@@ -61,6 +62,8 @@ export default function AboutCards({ s }: { s: Strings }) {
                 ) : null}
               </p>
               <LocationBeacon variant="card" />
+              {/* v18: this MLO's own application (hidden without a link). */}
+              <ApplyCta variant="outline" className="mt-4" />
             </div>
             {bio ? (
               <div>

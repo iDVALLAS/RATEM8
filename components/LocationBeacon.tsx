@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { US_STATES, usStateName } from "@/lib/us-states";
@@ -17,8 +18,10 @@ import { CONFIG, mloById, type Mlo } from "@/lib/config";
  * State and name only: never an IP-derived ZIP or city.
  *
  * Renders nothing while MLO_ROUTING is off (context status "off").
- * Placements: the nav on desktop, under the hero trust strip on mobile,
- * and on the MLO card.
+ * Placements (v18): the nav on desktop; on phones a compact pill right
+ * under the header ("● WA · Name · Change", not sticky) plus the full line
+ * at the top of the mobile menu; and the MLO card. On phones "Change"
+ * opens the picker as a bottom sheet.
  */
 const r = copy.routing;
 const fill = (t: string, v: Record<string, string>) => t.replace(/\{(\w+)\}/g, (_, k: string) => v[k] ?? "");
@@ -131,11 +134,88 @@ function Picker({ onClose }: { onClose: () => void }) {
   );
 }
 
-export default function LocationBeacon({ variant = "inline", className = "" }: { variant?: "nav" | "inline" | "card"; className?: string }) {
+/** Phones: the picker as a bottom sheet over everything (portal), Esc or backdrop closes. */
+export function PickerSheet({ onClose }: { onClose: () => void }) {
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    panel.current?.querySelector<HTMLElement>("select, button")?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      prev?.focus?.();
+    };
+  }, [onClose]);
+  return createPortal(
+    <div className="beacon-sheet" role="dialog" aria-modal="true" aria-label={r.sheetLabel} data-beacon-sheet="">
+      <div className="beacon-sheet__backdrop" onClick={onClose} />
+      <div className="beacon-sheet__panel" ref={panel}>
+        <span aria-hidden="true" className="beacon-sheet__grip" />
+        <Picker onClose={onClose} />
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+const isPhone = () => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches;
+
+export default function LocationBeacon({ variant = "inline", className = "" }: { variant?: "nav" | "inline" | "card" | "pill" | "menu"; className?: string }) {
   const ctx = useMloContext();
   const mlo = useNamedMlo();
   const [open, setOpen] = useState(false);
+  const [asSheet, setAsSheet] = useState(false);
   if (!ctx.status || ctx.status === "off") return null;
+
+  const toggle = () => {
+    setAsSheet(variant === "pill" || variant === "menu" || (variant !== "nav" && isPhone()));
+    setOpen((o) => !o);
+  };
+  const close = () => setOpen(false);
+  const picker = open ? asSheet ? <PickerSheet onClose={close} /> : <Picker onClose={close} /> : null;
+
+  if (variant === "pill") {
+    const p = r.pill;
+    const code = ctx.stateCode ?? "";
+    let lead: string | null = null;
+    let name: string | null = null;
+    if (ctx.status === "matched" && mlo) {
+      lead = `${code} · `;
+      name = mlo.name;
+    } else if (ctx.status === "choose") lead = fill(p.choose, { code });
+    else if (ctx.status === "unlicensed") lead = fill(p.unlicensed, { code });
+    return (
+      <div className={`beacon beacon--pill ${className}`.trim()} aria-label={r.beaconLabel} role="group">
+        {lead === null ? (
+          // No state yet (or no nameable match): the whole pill opens the picker.
+          <button type="button" className="beacon-pill" aria-expanded={open} onClick={toggle}>
+            <span aria-hidden="true" className="beacon__dot" />
+            <span className="beacon-pill__text">{p.unknown}</span>
+          </button>
+        ) : (
+          <div className="beacon-pill">
+            <span aria-hidden="true" className="beacon__dot" />
+            <StateOutline code={ctx.stateCode} className="beacon__outline" />
+            <span className="beacon-pill__lead">{lead}</span>
+            {name ? <span className="beacon-pill__name">{name}</span> : null}
+            <span aria-hidden="true" className="beacon-pill__sep">
+              ·
+            </span>
+            <button type="button" className="beacon-link beacon-pill__change" aria-expanded={open} onClick={toggle}>
+              {p.change}
+            </button>
+          </div>
+        )}
+        {picker}
+      </div>
+    );
+  }
 
   const state = ctx.stateName ?? "";
   let line: string;
@@ -151,12 +231,12 @@ export default function LocationBeacon({ variant = "inline", className = "" }: {
         <span aria-hidden="true" className="beacon__dot" />
         <StateOutline code={ctx.stateCode} className="beacon__outline" />
         <span className="beacon__text">{line}</span>
-        <button type="button" className="beacon-link" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <button type="button" className="beacon-link" aria-expanded={open} onClick={toggle}>
           {ctx.status === "unknown" ? r.set : r.change}
         </button>
       </div>
       {mlo && ctx.moved && ctx.ipState ? <p className="beacon__moved">{fill(r.moved, { state, ip: usStateName(ctx.ipState) ?? ctx.ipState })}</p> : null}
-      {open ? <Picker onClose={() => setOpen(false)} /> : null}
+      {picker}
     </div>
   );
 }

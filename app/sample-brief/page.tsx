@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import PageShell from "@/components/PageShell";
 import JsonLd from "@/components/JsonLd";
 import Provenance from "@/components/Provenance";
-import BookingCTA from "@/components/BookingCTA";
+import NextStepActions from "@/components/NextStepActions";
 import Reveal from "@/components/motion/Reveal";
 import SampleBrief from "@/components/brief/SampleBrief";
 import { briefContent as c } from "@/lib/content/sample-brief";
@@ -64,7 +64,7 @@ export default function SampleBriefPage() {
             {c.ctaSub}
           </p>
           <div className="mt-6 max-w-md">
-            <BookingCTA kind="borrower">{c.ctaLabel}</BookingCTA>
+            <NextStepActions label={c.ctaLabel} />
           </div>
         </section>
 

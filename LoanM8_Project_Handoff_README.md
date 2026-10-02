@@ -99,6 +99,165 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v18 — Round 3: mobile beacon pill, mobile menu fixes, paper contrast, "AI" shimmer, trust line, Start your application + M8 prep (2026-10-02)
+
+Order followed: audits (Items 1, 4) → fixes (5, 6, 7) → builds (1, 4) →
+feature Item 2 → **STOP** (Item 3 not started, waiting for approval).
+
+### Audit findings (before any change)
+**Item 1, location beacon at 390px:**
+- The desktop bar under the nav is `display: none` below 1024px, so
+  nothing showed under the mobile header on any page.
+- The only mobile beacon was the v15 one under the homepage trust strip,
+  about 1,150px down, wrapping to ~3 lines. Other pages had none.
+- No overflow or overlap.
+
+**Item 4, mobile menu at 390px:**
+
+| Check | Before |
+| --- | --- |
+| Opens/closes on the menu button | ✓ |
+| Esc closes | ✓ |
+| Outside tap closes | ✗ (header taps did nothing) |
+| Lists every item; Partner expands inline (MLOs, agents, investors) | ✓ |
+| Two-group styling with divider | ✓ |
+| Theme toggle reachable | ✓ |
+| Background scroll locks | ✓ |
+| Links close the menu: other page | ✓ |
+| Links close the menu: same page | ✗ (`/#about` on home, or "Real estate agents" on `/agents`, left it open with scroll locked) |
+
+Also: the sheet used a hardcoded `top: 61px` under a 69px header.
+
+### Item 5, paper-mode contrast (WCAG ratios, measured in the browser)
+A sweep (QA script, not shipped) checked every visible text element on 17
+routes at 1280 and 390, composited over its real background, in paper
+mode.
+- Result: 74 findings before, 3 after.
+- The 3 remaining are the wordmark "M8" twice (a logotype, exempt; the
+  brand rule keeps it M8 Green) and a sweep false positive on the
+  Second Look toggle. The real toggle is Forest on the M8 Green thumb,
+  ~6.9:1; the sweep can't see the sliding thumb.
+
+| Item | Before | After | Fix |
+| --- | --- | --- | --- |
+| Drift words ("30-year fixed", "FHA"…) at fade peak | 1.2:1 | 3.4:1 | paper `--term-opacity` 0.22 → 0.55; reduced motion rests at full term opacity |
+| "I'm shopping a mortgage" label / sub (disabled until a booking link exists) | 2.65 / 1.71 | 9.5 / 9.5 | paper `.cta--disabled` keeps text at full strength (muted look moved to the fill); `.cta__sub` opacity 1 |
+| Every paper accent text (links, active nav, footer labels, "currently on", beacon link, NMLS line, `/ai` code, chat/consent buttons, step labels) | 2.95–3.24 | 5.3–5.9 | paper `--accent` Deep Green (3.2:1) → new token `--color-m8-pine` #0F6E56 (also `.scene--paper`) |
+| Outline button sub-labels | 3.93 | 6.2 | `.cta__sub` opacity 1 in paper |
+| Disabled "Book a call" pills | 1.96 | 5.9 | same disabled rule |
+| Sample brief "Watch for" | 2.9 | ~5.5 | `--color-m8-pine` |
+| Calculator result "5 yrs 2 mo" | 2.9 | 5.3 | accent → Pine |
+
+Dark themes are unchanged.
+
+### Item 6, "AI" shimmer
+- `copy.hero.taglineShimmer` marks the a in "Loan" and the i in
+  "intelligence". `Reveal` gains a `shimmer` prop that wraps them in
+  `.ai-shimmer`.
+- The gradient ends are transparent, so at rest the headline's own sheen
+  shows through. Dark stops: `#9FE1CB` (new `--color-m8-mint`) →
+  `#5DCAA5` → `#E1F5EE`. Paper: `#0F6E56` → `#1D9E75` → `#04342C`.
+- 9s cycle: rest for 0–40%, then sweep with
+  `cubic-bezier(.45,0,.55,1)`; size 300%, from `150% 0` to `-50% 0`.
+  Measured 150% at 3.6s, −49.9% at 8.9s, both letters identical.
+- The heading's accessible name is still "Loan intelligence." (sr-only
+  copy, split spans aria-hidden).
+- Reduced motion: no animation, base colour.
+
+### Item 7
+- New `components/TrustLine.tsx`, used by the homepage grid and every
+  `BookingCTA` intake (so the Next step cards too): "This is not a credit
+  pull · No lead selling · No trigger leads · Free · No spam".
+- Hungry-MLO sub: "Licensed in any state? We're vetting originators now."
+
+### Items 1 and 4 builds (mobile only; desktop unchanged)
+- **Pill** (`LocationBeacon variant="pill"`, rendered by `Nav` under the
+  header, in the page flow, not sticky):
+  - reads `● [outline] WA · Jason Shapiro · Change`
+  - the name truncates with an ellipsis (min 2.5em); state and "Change"
+    never shrink; always one line, at 16px page padding
+  - choose state: "OR · Choose your loan officer"; unlicensed: "NV · No
+    licensed loan officer yet"; no name (source none): "● Choose your
+    state", where the whole pill opens the picker
+- **The full line heads the mobile menu.**
+- **"Change" opens the picker as a bottom sheet** (portal, Esc or backdrop
+  closes, focus moves to the select). On desktop the same component is a
+  centred dialog.
+- **The old under-trust-strip mobile beacon is removed.**
+- **Menu fixes:**
+  - outside tap closes it
+  - any link tap closes it (same-page included)
+  - a tap on the sheet's empty area closes it
+  - top = measured header height
+
+**After:** every Item 4 check passes. Verified: pill text in all four
+states, scrolls away, one line at 320px, a forced squeeze truncates the
+name with "Change" intact, sheet bottom-aligned and full-width, pick OR →
+"OR · Ryder Fasse", menu line, Esc closes the sheet but not the menu.
+
+### Item 2: Start your application + Prep with M8
+- **2a.**
+  - Each MLO record has `applicationUrl` (server env
+    `APPLICATION_URL_MLO_001` and `_002`; bracketed placeholder by
+    default).
+  - `hasApplicationUrl()` accepts https only.
+  - New `components/mlo/ApplyCta.tsx`:
+    - matched MLO with a link → opens it in a new tab, with "Opens
+      {name}'s secure application. Your credit isn't pulled until you
+      authorize it there."
+    - matched without a link → hidden (never another MLO's link)
+    - no match → opens the state picker first
+    - routing off → nothing
+  - Shown in the Next step cards, `/rates`, calculator pages, the matched
+    MLO card, and the prep summary.
+- **2b.**
+  - New `lib/prep/machine.ts`, a pure state machine shared by text now and
+    voice later. Fields: purpose, property type, property state, price
+    range, down payment range, occupancy, employment type, income range,
+    timeline, questions.
+  - `containsSensitive()` rejects SSNs, dates of birth and account
+    numbers in free text, and never stores them. There is no field for
+    them.
+  - UI: `components/chat/PrepFlow.tsx`, entered at `/chat?prep=1` after
+    the AI disclosure gate, or by a button in the scripted demo.
+  - The state prefills from routing, and the chosen state updates routing
+    so the hand-off goes to that state's MLO.
+  - The summary has Edit, Copy and Start your application. Nothing is
+    sent anywhere.
+- **2c.** New `components/NextStepActions.tsx`: Talk to a licensed loan
+  officer (primary), Start your application (outlined), "Or prep it with
+  M8 first →", then the trust line. Used on `/sample-brief`, state pages
+  and `/rates`.
+- **M8 system prompt:** new section 10, "When the person is ready to
+  apply". It offers both paths, lists exactly the machine's fields and
+  the never-ask list (generated from `lib/prep/machine.ts`), says the
+  loan officer's application is the official one, and bans
+  "submitted/received/taken". The routing section is renumbered to 11.
+- **Verified:**
+  - **WA, link set:** href and `target=_blank` correct, note names the MLO.
+  - **OR, no link:** button hidden.
+  - **No state:** button opens the picker; picking WA turns it into the
+    link.
+  - **Prep:**
+    - the gate comes first and the state prefills (CA)
+    - an SSN is rejected with a warning and not stored
+    - picking OR re-routes to Ryder (no link, so no apply button)
+    - the summary shows all 10 answers
+    - no "submitted" anywhere
+  - 7 new tests; 100 total.
+
+### Verified overall
+- `npm run verify` passes: 100 tests, build, `check:identity`,
+  `check:bundle`.
+- `qa/overflow` is clean on 24 routes at both widths; the only console
+  error is the local Analytics 404.
+- `qa/fonts`: 0 findings. `qa/footer` and `qa/about` pass.
+
+### Not done (after the STOP)
+- Item 3 (savings copy, and the `RateVsAverage` component behind
+  `SHOW_NATIONAL_AVG_COMPARISON=false`), including its report-back list of
+  rate-comparison claim locations.
+
 ## v17 — How it works step //03, demo gate email, two-line hero subhead, routing on for previews (2026-10-01)
 
 ### 1. Step //03 never activated: root cause

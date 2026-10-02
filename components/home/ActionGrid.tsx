@@ -1,5 +1,6 @@
 import BookingCTA from "@/components/BookingCTA";
 import CTAButton from "@/components/CTAButton";
+import TrustLine from "@/components/TrustLine";
 import { copy } from "@/lib/copy";
 import { homeContent } from "@/lib/content/home";
 
@@ -32,15 +33,7 @@ export default function ActionGrid() {
           {copy.hero.mloCta}
         </CTAButton>
       </div>
-      {/* Non-breaking spaces inside each phrase: the line wraps only at the dots. */}
-      <p className="hm-grid__note">
-        {copy.hero.trustLine.map((item, i) => (
-          <span key={item}>
-            {i > 0 ? " · " : null}
-            {item.replace(/ /g, "\u00a0")}
-          </span>
-        ))}
-      </p>
+      <TrustLine className="hm-grid__note" />
     </nav>
   );
 }

@@ -11,6 +11,7 @@ const mlo = {
   id: "test",
   photo: "",
   calendly: "",
+  applicationUrl: "",
   licenses: [],
 };
 

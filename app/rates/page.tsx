@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
-import BookingCTA from "@/components/BookingCTA";
+import NextStepActions from "@/components/NextStepActions";
 import PricingDisplay from "@/components/pricing/PricingDisplay";
 import Reveal from "@/components/motion/Reveal";
 import { copy } from "@/lib/copy";
@@ -58,8 +58,8 @@ export default async function RatesPage({ searchParams }: Props) {
 
         {unlicensed ? <p className="card">{unlicensed}</p> : display ? <PricingDisplay display={display} /> : <p className="card">{c.unavailable}</p>}
 
-        <div className="mt-10">
-          <BookingCTA kind="borrower">{c.cta}</BookingCTA>
+        <div className="mt-10 max-w-md">
+          <NextStepActions label={c.cta} />
         </div>
       </section>
     </PageShell>

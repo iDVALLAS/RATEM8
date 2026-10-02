@@ -24,6 +24,7 @@ const outsider: Mlo = {
   nmlsConsumerAccessUrl: "",
   photo: "",
   calendly: "",
+  applicationUrl: "",
   licenses: [{ state: "OR", license: "TEST", sponsor: other, sponsorSince: "2026-10-01" }],
 };
 

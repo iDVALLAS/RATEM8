@@ -36,7 +36,28 @@ type RevealProps = {
   /** Start at first paint without waiting for viewport entry (CSS mode). */
   immediate?: boolean;
   delay?: number;
+  /**
+   * Letters that get the gradient sweep (`.ai-shimmer`), by word index and
+   * character index. Visual only: the split spans are aria-hidden and the
+   * sr-only copy reads the text whole.
+   */
+  shimmer?: ReadonlyArray<{ word: number; char: number }>;
 };
+
+/** A word with the given character positions wrapped for the shimmer. */
+function renderWord(word: string, chars?: number[]): React.ReactNode {
+  if (!chars?.length) return word;
+  const set = new Set(chars);
+  return [...word].map((c, i) =>
+    set.has(i) ? (
+      <span key={i} className="ai-shimmer">
+        {c}
+      </span>
+    ) : (
+      c
+    ),
+  );
+}
 
 export default function Reveal({
   text,
@@ -47,6 +68,7 @@ export default function Reveal({
   interval = 90,
   immediate = false,
   delay = 0,
+  shimmer,
 }: RevealProps) {
   const [el, setEl] = useState<HTMLElement | null>(null);
   const [armed, setArmed] = useState(false);
@@ -122,7 +144,7 @@ export default function Reveal({
                 } as React.CSSProperties
               }
             >
-              {t.word}
+              {renderWord(t.word, shimmer?.filter((s) => s.word === i).map((s) => s.char))}
               {t.accent && t.last && underline ? (
                 <Underline active={on} delay={reduced ? 0 : totalMs + 100} />
               ) : null}

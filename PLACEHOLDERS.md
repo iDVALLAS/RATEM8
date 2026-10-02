@@ -26,6 +26,7 @@ nmlsconsumeraccess.org and with counsel.
 | `team[Ryder Fasse].bioShort` / `.photo` | `[BIO — …]` / `[PHOTO]` | Same rules as above |
 | `team[Ryder Fasse].licenses[OR]` | `NMLS ID 119822`, sponsor since `2021-08-06` (from his NMLS record, v15.1) | Done. Oregon issues no separate number |
 | `team[Ryder Fasse].calendly` | empty (or `NEXT_PUBLIC_CALENDLY_RYDER`) | Ryder's booking link; until set, his matched visitors see "Booking link coming soon" |
+| `principalMlo.applicationUrl` / `team[Ryder Fasse].applicationUrl` | `[APPLICATION URL — POS / 1003 link]` (or server env `APPLICATION_URL_MLO_001` / `APPLICATION_URL_MLO_002`) | Each MLO's own secure application link (https). Until set, "Start your application" stays hidden for that MLO (v18) |
 | `team[Ryder Fasse].title` | `Mortgage Loan Originator` | His signature says "Mortgage Loan Officer"; confirm which to show |
 | `contactEmail` | `[EMAIL]` (or `NEXT_PUBLIC_CONTACT_EMAIL`) | Public contact address at loanm8.com |
 | `privacyEmail` | `privacy@loanm8.com` | Confirm the mailbox exists |

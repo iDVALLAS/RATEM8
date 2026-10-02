@@ -1,4 +1,5 @@
-import { CONFIG, hasBooking, NOT_A_CREDIT_PULL } from "@/lib/config";
+import { CONFIG, hasBooking } from "@/lib/config";
+import TrustLine from "./TrustLine";
 import CTAButton from "./CTAButton";
 import { MloBookingButton } from "./mlo/MloContext";
 
@@ -7,7 +8,7 @@ import { MloBookingButton } from "./mlo/MloContext";
  * When the link isn't configured yet, the button renders as a plain
  * "coming soon" pill instead of a dead link.
  *
- * `intake` adds the "not a credit pull" line under the button — used at
+ * `intake` adds the site-wide trust line (TrustLine) under the button — used at
  * every intake point (rule 7).
  */
 type BookingCTAProps = {
@@ -40,9 +41,7 @@ export default function BookingCTA({ kind, children, variant = "primary", sub, i
         </CTAButton>
       )}
       {intake ? (
-        <p className="font-mono text-[10px] tracking-[0.14em] uppercase" style={{ color: "var(--muted)" }}>
-          {NOT_A_CREDIT_PULL} · Free · No spam
-        </p>
+        <TrustLine className="font-mono text-[10px] tracking-[0.14em] uppercase" style={{ color: "var(--muted)" }} />
       ) : null}
     </div>
   );

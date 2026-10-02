@@ -139,3 +139,27 @@ conflict is recorded here.
 ### Credential copy
 - The line under the MLO card reads "Licensed in [State] · NMLS #[ID] · Verify on NMLS Consumer Access →". Per the brief it avoids "vetted", because no `/standards` page describes the vetting process. The owner's v14 copy elsewhere ("Licensed and vetted loan officers", "A licensed, vetted loan officer of your choosing") does use "vetted". Confirm, or require a `/standards` page first.
 - The footer swaps name, NMLS number, state license number and sponsoring entity together for the matched MLO, so a page never shows two MLOs. Confirm the order and wording: "{Name}, {Title}, NMLS #{n}. Licensed in {State} (license {#}) through {Sponsor} ({label} #{id})."
+
+## v18 additions (2026-10-02)
+
+- **"Start your application"** (`copy.apply`):
+  - The button opens the matched loan officer's own secure application
+    (POS/1003) in a new tab.
+  - The note reads "Opens {name}'s secure application. Your credit isn't
+    pulled until you authorize it there." Confirm the wording.
+  - Confirm that naming the officer here (with their NMLS # in the
+    footer) is sufficient.
+- **"Prep my application with M8"** (`lib/prep/machine.ts`, `copy.prep`):
+  - It collects loan purpose, property type, property state, a price
+    range, a down-payment range, occupancy, employment type, an income
+    range, timeline and free-text questions.
+  - It never collects a name, SSN, DOB, property address, exact income,
+    account numbers or documents. Nothing is sent or stored; the borrower
+    can copy the summary.
+  - Confirm this falls short of a TRID "application" (name, income, SSN,
+    property address, estimated value, loan amount) and of an ECOA/Reg B
+    application. Confirm the copy "This is prep, not an application".
+- **M8 system prompt §10** (DRAFT) adds the ready-to-apply hand-off and
+  the never-ask list; review with the rest of the prompt.
+- **Paper-mode accent** changed to #0F6E56 for contrast; no copy change.
+

@@ -75,6 +75,11 @@ export const copy = {
   hero: {
     eyebrow: "BUILT ON CLAUDE · VERIFIED BY HUMANS",
     tagline: "Loan intelligence.",
+    /** v18 "AI" shimmer: the a in "Loan" (word 0, char 2) and the i in "intelligence" (word 1, char 0). */
+    taglineShimmer: [
+      { word: 0, char: 2 },
+      { word: 1, char: 0 },
+    ],
     // PROPOSAL: "Free for all loan mates." → brief tagline second half.
     taglineEmphasis: "Free for the people.",
     // PROPOSAL: was "AI-powered mortgage rate shopping. Licensed and vetted
@@ -120,7 +125,9 @@ export const copy = {
     secondLookCta: "Get a second look",
     secondLookSub: "Already have an offer? Drop it here and M8 decodes it.",
     mloCta: "I'm a hungry MLO. I want in.",
-    mloSub: "Licensed in any state? We are vetting one originator per area.",
+    // PROPOSAL: was "Licensed in any state? We are vetting one originator per
+    // area." Owner 2026-10-02 (v18, Item 7): no exclusive territories.
+    mloSub: "Licensed in any state? We're vetting originators now.",
   },
 
   trust: {
@@ -471,6 +478,15 @@ export const copy = {
     pickerForget: "Forget my state",
     pickerClose: "Close",
     pickerError: "That didn't save. Try again.",
+    /** v18 mobile pill under the header: state abbreviation, name truncates, "Change" never does. */
+    pill: {
+      matched: "{code} · {name}",
+      choose: "{code} · Choose your loan officer",
+      unlicensed: "{code} · No licensed loan officer yet",
+      unknown: "Choose your state",
+      change: "Change",
+    },
+    sheetLabel: "Where's the property?",
     credential: {
       licensedIn: "Licensed in {state}",
       nmls: "NMLS #{nmls}",
@@ -484,6 +500,123 @@ export const copy = {
     /** Footer, atomically for one MLO: identity, state license and sponsor together. */
     footerLine: "{name}, {title}, NMLS #{nmls}. Licensed in {state} (license {license}) through {sponsor} ({sponsorLabel} #{sponsorId}).",
     unlicensedRates: "We don't have a licensed loan officer in {state} yet, so there is no pricing to show for it. If the property is somewhere else, change the state.",
+  },
+
+  /* ───────────── START YOUR APPLICATION (v18, Item 2) ───────────── */
+  // The licensed loan officer's secure application is the official one.
+  // Nothing here may say an application is submitted or taken.
+
+  apply: {
+    cta: "Start your application",
+    /** Under the button; {name} is the matched MLO (their NMLS # is in the footer). */
+    note: "Opens {name}'s secure application. Your credit isn't pulled until you authorize it there.",
+    prepLink: "Or prep it with M8 first →",
+    prepHref: "/chat?prep=1",
+  },
+
+  prep: {
+    entry: "Prep my application with M8",
+    eyebrow: "// application prep",
+    intro: "I'll ask a few quick questions so your loan officer starts with the basics. This is prep, not an application: nothing is sent anywhere, and I won't ask for your Social Security number, date of birth, account numbers, or documents.",
+    progress: "{n} of {total}",
+    back: "Back",
+    skip: "Skip",
+    next: "Next",
+    sensitiveWarning: "Please don't share a Social Security number, date of birth, or account numbers here. Your loan officer's secure application handles those.",
+    fields: {
+      purpose: {
+        prompt: "What are you trying to do?",
+        options: [
+          { value: "purchase", label: "Buy a home" },
+          { value: "refinance", label: "Refinance" },
+          { value: "cash-out", label: "Cash-out refinance" },
+        ],
+      },
+      propertyType: {
+        prompt: "What kind of property is it?",
+        options: [
+          { value: "single-family", label: "Single-family home" },
+          { value: "condo", label: "Condo" },
+          { value: "townhome", label: "Townhome" },
+          { value: "2-4-unit", label: "2–4 units" },
+          { value: "manufactured", label: "Manufactured home" },
+        ],
+      },
+      state: {
+        prompt: "Which state is the property in?",
+        hint: "Licensing follows the property, not where you live now.",
+      },
+      price: {
+        prompt: "Roughly what's the price or current value?",
+        options: [
+          { value: "under-300k", label: "Under $300k" },
+          { value: "300-500k", label: "$300k–$500k" },
+          { value: "500-750k", label: "$500k–$750k" },
+          { value: "750k-1m", label: "$750k–$1M" },
+          { value: "over-1m", label: "Over $1M" },
+          { value: "unsure", label: "Not sure yet" },
+        ],
+      },
+      down: {
+        prompt: "About how much are you putting down (or how much equity do you have)?",
+        options: [
+          { value: "under-5", label: "Under 5%" },
+          { value: "5-10", label: "5–10%" },
+          { value: "10-20", label: "10–20%" },
+          { value: "20-plus", label: "20% or more" },
+          { value: "unsure", label: "Not sure yet" },
+        ],
+      },
+      occupancy: {
+        prompt: "How will you use it?",
+        options: [
+          { value: "primary", label: "My primary home" },
+          { value: "second", label: "Second home" },
+          { value: "investment", label: "Investment property" },
+        ],
+      },
+      employment: {
+        prompt: "How are you paid?",
+        options: [
+          { value: "w2", label: "Salary or hourly (W-2)" },
+          { value: "self-employed", label: "Self-employed" },
+          { value: "retired", label: "Retired" },
+          { value: "other", label: "Something else" },
+        ],
+      },
+      income: {
+        prompt: "Roughly what's your household income per year?",
+        options: [
+          { value: "under-75k", label: "Under $75k" },
+          { value: "75-150k", label: "$75k–$150k" },
+          { value: "150-250k", label: "$150k–$250k" },
+          { value: "over-250k", label: "Over $250k" },
+          { value: "skip", label: "I'd rather not say" },
+        ],
+      },
+      timeline: {
+        prompt: "When are you hoping to move forward?",
+        options: [
+          { value: "30-days", label: "Within 30 days" },
+          { value: "1-3-months", label: "1–3 months" },
+          { value: "3-6-months", label: "3–6 months" },
+          { value: "exploring", label: "Just exploring" },
+        ],
+      },
+      questions: {
+        prompt: "Anything you want to ask your loan officer? (Optional)",
+        placeholder: "e.g. Can I use gift funds for the down payment?",
+      },
+    },
+    summaryHeading: "Your application prep",
+    summaryNote: "Review it, edit anything, then start your loan officer's secure application. That application is the official one; this summary isn't sent anywhere. Copy it to paste in or bring to your call.",
+    edit: "Edit",
+    copySummary: "Copy summary",
+    copied: "Copied",
+    noMatch: "Pick the property's state to see who can take your application.",
+    unlicensedNote: "We don't have a licensed loan officer in {state} yet, so there's no application to start here.",
+    restart: "Start over",
+    talkCta: "Talk to a licensed loan officer",
   },
 
   /* ───────────── INVESTORS (v14, Edit 5b) ───────────── */

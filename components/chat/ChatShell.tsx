@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Orb, { type OrbState } from "@/components/Orb";
 import BookingCTA from "@/components/BookingCTA";
+import PrepFlow from "./PrepFlow";
 import SampleBadge from "@/components/SampleBadge";
 import ReplayButton from "@/components/motion/ReplayButton";
 import { CONFIG } from "@/lib/config";
@@ -28,8 +29,10 @@ import "./chat.css";
  */
 const LIVE_AI: boolean = CONFIG.featureFlags.chatLiveAi;
 
-export default function ChatShell() {
+export default function ChatShell({ prep = false }: { prep?: boolean }) {
   const [consented, setConsented] = useState(false);
+  // v18: "Prep my application with M8" runs after the same disclosure gate.
+  const [mode, setMode] = useState<"demo" | "prep">(prep ? "prep" : "demo");
   const [manual, setManual] = useState<OrbState | null>(null);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
@@ -108,6 +111,8 @@ export default function ChatShell() {
             </Link>
           </div>
         </section>
+      ) : mode === "prep" ? (
+        <PrepFlow />
       ) : (
         <>
           <section aria-label="Conversation">
@@ -157,6 +162,9 @@ export default function ChatShell() {
             <BookingCTA kind="borrower" variant="pill">
               {chatContent.bookingCta}
             </BookingCTA>
+            <button type="button" className="m8chat-btn" onClick={() => setMode("prep")}>
+              {copy.prep.entry}
+            </button>
           </div>
         </>
       )}

@@ -4,7 +4,7 @@ import { MloFooterLine, MloProvider, MloText } from "./MloContext";
 import { copy } from "@/lib/copy";
 import type { MloContextValue } from "@/lib/mlo-match";
 
-const mlo = { name: "Pat Example", firstName: "Pat", nmls: "TEST-ID", title: "Mortgage Loan Originator", bioShort: "", nmlsConsumerAccessUrl: "", id: "test", photo: "", calendly: "", licenses: [] };
+const mlo = { name: "Pat Example", firstName: "Pat", nmls: "TEST-ID", title: "Mortgage Loan Originator", bioShort: "", nmlsConsumerAccessUrl: "", id: "test", photo: "", calendly: "", applicationUrl: "", licenses: [] };
 const card = copy.agents.cards[2];
 
 function render(value?: MloContextValue) {

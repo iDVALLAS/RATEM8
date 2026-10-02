@@ -103,6 +103,13 @@ export type Mlo = {
   photo: string;
   /** Borrower booking link. Empty → "coming soon". */
   calendly: string;
+  /**
+   * The MLO's own secure application (POS / 1003) link, e.g. their ARIVE
+   * borrower portal (v18). Only an https URL renders "Start your
+   * application"; a placeholder hides it. Never falls back to another MLO.
+   * Editable in the MLO backend once logins exist.
+   */
+  applicationUrl: string;
   licenses: MloLicense[];
 };
 
@@ -146,6 +153,7 @@ export const CONFIG = {
       "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/1844143", // carried over — VERIFY
     photo: "[PHOTO]",
     calendly: env("NEXT_PUBLIC_CALENDLY_BORROWER") ?? "",
+    applicationUrl: env("APPLICATION_URL_MLO_001") ?? "[APPLICATION URL — POS / 1003 link]",
     licenses: [
       { state: "WA", license: "[WA MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
       { state: "AZ", license: "[AZ MLO LICENSE #]", sponsor: SPONSOR_HOME_FINANCIAL_AZ, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
@@ -166,6 +174,7 @@ export const CONFIG = {
       nmlsConsumerAccessUrl: "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/119822", // VERIFY
       photo: "[PHOTO]",
       calendly: env("NEXT_PUBLIC_CALENDLY_RYDER") ?? "",
+      applicationUrl: env("APPLICATION_URL_MLO_002") ?? "[APPLICATION URL — POS / 1003 link]",
       licenses: [
         // Owner 2026-10-01: Oregon only on this site (his NMLS record also
         // lists WA and AZ licenses; the owner is the site's WA loan officer).
@@ -467,6 +476,11 @@ export const AI_DISCLOSURE = "I'm an AI, not a person.";
 
 /** Not a credit pull — at every intake point. */
 export const NOT_A_CREDIT_PULL = "This is not a credit pull.";
+
+/** Whether an MLO's application link is a real https URL (placeholders hide the button). */
+export function hasApplicationUrl(m: Pick<Mlo, "applicationUrl"> | null | undefined): boolean {
+  return !!m && /^https:\/\/[^\s\[\]]+$/.test(m.applicationUrl.trim());
+}
 
 /** Whether a Calendly link is usable. */
 export function hasBooking(url: string): boolean {

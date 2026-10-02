@@ -19,7 +19,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
   not borrowed from a chatbot." (`CONFIG.aiLine`); it does not name the
   model vendor.
 - **Stack:** Next.js 15.5 App Router, React 19, TypeScript strict,
-  Tailwind v4 with CSS-variable tokens, Vercel hosting, Vercel
+  Tailwind v4 with CSS-variable tokens (paper-mode text accent is
+  `--color-m8-pine` #0F6E56 since v18; Deep Green fails AA on Paper),
+  Vercel hosting, Vercel
   Analytics only (no third-party trackers, no tracking cookies). With
   `MLO_ROUTING` on, two functional first-party cookies hold the
   borrower's stated property state and chosen loan officer (§4c).
@@ -89,7 +91,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v17 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v18 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -100,7 +102,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 93 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 100 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -278,6 +280,14 @@ Stacks lines as `Reveal` spans; `dim` fades non-key lines to 55%;
   `copy.hero.authLine` ("authentication", 55% contrast). Styled by
   `.hm-hero__auth`, `.hm-hero__fp`, `.hm-hero__auth-word`,
   `.hm-hero__auth-rest`.
+- **"AI" shimmer (v18):** `Reveal`'s `shimmer` prop wraps the a in
+  "Loan" and the i in "intelligence" (`copy.hero.taglineShimmer`) in
+  `.ai-shimmer`.
+  - 9s cycle: rests for 40%, then sweeps 150% → -50% with
+    `cubic-bezier(.45,0,.55,1)`.
+  - Transparent gradient ends, so the letters rest in the headline's
+    sheen.
+  - Reduced motion: none.
 - **It has no scroll trigger and no draw-in.** It fades in with the
   `.hm-in` group. A stroke draw-in would use `pathLength="1"` plus a
   `stroke-dashoffset` transition, exactly like `Underline.tsx`.
@@ -385,8 +395,24 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 - **Beacon:** `components/LocationBeacon.tsx`.
   - Shows "[State] · matched with [MLO]" with a "Not right? Change" picker
     (`POST /api/route-choice`) and `MloChooser` for choose states.
-  - Placement: under the desktop nav, under the mobile hero trust strip,
-    and on the MLO card. State name only, never ZIP or city.
+  - Placement (v18): under the desktop nav; on phones a one-line pill
+    under the header (`variant="pill"`, not sticky, name truncates,
+    "Change" never does) plus the full line atop the mobile menu; and on
+    the MLO card. On phones "Change" opens `PickerSheet` (bottom sheet;
+    a centred dialog on desktop). State only, never ZIP or city.
+- **Start your application (v18):** each MLO's `applicationUrl`
+  (https only, `hasApplicationUrl`) drives `components/mlo/ApplyCta.tsx`.
+  - Matched → that MLO's link in a new tab, with the note.
+  - No link → hidden; never another MLO's link.
+  - Unmatched → the picker first.
+  - Cards use `components/NextStepActions.tsx`.
+- **Prep with M8 (v18):** `lib/prep/machine.ts` is the shared state
+  machine (text now, voice later). UI is `components/chat/PrepFlow.tsx`
+  at `/chat?prep=1`, after the disclosure gate.
+  - It never asks for or stores SSN, DOB, account numbers or documents
+    (`containsSensitive`).
+  - It never says "submitted".
+  - M8 prompt §10 lists the same fields.
 - **M8:** `m8RoutingFacts()` in `lib/prompts/m8-system.ts` names only the
   matched MLO and tells M8 about the mover case. The live opening line
   swaps the same way.
@@ -406,6 +432,9 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   - solid panel
 - The mobile sheet expands Partner inline, with a horizontal rule between
   the groups.
+- v18 mobile sheet: starts at the measured header height. It closes on the
+  toggle, Esc, an outside tap, a tap on its empty area, and any link tap
+  (same-page links too). The location line sits at the top.
 
 ## 5. Key file paths
 
@@ -430,7 +459,7 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 
 ## 6. Dependencies
 
-No dependency was added in v12, v13, v14 or v15. Runtime (`package.json`):
+No dependency was added in v12 through v18. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,

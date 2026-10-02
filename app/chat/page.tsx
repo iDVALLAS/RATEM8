@@ -15,7 +15,8 @@ export const metadata = {
  * input, the booking CTA, and the disabled voice modal. No model call
  * while CONFIG.featureFlags.chatLiveAi is false.
  */
-export default function ChatPage() {
+export default async function ChatPage({ searchParams }: { searchParams: Promise<{ prep?: string }> }) {
+  const { prep } = await searchParams;
   return (
     <PageShell
       crumbs={[
@@ -23,7 +24,7 @@ export default function ChatPage() {
         { name: copy.chat.title, path: "/chat" },
       ]}
     >
-      <ChatShell />
+      <ChatShell prep={prep === "1"} />
     </PageShell>
   );
 }

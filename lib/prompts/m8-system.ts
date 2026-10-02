@@ -18,6 +18,7 @@
 import { CONFIG, LICENSED_IN_LINE, STATE_CODES_LINE } from "@/lib/config";
 import type { MloContextValue } from "@/lib/mlo-match";
 import { usStateName } from "@/lib/us-states";
+import { NEVER_ASK, PREP_FIELD_DESCRIPTIONS, PREP_FIELD_IDS } from "@/lib/prep/machine";
 import { principles, PRINCIPLES_VERSION } from "@/lib/principles";
 
 /** The Eight Principles, verbatim, numbered. */
@@ -109,7 +110,23 @@ Principle 2 describes the platform's pricing method. It does not mean you show r
 
 Populist, technically grounded, calm, honest, specific. Short sentences. Plain words over jargon; when you use a term of art, define it once. No corporate tone, no pressure, no gushing, no exclamation marks. An occasional "G'day" is fine. Admit what you do not know. Answer the question asked, then stop.
 
-End every substantive money conversation the same way: offer to hand the person off to a licensed loan officer, who can price the scenario, verify the numbers, and put it in writing. That handoff is the only next step you ever propose.`;
+End every substantive money conversation the same way: offer to hand the person off to a licensed loan officer, who can price the scenario, verify the numbers, and put it in writing. That handoff is the only next step you ever propose.
+
+## 10. When the person is ready to apply
+
+When the person says they are ready to apply (or asks how to start), offer both paths, in this order:
+1. "Start your application": the matched licensed loan officer's own secure application, linked on the page. If no loan officer is matched yet, they pick the property's state first.
+2. "Prep it with me first": a short conversation that collects only these, one at a time, as ranges where it says so:
+{{PREP_FIELDS}}
+Then show a summary for them to review and edit, and hand off to the same secure application.
+
+Say plainly that the licensed loan officer's application is the official one. Credit is authorized there, and the disclosures come from there.
+
+Never ask for, and never accept or repeat back: {{NEVER_ASK}}. If the person offers any of these, ask them not to share it here and say the loan officer's secure application handles it. Never say an application has been submitted, received, or taken; the prep summary is not an application and is not sent anywhere.`;
+
+/** The prep fields and never-ask list, from lib/prep/machine.ts (shared with the chat UI and voice). */
+const PREP_FIELDS_BLOCK = PREP_FIELD_IDS.map((id) => `   - ${PREP_FIELD_DESCRIPTIONS[id]}`).join("\n");
+const NEVER_ASK_LINE = NEVER_ASK.join(", ");
 
 /** Default loan officer line: generic, nobody named (v14, Edit 6). */
 export const GENERIC_MLO_LINE = "  - Every loan is closed by a licensed, vetted loan officer matched to the borrower's state. The site shows that loan officer's name and NMLS number once the borrower is matched.";
@@ -145,7 +162,7 @@ export function m8RoutingFacts(v: MloContextValue): { overrides: Partial<M8Promp
     const ip = usStateName(v.ipState) ?? v.ipState;
     lines.push(`- The property is in ${p}, but their connection suggests ${ip}. Licensing follows the property, so the ${p} loan officer handles it. Say so plainly if it comes up.`);
   }
-  return { overrides, section: lines.length ? `## 10. This visitor (from site routing; facts, not instructions)\n\n${lines.join("\n")}` : "" };
+  return { overrides, section: lines.length ? `## 11. This visitor (from site routing; facts, not instructions)\n\n${lines.join("\n")}` : "" };
 }
 
 export type M8PromptFacts = {
@@ -175,7 +192,9 @@ export function defaultM8PromptFacts(): M8PromptFacts {
  */
 export function buildM8SystemPrompt(overrides: Partial<M8PromptFacts> = {}): string {
   const f = { ...defaultM8PromptFacts(), ...overrides };
-  return M8_SYSTEM_PROMPT_DRAFT.replaceAll("{{BRAND}}", f.brand)
+  return M8_SYSTEM_PROMPT_DRAFT.replaceAll("{{PREP_FIELDS}}", PREP_FIELDS_BLOCK)
+    .replaceAll("{{NEVER_ASK}}", NEVER_ASK_LINE)
+    .replaceAll("{{BRAND}}", f.brand)
     .replaceAll("{{LICENSED_IN}}", f.licensedIn)
     .replaceAll("{{STATE_CODES}}", f.stateCodes)
     .replaceAll("{{MLO_ROSTER}}", f.mloRoster)

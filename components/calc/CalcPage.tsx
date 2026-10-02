@@ -1,6 +1,8 @@
 import PageShell from "@/components/PageShell";
 import CTAButton from "@/components/CTAButton";
 import BookingCTA from "@/components/BookingCTA";
+import ApplyCta from "@/components/mlo/ApplyCta";
+import Link from "next/link";
 import Provenance from "@/components/Provenance";
 import Faq from "@/components/calc/Faq";
 import { copy } from "@/lib/copy";
@@ -63,6 +65,13 @@ export default function CalcPage({ slug, children }: { slug: CalcSlug; children:
             <BookingCTA kind="borrower" variant="pill">
               {copy.calculators.ctaBook}
             </BookingCTA>
+          </div>
+          {/* v18: the matched MLO's application, or the state picker first; then M8 prep. */}
+          <div className="mt-4 max-w-md">
+            <ApplyCta variant="outline" />
+            <Link href={copy.apply.prepHref} className="next-step__prep">
+              {copy.apply.prepLink}
+            </Link>
           </div>
         </div>
       </section>

@@ -3,7 +3,6 @@ import { copy } from "@/lib/copy";
 import HeroOrb from "./HeroOrb";
 import ActionGrid from "./ActionGrid";
 import TrustStrip from "./TrustStrip";
-import LocationBeacon from "@/components/LocationBeacon";
 
 /**
  * Hero — the tappable orb over the drifting term field, the
@@ -47,7 +46,7 @@ export default function Hero() {
         </div>
 
         <div className="mt-4 sm:mt-5">
-          <Reveal as="h1" text={copy.hero.tagline} immediate delay={200} className="tagline text-5xl sm:text-7xl" />
+          <Reveal as="h1" text={copy.hero.tagline} shimmer={copy.hero.taglineShimmer} immediate delay={200} className="tagline text-5xl sm:text-7xl" />
           <p className="hm-hero__auth hm-in" style={{ "--d": "260ms" } as React.CSSProperties}>
             <FingerprintMark />
             <span className="hm-hero__auth-word">{copy.hero.authWord}</span>{" "}
@@ -71,10 +70,6 @@ export default function Hero() {
           screen is orb → headline → the four actions, nothing else. */}
       <div className="hm-trust-band mx-auto max-w-4xl px-4 sm:px-6 text-center">
         <TrustStrip />
-        {/* v15 location beacon on phones (desktop has it in the nav). */}
-        <div className="lg:hidden">
-          <LocationBeacon variant="inline" className="hm-beacon" />
-        </div>
       </div>
     </section>
   );
