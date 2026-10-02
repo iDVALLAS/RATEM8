@@ -1,0 +1,302 @@
+/* components/agents/agents.css — /agents page styles. Prefix: .ag- */
+/* Tokens only (var(--fg), var(--accent), …) so chapter flips and the
+   Night/Dim/Paper themes all work. */
+
+/* ─── Stalled-deal scene ─────────────────────────────────────────── */
+
+.ag-stage-wrap {
+  overflow-x: clip;
+  padding: 20px 16px 36px;
+}
+@media (min-width: 640px) { .ag-stage-wrap { padding: 28px 24px 48px; } }
+
+.ag-stage {
+  position: relative;
+  max-width: 560px;
+  margin: 0 auto;
+  padding-top: 26px; /* room for the orb to sit on the card's top edge */
+}
+
+/* Beat strip: the three labelled beats + running counter. */
+.ag-beats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  max-width: 560px;
+  margin: 0 auto 8px;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.ag-beat {
+  white-space: nowrap;
+  transition: color 300ms ease-out;
+}
+.ag-beat.is-active { color: var(--accent); }
+.ag-beat.is-past { color: var(--fg-soft); }
+.ag-counter {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The buyer card. */
+.ag-card {
+  position: relative;
+  transition: border-color 500ms ease-out, box-shadow 500ms ease-out;
+}
+.ag-card.is-done {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 30px 60px rgba(0, 0, 0, 0.35);
+}
+
+.ag-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 56px; /* keep clear of the orb */
+}
+.ag-card__title {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+.ag-card__addr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 6px;
+}
+.ag-tag {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px dashed var(--rule-strong);
+  border-radius: 4px;
+  padding: 1px 5px;
+  line-height: 1.4;
+}
+
+/* Status line: `financing: unclear` → `financing: documented` */
+.ag-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+  background: var(--bg-sunken);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--fg-soft);
+  transition: border-color 400ms ease-out, background-color 400ms ease-out;
+}
+.ag-status__key { color: var(--muted); }
+.ag-status__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: color 400ms ease-out;
+}
+/* Warning tone: no raw brand hex — the tint is a mix of the accent
+   token and an amber, kept subtle so it reads as "unclear", not "error". */
+.ag-status--warn .ag-status__value {
+  color: color-mix(in srgb, var(--accent) 30%, #d9a441);
+}
+.ag-status--ok {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--rule));
+  background: var(--accent-soft);
+}
+.ag-status--ok .ag-status__value { color: var(--accent); }
+
+.ag-status__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* The orb, perched on the card's top-right edge. */
+.ag-orb {
+  position: absolute;
+  top: 2px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 3;
+}
+.ag-orb-line {
+  margin-top: 14px;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+/* Timeline inside the card: let labels wrap at 360px. */
+.ag-tl {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--rule);
+}
+.ag-tl .tl-step { min-width: 0; }
+.ag-tl .tl-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: manual;
+  letter-spacing: 0.08em;
+  padding: 0 2px;
+  line-height: 1.3;
+}
+
+/* "Rate Strategy Brief · drafted" chip */
+.ag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+.ag-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--accent);
+}
+
+/* Beat titles under the stage. */
+.ag-beat-title {
+  max-width: 560px;
+  margin: 18px auto 0;
+  min-height: 2.4em;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 500;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+@media (min-width: 640px) { .ag-beat-title { font-size: 1.6rem; } }
+
+/* Reduced motion: no transitions at all. */
+[data-reduced="true"] .ag-card,
+[data-reduced="true"] .ag-status,
+[data-reduced="true"] .ag-status__value,
+[data-reduced="true"] .ag-beat {
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ag-card, .ag-status, .ag-status__value, .ag-beat { transition: none !important; }
+}
+
+/* ─── Page sections ──────────────────────────────────────────────── */
+
+.ag-section-title {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.75rem;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+  margin-top: 10px;
+}
+@media (min-width: 640px) { .ag-section-title { font-size: 2.25rem; } }
+
+.ag-card-title {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+.ag-card-body {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-weight: 300;
+  color: var(--muted);
+}
+
+/* "How this works" box: numbered in mono. */
+.ag-how ol {
+  counter-reset: ag-step;
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+.ag-how li {
+  counter-increment: ag-step;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--fg-soft);
+}
+.ag-how li::before {
+  content: counter(ag-step, decimal-leading-zero);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+/* Pull quote: the money sentence, rendered prominently. */
+.ag-quote {
+  position: relative;
+  padding: 8px 0 8px 20px;
+  border-left: 3px solid var(--accent);
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 500;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+@media (min-width: 640px) { .ag-quote { font-size: 2rem; padding-left: 28px; } }
+.ag-quote em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.ag-later {
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px dashed var(--rule-strong);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  vertical-align: middle;
+}

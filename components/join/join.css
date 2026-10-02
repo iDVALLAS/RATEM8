@@ -1,0 +1,349 @@
+/* components/join/join.css — /join recruiting page (prefix: .join-) */
+
+/* ─── Sequence wrapper ─────────────────────────────────────────── */
+
+.join-scenes {
+  position: relative;
+  --join-gutter: 44px;
+}
+@media (min-width: 768px) {
+  .join-scenes { --join-gutter: 128px; }
+}
+
+/* Every sheet leaves the left gutter free for its path segment. */
+.join-scenes .scene { padding-left: var(--join-gutter); }
+
+.join-scene__inner {
+  position: relative;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+@media (min-width: 640px) { .join-scene__inner { padding: 32px 24px 64px; } }
+
+.join-scene__title {
+  font-size: 2rem;
+  line-height: 1.05;
+}
+@media (min-width: 640px) { .join-scene__title { font-size: 3rem; } }
+@media (min-width: 1024px) { .join-scene__title { font-size: 3.5rem; } }
+
+.join-scene__body {
+  margin-top: 20px;
+  max-width: 34rem;
+  font-weight: 300;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ─── Path overlay (decorative, one segment per sheet) ─────────── */
+
+.join-path {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+  --join-seg: 0;
+}
+.join-path__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.join-path .join-path__line {
+  stroke: var(--color-m8-green);
+  stroke-width: 2;
+  opacity: 0.55;
+  vector-effect: non-scaling-stroke;
+  stroke-dashoffset: calc(1 - var(--join-seg));
+  transition: stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.join-path__ghost {
+  stroke: var(--color-m8-green);
+  stroke-width: 1;
+  opacity: 0.12;
+  stroke-dasharray: 3 6;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Orb carrier: rides the path with offset-path; falls back to translateY. */
+.join-path__orb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 48px;
+  height: 48px;
+  offset-rotate: 0deg;
+  offset-distance: calc(var(--join-seg) * 100%);
+  transition: offset-distance 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@supports not (offset-distance: 0%) {
+  .join-path__orb {
+    left: var(--join-x, 20px);
+    top: 0;
+    margin: 0;
+    transform: translate(-50%, -50%) translateY(calc(var(--join-seg) * var(--join-h, 0px)));
+    transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* State pins */
+.join-pin {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+  --i: 0;
+}
+.join-pin .tl-dot {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  /* The overlay sits outside any .scene, so it cannot rely on chapter tokens. */
+  background: color-mix(in srgb, var(--color-m8-night) 70%, transparent);
+  border-color: color-mix(in srgb, var(--color-m8-green) 45%, transparent);
+  transition-delay: calc(var(--i) * 120ms);
+}
+.join-pin .tl-dot.is-on {
+  background: var(--color-m8-green);
+  border-color: var(--color-m8-green);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-m8-green) 18%, transparent);
+}
+.join-pin__label {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  opacity: 0.55;
+  transition: opacity 350ms ease-out, color 350ms ease-out;
+  transition-delay: calc(var(--i) * 120ms);
+}
+.join-pin.is-on .join-pin__label { opacity: 1; color: var(--color-m8-green); }
+@media (max-width: 767px) {
+  .join-pin__label {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 10px;
+  }
+}
+
+/* Reduced motion (media query or replay-less final frame): no transitions. */
+.join-scenes[data-reduced="true"] .join-path__line,
+.join-scenes[data-reduced="true"] .join-path__orb,
+.join-scenes[data-reduced="true"] .join-pin .tl-dot,
+.join-scenes[data-reduced="true"] .join-pin__label,
+.join-scenes[data-reduced="true"] .join-brief__bar,
+.join-scenes[data-reduced="true"] .join-orb-peek {
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .join-path__line, .join-path__orb, .join-pin .tl-dot, .join-pin__label, .join-brief__bar { transition: none !important; }
+}
+
+/* ─── Scene 01: hook ───────────────────────────────────────────── */
+
+.join-hook { overflow: clip; }
+.join-orb-peek {
+  position: absolute;
+  top: 8px;
+  right: -28px;
+}
+@media (min-width: 640px) { .join-orb-peek { top: 24px; right: -12px; } }
+
+/* ─── Scene 02: states ─────────────────────────────────────────── */
+
+.join-state-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+@media (min-width: 640px) { .join-state-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; } }
+@media (min-width: 1024px) { .join-state-grid { grid-template-columns: repeat(3, 1fr); } } /* v15: five states + "every other state" = 2 rows */
+
+.join-state-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 112px;
+  text-decoration: none;
+  color: var(--fg);
+  transition: border-color 150ms ease-out, opacity 500ms ease-out, transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.join-state-card:hover { border-color: var(--accent); }
+.join-state-card__chip {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.join-state-card__name {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+.join-state-card__arrow {
+  margin-top: auto;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ─── Scene 03: intake ─────────────────────────────────────────── */
+
+.join-intake {
+  display: grid;
+  gap: 32px;
+  margin-top: 28px;
+}
+@media (min-width: 768px) {
+  .join-intake { grid-template-columns: minmax(0, 1fr) 320px; align-items: center; gap: 48px; }
+}
+.join-intake .phone { min-height: 520px; }
+.join-phone__stream {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.join-phone__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 8px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 4px;
+}
+.join-phone__header .mono-label { color: var(--fg-soft); }
+
+.join-brief {
+  margin-top: auto;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--rule);
+  background: var(--bg-elevated);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.join-brief.is-drafted { border-color: var(--accent); color: var(--fg); }
+.join-brief__track {
+  margin-top: 8px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--rule-strong);
+  overflow: hidden;
+}
+.join-brief__bar {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.join-brief.is-generating .join-brief__bar { width: 100%; }
+.join-brief.is-drafted .join-brief__bar { width: 100%; transition: none; }
+
+.join-orb-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* ─── Scene 04: handled ────────────────────────────────────────── */
+
+.join-handled .bento { margin-top: 28px; }
+.join-compare {
+  display: grid;
+  gap: 8px;
+}
+.join-compare__opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+  background: var(--bg-sunken);
+  font-size: 13px;
+  color: var(--fg-soft);
+}
+.join-compare__idx {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.join-compare__redact {
+  margin-left: auto;
+  width: 34px;
+  height: 6px;
+  border-radius: 3px;
+  border: 1px dashed var(--rule-strong);
+  flex-shrink: 0;
+}
+.join-note {
+  margin-top: 10px;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.join-compliance {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.join-compliance li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--fg-soft);
+}
+.join-compliance li::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.join-borrower__name {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  line-height: 1.15;
+}
+.join-borrower__detail { margin-top: 6px; font-size: 13px; color: var(--muted); }
+
+/* ─── Scene 05: you ────────────────────────────────────────────── */
+
+.join-you .join-scene__inner { display: flex; flex-direction: column; justify-content: center; }
+.join-you__stack { display: flex; flex-direction: column; gap: 24px; margin-top: 28px; align-items: flex-start; }
+.join-chip-strip { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ─── Recap sheet (step list) ──────────────────────────────────── */
+
+.join-recap .steplist-root { margin-top: 8px; }
+.join-recap .stage-visual { margin-left: auto; }
+
+/* ─── Below the animation ─────────────────────────────────────── */
+
+.join-lookfor ul { margin-top: 1.25rem; }
+/* Fifth card in scene two: the states we are vetting but not yet live in. */
+.join-state-card--vetting { border-style: dashed; }

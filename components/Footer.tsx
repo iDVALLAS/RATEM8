@@ -1,103 +1,134 @@
+import Link from "next/link";
+import Orb from "./Orb";
+import { copy } from "@/lib/copy";
+import { CONFIG, STATES, stateDisplay, NOT_A_COMMITMENT, isPlaceholder } from "@/lib/config";
+import { MloFooterLine } from "@/components/mlo/MloContext";
+import { groupBySponsor } from "@/lib/licensing";
+
 /**
- * LoanM8 footer.
+ * Footer — LOCKED compliance block, one line per licensed state.
  *
- * Compliance-critical content for a regulated lender website.
- * All NMLS / sponsor / entity values pull from lib/licensing.ts —
- * the single source of truth. Update licensing.ts and disclosures
- * regenerate everywhere.
- *
- * v11: State prose comes from lib/states.ts (LICENSED_STATES_LONG =
- * legal license footprint, per the config-not-hardcoding pattern from
- * the v11 master build prompt). The sponsor-per-state breakdown still
- * lives in licensing.ts since that's the authoritative sponsor data.
- *
- * Uses theme tokens so it works correctly in Night, Dim, and Paper modes.
- *
- * IMPORTANT: Verify the NMLS # for sponsoring entities on
- * nmlsconsumeraccess.org before the stealth gate lifts.
+ * Contains, on every page:
+ *   - wordmark + tagline + link columns
+ *   - "licensed in" strip with each state's page link
+ *   - NMLS numbers (entity; plus the matched MLO's name and NMLS #
+ *     when MloContext has one — never a name without its number),
+ *     sponsor sentences
+ *   - per-state license lines (entity + MLO license, regulator)
+ *   - Equal Housing Lender with an accessible text label
+ *   - entity / trade-name disclaimer
+ *   - the standard "not a commitment to lend" sentence
+ *   - the AI disclosure
  */
-import { ANCHOR_LO } from "@/lib/licensing";
-import { LICENSED_STATES_LONG } from "@/lib/states";
-
 export default function Footer() {
-  // Group state licenses by sponsoring entity so we render one
-  // disclosure sentence per sponsor with the states it covers.
-  const sponsorGroups = Array.from(
-    ANCHOR_LO.states
-      .reduce((acc, s) => {
-        const key = `${s.sponsor.name}|${s.sponsor.idNumber}`;
-        if (!acc.has(key)) {
-          acc.set(key, { sponsor: s.sponsor, states: [] as string[] });
-        }
-        acc.get(key)!.states.push(s.state);
-        return acc;
-      }, new Map<string, { sponsor: typeof ANCHOR_LO.states[number]["sponsor"]; states: string[] }>())
-      .values()
-  );
-
+  const sponsorGroups = groupBySponsor();
   return (
-    <footer
-      className="px-6 py-10 border-t mt-auto"
-      style={{ borderColor: "var(--rule)" }}
-    >
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-8">
-          <div className="flex items-center gap-3">
-            <span className="orb" style={{ width: 18, height: 18 }} />
-            <span className="font-display font-medium tracking-tight">
-              Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
-              <span
-                className="ml-3 font-mono text-[10px] tracking-[0.2em] uppercase"
-                style={{ color: "var(--muted)" }}
-              >
-                Loan Intelligence
+    <footer className="site-footer" role="contentinfo">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-16">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div>
+            <div className="flex items-center gap-3">
+              <Orb size="mark" px={18} />
+              <span className="font-display font-medium tracking-tight">
+                Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
               </span>
-            </span>
+            </div>
+            <p className="tagline mt-4 text-lg leading-tight" style={{ color: "var(--fg)" }}>
+              {copy.brand.tagline}
+            </p>
+            <p className="mt-3 text-sm font-light max-w-xs" style={{ color: "var(--muted)" }}>
+              {copy.footer.blurb}
+            </p>
+            <p className="mt-4 text-sm max-w-xs" style={{ color: "var(--fg-soft)" }}>
+              <em className="accent-word" style={{ fontSize: "1.05rem", whiteSpace: "normal" }}>{copy.brand.aiLine}</em>
+            </p>
           </div>
-          <div
-            className="flex items-center gap-4 text-xs"
-            style={{ color: "var(--muted)" }}
-          >
-            <span aria-label="Equal Housing Lender" title="Equal Housing Lender">
-              ⌂
-            </span>
-            <span>Equal Housing Lender</span>
+
+          {copy.footer.columns.map((col) => (
+            <nav key={col.title} aria-label={col.title}>
+              <div className="font-mono text-[10px] tracking-[0.2em] uppercase mb-4" style={{ color: "var(--accent)" }}>
+                {col.title}
+              </div>
+              <ul className="space-y-2.5 text-sm">
+                {col.links.map((l) => (
+                  <li key={l.href}>
+                    <Link href={l.href} className="footer-link">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
+
+        {/* Licensed-in strip */}
+        <div className="mt-12 pt-8 border-t" style={{ borderColor: "var(--rule)" }}>
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase mb-3" style={{ color: "var(--muted)" }}>
+            {copy.footer.licensedLabel}
+          </div>
+          <ul className="flex flex-wrap gap-2">
+            {STATES.map((s) => (
+              <li key={s.slug}>
+                <Link href={`/states/${s.slug}`} className="state-chip">
+                  {stateDisplay(s)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Compliance block */}
+        <div className="mt-10 grid gap-8 md:grid-cols-2 text-xs leading-relaxed font-light" style={{ color: "var(--muted)" }}>
+          <div>
+            <p className="mb-3">
+              {CONFIG.entityTradeName} is a trade name of {CONFIG.entityLegalName}
+              {isPlaceholder(CONFIG.entityNmls) ? "" : ` (NMLS #${CONFIG.entityNmls})`}.
+              {/* An individual MLO (with NMLS #) only when MloContext has a match. */}
+              <MloFooterLine />
+            </p>
+            <p className="mb-3">
+              {sponsorGroups.map((g, i) => (
+                <span key={`${g.sponsor.name}-${g.sponsor.idNumber}`}>
+                  Loans in {g.states.map((s) => s.fullName).join(", ")} are originated through {g.sponsor.name} ({g.sponsor.idLabel} #{g.sponsor.idNumber}).
+                  {i < sponsorGroups.length - 1 ? " " : ""}
+                </span>
+              ))}
+            </p>
+            <p className="mb-3">{NOT_A_COMMITMENT}</p>
+            <p>{copy.footer.aiNote}</p>
+          </div>
+          <div>
+            <ul className="space-y-2">
+              {STATES.map((s) => (
+                <li key={s.slug}>
+                  <span style={{ color: "var(--fg-soft)" }}>{stateDisplay(s)}:</span> entity license {s.entityLicense}; MLO license {s.mloLicense}; regulator {s.regulatorName}.
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4">
+              <Link href="/disclosures" className="footer-link">
+                Full licensing and disclosures
+              </Link>
+            </p>
           </div>
         </div>
 
-        <div
-          className="text-xs leading-relaxed font-light max-w-4xl"
-          style={{ color: "var(--muted)" }}
-        >
-          <p className="mb-3">
-            {ANCHOR_LO.operatingEntity.tradeName} is the trade name of{" "}
-            {ANCHOR_LO.operatingEntity.legalName}. {ANCHOR_LO.name}, NMLS #
-            {ANCHOR_LO.nmls}. Licensed in {LICENSED_STATES_LONG}.
-          </p>
-          <p className="mb-3">
-            {sponsorGroups.map((g, i) => (
-              <span key={`${g.sponsor.name}-${g.sponsor.idNumber}`}>
-                Sponsored by {g.sponsor.name} ({g.sponsor.idLabel} #
-                {g.sponsor.idNumber}) in {g.states.join(", ")}.
-                {i < sponsorGroups.length - 1 ? " " : ""}
-              </span>
-            ))}{" "}
-            Equal Housing Lender.
-          </p>
-          <p>
-            This site does not constitute an offer to lend. All loans subject to
-            credit approval. Rates and programs subject to change without
-            notice. Property must qualify under applicable program guidelines.
+        <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3 text-xs" style={{ color: "var(--muted)" }}>
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+              <path d="M3 11 12 3l9 8" />
+              <path d="M5 10v10h14V10" />
+              <path d="M9 20v-6h6v6" />
+              <path d="M8 13h8M8 15.5h8" strokeWidth="1.2" />
+            </svg>
+            <span>{copy.footer.equalHousing}</span>
+            <span className="sr-only">Equal Housing Lender logo</span>
+          </div>
+          <p className="font-mono text-[10px] tracking-[0.12em] uppercase" style={{ color: "var(--muted)" }}>
+            © {new Date().getFullYear()} {CONFIG.entityLegalName}. All rights reserved.
           </p>
         </div>
-
-        <p
-          className="mt-8 font-mono text-[10px] tracking-[0.12em] uppercase"
-          style={{ color: "var(--muted)" }}
-        >
-          © {new Date().getFullYear()} {ANCHOR_LO.operatingEntity.legalName}.
-          All rights reserved.
-        </p>
       </div>
     </footer>
   );

@@ -10,9 +10,22 @@
   --color-m8-stone: #E8E6E1;
   --color-m8-charcoal: #1A1A19;
 
-  /* Typography */
-  --font-display: var(--font-exo);
-  --font-sans: var(--font-exo);
+  /* Fixed surfaces (v14): solid panel behind the hero popups and the nav
+     dropdown in every theme, and the pale-green light that bevels the
+     orb monogram. */
+  --color-m8-panel: #0d1a15;
+  --color-m8-mist: #E1F5EE;
+  /* v18: darker green for paper-mode text (6:1 on Paper; Deep Green is 3.2:1). */
+  --color-m8-pine: #0F6E56;
+  /* v18: pale mint, the first stop of the dark-mode "AI" shimmer. */
+  --color-m8-mint: #9FE1CB;
+
+  /* Typography — LOCKED: Fraunces (display), Geist (body/UI), JetBrains Mono (labels/data) */
+  /* `.font-display` (the UI class used across the site) is Geist; the
+     serif display face is reached through `.tagline`, `.font-serif-display`
+     and `.accent-word`. Keep the token in step with the class. */
+  --font-display: var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans);
   --font-serif: var(--font-fraunces);
   --font-mono: var(--font-jetbrains);
 }
@@ -120,7 +133,9 @@
      fails contrast (4.5:1 minimum for text); Deep Green passes
      and reads as more grown-up. The orb keeps M8 Green though —
      it's a graphic object, not text, so AA doesn't apply. */
-  --accent: var(--color-m8-deep);
+  /* v18: Deep Green measured 3.2:1 on Paper, under AA for body-size
+     text, so text accents use Pine (#0F6E56, ~6:1). */
+  --accent: var(--color-m8-pine);
   --accent-deep: var(--color-m8-forest);
   --accent-soft: color-mix(in srgb, var(--color-m8-deep) 10%, transparent);
   --accent-text: var(--color-m8-paper);
@@ -134,8 +149,9 @@
   /* Term-field drops to 22% Forest with no glow. The terms become
      ghost-watermarks — felt, not loud. The orb still appears to
      absorb them via the radial mask. */
+  /* v18: 0.22 measured 1.2:1; 0.55 reaches ~3.3:1 at the fade peak. */
   --term-color: var(--color-m8-forest);
-  --term-opacity: 0.22;
+  --term-opacity: 0.55;
   --term-shadow: none;
 
   /* Rate cards: hairline border on white, not glowing forest fill. */
@@ -156,10 +172,14 @@
 
 /* ─── Global resets ──────────────────────────────────────── */
 
+/* Fraunces is no longer loaded (owner chose the sans headline
+   treatment). Any remaining var(--font-fraunces) resolves to Geist. */
+:root { --font-fraunces: var(--font-geist-sans); }
+
 html, body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-exo), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -196,7 +216,7 @@ html, body {
   color: var(--fg);
 }
 
-.font-display { font-family: var(--font-exo), system-ui, sans-serif; }
+.font-display { font-family: var(--font-geist-sans), system-ui, sans-serif; }
 .font-serif   { font-family: var(--font-fraunces), Georgia, serif; }
 .font-mono    {
   font-family: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
@@ -596,7 +616,7 @@ html, body {
   background: transparent;
   color: var(--fg);
   font-size: 0.875rem;
-  font-family: var(--font-exo);
+  font-family: var(--font-geist-sans);
   cursor: pointer;
   transition: all 150ms ease-out;
 }
@@ -761,7 +781,7 @@ html, body {
  * The breathing animation matches the hero orb's 4-second rhythm
  * so the two orbs feel like the same entity in different scales.
  *
- * Click handler is wired in ChatInput.tsx. In v8, clicking
+ * Click handler lives in the chat input component. In v8, clicking
  * focuses the input. In v9, clicking will start a live M8
  * conversation (Claude API) or open voice mode (Vapi).
  */
@@ -866,3 +886,1295 @@ html, body {
     animation: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ─── ONE-SHOT SITE BUILD: design system additions ─────────────── */
+/* ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Type utilities ─────────────────────────────────────────── */
+
+.font-serif-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+
+/* Accent word: italic serif, M8 Green (Deep Green on paper via --accent). */
+.accent-word,
+.reveal__accent {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--accent);
+  position: relative;
+  white-space: nowrap;
+}
+
+.principle-label,
+.eyebrow {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.mono-label {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Section eyebrow that reads like code: "// 01 — drop" */
+.code-label {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* ─── Focus ───────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 12px;
+  transition: top 150ms ease-out;
+}
+.skip-link:focus { top: 12px; }
+
+/* ─── Orb states (speed, amplitude, halo ONLY) ──────────────────── */
+
+@keyframes orb-breathe-wide {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.09); opacity: 0.94; }
+}
+
+@keyframes orb-breathe-tight {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03); }
+}
+
+/* listening — quicker, slightly wider breath, brighter halo */
+.orb--listening {
+  animation: orb-breathe-wide 2.2s ease-in-out infinite;
+  --orb-halo-opacity: 0.6;
+}
+.orb--listening::after { animation-duration: 2.2s; }
+
+/* thinking — fast, tight breath; halo pulled in */
+.orb--thinking {
+  animation: orb-breathe-tight 0.9s ease-in-out infinite;
+  --orb-halo-opacity: 0.3;
+}
+.orb--thinking::after { animation-duration: 0.9s; }
+.orb--thinking::before { animation-duration: 1.2s; }
+
+/* speaking — medium rhythm, widest amplitude, brightest halo */
+.orb--speaking {
+  animation: orb-breathe-wide 1.4s ease-in-out infinite;
+  --orb-halo-opacity: 0.75;
+}
+.orb--speaking::after { animation-duration: 1.4s; }
+
+/* one-shot pulse on tap */
+@keyframes orb-pulse-once {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.orb--pulse { animation: orb-pulse-once 700ms cubic-bezier(0.22, 1, 0.36, 1) 1, orb-breathe 4s ease-in-out 700ms infinite; }
+
+.orb--clickable { cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  .orb--listening, .orb--thinking, .orb--speaking, .orb--pulse { animation: none !important; }
+}
+
+/* ─── Speech bubble under the hero orb ──────────────────────────── */
+
+.speech-bubble {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--bg) 70%, var(--bg-elevated));
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--fg-soft);
+  animation: m8-hint-in 400ms ease-out both;
+}
+
+/* ─── Scenes (chapter backgrounds) ──────────────────────────────── */
+
+.scene {
+  position: relative;
+  isolation: isolate;
+  transition: background-color 600ms ease-out, color 600ms ease-out;
+}
+
+.scene--night {
+  background: var(--color-m8-night);
+  color: var(--color-m8-paper);
+  --bg: var(--color-m8-night);
+  --bg-elevated: color-mix(in srgb, var(--color-m8-forest) 14%, var(--color-m8-night));
+  --bg-sunken: #000;
+  --fg: var(--color-m8-paper);
+  --fg-soft: color-mix(in srgb, var(--color-m8-paper) 85%, transparent);
+  --muted: color-mix(in srgb, var(--color-m8-paper) 65%, transparent);
+  --rule: color-mix(in srgb, var(--color-m8-paper) 12%, transparent);
+  --rule-strong: color-mix(in srgb, var(--color-m8-paper) 22%, transparent);
+  --accent: var(--color-m8-green);
+  --accent-text: var(--color-m8-forest);
+  --accent-soft: color-mix(in srgb, var(--color-m8-green) 12%, transparent);
+  --orb-halo-opacity: 0.45;
+  color-scheme: dark;
+}
+
+.scene--forest {
+  background: var(--color-m8-forest);
+  color: var(--color-m8-paper);
+  --bg: var(--color-m8-forest);
+  --bg-elevated: color-mix(in srgb, var(--color-m8-paper) 6%, var(--color-m8-forest));
+  --bg-sunken: color-mix(in srgb, var(--color-m8-night) 40%, var(--color-m8-forest));
+  --fg: var(--color-m8-paper);
+  --fg-soft: color-mix(in srgb, var(--color-m8-paper) 88%, transparent);
+  --muted: color-mix(in srgb, var(--color-m8-paper) 70%, transparent);
+  --rule: color-mix(in srgb, var(--color-m8-paper) 16%, transparent);
+  --rule-strong: color-mix(in srgb, var(--color-m8-paper) 28%, transparent);
+  --accent: var(--color-m8-green);
+  --accent-text: var(--color-m8-forest);
+  --accent-soft: color-mix(in srgb, var(--color-m8-green) 16%, transparent);
+  --orb-halo-opacity: 0.35;
+  color-scheme: dark;
+}
+
+.scene--paper {
+  background: var(--color-m8-paper);
+  color: var(--color-m8-charcoal);
+  --bg: var(--color-m8-paper);
+  --bg-elevated: #F2EFE8;
+  --bg-sunken: #FFFFFF;
+  --fg: var(--color-m8-charcoal);
+  --fg-soft: #2C2C2A;
+  --muted: #5F5E5A;
+  --rule: rgba(26, 26, 25, 0.10);
+  --rule-strong: rgba(26, 26, 25, 0.18);
+  --accent: var(--color-m8-pine); /* v18: Deep Green is 3.2:1 on Paper */
+  --accent-deep: var(--color-m8-forest);
+  --accent-text: var(--color-m8-paper);
+  --accent-soft: color-mix(in srgb, var(--color-m8-deep) 10%, transparent);
+  --orb-shadow: 0 12px 40px rgba(29, 158, 117, 0.25), 0 2px 8px rgba(4, 52, 44, 0.08);
+  --orb-halo-opacity: 0;
+  color-scheme: light;
+}
+
+.scene-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 0;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+@media (min-width: 640px) { .scene-label { padding: 18px 24px 0; } }
+.scene-label__text { color: var(--accent); white-space: nowrap; }
+.scene-label__right { display: inline-flex; align-items: center; gap: 10px; }
+.scene-label__counter { color: var(--muted); }
+
+.replay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, color 150ms ease-out;
+}
+.replay-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.sample-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 4px;
+  border: 1px dashed var(--rule-strong);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  white-space: nowrap;
+}
+
+/* ─── Step-driven element transitions ───────────────────────────── */
+/* Pattern: parent carries data-step; children use .step-in with
+   --i (the step index they wait for). Show when step >= --i is
+   computed in JS via the `is-on` class to keep CSS simple. */
+
+.step-in {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 500ms ease-out, transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.step-in.is-on { opacity: 1; transform: none; }
+
+.step-scale {
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 450ms ease-out, transform 550ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.step-scale.is-on { opacity: 1; transform: none; }
+
+.step-slide-l {
+  opacity: 0;
+  transform: translateX(-28px);
+  transition: opacity 500ms ease-out, transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.step-slide-l.is-on { opacity: 1; transform: none; }
+
+.step-slide-r {
+  opacity: 0;
+  transform: translateX(28px);
+  transition: opacity 500ms ease-out, transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.step-slide-r.is-on { opacity: 1; transform: none; }
+
+[data-reduced="true"] .step-in,
+[data-reduced="true"] .step-scale,
+[data-reduced="true"] .step-slide-l,
+[data-reduced="true"] .step-slide-r,
+[data-reduced="true"] .bento-slot,
+[data-reduced="true"] .bento-slot__body,
+[data-reduced="true"] .tl-dot,
+[data-reduced="true"] .hand-underline path {
+  transition: none !important;
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-in, .step-scale, .step-slide-l, .step-slide-r { opacity: 1; transform: none; transition: none; }
+  .bento-slot, .bento-slot__body, .tl-dot, .hand-underline path, .reveal__word { transition: none !important; animation: none !important; }
+}
+
+/* ─── Word-by-word reveal ────────────────────────────────────────── */
+
+.reveal__words { display: inline; }
+.reveal__word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.35em);
+  filter: blur(4px);
+  transition: opacity 420ms ease-out, transform 520ms cubic-bezier(0.22, 1, 0.36, 1), filter 420ms ease-out;
+}
+.reveal--on .reveal__word,
+.reveal--reduced .reveal__word { opacity: 1; transform: none; filter: none; }
+.reveal--reduced .reveal__word { transition: none; }
+
+/* ─── Hand-drawn underline ──────────────────────────────────────── */
+
+.hand-underline {
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: -0.12em;
+  width: 104%;
+  height: 0.28em;
+  color: var(--accent);
+  overflow: visible;
+  pointer-events: none;
+}
+.hand-underline path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: inherit;
+}
+.hand-underline--on path { stroke-dashoffset: 0; }
+
+/* ─── Dashed-to-filled bento ────────────────────────────────────── */
+
+.bento-slot {
+  position: relative;
+  min-height: 120px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px dashed var(--rule-strong);
+  background: transparent;
+  transition: border-color 500ms ease-out, background-color 500ms ease-out, border-style 0ms 250ms;
+}
+.bento-slot__label {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.bento-slot__body {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 500ms ease-out 120ms, transform 600ms cubic-bezier(0.22, 1, 0.36, 1) 120ms;
+}
+.bento-slot--filled {
+  border-style: solid;
+  border-color: var(--rule);
+  background: var(--bg-elevated);
+}
+.bento-slot--filled .bento-slot__body { opacity: 1; transform: none; }
+
+/* ─── Timeline dots ─────────────────────────────────────────────── */
+
+.tl {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+}
+.tl-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  position: relative;
+}
+.tl-step::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  right: -50%;
+  height: 1px;
+  background: var(--rule-strong);
+}
+.tl-step:last-child::before { display: none; }
+.tl-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 9999px;
+  border: 1px solid var(--rule-strong);
+  background: var(--bg);
+  position: relative;
+  z-index: 1;
+  transition: background-color 350ms ease-out, border-color 350ms ease-out, box-shadow 350ms ease-out, transform 350ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tl-dot.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  transform: scale(1.15);
+}
+.tl-label {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+.tl-dot.is-on + .tl-label { color: var(--fg); }
+
+/* ─── Buttons ───────────────────────────────────────────────────── */
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 64px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  text-align: left;
+  text-decoration: none;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, transform 160ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.cta:active { transform: translateY(1px); }
+.cta__text { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.cta__label { font-weight: 500; line-height: 1.2; font-size: 1rem; }
+.cta__sub { font-size: 12px; line-height: 1.35; font-weight: 300; opacity: 0.8; }
+.cta__arrow { font-size: 1.2rem; transition: transform 180ms ease-out; flex-shrink: 0; }
+.cta:hover .cta__arrow { transform: translateX(4px); }
+.cta__icon {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 4px 7px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.cta--primary {
+  background: var(--color-m8-green);
+  color: var(--color-m8-forest);
+  border-color: var(--color-m8-green);
+}
+.cta--primary:hover { background: var(--color-m8-deep); border-color: var(--color-m8-deep); color: var(--color-m8-paper); }
+
+.cta--secondary {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--rule-strong);
+}
+.cta--secondary:hover { border-color: var(--accent); }
+
+.cta--outline {
+  background: transparent;
+  color: var(--fg-soft);
+  border: 1px dashed var(--rule-strong);
+}
+.cta--outline:hover { border-color: var(--accent); color: var(--fg); border-style: solid; }
+
+.cta--pill {
+  width: auto;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+  gap: 10px;
+}
+.cta--pill .cta__label { font-size: 0.9rem; }
+.cta--pill:hover { background: var(--accent-deep); border-color: var(--accent-deep); color: var(--color-m8-paper); }
+
+.cta--disabled { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+
+/* ─── Chips ─────────────────────────────────────────────────────── */
+
+.state-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--rule-strong);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--fg-soft);
+  text-decoration: none;
+  transition: border-color 150ms ease-out, background-color 150ms ease-out, color 150ms ease-out;
+  min-height: 40px;
+}
+.state-chip:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); }
+.state-chip::before { content: ""; width: 7px; height: 7px; border-radius: 9999px; background: var(--accent); }
+
+/* ─── Cards ─────────────────────────────────────────────────────── */
+
+.principle-card {
+  position: relative;
+  padding: 24px;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bg) 70%, var(--bg-elevated));
+  transition: border-color 200ms ease-out, transform 200ms ease-out;
+  height: 100%;
+}
+.principle-card:hover { border-color: var(--accent); }
+.principle-card__title {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.45rem;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin-top: 14px;
+}
+@media (min-width: 640px) { .principle-card__title { font-size: 1.6rem; } }
+.principle-card__body { margin-top: 10px; font-size: 0.9rem; line-height: 1.55; color: var(--muted); font-weight: 300; }
+
+.card {
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  padding: 18px;
+}
+.card--sunken { background: var(--bg-sunken); }
+
+/* ─── Nav ───────────────────────────────────────────────────────── */
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  border-bottom: 1px solid var(--rule);
+}
+.nav-link { color: var(--fg-soft); transition: color 150ms ease-out; padding: 6px 2px; }
+.nav-link:hover, .nav-link--active { color: var(--accent); }
+.nav-burger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  padding: 0 11px;
+}
+.nav-burger__bar { display: block; height: 2px; width: 100%; background: var(--fg); transition: transform 200ms ease-out, opacity 150ms ease-out; transform-origin: center; }
+.nav-burger__bar--x1 { transform: translateY(7px) rotate(45deg); }
+.nav-burger__bar--x2 { transform: translateY(-7px) rotate(-45deg); }
+.nav-burger__bar--hide { opacity: 0; }
+
+.nav-sheet {
+  position: fixed;
+  inset: 0;
+  top: 61px;
+  z-index: 39;
+  background: var(--bg);
+  overflow-y: auto;
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition: opacity 200ms ease-out, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-sheet--open { opacity: 1; transform: none; pointer-events: auto; }
+@media (min-width: 1024px) { .nav-sheet { display: none; } }
+.nav-sheet__link {
+  display: block;
+  padding: 14px 4px;
+  font-size: 1.25rem;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 500;
+  color: var(--fg);
+  border-bottom: 1px solid var(--rule);
+}
+.nav-sheet__link--secondary { font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 1rem; font-weight: 400; color: var(--fg-soft); padding: 12px 4px; }
+.nav-sheet__link:hover { color: var(--accent); }
+
+/* ─── Nav groups + Partner dropdown (v14, Edit 5) ──────────────────
+   Group 1 (Calculators, M8 Chat, Partner) keeps the brighter --fg-soft;
+   group 2 (Principles, About, Privacy) sits after a thin vertical
+   divider in the dimmer --muted. Both hover to the accent. The Partner
+   label turns M8 Green while its dropdown is open; the chevron follows
+   the label colour. The panel is solid in every theme. */
+.nav-group { display: flex; align-items: center; gap: 24px; }
+.nav-group--more .nav-link { color: var(--muted); }
+.nav-group--more .nav-link:hover,
+.nav-group--more .nav-link--active { color: var(--accent); }
+.nav-divider { display: block; width: 1px; height: 16px; margin: 0 22px; background: var(--rule-strong); }
+
+.nav-partner { position: relative; }
+.nav-partner__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.nav-partner--bar .nav-partner__trigger { font: inherit; }
+.nav-partner--sheet .nav-partner__trigger { border-bottom: 1px solid var(--rule); }
+.nav-partner.is-open > .nav-partner__trigger { color: var(--color-m8-green); }
+.nav-partner__chev { flex-shrink: 0; transition: transform 160ms ease-out; }
+.nav-partner.is-open .nav-partner__chev { transform: rotate(180deg); }
+.nav-partner--bar .nav-partner__panel {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  z-index: 45;
+  width: 300px;
+  padding-top: 12px; /* hover bridge between the trigger and the panel */
+  transform: translateX(-50%);
+}
+.nav-partner__list {
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--color-m8-green);
+  border-radius: 14px;
+  background: var(--color-m8-panel);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+.nav-partner__item {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background-color 150ms ease-out;
+}
+.nav-partner__item:hover,
+.nav-partner__item:focus-visible { background: color-mix(in srgb, var(--color-m8-green) 14%, transparent); }
+.nav-partner__item:focus-visible { outline: 2px solid var(--color-m8-green); outline-offset: -2px; }
+.nav-partner__label { display: block; font-size: 0.9rem; font-weight: 500; line-height: 1.3; color: var(--color-m8-paper); }
+.nav-partner__item:hover .nav-partner__label { color: var(--color-m8-green); }
+.nav-partner__desc { display: block; margin-top: 2px; font-size: 0.8rem; font-weight: 300; line-height: 1.4; color: color-mix(in srgb, var(--color-m8-paper) 68%, transparent); }
+
+/* Mobile sheet: Partner expands inline; the two groups are split by a
+   horizontal rule; group 2 is dimmer. */
+.nav-partner--sheet .nav-partner__trigger { width: 100%; justify-content: space-between; text-align: left; }
+.nav-partner--sheet .nav-partner__panel { padding: 10px 0 12px; }
+.nav-sheet__divider { margin: 18px 0 6px; border: 0; border-top: 1px solid var(--rule-strong); }
+.nav-sheet__link--more { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  .nav-partner__chev, .nav-partner__item { transition: none; }
+}
+
+/* ─── Footer ────────────────────────────────────────────────────── */
+
+.site-footer { border-top: 1px solid var(--rule); margin-top: auto; }
+.footer-link { color: var(--fg-soft); transition: color 150ms ease-out; }
+.footer-link:hover { color: var(--accent); }
+
+/* ─── Provenance ────────────────────────────────────────────────── */
+
+.provenance {
+  border-top: 1px dashed var(--rule-strong);
+  padding-top: 16px;
+  margin-top: 40px;
+}
+.provenance dl { display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .provenance dl { grid-template-columns: repeat(3, 1fr); } }
+.provenance dt { font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.provenance dd { font-size: 13px; color: var(--fg-soft); margin-top: 3px; }
+
+/* ─── Prose blocks (guides, legal) ──────────────────────────────── */
+
+.prose-m8 { font-size: 1rem; line-height: 1.7; color: var(--fg-soft); font-weight: 300; }
+.prose-m8 h2 { font-family: var(--font-fraunces), Georgia, serif; font-weight: 600; font-size: 1.75rem; line-height: 1.15; letter-spacing: -0.015em; margin-top: 2.5rem; margin-bottom: 0.75rem; color: var(--fg); }
+.prose-m8 h3 { font-weight: 500; font-size: 1.15rem; margin-top: 1.75rem; margin-bottom: 0.5rem; color: var(--fg); }
+.prose-m8 p { margin-bottom: 1rem; }
+.prose-m8 ul, .prose-m8 ol { margin: 0 0 1rem 1.25rem; }
+.prose-m8 li { margin-bottom: 0.4rem; }
+.prose-m8 ul li { list-style: disc; }
+.prose-m8 ol li { list-style: decimal; }
+.prose-m8 a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.prose-m8 strong { color: var(--fg); font-weight: 500; }
+.prose-m8 code { font-family: var(--font-jetbrains), monospace; font-size: 0.85em; padding: 1px 5px; border-radius: 4px; background: var(--accent-soft); }
+.prose-m8 .counsel { border-left: 3px solid var(--accent); padding-left: 12px; font-family: var(--font-jetbrains), monospace; font-size: 12px; color: var(--muted); }
+
+/* ─── Details / FAQ ─────────────────────────────────────────────── */
+
+.faq details { border-top: 1px solid var(--rule); padding: 14px 0; }
+.faq details:last-child { border-bottom: 1px solid var(--rule); }
+.faq summary { cursor: pointer; list-style: none; font-weight: 500; display: flex; justify-content: space-between; gap: 12px; align-items: center; color: var(--fg); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--font-jetbrains), monospace; color: var(--accent); }
+.faq details[open] summary::after { content: "−"; }
+.faq .faq__a { margin-top: 10px; color: var(--muted); font-weight: 300; line-height: 1.6; font-size: 0.95rem; }
+
+/* ─── Sliders ───────────────────────────────────────────────────── */
+
+input[type="range"].m8-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].m8-range::-webkit-slider-runnable-track { height: 3px; border-radius: 3px; background: var(--rule-strong); }
+input[type="range"].m8-range::-moz-range-track { height: 3px; border-radius: 3px; background: var(--rule-strong); }
+input[type="range"].m8-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -9px; width: 22px; height: 22px; border-radius: 9999px; background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--accent); }
+input[type="range"].m8-range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 9999px; background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--accent); }
+input[type="range"].m8-range:focus-visible { outline: none; }
+input[type="range"].m8-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 1px var(--accent); }
+
+/* ─── Toggle switch ─────────────────────────────────────────────── */
+
+.m8-toggle {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border-radius: 9999px;
+  border: 1px solid var(--rule-strong);
+  background: var(--bg-sunken);
+  position: relative;
+}
+.m8-toggle__opt {
+  position: relative;
+  z-index: 1;
+  padding: 9px 16px;
+  border-radius: 9999px;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  min-height: 40px;
+  transition: color 200ms ease-out;
+}
+.m8-toggle__opt[aria-checked="true"] { color: var(--accent-text); }
+.m8-toggle__thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  border-radius: 9999px;
+  background: var(--accent);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.m8-toggle[data-value="1"] .m8-toggle__thumb { transform: translateX(100%); }
+
+/* ─── Swipe row (mobile option cards) ───────────────────────────── */
+
+.swipe-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 6px;
+  margin-inline: -16px;
+  padding-inline: 16px;
+}
+.swipe-row::-webkit-scrollbar { display: none; }
+.swipe-row > * { scroll-snap-align: center; flex: 0 0 86%; }
+@media (min-width: 768px) {
+  .swipe-row { display: grid; grid-template-columns: repeat(3, 1fr); overflow: visible; margin-inline: 0; padding-inline: 0; }
+  .swipe-row > * { flex: initial; }
+}
+.swipe-dots { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
+@media (min-width: 768px) { .swipe-dots { display: none; } }
+.swipe-dots span { width: 6px; height: 6px; border-radius: 9999px; background: var(--rule-strong); }
+.swipe-dots span.is-on { background: var(--accent); }
+
+/* ─── Document mock (Loan Estimate, brief) ──────────────────────── */
+
+.doc {
+  background: #FFFFFF;
+  color: var(--color-m8-charcoal);
+  border-radius: 6px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.15);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+  position: relative;
+}
+.doc__row { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid #E8E6E1; }
+.doc__row b { font-weight: 600; }
+.doc__section { font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #5F5E5A; margin: 10px 0 4px; }
+.doc__field { position: relative; transition: background-color 300ms ease-out, box-shadow 300ms ease-out; border-radius: 3px; }
+.doc__field.is-reading { background: rgba(93, 202, 165, 0.18); }
+.doc__field.is-found { background: rgba(93, 202, 165, 0.32); box-shadow: inset 0 0 0 1px var(--color-m8-deep); }
+.doc__tag {
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translate(100%, -50%);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--color-m8-deep);
+  white-space: nowrap;
+  padding-left: 6px;
+}
+.scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-m8-green);
+  box-shadow: 0 0 14px 3px rgba(93, 202, 165, 0.6);
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.scanline.is-on { animation: scan 2.4s cubic-bezier(0.4, 0, 0.2, 1) 1 forwards; }
+@keyframes scan {
+  0%   { top: 0; opacity: 1; }
+  95%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ─── Phone mockup ─────────────────────────────────────────────── */
+
+.phone {
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 9 / 18.5;
+  border-radius: 36px;
+  border: 1px solid var(--rule-strong);
+  background: var(--bg-sunken);
+  padding: 14px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35), inset 0 0 0 6px color-mix(in srgb, var(--bg-elevated) 80%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  margin: 0 auto;
+}
+.phone__notch { width: 80px; height: 20px; border-radius: 9999px; background: var(--rule); margin: 0 auto 6px; }
+.bubble { max-width: 88%; padding: 9px 12px; border-radius: 16px; font-size: 12.5px; line-height: 1.4; }
+.bubble--m8 { align-self: flex-start; background: var(--accent-soft); color: var(--fg); border-bottom-left-radius: 4px; }
+.bubble--user { align-self: flex-end; background: var(--bg-elevated); color: var(--fg-soft); border: 1px solid var(--rule); border-bottom-right-radius: 4px; }
+.bubble--typing { display: inline-flex; gap: 4px; align-items: center; }
+.bubble--typing i { width: 5px; height: 5px; border-radius: 9999px; background: var(--accent); animation: dot 1s ease-in-out infinite; }
+.bubble--typing i:nth-child(2) { animation-delay: 0.15s; }
+.bubble--typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dot { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+/* ─── Flicker warning (agents "stalled" state) ─────────────────── */
+
+@keyframes flicker { 0%, 100% { opacity: 1; } 45% { opacity: 1; } 50% { opacity: 0.35; } 55% { opacity: 1; } 80% { opacity: 0.6; } }
+.is-flickering { animation: flicker 2.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .is-flickering { animation: none; } }
+
+/* ─── Typewriter cursor ─────────────────────────────────────────── */
+
+.tw-cursor::after { content: "▍"; color: var(--accent); animation: dot 0.9s steps(1) infinite; margin-left: 1px; }
+
+/* ─── Path draw (join page) ─────────────────────────────────────── */
+
+.draw-path { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1200ms ease-out; }
+.draw-path.is-on { stroke-dashoffset: 0; }
+
+/* ─── Utility ───────────────────────────────────────────────────── */
+
+.dashed-box { border: 1px dashed var(--rule-strong); border-radius: 16px; }
+.hairline-y { width: 1px; background: var(--rule); }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ─── Overflow safety + mobile fixes (from the 390px Playwright pass) ── */
+
+html, body { overflow-x: clip; }
+.scene { overflow-x: clip; }
+.scene-label { flex-wrap: wrap; row-gap: 8px; }
+.scene-label__right { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+@media (max-width: 480px) {
+  .sample-badge { white-space: normal; text-align: right; line-height: 1.3; }
+}
+/* A visually hidden <table> still expands layout width; force it to block so
+   the 1px sr-only box actually clips it. */
+table.sr-only, .sr-only table { display: block; }
+.prose-m8 a, .prose-m8 code, .prose-m8 li, .prose-m8 p { overflow-wrap: anywhere; }
+.doc { max-width: 100%; }
+.swipe-row > * { min-width: 0; }
+
+/* ─── Performance + contrast follow-ups (Lighthouse pass) ────────── */
+
+/* Promote the blurred halo to its own layer so the breathing transform
+   never re-rasterizes the blur. Visual output is unchanged. */
+.orb::after { will-change: transform, opacity; }
+.orb { will-change: transform; }
+
+/* Small mono labels need more contrast than the button accent on light
+   surfaces. Night/Dim keep M8 Green; Paper (theme or scene chapter) uses
+   a deeper green that clears 4.5:1 on the paper background. */
+:root, :root[data-theme="night"], :root[data-theme="dim"], .scene--night, .scene--forest { --label-accent: var(--accent); }
+:root[data-theme="paper"], .scene--paper { --label-accent: color-mix(in srgb, var(--color-m8-deep) 60%, var(--color-m8-forest)); }
+.principle-label, .eyebrow, .code-label, .scene-label__text, .subname { color: var(--label-accent, var(--accent)); }
+
+/* ─── Reveal modes (LCP-safe) ────────────────────────────────────── */
+/* Default: words are visible in server HTML. JS mode hides them until
+   the element enters the viewport; CSS mode animates from first paint. */
+.reveal .reveal__word { opacity: 1; transform: none; filter: none; }
+.reveal--js .reveal__word { opacity: 0; transform: translateY(0.35em); filter: blur(4px); }
+.reveal--js.reveal--on .reveal__word,
+.reveal--js.reveal--reduced .reveal__word { opacity: 1; transform: none; filter: none; }
+@keyframes reveal-word {
+  from { opacity: 0; transform: translateY(0.35em); filter: blur(4px); }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+.reveal--css .reveal__word {
+  animation: reveal-word 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal--css .reveal__word { animation: none; opacity: 1; transform: none; filter: none; }
+  .reveal--js .reveal__word { opacity: 1; transform: none; filter: none; }
+}
+
+/* ─── Fraunces: no wonky alternates ─────────────────────────────── */
+/* Fraunces ships "wonky" letterforms (the descending f, the swash y).
+   The brand uses the plain forms. WONK is a variable axis, so it is
+   pinned here for every element; fonts without the axis ignore it. */
+html { font-variation-settings: "WONK" 0; }
+
+/* ─── Font hygiene (site-wide audit) ─────────────────────────────── */
+/* JetBrains Mono is loaded at 400 and 500 only. Never let a <b>, a
+   heading, or an inherited weight synthesize a bold mono. */
+.mono-label, .code-label, .eyebrow, .principle-label, .sample-badge,
+.scene-label, .scene-label__text, .scene-label__counter, .doc__section,
+.doc__tag, .tl-label, .replay-btn, .pill, .state-chip, .cta__icon,
+.font-mono b, .font-mono strong, .mono-label b, .mono-label strong,
+.doc__section b, .doc__section strong { font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* ─── TYPOGRAPHY VARIANT: data-type="sans" ─────────────────────── */
+/* A side-by-side comparison switch (Aa in the nav, or ?type=sans).
+   Serif (default) is the locked stack. Sans borrows the reference
+   video's headline character: a light, tight geometric sans, a subtle
+   top-to-bottom sheen on headline text, and accent words set in a
+   green gradient instead of italic serif. Body, mono, buttons and the
+   orb are unchanged. */
+
+
+/* Headline faces → Geist, light and tight */
+:root[data-type="sans"] .tagline,
+:root[data-type="sans"] .font-serif-display,
+:root[data-type="sans"] .principle-card__title,
+:root[data-type="sans"] .prose-m8 h2,
+:root[data-type="sans"] .nav-sheet__link,
+:root[data-type="sans"] .reveal,
+:root[data-type="sans"] .rate-num,
+:root[data-type="sans"] .rate-money,
+:root[data-type="sans"] .scenario-value {
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-weight: 300;
+  font-style: normal;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+:root[data-type="sans"] .principle-card__title { font-weight: 400; letter-spacing: -0.025em; }
+:root[data-type="sans"] .prose-m8 h2 { font-weight: 400; letter-spacing: -0.02em; }
+:root[data-type="sans"] .nav-sheet__link { font-weight: 400; }
+
+/* Sheen: headline text fades slightly from top to bottom, like the
+   grey-gradient lines in the reference. Applied per word for Reveal
+   headlines and per element elsewhere. Fallback: plain color. */
+:root[data-type="sans"] .tagline,
+:root[data-type="sans"] .font-serif-display,
+:root[data-type="sans"] .principle-card__title,
+:root[data-type="sans"] .reveal__word {
+  color: var(--fg);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  :root[data-type="sans"] .tagline:not(.reveal),
+  :root[data-type="sans"] .font-serif-display,
+  :root[data-type="sans"] .principle-card__title,
+  :root[data-type="sans"] .reveal__word:not(.reveal__accent) {
+    background-image: linear-gradient(180deg, var(--fg) 0%, color-mix(in srgb, var(--fg) 62%, transparent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  /* Accent words: green gradient instead of italic serif. */
+  :root[data-type="sans"] .accent-word,
+  :root[data-type="sans"] .reveal__accent {
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    background-image: linear-gradient(100deg, var(--color-m8-green) 0%, var(--accent) 55%, var(--color-m8-deep) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  /* Paper surfaces: the gradient must stay AA — bias toward Deep Green. */
+  :root[data-type="sans"][data-theme="paper"] .accent-word,
+  :root[data-type="sans"][data-theme="paper"] .reveal__accent,
+  :root[data-type="sans"] .scene--paper .accent-word,
+  :root[data-type="sans"] .scene--paper .reveal__accent {
+    background-image: linear-gradient(100deg, var(--color-m8-deep) 0%, color-mix(in srgb, var(--color-m8-deep) 70%, var(--color-m8-forest)) 100%);
+  }
+}
+/* Nested markup inside a clipped element (the hand-drawn underline)
+   must not inherit the transparent fill. */
+:root[data-type="sans"] .hand-underline { -webkit-text-fill-color: initial; color: var(--accent); }
+:root[data-type="sans"] .accent-word { white-space: normal; }
+/* Word reveal: the blur+clip combination is heavy; use opacity/transform only. */
+:root[data-type="sans"] .reveal__word { filter: none !important; }
+
+/* Every other Fraunces use on the site (page-level CSS), collected by
+   scripts at build-review time so the sans variant covers the whole site. */
+:root[data-type="sans"] .ag-beat-title,
+:root[data-type="sans"] .ag-card-title,
+:root[data-type="sans"] .ag-card__title,
+:root[data-type="sans"] .ag-quote,
+:root[data-type="sans"] .ag-section-title,
+:root[data-type="sans"] .br-doc__title,
+:root[data-type="sans"] .br-sec__title,
+:root[data-type="sans"] .calc-index-card h2,
+:root[data-type="sans"] .hm-about__name,
+:root[data-type="sans"] .hm-agents__card h3,
+:root[data-type="sans"] .hm-h2,
+:root[data-type="sans"] .hm-orb-card__title,
+:root[data-type="sans"] .hm-sl__doc-title,
+:root[data-type="sans"] .join-borrower__name,
+:root[data-type="sans"] .join-state-card__name,
+:root[data-type="sans"] .le-cta h2,
+:root[data-type="sans"] .legal-title,
+:root[data-type="sans"] .m8chat-head__title,
+:root[data-type="sans"] .m8chat-modal__title,
+:root[data-type="sans"] .market-card-rate,
+:root[data-type="sans"] .pr-body,
+:root[data-type="sans"] .sl-stat__value,
+:root[data-type="sans"] .st-hero__accent,
+:root[data-type="sans"] .st-section h3,
+:root[data-type="sans"] .stage-visual-title,
+:root[data-type="sans"] .steplist-title {
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: -0.025em;
+}
+
+/* ─── Underlines off ────────────────────────────────────────────── */
+/* Owner decision 2026-09-29: no hand-drawn underline under accent words,
+   anywhere. The Underline component still renders for the `underline`
+   prop, but it is hidden here so one rule controls the whole site. */
+.hand-underline { display: none !important; }
+
+/* ─── Anchor targets ─────────────────────────────────────────────── */
+/* In-page links (/#about, /#how) land with the heading clear of the
+   sticky nav instead of tucked under it. */
+main [id] { scroll-margin-top: 88px; }
+
+/* ─── Location beacon (v15, Patch B) ───────────────────────────────
+   "[State] · matched with [MLO]" + Change. Breathing dot on the orb's
+   4s rhythm (still under reduced motion). Nav variant: a slim right-
+   aligned row under the main bar with a solid popover; inline and card
+   variants expand in place. */
+.beacon { position: relative; font-size: 0.8rem; color: var(--fg-soft); }
+.beacon__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.beacon__dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--color-m8-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-m8-green) 22%, transparent);
+  animation: beacon-breathe 4s ease-in-out infinite;
+}
+@keyframes beacon-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.7); opacity: 0.65; }
+}
+.beacon__outline { flex-shrink: 0; width: 18px; height: 18px; color: var(--accent); }
+.beacon__text { min-width: 0; }
+.beacon__moved { margin-top: 4px; font-size: 0.75rem; color: var(--muted); }
+.beacon-link {
+  border: 0;
+  padding: 2px 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.beacon-link:disabled { opacity: 0.5; cursor: default; }
+.beacon-btn {
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-m8-green);
+  border-radius: 9999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.beacon-btn:hover { background: color-mix(in srgb, var(--color-m8-green) 14%, transparent); }
+.beacon-btn:disabled { opacity: 0.5; cursor: default; }
+
+.beacon-panel {
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--color-m8-green);
+  border-radius: 14px;
+  background: var(--color-m8-panel);
+  color: var(--color-m8-paper);
+  text-align: left;
+}
+.beacon-panel__label { display: block; font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-m8-green); }
+.beacon-panel__hint { margin-top: 4px; font-size: 0.8rem; color: color-mix(in srgb, var(--color-m8-paper) 70%, transparent); }
+.beacon-panel__row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.beacon-panel__select {
+  flex: 1 1 160px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--color-m8-paper) 25%, transparent);
+  border-radius: 10px;
+  background: var(--color-m8-night);
+  color: var(--color-m8-paper);
+  font: inherit;
+}
+.beacon-panel .beacon-link { color: var(--color-m8-green); }
+.beacon-panel__foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; font-size: 0.8rem; }
+.beacon-panel__error { margin-top: 8px; font-size: 0.8rem; color: var(--color-m8-green); }
+
+.beacon-choose { margin-top: 12px; }
+.beacon-choose__heading { font-weight: 500; }
+.beacon-choose__sub { margin-top: 2px; font-size: 0.8rem; opacity: 0.75; }
+.beacon-choose__list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.beacon-choose__item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.beacon-choose__name { display: block; font-weight: 500; }
+.beacon-choose__meta { display: block; font-size: 0.75rem; opacity: 0.75; }
+.beacon-choose__disclosure { margin-top: 10px; font-size: 0.75rem; opacity: 0.75; }
+
+/* Nav: slim row under the main bar, right-aligned; the picker floats. */
+.nav-beacon { display: flex; justify-content: flex-end; padding: 0 0 8px; font-family: var(--font-jetbrains), monospace; font-size: 11px; letter-spacing: 0.04em; }
+.nav-beacon .beacon__moved { text-align: right; }
+.nav-beacon .beacon-panel { position: absolute; top: 100%; right: 0; z-index: 45; width: 340px; font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 0.875rem; letter-spacing: 0; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45); }
+.nav-beacon { flex-direction: column; align-items: flex-end; }
+
+
+/* MLO card */
+.beacon--card { margin-top: 10px; }
+.hm-about__cred { margin-top: 6px; font-size: 0.8rem; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .beacon__dot { animation: none; }
+}
+.hm-about__cred .hm-about__nmls,
+.hm-about__cred .hm-about__verify { margin: 0; min-height: 0; line-height: inherit; display: inline; }
+
+/* ─── Paper-mode contrast (v18, Item 5) ───────────────────────────────
+   Disabled CTAs keep full-strength text (the muted look moves to the
+   fill), sub-labels drop their 80% fade, and drift words rest at full
+   term opacity under reduced motion. Dark themes are unchanged. */
+:root[data-theme="paper"] .cta__sub { opacity: 1; }
+:root[data-theme="paper"] .cta--disabled { opacity: 1; }
+:root[data-theme="paper"] .cta--disabled.cta--primary {
+  background: color-mix(in srgb, var(--color-m8-green) 50%, var(--bg));
+  border-color: color-mix(in srgb, var(--color-m8-green) 50%, var(--bg));
+  color: var(--color-m8-forest);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="paper"] .term { opacity: var(--term-opacity); }
+}
+
+/* ─── "AI" shimmer in the hero headline (v18, Item 6) ─────────────────
+   The a in "Loan" and the i in "intelligence". A horizontal gradient
+   whose ends are transparent sits on the letter (clipped to its glyph);
+   at rest the headline's own sheen shows through, so the letters match
+   the base colour. Every 9s: rest for the first 40% (~3.6s), then sweep
+   over ~5.4s. Both letters run the same animation from the same mount,
+   so they sweep together. Reduced motion: no animation, base colour. */
+:root {
+  --shimmer-1: var(--color-m8-mint);
+  --shimmer-2: var(--color-m8-green);
+  --shimmer-3: var(--color-m8-mist);
+}
+:root[data-theme="paper"] {
+  --shimmer-1: var(--color-m8-pine);
+  --shimmer-2: var(--color-m8-deep);
+  --shimmer-3: var(--color-m8-forest);
+}
+.ai-shimmer {
+  background-image: linear-gradient(90deg, transparent 0%, transparent 34%, var(--shimmer-1) 42%, var(--shimmer-2) 50%, var(--shimmer-3) 58%, transparent 66%, transparent 100%);
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
+  background-position: 150% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: ai-shimmer 9s infinite;
+}
+@keyframes ai-shimmer {
+  0%, 40% { background-position: 150% 0; animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1); }
+  100% { background-position: -50% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-shimmer { animation: none; background-image: none; }
+}
+
+/* ─── Mobile location pill, menu line, bottom-sheet picker (v18, Item 1) ─
+   Pill: one line under the mobile header, left-aligned with the page
+   padding, scrolls away with the page. The name truncates with an
+   ellipsis; the state, separators and "Change" never shrink or wrap. */
+.beacon--pill { display: flex; padding-top: 10px; font-family: var(--font-jetbrains), monospace; font-size: 11px; letter-spacing: 0.02em; }
+.beacon-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 5px 12px 5px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--bg) 85%, var(--bg-elevated));
+  color: var(--fg-soft);
+  white-space: nowrap;
+  font: inherit;
+}
+button.beacon-pill { cursor: pointer; }
+.beacon-pill .beacon__outline { width: 14px; height: 14px; }
+.beacon-pill__lead,
+.beacon-pill__sep,
+.beacon-pill__change,
+.beacon-pill .beacon__dot,
+.beacon-pill .beacon__outline { flex-shrink: 0; }
+.beacon-pill__name { min-width: 2.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.beacon-pill__change { padding: 0; white-space: nowrap; }
+
+/* Full line at the top of the mobile menu. */
+.nav-sheet__beacon { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--rule); font-size: 0.85rem; }
+
+/* Bottom sheet (phones): over the header and the menu. */
+.beacon-sheet { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; }
+.beacon-sheet__backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); }
+.beacon-sheet__panel {
+  position: relative;
+  width: 100%;
+  max-height: 85svh;
+  overflow-y: auto;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-m8-green);
+  border-radius: 18px 18px 0 0;
+  background: var(--color-m8-panel);
+  animation: beacon-sheet-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.beacon-sheet__grip { display: block; width: 40px; height: 4px; margin: 0 auto 8px; border-radius: 9999px; background: color-mix(in srgb, var(--color-m8-paper) 30%, transparent); }
+.beacon-sheet .beacon-panel { margin-top: 0; border: 0; padding: 4px 0 0; background: transparent; }
+@keyframes beacon-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .beacon-sheet__panel { animation: none; } }
+
+
+/* ─── Start your application (v18, Item 2) ─────────────────────────── */
+.apply-cta { display: flex; flex-direction: column; gap: 8px; }
+.apply-cta__pick { width: 100%; text-align: left; font: inherit; cursor: pointer; }
+.apply-cta__note { font-size: 12px; line-height: 1.45; color: var(--muted); }
+.next-step__prep { display: inline-block; margin-top: 4px; font-size: 0.875rem; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.next-step__actions { display: flex; flex-direction: column; gap: 12px; }
+/* The picker sheet as a centred dialog on desktop (bottom sheet on phones). */
+@media (min-width: 1024px) {
+  .beacon-sheet { align-items: center; justify-content: center; }
+  .beacon-sheet__panel { width: min(440px, 92vw); border: 1px solid var(--color-m8-green); border-radius: 18px; padding: 16px 18px 18px; }
+  .beacon-sheet__grip { display: none; }
+  .beacon-sheet__panel { animation-name: beacon-sheet-fade; }
+}
+@keyframes beacon-sheet-fade { from { opacity: 0; } to { opacity: 1; } }

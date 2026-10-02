@@ -3,33 +3,52 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { M8Message } from "@/lib/m8";
 import { M8_SESSION_KEY } from "@/lib/m8";
+import { CONFIG } from "@/lib/config";
+import { copy } from "@/lib/copy";
+import { usStateName } from "@/lib/us-states";
+import { useMloContext, useNamedMlo } from "@/components/mlo/MloContext";
 
 /**
- * M8LiveChat — the real M8 conversation UI (v10.0)
+ * M8LiveChat — the live M8 conversation UI. TESTER PREVIEW ONLY.
  *
- * Streams responses from /api/m8-chat token-by-token so the chat
- * feels alive rather than snapping in complete replies. Uses the
- * same visual chrome as the scripted Sarah demo (rate cards,
- * message bubbles, principle labels) but connected to Claude API.
+ * Rendered on /demo behind the tester password (the "Live M8 (preview)"
+ * tab of ChatExperienceWithToggle). Streams responses from /api/m8-chat
+ * token-by-token. The public /chat route never renders this while
+ * CONFIG.featureFlags.chatLiveAi is false.
  *
  * Behavior:
- *  - Empty state: shows M8's opening line
+ *  - Empty state: M8's opening line, which starts with the AI disclosure
+ *  - The AI disclosure + recording line (copy.chat.gate.body) sits above
+ *    the input at all times
  *  - User types + hits enter -> message appears, streaming reply follows
- *  - Reply streams into the UI in real time
- *  - Conversation persists in localStorage between page reloads
+ *  - Conversation persists in the tester's localStorage between reloads
  *  - "Start over" clears the conversation
- *  - If the API errors, message shown in place, retry available
+ *  - If the API errors, the message is shown in place; retry available
  *
- * NOT INCLUDED in v10.0 (comes in v10.2):
- *  - Recording consent language
- *  - Transcript-on-demand button
- *  - Two-party consent state notice
- *  - Any compliance-required disclosures beyond the footer
+ * Still to do before any public use: transcript persistence with the
+ * counsel-confirmed retention, a transcript-on-request path, and an
+ * explicit consent record for two-party states. See the RECORDING /
+ * CONSENT NOTE in app/api/m8-chat/route.ts.
  */
 
-const M8_OPENING = `Hi. I'm M8, LoanM8's mortgage assistant. I'm still being fine-tuned so this is a preview version — I can chat about how mortgages work but I can't quote live rates yet. What can I help you understand?`;
+/** M8's opening line; the loan officer part follows MloContext (v15). */
+function useOpening(): string {
+  const ctx = useMloContext();
+  const mlo = useNamedMlo();
+  const o = copy.chat.liveOpening;
+  const st = ctx.stateName ?? "";
+  let mid = o.generic;
+  if (mlo) mid = o.named.replace("{name}", mlo.name).replace("{state}", st).replace("{nmls}", mlo.nmls);
+  else if (ctx.status === "unlicensed") mid = o.unlicensed.replace("{state}", st);
+  const moved = mlo && ctx.moved && ctx.ipState ? o.moved.replace("{state}", st).replace("{ip}", usStateName(ctx.ipState) ?? ctx.ipState) : "";
+  return `${o.lead}${mid}${moved}${o.close}`;
+}
+
+/** Where testers go when the model is unavailable. From config, never typed here. */
+const CONTACT = CONFIG.contactEmail;
 
 export default function M8LiveChat() {
+  const opening = useOpening();
   const [messages, setMessages] = useState<M8Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -234,7 +253,7 @@ export default function M8LiveChat() {
                 className="text-[15px] leading-relaxed"
                 style={{ color: "var(--fg)" }}
               >
-                {M8_OPENING}
+                {opening}
               </p>
             </div>
           </div>
@@ -302,10 +321,18 @@ export default function M8LiveChat() {
                  background: "color-mix(in srgb, #E2746E 8%, transparent)",
                  color: "#E2746E",
                }}>
-            {error}. Try sending again.
+            {error}. Try sending again, or email {CONTACT}.
           </div>
         )}
       </div>
+
+      {/* AI disclosure + recording line — always visible above the input */}
+      <p
+        className="px-4 pt-3 text-xs leading-relaxed"
+        style={{ color: "var(--muted)" }}
+      >
+        {copy.chat.gate.body}
+      </p>
 
       {/* Input bar */}
       <div className="chat-input">

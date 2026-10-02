@@ -1,0 +1,625 @@
+/* ─── Homepage (components/home) ─────────────────────────────────
+   Page-specific styles. Everything is styled with tokens so the
+   Night / Dim / Paper themes and Scene chapter flips all work.
+   Prefix: .hm-
+   ───────────────────────────────────────────────────────────────── */
+
+/* ─── Section rhythm ────────────────────────────────────────────── */
+
+.hm-section { padding: 64px 0; }
+@media (min-width: 640px) { .hm-section { padding: 96px 0; } }
+.hm-rule { border-top: 1px solid var(--rule); }
+
+.hm-h2 {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+  font-size: 2.1rem;
+  color: var(--fg);
+}
+@media (min-width: 640px) { .hm-h2 { font-size: 2.9rem; } }
+.hm-sub { margin-top: 16px; color: var(--muted); font-weight: 300; line-height: 1.6; }
+
+/* ─── Hero ──────────────────────────────────────────────────────── */
+
+.hm-hero {
+  position: relative;
+  overflow: hidden;           /* TermField is min(960px, 95vw) wide — clip it */
+  isolation: isolate;
+}
+.hm-hero__glow {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  width: 640px;
+  height: 640px;
+  max-width: 140vw;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  /* Gradient only: a filter here costs paint time on every frame the orb breathes. */
+  background: radial-gradient(circle, var(--accent-soft) 0%, color-mix(in srgb, var(--accent-soft) 40%, transparent) 30%, transparent 62%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hm-orb-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 0 auto;
+}
+.hm-orb-stage { position: relative; display: flex; justify-content: center; }
+.hm-orb-btn {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 220px;
+  height: 220px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hm-orb-btn:focus-visible { outline-offset: 10px; border-radius: 9999px; }
+.hm-orb-btn .orb { display: block; }
+@media (max-width: 379px) {
+  .hm-orb-btn { width: 180px; height: 180px; }
+  .hm-orb-btn .orb { width: 180px !important; height: 180px !important; }
+}
+
+.hm-orb-caption { position: relative; z-index: 2; min-height: 36px; }
+
+/* The inline card that appears on tap. */
+.hm-orb-card {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: 420px;
+  margin: 4px auto 0;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--rule-strong);
+  background: color-mix(in srgb, var(--bg) 82%, var(--bg-elevated));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-align: left;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+.hm-orb-card:focus-visible { outline-offset: 4px; }
+.hm-orb-card__title {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.35rem;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+  margin-top: 8px;
+  color: var(--fg);
+}
+.hm-orb-card__body { margin-top: 8px; font-size: 0.95rem; line-height: 1.55; color: var(--fg-soft); font-weight: 300; }
+.hm-orb-card__actions { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.hm-orb-card__dismiss {
+  min-height: 44px;
+  padding: 8px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+.hm-orb-card__dismiss:hover { color: var(--fg); }
+
+.hm-hero__emphasis {
+  margin-top: 10px;
+  font-size: 1.6rem;
+  line-height: 1.1;
+}
+@media (min-width: 640px) { .hm-hero__emphasis { font-size: 2.2rem; } }
+.hm-hero__emphasis .accent-word { white-space: normal; font-weight: 400; }
+
+.hm-hero__sub {
+  margin: 16px auto 0;
+  max-width: 40rem;
+  /* v14: 2px smaller than before (desktop 18.4px → 16px; mobile scaled
+     by the same ratio, 16.8px → 14.6px). */
+  font-size: 0.9125rem;
+  line-height: 1.6;
+  font-weight: 300;
+  color: var(--muted);
+}
+@media (min-width: 640px) { .hm-hero__sub { font-size: 1rem; } }
+
+/* Hero entrance (plays once on load; static under reduced motion). */
+.hm-in {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: hm-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes hm-in {
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hm-in { animation: none; opacity: 1; transform: none; }
+}
+
+/* ─── Four-button grid ──────────────────────────────────────────── */
+
+.hm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 26px auto 0;
+  max-width: 44rem;
+  text-align: left;
+}
+@media (min-width: 640px) { .hm-grid { gap: 14px; } }
+.hm-grid > * { min-width: 0; }
+.hm-grid .cta { height: 100%; min-height: 64px; align-items: center; }
+.hm-grid .cta__label { font-size: 0.95rem; }
+.hm-grid .cta__sub { white-space: normal; overflow-wrap: anywhere; }
+/* Row 2 reads quieter than row 1. */
+.hm-grid .cta--outline { color: var(--muted); }
+.hm-grid .cta--outline .cta__label { font-weight: 400; color: var(--fg-soft); }
+.hm-grid .cta--outline:hover .cta__label { color: var(--fg); }
+@media (max-width: 379px) {
+  .hm-grid { gap: 8px; }
+  .hm-grid .cta { padding: 12px 12px; gap: 8px; }
+  .hm-grid .cta__label { font-size: 0.875rem; }
+  .hm-grid .cta__sub { font-size: 11px; }
+  .hm-grid .cta__icon { padding: 3px 5px; font-size: 10px; }
+  .hm-grid .cta__arrow { display: none; }
+}
+.hm-grid__note {
+  margin-top: 12px;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ─── Trust strip ───────────────────────────────────────────────── */
+
+.hm-trust {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 auto;
+  max-width: 56rem;
+  list-style: none;
+  padding: 0;
+  text-align: left;
+}
+@media (min-width: 768px) { .hm-trust { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; } }
+.hm-trust__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--bg) 60%, var(--bg-elevated));
+}
+.hm-trust__icon { flex-shrink: 0; width: 20px; height: 20px; color: var(--accent); margin-top: 1px; }
+.hm-trust__label { font-size: 0.9rem; font-weight: 500; line-height: 1.25; color: var(--fg); }
+.hm-trust__sub { margin-top: 3px; font-size: 12px; line-height: 1.35; color: var(--muted); font-weight: 300; }
+
+/* ─── States strip ──────────────────────────────────────────────── */
+
+.hm-states { display: grid; gap: 22px; align-items: center; }
+@media (min-width: 768px) { .hm-states { grid-template-columns: 1.2fr 1fr; gap: 40px; } }
+.hm-states__chips { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (min-width: 768px) { .hm-states__chips { justify-content: flex-end; } }
+
+/* ─── Principles (op-ed, asymmetric on desktop) ─────────────────── */
+
+.hm-principles__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 48px;
+}
+@media (min-width: 640px) { .hm-principles__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
+@media (min-width: 1024px) {
+  .hm-principles__grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .hm-p--w2 { grid-column: span 2 / span 2; }
+  .hm-p--w3 { grid-column: span 3 / span 3; }
+  .hm-p--w4 { grid-column: span 4 / span 4; }
+  .hm-p--w4 .principle-card__title { font-size: 2rem; }
+  .hm-p--w3 .principle-card__title { font-size: 1.8rem; }
+}
+.hm-principles__grid .principle-card { display: flex; flex-direction: column; }
+.hm-principles__grid .principle-card__body { margin-top: auto; padding-top: 14px; }
+
+/* ─── Sheets on the stage (how it works → MLO band) ─────────────── */
+
+.hm-sheet__inner { padding: 24px 16px 56px; }
+@media (min-width: 640px) { .hm-sheet__inner { padding: 32px 24px 72px; } }
+.hm-sheet .hm-h2.stage-headline { color: var(--fg-soft); }
+.hm-sheet .hm-sub { color: var(--muted); }
+.hm-sheet .stage-visual { margin-left: auto; }
+
+/* ─── Second Look teaser ────────────────────────────────────────── */
+
+.hm-sl__grid { display: grid; gap: 28px; align-items: center; margin-top: 36px; }
+@media (min-width: 768px) { .hm-sl__grid { grid-template-columns: 1fr 1fr; gap: 48px; } }
+
+.hm-sl__stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 24px 12px 28px;
+  min-height: 300px;
+}
+.hm-sl__doc {
+  width: min(280px, 100%);
+  padding: 16px 14px 18px;
+  transform: rotate(-3deg) scale(0.96);
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 450ms ease-out;
+  opacity: 0;
+}
+.hm-sl__doc.is-on { opacity: 1; transform: rotate(-3deg) scale(1); }
+[data-reduced="true"] .hm-sl__doc { transition: none; }
+.hm-sl__doc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--color-m8-charcoal); }
+.hm-sl__doc-title { font-family: var(--font-fraunces), Georgia, serif; font-weight: 600; font-size: 13px; letter-spacing: -0.01em; }
+.hm-sl__doc-meta { font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #5F5E5A; }
+.hm-sl .doc__row { padding: 5px 4px; align-items: center; }
+.hm-sl .doc__bar {
+  display: block;
+  width: 44px;
+  height: 7px;
+  border-radius: 3px;
+  background: #E8E6E1;
+  flex-shrink: 0;
+}
+.hm-sl .doc__tag {
+  right: 0;
+  transform: translate(0, -50%);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #FFFFFF;
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+.hm-sl .doc__field.is-found .doc__tag { opacity: 1; }
+.hm-sl .scanline.is-on { animation-duration: 1.4s; }
+[data-reduced="true"] .hm-sl .scanline,
+[data-reduced="true"] .hm-sl .doc__tag { animation: none !important; transition: none !important; }
+[data-reduced="true"] .hm-sl .scanline { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .hm-sl .scanline { animation: none !important; opacity: 0; }
+  .hm-sl__doc, .hm-sl .doc__tag, .hm-sl .doc__field { transition: none !important; }
+}
+.hm-sl .doc__field.is-reading { background: rgba(93, 202, 165, 0.16); }
+
+.hm-sl__result .bento-slot { min-height: 160px; }
+.hm-sl__result-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.hm-sl__result-list li { display: flex; gap: 10px; font-size: 0.95rem; line-height: 1.5; color: var(--fg-soft); font-weight: 300; }
+.hm-sl__result-list li::before { content: "→"; color: var(--accent); flex-shrink: 0; }
+
+/* ─── Agents ────────────────────────────────────────────────────── */
+
+.hm-agents__grid { display: grid; gap: 12px; margin-top: 44px; }
+@media (min-width: 768px) { .hm-agents__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
+.hm-agents__card { padding: 22px; }
+.hm-agents__card h3 { font-family: var(--font-fraunces), Georgia, serif; font-weight: 600; font-size: 1.25rem; line-height: 1.2; letter-spacing: -0.01em; color: var(--fg); }
+.hm-agents__card p { margin-top: 10px; font-size: 0.92rem; line-height: 1.55; color: var(--muted); font-weight: 300; }
+
+/* ─── MLO band ──────────────────────────────────────────────────── */
+
+.hm-mlo { display: grid; gap: 24px; align-items: end; }
+@media (min-width: 768px) { .hm-mlo { grid-template-columns: 1.4fr 1fr; gap: 48px; } }
+
+/* ─── About ─────────────────────────────────────────────────────── */
+
+.hm-about__grid { display: grid; gap: 14px; margin-top: 36px; }
+@media (min-width: 768px) { .hm-about__grid--team { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; } }
+.hm-about__card {
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--bg) 70%, var(--bg-elevated));
+}
+@media (min-width: 640px) { .hm-about__card { grid-template-columns: minmax(200px, 1fr) 2fr; gap: 24px; align-items: start; } }
+.hm-about__grid--team .hm-about__card { grid-template-columns: 1fr; }
+.hm-about__name { font-family: var(--font-fraunces), Georgia, serif; font-weight: 600; font-size: 1.5rem; line-height: 1.1; letter-spacing: -0.015em; color: var(--fg); }
+.hm-about__title { margin-top: 4px; font-size: 0.9rem; color: var(--muted); font-weight: 300; }
+.hm-about__nmls { margin-top: 10px; font-family: var(--font-jetbrains), monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.hm-about__verify { display: inline-block; margin-top: 8px; font-size: 13px; color: var(--fg-soft); text-decoration: underline; text-underline-offset: 3px; min-height: 44px; line-height: 44px; }
+.hm-about__verify:hover { color: var(--accent); }
+.hm-about__bio { font-size: 0.95rem; line-height: 1.6; color: var(--fg-soft); font-weight: 300; }
+
+/* ─── First-viewport composition ─────────────────────────────────── */
+/* The hero fills the first screen (minus the sticky nav) and centers
+   its content, so what a visitor lands on is: orb, headline, sub, the
+   four actions. The trust strip is a second beat below the fold. */
+.hm-hero__inner {
+  min-height: calc(100svh - 64px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 16px;
+  padding-bottom: 24px;
+}
+@media (min-width: 640px) { .hm-hero__inner { padding-top: 20px; padding-bottom: 28px; } }
+.hm-trust-band { padding: 8px 0 56px; }
+@media (min-width: 640px) { .hm-trust-band { padding: 16px 0 72px; } }
+
+/* Plain caption under the orb — text, not a pill. */
+.hm-orb-caption__text {
+  display: inline-block;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  animation: m8-hint-in 400ms ease-out both;
+}
+
+/* ─── Orb actions: two stitched-line buttons + a short toast ───────── */
+.hm-orb-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 0;
+}
+.stitch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  border: 1.5px dashed color-mix(in srgb, var(--fg) 38%, transparent);
+  background: transparent;
+  color: var(--fg-soft);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 160ms ease-out, color 160ms ease-out, background-color 160ms ease-out, transform 160ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.stitch-btn svg { color: var(--accent); flex-shrink: 0; }
+.stitch-btn:hover { border-color: var(--accent); color: var(--fg); background: var(--accent-soft); }
+.stitch-btn:active { transform: translateY(1px); }
+.stitch-btn--on,
+.stitch-btn--on:hover { border-style: solid; border-color: var(--color-m8-green); color: var(--fg); }
+
+/* ─── Voice / Q & A popups (v14, Edit 1) ───────────────────────────
+   Solid panel, M8 Green hairline, above every hero layer (the orb
+   column is lifted to z-index 5 in .hm-hero__orbcol; the popups sit at
+   30 inside it). Desktop: Voice opens to the left of the button row,
+   Q & A to the right, vertically centred on the buttons, 10px gap.
+   Below 768px there is no room beside the buttons, so both drop under
+   the row, full width inside the page padding. */
+.hm-hero__orbcol { position: relative; z-index: 5; }
+.hm-pop-layer { position: absolute; inset: 0; z-index: 30; pointer-events: none; }
+.hm-pop {
+  position: absolute;
+  top: 50%;
+  width: 230px;
+  transform: translateY(-50%);
+  pointer-events: auto;
+  border: 1px solid var(--color-m8-green);
+  border-radius: 14px;
+  background: var(--color-m8-panel);
+  color: var(--color-m8-paper);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  text-align: left;
+  animation: hm-pop-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.hm-pop--left { right: calc(100% + 10px); }
+.hm-pop--right { left: calc(100% + 10px); }
+@keyframes hm-pop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.hm-pop__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 30px 14px 12px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  font-weight: 400;
+}
+.hm-pop__body:hover .hm-pop__text { color: var(--color-m8-paper); }
+.hm-pop__body:focus-visible { outline: 2px solid var(--color-m8-green); outline-offset: -4px; border-radius: 12px; }
+.hm-pop__text { color: color-mix(in srgb, var(--color-m8-paper) 92%, transparent); }
+.hm-pop__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 9999px;
+  background: var(--color-m8-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-m8-green) 22%, transparent);
+  animation: hm-pop-breathe 2.2s ease-in-out infinite;
+}
+@keyframes hm-pop-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.72); opacity: 0.7; }
+}
+.hm-pop__x {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: color-mix(in srgb, var(--color-m8-paper) 70%, transparent);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.hm-pop__x:hover { color: var(--color-m8-paper); }
+.hm-pop__x:focus-visible { outline: 2px solid var(--color-m8-green); outline-offset: -2px; }
+/* Progress line: fills left to right over the redirect timer. */
+.hm-pop__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-m8-green);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: hm-pop-fill var(--pop-ms, 5500ms) linear forwards;
+}
+@keyframes hm-pop-fill { to { transform: scaleX(1); } }
+
+@media (max-width: 767px) {
+  .hm-orb-actions { position: static; }
+  .hm-pop-layer { inset: auto 0 auto 0; top: 100%; height: 0; }
+  .hm-pop,
+  .hm-pop--left,
+  .hm-pop--right { left: 0; right: 0; top: 10px; width: auto; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-pop, .hm-pop__dot { animation: none; }
+  /* The timer still runs; the line shows full instead of filling. */
+  .hm-pop__bar { animation: none; transform: none; opacity: 0.6; }
+}
+
+.hm-orb-caption, .hm-orb-caption__text, .hm-orb-card, .hm-orb-card__title, .hm-orb-card__body, .hm-orb-card__actions, .hm-orb-card__dismiss { /* retired by the orb actions */ }
+
+/* ─── "human authentication" line under the headline ────────────── */
+.hm-hero__auth {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0 0.28em;
+  margin-top: 10px;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 300;
+  font-size: 1.75rem;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--fg-soft);
+}
+@media (min-width: 640px) { .hm-hero__auth { font-size: 2.4rem; margin-top: 8px; } }
+.hm-hero__fp {
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.12em;
+  color: var(--color-m8-green);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(93, 202, 165, 0.55));
+}
+.hm-hero__auth-word { color: var(--fg); font-weight: 400; }
+.hm-hero__auth-rest { color: color-mix(in srgb, var(--fg) 55%, transparent); }
+
+/* ─── Raised M8 monogram inside the hero orb (v14, Edit 7) ─────────
+   Hero orb only (HeroOrb passes .orb--mono and <OrbMonogram/>). The
+   layer sits over the base gradient and under the gloss highlight
+   (.orb::before lifted to z-index 1), clipped to the orb circle, and
+   rides the orb's breathing scale because it is a child of .orb.
+   Colour, shape and breathing of the orb are untouched. */
+.orb--mono::before { z-index: 1; }
+.hm-orb-mono {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 9999px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
+/* The highlight smudge: ~14–55% from the left, ~11–52% from the top. */
+.hm-orb-mono__curve {
+  position: absolute;
+  left: 14%;
+  top: 11%;
+  width: 41%;
+  height: 41%;
+  perspective: 180px;
+}
+.hm-orb-mono__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotateY(-24deg) rotateX(20deg) scale(1.02);
+  -webkit-mask-image: radial-gradient(circle at center, #000 48%, transparent 76%);
+  mask-image: radial-gradient(circle at center, #000 48%, transparent 76%);
+}
+.hm-orb-mono__green { flood-color: var(--color-m8-green); }
+.hm-orb-mono__light { lighting-color: var(--color-m8-mist); }
+.hm-orb-mono__forest { flood-color: var(--color-m8-forest); flood-opacity: 0.75; }
+
+/* v16: the monogram rises with every breath. Its keyframes peak at 50%
+   with the same duration and easing as the orb's own breathing keyframe
+   for each state, and they start and restart together (an animation-name
+   change restarts both), so the M8 is fullest when the orb is biggest.
+   The gloss smudge dips in step so the mark reads. The orb's colour,
+   shape and breathing are untouched; only these two layers' opacity moves. */
+.orb--mono .hm-orb-mono { animation: hm-mono-breathe 4s ease-in-out infinite; will-change: opacity; }
+.orb--mono::before { animation: hm-mono-smudge 4s ease-in-out infinite; }
+.orb--mono.orb--listening .hm-orb-mono { animation: hm-mono-breathe-wide 2.2s ease-in-out infinite; }
+.orb--mono.orb--listening::before { animation: hm-mono-smudge-wide 2.2s ease-in-out infinite; }
+.orb--mono.orb--thinking .hm-orb-mono { animation: hm-mono-breathe-tight 0.9s ease-in-out infinite; }
+.orb--mono.orb--thinking::before { animation: hm-mono-smudge-tight 0.9s ease-in-out infinite; }
+.orb--mono.orb--speaking .hm-orb-mono { animation: hm-mono-breathe-wide 1.4s ease-in-out infinite; }
+.orb--mono.orb--speaking::before { animation: hm-mono-smudge-wide 1.4s ease-in-out infinite; }
+/* The tap pulse (orb-pulse-once peaks at 35% of 700ms), then idle breathing. */
+.orb--mono.orb--pulse .hm-orb-mono { animation: hm-mono-pulse 700ms cubic-bezier(0.22, 1, 0.36, 1) 1, hm-mono-breathe 4s ease-in-out 700ms infinite; }
+.orb--mono.orb--pulse::before { animation: hm-mono-smudge-pulse 700ms cubic-bezier(0.22, 1, 0.36, 1) 1, hm-mono-smudge 4s ease-in-out 700ms infinite; }
+
+@keyframes hm-mono-breathe { 0%, 100% { opacity: 0; } 50% { opacity: 0.62; } }
+@keyframes hm-mono-breathe-wide { 0%, 100% { opacity: 0; } 50% { opacity: 0.62; } }
+@keyframes hm-mono-breathe-tight { 0%, 100% { opacity: 0; } 50% { opacity: 0.62; } }
+@keyframes hm-mono-pulse { 0% { opacity: 0; } 35% { opacity: 0.62; } 100% { opacity: 0; } }
+@keyframes hm-mono-smudge { 0%, 100% { opacity: 0.7; } 50% { opacity: 0.3; } }
+@keyframes hm-mono-smudge-wide { 0%, 100% { opacity: 0.7; } 50% { opacity: 0.3; } }
+@keyframes hm-mono-smudge-tight { 0%, 100% { opacity: 0.7; } 50% { opacity: 0.3; } }
+@keyframes hm-mono-smudge-pulse { 0% { opacity: 0.7; } 35% { opacity: 0.3; } 100% { opacity: 0.7; } }
+
+/* Hovering (or keyboard-focusing) Voice or Q & A holds the M8 up, steady.
+   !important outranks the running animation without stopping it, so the
+   M8 stays in step with the orb's breath when the hold ends. */
+.hm-orb-wrap--mono-hold .orb--mono .hm-orb-mono { opacity: 0.62 !important; }
+.hm-orb-wrap--mono-hold .orb--mono::before { opacity: 0.3 !important; }
+
+/* Reduced motion: no breathing, so no rise; the hover hold still shows it, without motion. */
+@media (prefers-reduced-motion: reduce) {
+  .orb--mono .hm-orb-mono,
+  .orb--mono::before { animation: none !important; }
+}
+
+/* ─── v19: "Less overhead. Lower costs." band under How it works ─── */
+.hm-savings {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+@media (min-width: 768px) { .hm-savings { grid-template-columns: 1fr 1.3fr; gap: 48px; align-items: end; } }
+.hm-savings__h { font-weight: 300; font-size: clamp(1.6rem, 3.2vw, 2.4rem); line-height: 1.1; letter-spacing: -0.02em; color: var(--fg); }
+.hm-savings__body { margin-top: 0; max-width: 36rem; }
+.hm-about__savings { margin-top: 28px; }

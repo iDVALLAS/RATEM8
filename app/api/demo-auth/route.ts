@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CONFIG } from "@/lib/config";
 
 /**
  * POST /api/demo-auth
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
   if (!expectedPassword) {
     console.error("[demo-auth] DEMO_PASSWORD env var not set");
     return NextResponse.json(
-      { ok: false, error: "Demo is temporarily unavailable. Email jason@ratem8.com." },
+      { ok: false, error: `Demo is temporarily unavailable. Email ${CONFIG.demoContactEmail}.` },
       { status: 503 }
     );
   }

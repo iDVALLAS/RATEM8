@@ -1,21 +1,35 @@
+/**
+ * PrincipleCard — one of the eight. Op-ed feel: mono number, serif
+ * title with the accent phrase in italic green, short body.
+ */
 type PrincipleCardProps = {
   number: number;
   title: string;
   body: string;
+  accent?: string;
+  className?: string;
 };
 
-export default function PrincipleCard({
-  number,
-  title,
-  body,
-}: PrincipleCardProps) {
+export function AccentTitle({ title, accent }: { title: string; accent?: string }) {
+  if (!accent || !title.includes(accent)) return <>{title}</>;
+  const [before, after] = title.split(accent);
   return (
-    <article className="group relative p-7 border border-[var(--rule)] rounded-2xl bg-[color-mix(in_srgb,var(--bg)_70%,var(--color-m8-forest))] hover:border-[var(--color-m8-green)] transition-colors">
-      <div className="principle-label">
-        Principle {String(number).padStart(2, "0")}
-      </div>
-      <h3 className="font-display text-2xl mt-4 leading-snug">{title}</h3>
-      <p className="mt-3 text-sm text-[var(--muted)] leading-relaxed">{body}</p>
+    <>
+      {before}
+      <em className="accent-word">{accent}</em>
+      {after}
+    </>
+  );
+}
+
+export default function PrincipleCard({ number, title, body, accent, className = "" }: PrincipleCardProps) {
+  return (
+    <article className={`principle-card ${className}`}>
+      <div className="principle-label">Principle {String(number).padStart(2, "0")}</div>
+      <h3 className="principle-card__title">
+        <AccentTitle title={title} accent={accent} />
+      </h3>
+      {body ? <p className="principle-card__body">{body}</p> : null}
     </article>
   );
 }
