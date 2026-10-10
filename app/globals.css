@@ -2178,3 +2178,25 @@ button.beacon-pill { cursor: pointer; }
   .beacon-sheet__panel { animation-name: beacon-sheet-fade; }
 }
 @keyframes beacon-sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ─── v21: persistent "Example — illustrative pricing, not an offer" ─── */
+.example-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--fg-soft);
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+}
+.example-label::before { content: ""; width: 6px; height: 6px; border-radius: 9999px; background: var(--accent); flex-shrink: 0; }
+/* Each option row repeats it on phones, where rows are read one at a time. */
+.example-label--row { margin-bottom: 6px; }
+@media (min-width: 768px) { .rate-card-row .example-label--row { display: none; } }
+.br-doc .example-label { color: var(--color-m8-charcoal); border-color: var(--color-m8-deep); background: #F1F8F5; }
+.br-doc .example-label::before { background: var(--color-m8-deep); }

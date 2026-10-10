@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import SampleBadge from "@/components/SampleBadge";
+import ExamplePricingLabel from "@/components/ExamplePricingLabel";
 import { briefContent as c, type BriefOption } from "@/lib/content/sample-brief";
 
 /**
@@ -9,7 +9,9 @@ import { briefContent as c, type BriefOption } from "@/lib/content/sample-brief"
  * mobile, a 3-column grid from md up) with a `.swipe-dots` indicator
  * driven by an IntersectionObserver on each card.
  *
- * Every card carries a SampleBadge. Lenders are numbered, never named.
+ * v21: every card carries the persistent ExamplePricingLabel ("Example —
+ * illustrative pricing, not an offer"; attorney-cleared for /sample-brief).
+ * Lenders are numbered, never named.
  */
 export default function OptionsRow({ options }: { options: readonly BriefOption[] }) {
   const rowRef = useRef<HTMLDivElement | null>(null);
@@ -41,11 +43,11 @@ export default function OptionsRow({ options }: { options: readonly BriefOption[
       <div ref={rowRef} className="swipe-row" role="list" aria-label={c.sections.options}>
         {options.map((o) => (
           <article key={o.key} className="br-opt" role="listitem" aria-label={`Option ${o.key}: ${o.label}`}>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="br-opt__key" aria-hidden="true">
                 {o.key}
               </span>
-              <SampleBadge />
+              <ExamplePricingLabel />
             </div>
             <div>
               <p className="br-opt__label">{o.label}</p>

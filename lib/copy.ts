@@ -187,6 +187,13 @@ export const copy = {
     ],
   },
 
+  // v21: the restored scripted demo (/chat, /demo). Its script lives in
+  // lib/demoChat.ts; these are the strings added around it.
+  demoChat: {
+    bookCall: "Book a call with a licensed loan officer",
+    notEnoughLenders: "Fewer than three lenders were eligible for this scenario, so no option set is shown.",
+  },
+
   // v19 (Round 3, Item 3a): why LoanM8 costs less. A cost-structure
   // statement, not a rate claim; rates are never compared here.
   savings: {

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import ChatExperience from "@/components/ChatExperience";
 import ChatExperienceWithToggle from "@/components/ChatExperienceWithToggle";
 import DemoPasswordGate from "@/components/DemoPasswordGate";
 import { CONFIG } from "@/lib/config";
@@ -13,9 +14,10 @@ export const metadata = {
  * /demo — the owner's password-gated tester tool.
  *
  * After auth this renders ChatExperienceWithToggle: a "Scripted demo"
- * tab (the same UI-only <ChatShell /> that /chat renders) and a
- * "Live M8 (preview)" tab (<M8LiveChat />, which talks to the Claude API
- * through /api/m8-chat with the draft system prompt).
+ * tab (the restored Sarah demo, <ChatExperience />, same as /chat) and,
+ * only when M8_LIVE_CHAT is on (v21), a "Live M8 (preview)" tab
+ * (<M8LiveChat />, which talks to the model through /api/m8-chat with
+ * the draft system prompt).
  *
  * The password gate below is unchanged. The live tab is allowed only
  * behind it; the public /chat route never calls a model while
@@ -43,5 +45,5 @@ export default async function DemoPage() {
     return <DemoPasswordGate contactEmail={CONFIG.demoContactEmail} />;
   }
 
-  return <ChatExperienceWithToggle />;
+  return <ChatExperienceWithToggle scripted={<ChatExperience />} liveEnabled={CONFIG.featureFlags.demoLiveChat} />;
 }

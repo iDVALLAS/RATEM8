@@ -1,4 +1,3 @@
-import BookingCTA from "@/components/BookingCTA";
 import CTAButton from "@/components/CTAButton";
 import TrustLine from "@/components/TrustLine";
 import { copy } from "@/lib/copy";
@@ -9,6 +8,7 @@ import { homeContent } from "@/lib/content/home";
  * each row-2 button directly under its parent:
  *
  *   [ I'm shopping a mortgage (primary) ] [ I'm a real estate agent (secondary) ]
+ *     → /chat, the scripted demo (v21)
  *   [ Get a second look (outline, LE)   ] [ I'm a hungry MLO (outline, //)     ]
  *
  * Row 2 is outlined + mono icon: distinct, never louder than primary.
@@ -20,9 +20,10 @@ export default function ActionGrid() {
   return (
     <nav aria-label={homeContent.hero.gridLabel}>
       <div className="hm-grid">
-        <BookingCTA kind="borrower" variant="primary" intake={false}>
+        {/* v21: the scripted demo, not the booking link (the demo has its own "Book a call"). */}
+        <CTAButton href="/chat" variant="primary">
           {copy.hero.borrowerCta}
-        </BookingCTA>
+        </CTAButton>
         <CTAButton href="/agents" variant="secondary">
           {copy.hero.agentCta}
         </CTAButton>

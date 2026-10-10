@@ -116,6 +116,11 @@ function json(status: number, body: Record<string, unknown>): Response {
 // --------- Route handler ---------
 
 export async function POST(req: Request) {
+  // v21: live chat is behind its own flag (M8_LIVE_CHAT), off by default.
+  if (!CONFIG.featureFlags.demoLiveChat) {
+    return json(404, { ok: false, error: "Live M8 is off." });
+  }
+
   // Tester gate first. Same cookie the /demo page validates.
   if (!(await isTesterAuthed())) {
     return json(401, { ok: false, error: "Tester access required." });

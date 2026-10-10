@@ -1,7 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
-import ChatShell from "@/components/chat/ChatShell";
+import { useId, useState, type ReactNode } from "react";
 import M8LiveChat from "@/components/M8LiveChat";
 import { chatContent } from "@/components/chat/chatContent";
 
@@ -9,8 +8,11 @@ import { chatContent } from "@/components/chat/chatContent";
  * ChatExperienceWithToggle — the /demo tester wrapper (password-gated).
  *
  * Two tabs:
- *   "Scripted demo"      → <ChatShell />   the same UI-only shell as /chat
- *   "Live M8 (preview)"  → <M8LiveChat />  talks to /api/m8-chat
+ *   "Scripted demo"      → the restored Sarah demo (<ChatExperience />,
+ *                          passed in by the server page, same as /chat)
+ *   "Live M8 (preview)"  → <M8LiveChat />  talks to /api/m8-chat. v21: only
+ *                          when CONFIG.featureFlags.demoLiveChat
+ *                          (M8_LIVE_CHAT) is on; otherwise no live tab.
  *
  * The live tab is allowed HERE ONLY because app/demo/page.tsx renders
  * this after the tester password check. The public /chat route renders
@@ -20,12 +22,12 @@ import { chatContent } from "@/components/chat/chatContent";
 
 type Mode = "scripted" | "live";
 
-export default function ChatExperienceWithToggle() {
+export default function ChatExperienceWithToggle({ scripted, liveEnabled }: { scripted: ReactNode; liveEnabled: boolean }) {
   const [mode, setMode] = useState<Mode>("scripted");
   const base = useId();
   const tabs: { id: Mode; label: string }[] = [
     { id: "scripted", label: chatContent.demo.tabs.scripted },
-    { id: "live", label: chatContent.demo.tabs.live },
+    ...(liveEnabled ? [{ id: "live" as Mode, label: chatContent.demo.tabs.live }] : []),
   ];
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -79,7 +81,7 @@ export default function ChatExperienceWithToggle() {
         hidden={mode !== "scripted"}
         className="flex-1"
       >
-        {mode === "scripted" ? <ChatShell /> : null}
+        {mode === "scripted" ? scripted : null}
       </div>
 
       <div
@@ -90,7 +92,7 @@ export default function ChatExperienceWithToggle() {
         className="flex-1"
         style={{ height: "calc(100svh - 57px)" }}
       >
-        {mode === "live" ? <M8LiveChat /> : null}
+        {liveEnabled && mode === "live" ? <M8LiveChat /> : null}
       </div>
     </div>
   );

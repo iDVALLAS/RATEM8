@@ -99,6 +99,119 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v21 — Restore the original /chat scripted demo; homepage → /chat; example-pricing label; live chat flag (2026-10-10)
+
+**Owner request:** fix a regression against the original build. Restore the
+last working `/chat` scripted demo (Sarah, Bellevue refi, $640K, 98004)
+exactly. Point "I'm shopping a mortgage" at it. The demo and
+`/sample-brief` may show illustrative pricing (attorney-cleared), with a
+persistent label on every rate card. Overrides `docs/SITE_BRIEF.md` §5
+rule 1 for those two surfaces only.
+
+### What the one-shot dropped (diff of `origin/main` → HEAD, deleted files)
+| File | Status now |
+| --- | --- |
+| `components/ChatExperience.tsx` (the Sarah demo) | **Restored** |
+| `lib/demoChat.ts` (its script and data) | **Restored** |
+| `components/ChatInput.tsx` (input bar, M8 orb, question capture) | **Restored** |
+| `app/api/chat-question/route.ts` | **Restored, with privacy fixes** (below) |
+| `components/VoiceOrb.tsx`, `lib/useGreeting.ts` (v5 mic greeting) | Not restored: replaced by `HeroOrb` (v12–v16), and voice stays off (`featureFlags.voice`) |
+| `public/fonts/Exo-*.otf` | Not restored: the owner removed Exo (2026-09-30) |
+| `public/robots.txt` | Not restored: replaced by `app/robots.ts` |
+
+**Checked and intact (no restore needed):**
+- **Stealth gate:** `middleware.ts` is v9.1 plus the later public routes
+  and routing.
+- **Password-gated `/demo`:** the `app/demo/page.tsx` hash check,
+  `DemoPasswordGate`, and `/api/demo-auth`.
+- **Three themes:** Night/Dim/Paper in `lib/theme.ts` and `ThemeToggle`,
+  with the no-flash boot script in `app/layout.tsx`.
+- **v10 streaming:** `M8LiveChat` and `/api/m8-chat`.
+- The demo's CSS (`chat-*`, `rate-card*`, `msg-*`, `market-card`,
+  `followup-btn`, `scenario-row`, `lo-*`, `m8-input-orb`) survived; a
+  rule-by-rule diff against main shows only the font change.
+
+### Restored demo, verbatim, with these deliberate changes
+- **Names and NMLS from config.** The demo uses the MLO that
+  `CONFIG.routing.stateAssignments.WA` points to. "Jason" in the script
+  ("lenders {first} closes with", "loop in {first}", the chip, "Sent to
+  {first}") is filled from config, so `check:identity` passes.
+- **Pronoun from config.** The original copy's "He has… / He'll…" is in
+  `CONFIG.demo.loPronoun` for that MLO. Any other MLO gets "they".
+- **"49 STATES" is now the real count** (`STATES.length`, 5). The
+  original was flagged in its own code as pending review; a named MLO's
+  card must not overstate licensing.
+- **Bio.** "17 years originating · Avg close: 18 days · Available now · in
+  office" is carried over into `CONFIG.demo.loBio["mlo-001"]`, marked
+  VERIFY. These are claims.
+- **Lender counts.** "14-lender wholesale panel · Every file" now reads
+  "Wholesale panel, up to 14 lenders · Every file"
+  (`CONFIG.lenderCountMax`).
+  - "11 more lenders shopped" is computed: `lendersShopped` (14) minus
+    the 3 options shown. It renders only when that count is an integer
+    ≤ `lenderCountMax`.
+  - The option set renders only with ≥ `lenderCountMin` (3) distinct
+    lenders.
+- **`ExamplePricingLabel`** ("Example — illustrative pricing, not an
+  offer", `EXAMPLE_PRICING_LABEL` in config) on:
+  - the options card and each option row (rows repeat it on phones)
+  - the hold-period card
+  - the "Live Market" and "Your best quote" sidebar cards
+  - each `/sample-brief` option card, where it replaces the generic
+    SampleBadge
+- **Kept exactly:**
+  - the footer line "Indicative pricing · Subject to verification · Soft
+    pull only"
+  - the disclosure "Sample conversation. Live pricing not yet active."
+- **Book a call.** "Book a call with a licensed loan officer"
+  (`BookingCTA`, secondary) sits under the follow-up chips.
+- **`/api/chat-question` fixes:**
+  - The v7 route logged the question, email and IP when Resend wasn't
+    configured, and still told the borrower "Sent". It now logs nothing
+    the borrower typed and returns 503, so the UI shows the error, not
+    "Sent".
+  - The name-bearing env var is replaced by `MLO_NOTIFICATION_EMAIL`, and
+    the `@ratem8.com` fallback sender is gone (`LOANM8_FROM_EMAIL`
+    required).
+  - Questions are screened with the prep flow's `containsSensitive`.
+
+### Routing
+- `/chat` renders the restored demo; `/chat?prep=1` is still the v18 prep
+  flow, behind its AI disclosure gate.
+- `/demo` (password) shows the restored demo in its "Scripted demo" tab.
+- Homepage "I'm shopping a mortgage" now goes to `/chat` (`CTAButton`),
+  not Calendly.
+
+### Live chat behind a flag
+- `CONFIG.featureFlags.demoLiveChat` is on only when `M8_LIVE_CHAT` is
+  exactly `"true"`.
+- Off → `/api/m8-chat` returns 404 before anything else, and `/demo`
+  shows no live tab.
+- `ANTHROPIC_API_KEY` still stays unset until counsel signs off.
+
+### Not changed, needs an owner decision
+- "No rates displayed anywhere else": `/rates` still shows the v13
+  example pricing (its own switch, `PRICING_DEMO_EXAMPLES`, default on)
+  and the off-by-default `RateVsAverage`. Set `PRICING_DEMO_EXAMPLES=false`
+  if `/rates` should go dark too. `CONFIG.liveRatesEnabled` stays
+  `false`. Calculators take only user-entered rates (unchanged).
+- The demo's original "PRICING PULLED LIVE", "Live · Pricing Sync 14s
+  ago", "Synced 14s ago" and "Live Market" wording was restored
+  verbatim, as asked. It sits next to the new "illustrative" label;
+  counsel should confirm the pairing.
+
+### Verified
+- `npm run verify` passes: 110 tests, `check:copy`, `check:identity`,
+  `check:bundle` (no lender names in browser JS; the demo is server-
+  rendered), build.
+- `/chat` at 1440 and 390: 3 option rows, the footer line, "11 more
+  lenders shopped", the M8 Code line "up to 14 lenders", the Book a call
+  CTA, no page errors, no horizontal overflow. Labels visible: 4 on
+  desktop (rows repeat only on phones), 5 on phones (the sidebars are
+  hidden there).
+- The homepage shopping button links to `/chat`. `/sample-brief` has 3
+  labelled cards.
+
 ## v20 — Mobile menu opened to 0px tall on iPhone (2026-10-02)
 
 **Owner report:** the ☰ menu on mobile "doesn't do anything".

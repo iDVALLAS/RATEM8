@@ -222,10 +222,32 @@ export const CONFIG = {
   nmlsConsumerAccessHome: "https://www.nmlsconsumeraccess.org/",
 
   /**
-   * Show "N wholesale lenders" ONLY when this is a verified, current number.
-   * null = never render a lender count anywhere.
+   * v21: the restored v7 scripted demo (/chat, /demo; lib/demoChat.ts).
+   * The loan officer card's bio line is carried over verbatim from that
+   * demo, keyed by MLO id so it only renders for the MLO it describes.
+   * carried over — VERIFY: "17 years" and "Avg close: 18 days" are claims
+   * that must be accurate before the stealth gate lifts.
    */
-  lenderCountDisplay: null as number | null,
+  demo: {
+    loBio: {
+      "mlo-001": "17 years originating · Avg close: 18 days · Available now · in office",
+    } as Record<string, string>,
+    /** Pronoun the original demo copy used for this MLO (subject, verb "has", "will"). Unlisted MLOs get "they". */
+    loPronoun: {
+      "mlo-001": { subject: "He", has: "has", will: "He'll" },
+    } as Record<string, { subject: string; has: string; will: string }>,
+  },
+
+  /**
+   * Lender counts (v21, owner 2026-10-10). Copy never states a fixed panel
+   * size: it says "Up to {lenderCountMax} lenders". No option set renders
+   * with fewer than `lenderCountMin` lenders, and "N more lenders shopped"
+   * renders only when a scenario carries its own real shopped count.
+   * NOTE: lib/pricing/lenders.ts lists the operator's lenders; keep
+   * lenderCountMax no higher than the panel actually on file.
+   */
+  lenderCountMax: 14,
+  lenderCountMin: 3,
 
   /**
    * Gates every rate-display UI and every "live pricing" mention beyond
@@ -312,6 +334,13 @@ export const CONFIG = {
     voice: false,
     /** /api/agent/* endpoints. */
     agentApi: true,
+    /**
+     * v21: the "Live M8 (preview)" tab on password-gated /demo and the
+     * /api/m8-chat route behind it. OFF unless M8_LIVE_CHAT is exactly
+     * "true" (and ANTHROPIC_API_KEY is set, which stays unset until counsel
+     * signs off the draft prompt).
+     */
+    demoLiveChat: env("M8_LIVE_CHAT") === "true",
   },
 
   /**
@@ -498,6 +527,11 @@ export const CALC_DISCLAIMER =
 /** Sample-data badge text. */
 export const SAMPLE_LABEL = "SAMPLE — ILLUSTRATIVE ONLY";
 export const SAMPLE_SENTENCE = "Sample — illustrative only, not an offer.";
+/**
+ * v21 (owner 2026-10-10, attorney-cleared for the demo and /sample-brief):
+ * the persistent label on every rate card that shows illustrative pricing.
+ */
+export const EXAMPLE_PRICING_LABEL = "Example — illustrative pricing, not an offer";
 
 /** AI disclosure — said before any interaction on every M8 surface. */
 export const AI_DISCLOSURE = "I'm an AI, not a person.";
