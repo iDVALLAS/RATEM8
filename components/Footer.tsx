@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StateChip from "@/components/StateChip";
 import Orb from "./Orb";
 import { copy } from "@/lib/copy";
 import { CONFIG, STATES, stateDisplay, NOT_A_COMMITMENT, isPlaceholder } from "@/lib/config";
@@ -70,9 +71,7 @@ export default function Footer() {
           <ul className="flex flex-wrap gap-2">
             {STATES.map((s) => (
               <li key={s.slug}>
-                <Link href={`/states/${s.slug}`} className="state-chip">
-                  {stateDisplay(s)}
-                </Link>
+                <StateChip state={s}>{stateDisplay(s)}</StateChip>
               </li>
             ))}
           </ul>

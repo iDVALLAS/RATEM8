@@ -41,8 +41,8 @@ export default function OptionsRow({ options }: { options: readonly BriefOption[
   return (
     <div>
       <div ref={rowRef} className="swipe-row" role="list" aria-label={c.sections.options}>
-        {options.map((o) => (
-          <article key={o.key} className="br-opt" role="listitem" aria-label={`Option ${o.key}: ${o.label}`}>
+        {options.map((o, i) => (
+          <article key={o.key} className="br-opt lender-tinted" style={{ "--lender-tint": `var(--data-${i + 1})` } as React.CSSProperties} role="listitem" aria-label={`Option ${o.key}: ${o.label}`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="br-opt__key" aria-hidden="true">
                 {o.key}

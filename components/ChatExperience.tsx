@@ -5,6 +5,8 @@ import { copy } from "@/lib/copy";
 import ChatInput from "@/components/ChatInput";
 import BookingCTA from "@/components/BookingCTA";
 import ExamplePricingLabel from "@/components/ExamplePricingLabel";
+import LenderMark from "@/components/LenderMark";
+import { lenderBrand, lenderTint } from "@/lib/lenders";
 
 /**
  * ChatExperience — the M8 chat preview, extracted from v7's /chat
@@ -185,20 +187,29 @@ export default function ChatExperience() {
                           Synced 14s ago
                         </div>
                       </div>
-                      {c.rateOptions.map((r) => (
+                      {c.rateOptions.map((r) => {
+                        const brand = lenderBrand(r.lenderKey);
+                        // v23: tinted edge + wash from the lender's colour; the
+                        // lowest-total-cost option (the original "selected" row) glows.
+                        const winner = r.designation === "LOWEST TOTAL COST";
+                        return (
                         <div
                           key={r.rank}
-                          className={`rate-card-row ${
+                          className={`rate-card-row lender-tinted ${
                             r.selected ? "rate-card-row--selected" : ""
-                          }`}
+                          } ${winner ? "is-winner" : ""}`}
+                          style={brand ? ({ "--lender-tint": lenderTint(brand) } as React.CSSProperties) : undefined}
                         >
                           <div className="font-mono text-xs text-[var(--muted)]">
                             {r.rank}
                           </div>
                           <div>
                             <ExamplePricingLabel className="example-label--row" />
-                            <div className="font-display font-semibold text-base text-[var(--fg)]">
-                              {r.lender}
+                            <div className="flex items-center gap-2.5">
+                              {brand ? <LenderMark lender={brand} size="sm" /> : null}
+                              <div className="font-display font-semibold text-base text-[var(--fg)]">
+                                {r.lender}
+                              </div>
                             </div>
                             <div className="font-mono text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] mt-1">
                               {r.designation}
@@ -222,7 +233,8 @@ export default function ChatExperience() {
                             DETAIL
                           </button>
                         </div>
-                      ))}
+                        );
+                      })}
                       <div className="mt-4 pt-3 border-t border-[var(--rule)] grid sm:grid-cols-2 gap-2 font-mono text-[10px] tracking-[0.05em] text-[var(--muted)]">
                         <span>
                           Indicative pricing · Subject to verification · Soft
@@ -258,7 +270,8 @@ export default function ChatExperience() {
                       <div className="grid grid-cols-3 gap-4">
                         {c.holdAnalysis.map((h) => (
                           <div key={h.label}>
-                            <div className="font-mono text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] mb-2">
+                            <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] mb-2">
+                              <LenderMark lender={h.lenderKey} size="sm" />
                               {h.label}
                             </div>
                             <div className="rate-money">{h.amount}</div>

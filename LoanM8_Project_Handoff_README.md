@@ -99,6 +99,63 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v23 — Lender marks (approval-gated logos) and the data color system (2026-10-10)
+
+### LenderMark (item 7)
+- **`lib/lenders.ts`** is the brand registry: 13 lenders, the owner's 12
+  plus Rocket Pro TPO from the original demo.
+  - Fields: `slug`, `name`, `monogram`, `logoApproved` (**false for
+    all**), `brandColor` (**null for all**, until copied from each
+    lender's brand guide), and a fallback `tint` (data hue).
+- **`components/LenderMark.tsx`** is a server component, so names never
+  ship in browser JS.
+  - Approved → `public/lenders/{slug}.svg` in a white chip (paper-coloured
+    in the Paper theme).
+  - Otherwise → a monogram tile tinted with the lender's colour, or our
+    data hue until that's confirmed.
+- A test fails the build if an approved lender has no logo file.
+- No logo was downloaded, scraped or recreated.
+- **Used in** the demo's option rows and hold-period labels, where lenders
+  were already named. `/rates` stays anonymized.
+- `ATTORNEY_REVIEW_LIST.md` has a new "Brand/logo use" item.
+
+### Data colors (item 8)
+- **Six hues** in `@theme`: sky, iris, orchid, coral, amber, rose.
+  - Each has an "ink" variant for Paper.
+  - The semantic tokens are `--data-1…6` (fills) and `--data-N-text`
+    (AA text per surface).
+- **Contrast:** light hues ≥5.78:1 on Night, Dim, Forest and the panel;
+  inks ≥5.15:1 on Paper, Stone and white.
+- **Never used** on the orb, the wordmark or brand surfaces.
+- **Lender cards:** a 3px tinted left edge plus a soft wash
+  (`.lender-tinted`).
+  - The demo tints by lender; `/rates` and `/sample-brief` by position
+    (1–3), because those lenders are anonymized.
+  - The demo's lowest-total-cost row gets a brand-green "winner" glow
+    (`.is-winner`). `/rates` gets none (anti-steering: equal options).
+- **State chips** (`components/StateChip.tsx`): one hue per state
+  (`lib/state-colors.ts`, all five including OR) plus the original
+  `StateOutline` silhouette. No seals or flags. Used in the homepage
+  strip, the footer and `/join`.
+- **Mesh backdrops** behind the hero and every `.scene`: two still
+  radial-gradient layers cross-fade over 48s. Opacity only, inside each
+  section's box, ≤10% alpha. Reduced motion: still.
+
+### Fixes found on the way
+- At 1024–1280px the demo's third DETAIL button overflowed the card. The
+  grid cells may shrink now.
+- The restored demo's mono 600/700 weights were synthesized (Mono ships
+  400/500) and now use 500. The small monogram tile went from 9px to 10px
+  text. `qa/fonts` is back to 0 findings.
+
+### Verified
+- `npm run verify` passes: 119 tests (5 new: lender brands, LenderMark,
+  state hues).
+- `qa/overflow`, `qa/footer` and `qa/about` pass. The footer chips are
+  not covered.
+- Checked visually at 1280 in Night and Paper: demo card, `/rates`
+  cards, state strip, footer, hero.
+
 ## v22 — Lender counts from config: "up to 14", never fewer than 3 (2026-10-10)
 
 - **Config:** `CONFIG.lenderCountMax: 14` and `CONFIG.lenderCountMin: 3`

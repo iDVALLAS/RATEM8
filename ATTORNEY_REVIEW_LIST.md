@@ -187,3 +187,41 @@ conflict is recorded here.
     - the cost-side method if PMMS does not publish fees and points
 - **M8 prompt rule 1** (DRAFT) now bars comparing any rate with a survey,
   index or benchmark.
+
+## v21–v23 additions (2026-10-10)
+
+- **Brand/logo use (third-party trademarks, implied endorsement).**
+  - `components/LenderMark.tsx` can show a lender's full-colour logo
+    (`public/lenders/{slug}.svg`), but only for a lender marked
+    `logoApproved: true` in `lib/lenders.ts`.
+  - Every lender ships `false`, so every lender renders as a monogram
+    tile of its initials. The owner flips each one after confirming that
+    lender's broker brand guidelines permit consumer-facing use.
+  - Nothing was downloaded, scraped or redrawn, and no lender brand colour
+    was guessed (`brandColor: null`, so the tiles use LoanM8's own palette).
+  - Confirm:
+    - whether a lender logo next to its rate implies that lender endorses
+      LoanM8 or the borrower's choice
+    - what disclaimer, if any, should accompany logos
+    - that monogram initials of lender names are acceptable
+  - Logos would appear only where the original demo already named lenders
+    (UWM, Rocket Pro TPO, Kind Lending on `/chat` and `/demo`).
+    `/rates` stays anonymized.
+- **Restored scripted demo (`/chat`, `/demo`), owner-attorney cleared for
+  illustrative pricing.** Every rate card carries "Example — illustrative
+  pricing, not an offer". Still confirm:
+  - The original wording "PRICING PULLED LIVE", "Live · Pricing Sync 14s
+    ago", "Synced 14s ago" and "Live Market" was restored verbatim. It
+    now sits next to the "illustrative" label.
+  - The loan officer card's carried-over claims "17 years originating ·
+    Avg close: 18 days" (`CONFIG.demo.loBio`) must be accurate.
+  - The original "49 STATES" badge now shows the real licensed-state
+    count (5).
+  - The lowest-total-cost option gets a green "winner" glow, an emphasis
+    the original demo also had (a highlighted row). `/rates` gives no
+    option any emphasis.
+  - The demo's question box sends the borrower's question (and optional
+    email) to the loan officer by email (`/api/chat-question`). Nothing is
+    logged or stored on our side. Confirm the privacy notice covers it.
+- **Lender counts.** Copy says "up to 14 lenders" (`CONFIG.lenderCountMax`).
+  The operator's lender list on file has 12.

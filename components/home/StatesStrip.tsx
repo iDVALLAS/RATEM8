@@ -1,4 +1,4 @@
-import Link from "next/link";
+import StateChip from "@/components/StateChip";
 import { copy } from "@/lib/copy";
 import { STATES, stateChip, stateDisplay } from "@/lib/config";
 import { homeContent } from "@/lib/content/home";
@@ -22,9 +22,9 @@ export default function StatesStrip() {
           <ul className="hm-states__chips" aria-label={homeContent.states.ariaLabel}>
             {STATES.map((s) => (
               <li key={s.slug}>
-                <Link href={`/states/${s.slug}`} className="state-chip" aria-label={`${stateChip(s)}: ${stateDisplay(s)} ${copy.states.ctaSuffix}`}>
+                <StateChip state={s} ariaLabel={`${stateChip(s)}: ${stateDisplay(s)} ${copy.states.ctaSuffix}`}>
                   {stateChip(s)}
-                </Link>
+                </StateChip>
               </li>
             ))}
           </ul>

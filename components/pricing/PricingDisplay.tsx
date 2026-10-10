@@ -38,12 +38,15 @@ function pointsText(q: LenderQuote): string {
   return c.fields.noPoints;
 }
 
-function Card({ title, pick, quotes }: { title: string; pick: SelectionPick | null; quotes: LenderQuote[] }) {
+function Card({ title, pick, quotes, hue }: { title: string; pick: SelectionPick | null; quotes: LenderQuote[]; hue: 1 | 2 | 3 }) {
   if (!pick) return null;
   const q = quotes.find((x) => x.lender === pick.lender && x.eligible);
   if (!q) return null;
+  // v23: tinted edge + wash. Lenders are anonymized here, so the tint is
+  // the card's position (data hue 1–3), never a lender's brand colour, and
+  // no card gets a "winner" treatment (anti-steering: three equal options).
   return (
-    <article className="px-card" aria-label={`${title}: ${q.lender}`}>
+    <article className="px-card lender-tinted" style={{ "--lender-tint": `var(--data-${hue})` } as React.CSSProperties} aria-label={`${title}: ${q.lender}`}>
       <p className="px-card__kicker">{title}</p>
       <p className="px-card__lender">{q.lender} · {q.productLabel}</p>
       <p className="px-card__rate">
@@ -87,9 +90,9 @@ export default function PricingDisplay({ display }: { display: DisplayRun }) {
       {/* v22: never an option set with fewer than CONFIG.lenderCountMin lenders. */}
       {run.selection.meetsCreditorCount ? (
         <div className="px-cards">
-          <Card title={c.cards.lowestRate} pick={run.selection.lowestRate} quotes={run.quotes} />
-          <Card title={c.cards.lowestNoRisk} pick={run.selection.lowestRateWithoutRiskyFeatures} quotes={run.quotes} />
-          <Card title={c.cards.lowestCost} pick={run.selection.lowestPointsAndOrigination} quotes={run.quotes} />
+          <Card title={c.cards.lowestRate} pick={run.selection.lowestRate} quotes={run.quotes} hue={1} />
+          <Card title={c.cards.lowestNoRisk} pick={run.selection.lowestRateWithoutRiskyFeatures} quotes={run.quotes} hue={2} />
+          <Card title={c.cards.lowestCost} pick={run.selection.lowestPointsAndOrigination} quotes={run.quotes} hue={3} />
         </div>
       ) : null}
       <p className="px-fine">

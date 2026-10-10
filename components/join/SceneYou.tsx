@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import Scene from "@/components/motion/Scene";
 import SlideHeadline, { splitLines } from "@/components/motion/SlideHeadline";
 import Wordmark from "@/components/Wordmark";
 import BookingCTA from "@/components/BookingCTA";
 import { copy } from "@/lib/copy";
 import { STATES, stateChip } from "@/lib/config";
+import StateChip from "@/components/StateChip";
 import { JOIN_TEXT_EQUIVALENTS } from "@/lib/content/join";
 import JoinPath, { type JoinPathProps } from "./JoinPath";
 import { useSceneRun } from "./useSceneRun";
@@ -40,9 +40,9 @@ function YouBody({ step, onStart, path }: { step: number; onStart: () => void; p
           </div>
           <div className={`join-chip-strip step-in ${step >= 3 ? "is-on" : ""}`}>
             {STATES.map((s) => (
-              <Link key={s.slug} href={`/states/${s.slug}`} className="state-chip">
+              <StateChip key={s.slug} state={s}>
                 {stateChip(s)}
-              </Link>
+              </StateChip>
             ))}
           </div>
         </div>
