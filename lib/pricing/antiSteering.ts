@@ -14,6 +14,7 @@
  * so they cannot influence the result (see antiSteering.test.ts).
  * Ties break on fixed, documented keys so the result is reproducible.
  */
+import { CONFIG } from "@/lib/config";
 import type { AntiSteeringSelection, LenderQuote, SelectionPick } from "./types";
 
 function byRateThenCost(a: LenderQuote, b: LenderQuote): number {
@@ -64,6 +65,7 @@ export function selectAntiSteering(quotes: readonly LenderQuote[]): AntiSteering
     lowestRateWithoutRiskyFeatures: pickB,
     lowestPointsAndOrigination: pickC,
     eligibleCreditors: new Set(eligible.map((q) => q.lender)).size,
-    meetsCreditorCount: new Set(eligible.map((q) => q.lender)).size >= 3,
+    // v22: the minimum comes from config (CONFIG.lenderCountMin, 3).
+    meetsCreditorCount: new Set(eligible.map((q) => q.lender)).size >= CONFIG.lenderCountMin,
   };
 }

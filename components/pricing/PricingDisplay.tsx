@@ -84,11 +84,14 @@ export default function PricingDisplay({ display }: { display: DisplayRun }) {
         </p>
       </div>
 
-      <div className="px-cards">
-        <Card title={c.cards.lowestRate} pick={run.selection.lowestRate} quotes={run.quotes} />
-        <Card title={c.cards.lowestNoRisk} pick={run.selection.lowestRateWithoutRiskyFeatures} quotes={run.quotes} />
-        <Card title={c.cards.lowestCost} pick={run.selection.lowestPointsAndOrigination} quotes={run.quotes} />
-      </div>
+      {/* v22: never an option set with fewer than CONFIG.lenderCountMin lenders. */}
+      {run.selection.meetsCreditorCount ? (
+        <div className="px-cards">
+          <Card title={c.cards.lowestRate} pick={run.selection.lowestRate} quotes={run.quotes} />
+          <Card title={c.cards.lowestNoRisk} pick={run.selection.lowestRateWithoutRiskyFeatures} quotes={run.quotes} />
+          <Card title={c.cards.lowestCost} pick={run.selection.lowestPointsAndOrigination} quotes={run.quotes} />
+        </div>
+      ) : null}
       <p className="px-fine">
         {run.selection.meetsCreditorCount ? c.creditorCount.replace("{n}", String(run.selection.eligibleCreditors)) : c.fewerThanThree} {c.anonymized}
       </p>

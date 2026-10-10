@@ -833,7 +833,8 @@ export const copy = {
     assumptionsHeading: "What these numbers assume",
     anonymized: "Lenders are shown by letter, and the letters change with every snapshot.",
     creditorCount: "{n} eligible lenders compared.",
-    fewerThanThree: "Fewer than three lenders were eligible for this scenario, so this is not a full three-lender comparison.",
+    // v22: below CONFIG.lenderCountMin the three option cards are not shown at all.
+    fewerThanThree: "Fewer than three lenders were eligible for this scenario, so no option set is shown. Every result is listed below.",
     unavailable: "Pricing isn't available for this scenario right now.",
     lockNote: "Lock periods are as shown for each lender. Payments are principal and interest only.",
     exampleSource: "Fictional lenders and figures for illustration. Not an offer, a quote, or a commitment to lend.",

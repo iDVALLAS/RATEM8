@@ -99,6 +99,33 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v22 — Lender counts from config: "up to 14", never fewer than 3 (2026-10-10)
+
+- **Config:** `CONFIG.lenderCountMax: 14` and `CONFIG.lenderCountMin: 3`
+  replace `lenderCountDisplay` (which was null and unused).
+- **"14-lender" claims:**
+  - The only one in the repo was the restored demo's M8 Code line. It
+    now says "up to 14 lenders" (v21).
+  - A test fails the build if any `N-lender` phrase returns to the demo
+    data.
+- **Never fewer than 3:**
+  - `antiSteering.ts` uses `lenderCountMin` for `meetsCreditorCount`.
+  - `PricingDisplay` (`/rates`) no longer renders the three option cards
+    below the minimum. It shows "Fewer than three lenders were eligible…
+    so no option set is shown. Every result is listed below." The full
+    results table stays.
+  - The demo's option set needs ≥3 distinct lenders.
+- **"N more lenders shopped":** renders only from a scenario's own
+  `lendersShopped` count (demo: 14 → "11 more").
+- **Note for the owner:**
+  - `lib/pricing/lenders.ts` lists **12** lenders. "Up to 14" is wider
+    than the panel on file. Add the two lenders or lower
+    `lenderCountMax` to 12.
+  - Principle 3, "Every lender shopped on every file.", is locked
+    verbatim and was not changed.
+- **Verified:** `npm run verify` passes (114 tests, 4 new in
+  `lib/lender-count.test.ts`).
+
 ## v21 — Restore the original /chat scripted demo; homepage → /chat; example-pricing label; live chat flag (2026-10-10)
 
 **Owner request:** fix a regression against the original build. Restore the
