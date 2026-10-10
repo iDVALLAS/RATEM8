@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { LAUNCH_STATES_LONG } from "@/lib/states";
+import ArrowText from "@/components/ui/ArrowText";
 
 /**
  * ComingSoonHomePage — the public-facing (unauthenticated) homepage.
@@ -30,7 +31,7 @@ export default function ComingSoonHomePage() {
               className="font-mono text-[10px] tracking-[0.18em] uppercase transition-colors"
               style={{ color: "var(--color-m8-green)" }}
             >
-              Preview the demo →
+              <ArrowText text="Preview the demo →" />
             </Link>
           </div>
         </header>
@@ -73,7 +74,7 @@ export default function ComingSoonHomePage() {
               }}
             >
               Preview the M8 demo
-              <span>→</span>
+              <span aria-hidden="true" className="cta-arrow">→</span>
             </Link>
             <p
               className="font-mono text-[10px] tracking-[0.15em] uppercase"

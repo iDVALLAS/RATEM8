@@ -89,7 +89,7 @@ export default function PricingDisplay({ display }: { display: DisplayRun }) {
 
       {/* v22: never an option set with fewer than CONFIG.lenderCountMin lenders. */}
       {run.selection.meetsCreditorCount ? (
-        <div className="px-cards">
+        <div className="px-cards" data-reveal="grid">
           <Card title={c.cards.lowestRate} pick={run.selection.lowestRate} quotes={run.quotes} hue={1} />
           <Card title={c.cards.lowestNoRisk} pick={run.selection.lowestRateWithoutRiskyFeatures} quotes={run.quotes} hue={2} />
           <Card title={c.cards.lowestCost} pick={run.selection.lowestPointsAndOrigination} quotes={run.quotes} hue={3} />

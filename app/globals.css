@@ -2350,3 +2350,219 @@ button.beacon-pill { cursor: pointer; }
 /* v23: JetBrains Mono ships 400/500 only. The restored demo asked for 600/700
    in three places, which the browser faked (synthesized bold). Use 500. */
 .chat-page .font-mono.font-bold, .chat-page .msg-avatar, .chat-page .lo-btn-primary { font-weight: 500; }
+
+/* ═══ v24 DESIGN UPGRADES ═══════════════════════════════════════════════ */
+
+/* Spring easing (a damped spring sampled into linear()), with a fallback. */
+:root { --ease-spring: cubic-bezier(.2, .9, .25, 1.15); }
+@supports (transition-timing-function: linear(0, 1)) {
+  :root { --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.077 22.5%, 1.121 26.4%, 1.129 29.1%, 1.121 33.5%, 1.045 46.1%, 1.012 56.2%, 0.998 64.9%, 1); }
+}
+
+/* ─── Depth: layered surfaces, soft inner highlight, hairline borders ─── */
+:root, :root[data-theme="night"], :root[data-theme="dim"], .scene--night, .scene--forest {
+  --surface-highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --surface-shadow: 0 1px 2px rgb(0 0 0 / 0.28), 0 14px 34px -20px rgb(0 0 0 / 0.65);
+}
+:root[data-theme="paper"], .scene--paper {
+  --surface-highlight: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --surface-shadow: 0 1px 2px rgb(26 26 25 / 0.06), 0 12px 30px -18px rgb(26 26 25 / 0.22);
+}
+.card, .px-card, .rate-card, .market-card, .lo-card, .skeleton-card, .empty-state, .calc-index-card {
+  border-width: 1px;
+  box-shadow: var(--surface-highlight), var(--surface-shadow);
+}
+/* Tinted cards keep their edge + wash and add the depth underneath. */
+.px-card.lender-tinted { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--lender-tint) 80%, transparent), var(--surface-highlight), var(--surface-shadow); }
+
+/* Restrained glass on overlays (never on sheets: motion rule). The sticky
+   nav already blurs; its mobile menu now sits outside it (v20). */
+.beacon-sheet__backdrop, .detail-sheet__backdrop {
+  background: rgb(0 0 0 / 0.42);
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+}
+
+/* ─── Type: tighter display leading, tabular figures ─── */
+.hm-h2, .ag-section-title, .stage-headline { line-height: 1.0; }
+.tagline { line-height: 0.98; }
+.num, .rate-num, .rate-num-secondary, .rate-money, .market-card-rate, .scenario-value,
+.px-card__rate, .px-dl dd, .px-table td, .br-opt dd, .detail-dl dd, .calc-result, .calc-chart__axis,
+.rate-card-row, .hold-amount { font-variant-numeric: tabular-nums; }
+/* ResultRow values (calculators) are the last span in the row. */
+.font-display.text-xl, .font-display.text-3xl { font-variant-numeric: tabular-nums; }
+
+/* ─── Micro-interactions ─── */
+/* Magnetic primary buttons (offset set by <Interactions />) + press state. */
+.cta--primary { transform: translate(var(--mx, 0), var(--my, 0)); transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, transform 220ms var(--ease-spring); }
+.cta:active, .cta--primary:active { transform: translate(var(--mx, 0), var(--my, 0)) scale(0.98); }
+.lo-btn-primary:active, .lo-btn-secondary:active, .followup-btn:active, .beacon-btn:active, .m8chat-btn:active { transform: scale(0.97); }
+/* Every "→" call to action: the arrow slides on hover/focus, nudges once. */
+.cta-arrow { display: inline-block; transition: transform 200ms var(--ease-spring); }
+a:hover .cta-arrow, button:hover .cta-arrow, a:focus-visible .cta-arrow, button:focus-visible .cta-arrow,
+a:hover .cta__arrow, button:hover .cta__arrow, a:focus-visible .cta__arrow { transform: translateX(4px); }
+.cta-arrow--lead { margin-right: 2px; }
+a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(3px); }
+
+/* Reveal (cards/grids that start below the fold): spring entrance, stagger. */
+.reveal-pending:not([data-reveal="grid"]), .reveal-pending[data-reveal="grid"] > * { opacity: 0; transform: translateY(16px) scale(0.985); }
+.reveal-in:not([data-reveal="grid"]), .reveal-in[data-reveal="grid"] > * {
+  opacity: 1; transform: none;
+  transition: opacity 420ms ease-out, transform 700ms var(--ease-spring);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* Draw-in: chart lines (pathLength=1) and bars. */
+[data-draw="pending"] .calc-chart__line--0 { stroke-dasharray: 1; stroke-dashoffset: 1; }
+[data-draw="in"] .calc-chart__line--0 { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1100ms cubic-bezier(.3, .7, .2, 1); }
+[data-draw="pending"] .stage-bars span, [data-draw="pending"] .bar-draw { transform: scaleX(0); transform-origin: left center; }
+[data-draw="in"] .stage-bars span, [data-draw="in"] .bar-draw { transform: scaleX(1); transform-origin: left center; transition: transform 800ms var(--ease-spring); }
+[data-draw="in"] .stage-bars span:nth-child(2), [data-draw="in"] .bar-draw:nth-child(2) { transition-delay: 90ms; }
+[data-draw="in"] .stage-bars span:nth-child(3), [data-draw="in"] .bar-draw:nth-child(3) { transition-delay: 180ms; }
+
+/* ─── Skeletons + empty states (no spinners anywhere) ─── */
+.skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fg) 9%, transparent), transparent);
+  transform: translateX(-100%);
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+}
+@keyframes skeleton-sweep { to { transform: translateX(100%); } }
+.skeleton-card { border: 1px solid var(--rule); border-radius: 16px; padding: 18px; background: var(--bg-elevated); }
+.skeleton-surface__label { margin-bottom: 14px; }
+.skeleton-surface__grid { display: grid; gap: 14px; }
+@media (min-width: 768px) { .skeleton-surface__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.empty-state { display: flex; gap: 14px; align-items: flex-start; border: 1px dashed var(--rule-strong); border-radius: 16px; padding: 18px 20px; background: var(--bg-elevated); }
+.empty-state__title { color: var(--fg); font-weight: 500; }
+.empty-state__body { margin-top: 4px; color: var(--muted); font-weight: 300; line-height: 1.55; font-size: 0.95rem; }
+.empty-state__action { margin-top: 12px; }
+.calc-chart--empty .calc-chart__skeleton { height: 160px; }
+
+/* ─── Mobile: swipe rows, bottom-sheet details, sticky CTA bar ─── */
+.swipe-row__item { min-width: 0; }
+.swipe-hint { margin-top: 6px; text-align: center; font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+@media (min-width: 768px) { .swipe-hint { display: none; } }
+/* "stack" rows: plain rows from md up (the demo's option rows). */
+@media (min-width: 768px) {
+  .swipe-row.swipe-row--stack { display: block; overflow: visible; margin: 0; padding: 0; }
+  .swipe-dots--stack { display: none; }
+}
+/* The demo's option rows as cards on phones (was a 6-column row that
+   crushed to one letter per line at 390px). */
+@media (max-width: 767px) {
+  .rate-swipe .swipe-row__item { flex: 0 0 88%; scroll-snap-align: center; }
+  .rate-swipe .rate-card-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+    padding: 16px;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    height: 100%;
+    align-content: start;
+  }
+  .rate-swipe .rate-card-row > :nth-child(1) { grid-column: 1 / -1; }
+  .rate-swipe .rate-card-row > :nth-child(2) { grid-column: 1 / -1; }
+  .rate-swipe .rate-card-row > :nth-child(5) { grid-column: 1 / -1; }
+  .rate-swipe .rate-card-row > :nth-child(6) { grid-column: 1 / -1; justify-self: stretch; }
+  .rate-swipe .rate-card-row > :nth-child(6) .lo-btn-secondary { width: 100%; }
+  .rate-swipe .rate-card-row > * { overflow-wrap: normal; }
+}
+
+.detail-sheet { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; justify-content: center; }
+.detail-sheet__backdrop { position: absolute; inset: 0; }
+.detail-sheet__panel {
+  position: relative;
+  width: 100%;
+  max-height: 86svh;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  color: var(--fg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 20px 20px 0 0;
+  padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: var(--surface-highlight), 0 -18px 50px -20px rgb(0 0 0 / 0.6);
+  animation: sheet-up 420ms var(--ease-spring);
+}
+.detail-sheet__panel:focus { outline: none; }
+.detail-sheet__grip { display: block; width: 40px; height: 4px; border-radius: 9999px; background: var(--rule-strong); margin: 0 auto 12px; }
+.detail-sheet__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.detail-sheet__title { font-size: 1.15rem; font-weight: 500; }
+.detail-sheet__x { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--rule); color: var(--fg); font-size: 1.3rem; line-height: 1; }
+.detail-dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 0.95rem; }
+.detail-dl dt { color: var(--muted); font-weight: 300; }
+.detail-dl dd { margin: 0; text-align: right; color: var(--fg); }
+@media (min-width: 1024px) {
+  .detail-sheet { align-items: center; }
+  .detail-sheet__panel { width: min(460px, 92vw); border-radius: 18px; animation-name: sheet-pop; }
+  .detail-sheet__grip { display: none; }
+}
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheet-pop { from { transform: translateY(10px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 35;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  border-top: 1px solid var(--rule);
+  box-shadow: 0 -10px 30px -18px rgb(0 0 0 / 0.5);
+  transition: transform 260ms var(--ease-spring), opacity 200ms ease-out;
+}
+.sticky-cta__inner { max-width: 32rem; margin: 0 auto; }
+.sticky-cta .cta { min-height: 52px; padding: 10px 16px; }
+.sticky-cta--hidden { transform: translateY(110%); opacity: 0; }
+@media (min-width: 1024px) { .sticky-cta { display: none; } }
+@media (max-width: 1023px) { html.has-sticky-cta body { padding-bottom: 84px; } }
+
+/* ─── Reduced motion: everything above is still ─── */
+@media (prefers-reduced-motion: reduce) {
+  .cta--primary { transform: none; transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out; }
+  .cta-arrow, .cta__arrow { transition: none; }
+  a:hover .cta-arrow, button:hover .cta-arrow, a:hover .cta__arrow, button:hover .cta__arrow { transform: none; }
+  .reveal-pending, .reveal-pending > *, .reveal-in, .reveal-in > * { opacity: 1 !important; transform: none !important; transition: none !important; }
+  [data-draw] .calc-chart__line--0 { stroke-dasharray: none; stroke-dashoffset: 0; transition: none; }
+  [data-draw] .stage-bars span, [data-draw] .bar-draw { transform: none; transition: none; }
+  .skeleton::after { animation: none; display: none; }
+  .detail-sheet__panel { animation: none; }
+  .sticky-cta { transition: none; }
+}
+@media (min-width: 768px) {
+  .swipe-row--stack .swipe-row__item + .swipe-row__item .rate-card-row { border-top: 1px solid var(--rule); }
+}
+/* v24: on phones the demo's option cards use the full message width. */
+@media (max-width: 767px) {
+  .chat-center { padding-left: 16px; padding-right: 16px; }
+  .msg-bubble-m8 .rate-card { margin-left: -50px; padding: 16px 14px; }
+}
+
+/* ─── v24 contrast fixes (AA sweep, all three themes) ─── */
+/* Restored demo: its green labels and links use the brand green, which is
+   1.9–2.0:1 on Paper. In Paper they take the Pine text accent (6:1). The
+   header wordmark keeps M8 Green (brand rule; logotype). */
+:root[data-theme="paper"] .chat-center .text-\[var\(--color-m8-green\)\],
+:root[data-theme="paper"] .chat-side .text-\[var\(--color-m8-green\)\] { color: var(--color-m8-pine); }
+/* The SAMPLE badge on the white Loan Estimate page in dark themes: muted
+   grey on white was 3.0–3.2:1. On a document it is document ink. */
+.doc .sample-badge { color: var(--color-m8-charcoal); background: #FFFFFF; border-color: #B9B5AC; }
+/* Disabled buttons (no booking link yet) were faded with opacity in the
+   dark themes (2.1–2.7:1). Like Paper (v18): full-strength text, a muted
+   fill, and the dashed border + "coming soon" sub-label say "not yet". */
+.cta--disabled { opacity: 1; border-style: dashed; }
+.cta--disabled .cta__sub { opacity: 1; }
+:root:not([data-theme="paper"]) .cta--disabled.cta--primary {
+  background: color-mix(in srgb, var(--color-m8-green) 22%, var(--bg));
+  border-color: color-mix(in srgb, var(--color-m8-green) 55%, var(--bg));
+  color: var(--fg);
+}

@@ -4,6 +4,7 @@ import { useMloContext, useNamedMlo, MloText } from "@/components/mlo/MloContext
 import LocationBeacon, { MloChooser } from "@/components/LocationBeacon";
 import { copy } from "@/lib/copy";
 import ApplyCta from "@/components/mlo/ApplyCta";
+import ArrowText from "@/components/ui/ArrowText";
 
 /**
  * AboutCards — the "who closes your loan" heading, sub and card
@@ -42,7 +43,7 @@ export default function AboutCards({ s }: { s: Strings }) {
         </p>
       </div>
 
-      <ul className="hm-about__grid list-none p-0 m-0">
+      <ul className="hm-about__grid list-none p-0 m-0" data-reveal="grid">
         {mlo ? (
           <li className="hm-about__card">
             <div className="hm-about__id">
@@ -56,7 +57,7 @@ export default function AboutCards({ s }: { s: Strings }) {
                   <>
                     {" · "}
                     <a href={mlo.nmlsConsumerAccessUrl} target="_blank" rel="noopener noreferrer" className="hm-about__verify">
-                      {cred.verify}
+                      <ArrowText text={cred.verify} />
                     </a>
                   </>
                 ) : null}
@@ -82,7 +83,7 @@ export default function AboutCards({ s }: { s: Strings }) {
               <div className="hm-about__name">{s.generic.title}</div>
               <LocationBeacon variant="card" />
               <a href={s.lookupHref} target="_blank" rel="noopener noreferrer" className="hm-about__verify">
-                {s.generic.verify}
+                <ArrowText text={s.generic.verify} />
               </a>
             </div>
             <div>

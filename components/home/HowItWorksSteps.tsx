@@ -35,7 +35,7 @@ export default function HowItWorksSteps({ steps, ariaLabel, orbPrefix }: Props) 
           <StageVisual block={<Orb size="ambient" px={140} state={state} />}>
             <p className="mono-label is-accent">{steps[i]?.label}</p>
             <p className="stage-visual-title">{steps[i]?.title}</p>
-            <div className="stage-bars">
+            <div className="stage-bars" data-draw="">
               <span />
               <span />
               <span className={i >= 1 ? "is-accent" : ""} />

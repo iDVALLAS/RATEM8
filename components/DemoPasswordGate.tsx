@@ -67,7 +67,7 @@ export default function DemoPasswordGate({ contactEmail }: { contactEmail: strin
             <Link href="/" className="flex items-center gap-3" aria-label="Back to coming soon">
               <span className="orb" style={{ width: 20, height: 20 }} />
               <span className="font-display font-medium tracking-tight text-lg">
-                Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
+                Loan<span style={{ color: "var(--accent)" }}>M8</span>
               </span>
             </Link>
             <span className="font-mono text-[10px] tracking-[0.18em] uppercase"
@@ -83,7 +83,7 @@ export default function DemoPasswordGate({ contactEmail }: { contactEmail: strin
           </div>
 
           <p className="font-mono text-[11px] tracking-[0.2em] uppercase mb-6"
-             style={{ color: "var(--color-m8-green)" }}>
+             style={{ color: "var(--accent)" }}>
             M8 Preview
           </p>
 
@@ -151,7 +151,7 @@ export default function DemoPasswordGate({ contactEmail }: { contactEmail: strin
               <a
                 href={`mailto:${contactEmail}`}
                 className="hover:underline"
-                style={{ color: "var(--color-m8-green)" }}
+                style={{ color: "var(--accent)" }}
               >
                 {contactEmail}
               </a>

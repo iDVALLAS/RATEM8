@@ -6,6 +6,7 @@ import PricingDisplay from "@/components/pricing/PricingDisplay";
 import RateVsAverage from "@/components/pricing/RateVsAverage";
 import { CONFIG } from "@/lib/config";
 import Reveal from "@/components/motion/Reveal";
+import EmptyState from "@/components/ui/EmptyState";
 import { copy } from "@/lib/copy";
 import { displayScenarios, resolveDisplay } from "@/lib/pricing/display";
 import { routeContext } from "@/lib/route-context";
@@ -39,7 +40,7 @@ export default async function RatesPage({ searchParams }: Props) {
   const unlicensed = route.status === "unlicensed" ? copy.routing.unlicensedRates.replace("{state}", route.stateName ?? "") : null;
 
   return (
-    <PageShell crumbs={[{ name: "Home", path: "/" }, { name: "Example rates", path: "/rates" }]}>
+    <PageShell stickyCta crumbs={[{ name: "Home", path: "/" }, { name: "Example rates", path: "/rates" }]}>
       <header className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 pb-6 sm:pt-12">
         <Reveal as="h1" text={c.heading} accent={c.headingAccent} immediate className="tagline text-4xl sm:text-6xl leading-tight mb-5" />
         <p className="text-lg leading-relaxed font-light max-w-3xl" style={{ color: "var(--muted)" }}>{c.sub}</p>
@@ -58,7 +59,7 @@ export default async function RatesPage({ searchParams }: Props) {
           </ul>
         </nav>
 
-        {unlicensed ? <p className="card">{unlicensed}</p> : display ? <PricingDisplay display={display} /> : <p className="card">{c.unavailable}</p>}
+        {unlicensed ? <p className="card">{unlicensed}</p> : display ? <PricingDisplay display={display} /> : <EmptyState title={copy.uiStates.pricingEmpty} body={copy.uiStates.pricingEmptyBody} />}
         {/* v19 (Item 3b): OFF by default; only beside its own dated example, never beside a snapshot. */}
         {!unlicensed && display?.mode === "example" && active?.id === CONFIG.pricing.benchmarkComparison.scenarioId ? <RateVsAverage /> : null}
 

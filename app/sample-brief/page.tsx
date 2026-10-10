@@ -24,7 +24,7 @@ export const metadata: Metadata = {
  */
 export default function SampleBriefPage() {
   return (
-    <PageShell
+    <PageShell stickyCta
       crumbs={[
         { name: "Home", path: "/" },
         { name: "Sample brief", path: "/sample-brief" },

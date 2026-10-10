@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default function CalculatorsIndex() {
   const c = copy.calculators;
   return (
-    <PageShell
+    <PageShell stickyCta
       crumbs={[
         { name: "Home", path: "/" },
         { name: "Calculators", path: "/calculators" },
@@ -33,12 +33,12 @@ export default function CalculatorsIndex() {
       </header>
 
       <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-12" aria-label="Calculators">
-        <div className="calc-index-grid">
+        <div className="calc-index-grid" data-reveal="grid">
           {c.items.map((item) => (
             <Link key={item.slug} href={`/calculators/${item.slug}`} className="card calc-index-card">
               <h2>{item.title}</h2>
               <p>{item.body}</p>
-              <span className="calc-index-card__go">Open →</span>
+              <span className="calc-index-card__go">Open <span aria-hidden="true" className="cta-arrow">→</span></span>
             </Link>
           ))}
         </div>

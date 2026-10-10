@@ -3,6 +3,7 @@ import BookingCTA from "@/components/BookingCTA";
 import TrustLine from "@/components/TrustLine";
 import ApplyCta from "@/components/mlo/ApplyCta";
 import { copy } from "@/lib/copy";
+import ArrowText from "@/components/ui/ArrowText";
 
 /**
  * NextStepActions — the "// next step" card's actions (v18, Item 2c):
@@ -20,7 +21,7 @@ export default function NextStepActions({ label }: { label: React.ReactNode }) {
       </BookingCTA>
       <ApplyCta variant="outline" />
       <Link href={copy.apply.prepHref} className="next-step__prep">
-        {copy.apply.prepLink}
+        <ArrowText text={copy.apply.prepLink} />
       </Link>
       <TrustLine className="font-mono text-[10px] tracking-[0.14em] uppercase" style={{ color: "var(--muted)" }} />
     </div>

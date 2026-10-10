@@ -76,7 +76,15 @@ export default function MiniChart({ series, formatX, formatY, xLabel, yLabel, ma
   }, [series]);
 
   if (!model) {
-    return <p className="calc-note">Nothing to chart yet. Enter values above.</p>;
+    // v24: a designed empty state: the chart frame drawn as a skeleton, plus one line.
+    return (
+      <div className="calc-chart calc-chart--empty" role="status">
+        <div className="calc-chart__skeleton" aria-hidden="true">
+          <span className="skeleton" style={{ height: "100%", width: "100%", borderRadius: 12 }} />
+        </div>
+        <p className="calc-note">Nothing to chart yet. Enter values above and the chart draws itself.</p>
+      </div>
+    );
   }
 
   const { sx, sy, yTicks, xTicks, paths, xMin, xMax } = model;
@@ -111,7 +119,7 @@ export default function MiniChart({ series, formatX, formatY, xLabel, yLabel, ma
   }
 
   return (
-    <figure className="calc-chart">
+    <figure className="calc-chart" data-draw="">
       <svg
         className="calc-chart__svg"
         viewBox={`0 0 ${W} ${H}`}
@@ -144,7 +152,7 @@ export default function MiniChart({ series, formatX, formatY, xLabel, yLabel, ma
         </text>
         {/* Series */}
         {paths.map((d, i) => (
-          <path key={i} className={`calc-chart__line calc-chart__line--${i}`} d={d} />
+          <path key={i} className={`calc-chart__line calc-chart__line--${i}`} d={d} pathLength={i === 0 ? 1 : undefined} />
         ))}
         {/* Marker */}
         {marker && Number.isFinite(marker.x) && Number.isFinite(marker.y) ? (

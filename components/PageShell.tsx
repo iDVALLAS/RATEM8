@@ -2,6 +2,9 @@ import Nav from "./Nav";
 import Footer from "./Footer";
 import JsonLd from "./JsonLd";
 import { breadcrumbJsonLd } from "@/lib/jsonld";
+import BookingCTA from "./BookingCTA";
+import StickyCtaBar from "./ui/StickyCtaBar";
+import { copy } from "@/lib/copy";
 
 /**
  * PageShell — Nav + main + Footer with an optional breadcrumb list.
@@ -13,9 +16,11 @@ type PageShellProps = {
   crumbs?: { name: string; path: string }[];
   className?: string;
   mainClassName?: string;
+  /** v24: phone-only sticky "Talk to a licensed loan officer" bar (borrower pages). */
+  stickyCta?: boolean;
 };
 
-export default function PageShell({ children, crumbs, className = "", mainClassName = "" }: PageShellProps) {
+export default function PageShell({ children, crumbs, className = "", mainClassName = "", stickyCta = false }: PageShellProps) {
   return (
     <div className={`flex min-h-screen flex-col ${className}`}>
       {crumbs && crumbs.length > 1 ? <JsonLd data={breadcrumbJsonLd(crumbs)} /> : null}
@@ -44,6 +49,13 @@ export default function PageShell({ children, crumbs, className = "", mainClassN
         {children}
       </main>
       <Footer />
+      {stickyCta ? (
+        <StickyCtaBar label={copy.stickyCta.label}>
+          <BookingCTA kind="borrower" variant="primary" intake={false}>
+            {copy.stickyCta.cta}
+          </BookingCTA>
+        </StickyCtaBar>
+      ) : null}
     </div>
   );
 }

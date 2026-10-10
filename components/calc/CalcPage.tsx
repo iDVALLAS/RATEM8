@@ -9,6 +9,7 @@ import { copy } from "@/lib/copy";
 import { MloText } from "@/components/mlo/MloContext";
 import { CALC_CONTENT, CALC_LAST_UPDATED, type CalcSlug } from "@/lib/content/calculators";
 import "./calc.css";
+import ArrowText from "@/components/ui/ArrowText";
 
 /**
  * CalcPage — the shared server-rendered wrapper for one calculator.
@@ -23,7 +24,7 @@ import "./calc.css";
 export default function CalcPage({ slug, children }: { slug: CalcSlug; children: React.ReactNode }) {
   const c = CALC_CONTENT[slug];
   return (
-    <PageShell
+    <PageShell stickyCta
       crumbs={[
         { name: "Home", path: "/" },
         { name: "Calculators", path: "/calculators" },
@@ -70,7 +71,7 @@ export default function CalcPage({ slug, children }: { slug: CalcSlug; children:
           <div className="mt-4 max-w-md">
             <ApplyCta variant="outline" />
             <Link href={copy.apply.prepHref} className="next-step__prep">
-              {copy.apply.prepLink}
+              <ArrowText text={copy.apply.prepLink} />
             </Link>
           </div>
         </div>

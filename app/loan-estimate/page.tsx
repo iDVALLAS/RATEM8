@@ -25,7 +25,7 @@ export const metadata: Metadata = {
  */
 export default function LoanEstimatePage() {
   return (
-    <PageShell
+    <PageShell stickyCta
       crumbs={[
         { name: "Home", path: "/" },
         { name: "Loan Estimate guide", path: "/loan-estimate" },

@@ -249,7 +249,7 @@ export default function ChatInput({ mloFirst, mloWill }: ChatInputProps) {
             className="font-mono text-[10px] tracking-[0.15em] uppercase hover:underline disabled:opacity-50"
             style={{ color: "var(--accent)" }}
           >
-            Send →
+            Send <span aria-hidden="true" className="cta-arrow">→</span>
           </button>
           <button
             onClick={() => handleSubmit()}

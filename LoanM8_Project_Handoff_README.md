@@ -99,6 +99,127 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v24 — Design upgrades, mobile patterns, skeletons, /design style guide, AA sweep (2026-10-10)
+
+### Depth and type
+- **Surfaces:** cards, option cards, the demo's rate, market and loan
+  officer cards, skeletons and empty states share a soft inner highlight
+  and layered shadow (`--surface-highlight`, `--surface-shadow`, per
+  theme) over hairline borders.
+- **Restrained glass blur** on overlay backdrops only (the location sheet
+  and the new Detail sheet). Never on sheets (motion rule); the nav
+  already had it.
+- **Tighter display leading:** `.tagline` 0.98, `.hm-h2`, section titles
+  and stage headlines 1.0.
+- **Tabular numerals** on every rate and dollar class (`.num`,
+  `rate-*`, `px-*`, `br-opt dd`, `detail-dl`, calculator results, chart
+  axes).
+- **Fraunces optical sizing was NOT applied.** The owner settled Geist
+  site-wide on 2026-09-30, and `CLAUDE.md` says not to reintroduce
+  Fraunces. Geist has no optical-size axis. Confirm if that decision has
+  changed.
+
+### Micro-interactions and motion (`components/ui/Interactions.tsx`, mounted once in `app/layout.tsx`)
+- **Magnetic hover** on primary buttons (mouse only, ≤4px) and press
+  states on every button.
+- **"→" CTAs:** each one animates its arrow on hover and focus
+  (`ArrowText`, `.cta-arrow`). Covers CTAButton, prep links, NMLS verify
+  links, calculators, state pages, the Loan Estimate guide, demo
+  follow-ups, Send, and 404.
+- **Spring entrances with stagger** (`linear()` spring, cubic fallback) on
+  the `/agents`, `/investors` and `/calculators` grids, the About cards
+  and the `/rates` option cards (`data-reveal="grid"`).
+- **Draw-in:** calculator chart lines (`pathLength=1`) and the
+  How-it-works bars (`data-draw`).
+- **Count-up** (`components/ui/CountUp.tsx`, a client component) on
+  dollar figures: demo payments and hold-period totals.
+  - **Rates and APRs never count up:** a rate is shown exactly or not at
+    all.
+- **Only content that starts below the fold is held back.** The server
+  HTML is always the final state, and a huge top `rootMargin` means
+  jumping past content still reveals it.
+- Reduced motion turns all of it off.
+
+### Mobile
+- **Swipeable lender cards** with snap and dots
+  (`components/ui/SwipeRow.tsx`), used by the demo's option rows (stacked
+  rows from md up).
+  - This also fixed a real bug: at 390px the restored 6-column rows
+    crushed text to one letter per line. The cards now use the full
+    message width.
+- **Bottom-sheet Detail panels** (`components/ui/DetailSheet.tsx`):
+  - the demo's DETAIL buttons now open the option's rate, APR, payment,
+    points and note, with the example label and the footer line
+  - a dialog on desktop
+  - Esc, the backdrop or × closes it, and focus returns to the button
+- **Sticky bottom CTA bar** (`StickyCtaBar`, phones only, via
+  `PageShell stickyCta`) on `/rates`, `/sample-brief`, `/states/*`,
+  `/second-look`, `/loan-estimate`, `/calculators` and each calculator.
+  - It hides (and goes inert) while the footer is on screen, so the state
+    chips are never covered (`qa/footer` passes).
+  - It pads the page while shown.
+
+### Loading and empty states (no spinners)
+- **Skeletons:** `components/ui/Skeleton.tsx` with a shimmer that stops
+  under reduced motion. Route skeletons are in `app/rates/loading.tsx`,
+  `app/chat/loading.tsx`, `app/demo/loading.tsx` and
+  `app/states/[slug]/loading.tsx`. Live M8 shows skeleton lines until its
+  first words arrive.
+- **Empty states:** `components/ui/EmptyState.tsx` replaces `/rates`'
+  plain "unavailable" line. The calculator chart's empty state is a
+  skeleton frame plus one line.
+
+### `/design` (noindex, not in the sitemap, behind the stealth gate)
+- **Shows:** brand tokens (locked), the data palette with live contrast
+  ratios, type, buttons (including disabled), labels, lender marks
+  (monogram sizes plus an approved-logo chip), tinted lender cards with
+  the winner glow, state chips, swipe cards with dots, the Detail sheet,
+  the sticky bar, count-up, draw-in bars, skeleton, empty state, and a
+  mesh scene.
+- **Uses a fictional "Sample Lender" only** (its sample logo is our own
+  drawing at `public/design/sample-logo.svg`), and rate slots read
+  "x.xxx%". No real lender or rate appears.
+
+### AA contrast (item 10)
+- **Unit test:** `lib/contrast.test.ts` (4 tests).
+  - every data hue ≥4.5:1 on Night, Dim, Forest and the panel
+  - every ink ≥4.5:1 on Paper, Stone and white
+  - the palette in code matches `globals.css`
+  - Pine, Green and the brief's example label stay AA
+- **Browser sweep:** every visible text element on 19 routes (including
+  `/chat`, `/demo` and `/design`) at 1280 and 390, in Paper, Night and
+  Dim. It found and fixed:
+  - **Paper, restored demo:** green labels, the EDIT link and "−0.125
+    today" were 1.9–2.0:1. They now use Pine (6:1). The header wordmark
+    keeps M8 Green.
+  - **Paper, `/demo` gate:** "M8 Preview" and the email link were 1.9:1.
+    They now use `--accent`.
+  - **Dark themes, `/loan-estimate`:** the SAMPLE badge on the white
+    document was 3.0–3.2:1. It's charcoal on white now.
+  - **Dark themes, disabled booking buttons:** these are only disabled
+    while a booking link is missing, and were 2.1–2.7:1 (opacity). They
+    now have full-strength text, a muted fill and a dashed border.
+- **Remaining findings are exempt:**
+  - the "M8" logotype
+  - the decorative `aria-hidden` drifting loan terms behind the orb
+  - the Second Look toggle (a known false positive: the sweep can't see
+    its sliding thumb, ~6.9:1)
+
+### Verified
+- `npm run verify` passes: lint, `check:copy`, `check:identity`, 123
+  tests, build, `check:bundle` (97 browser files, no lender names).
+- `qa/overflow` is clean (only the local Analytics 404), `qa/fonts` has 0
+  findings, and `qa/footer` and `qa/about` pass.
+- **Browser checks:**
+  - **Demo on a phone:** 3 dots, the active dot follows the swipe. The
+    Detail sheet opens bottom-aligned with focus inside, and Esc closes
+    it. No page errors (a hydration error from an earlier count-up
+    approach was found and fixed by making CountUp a client component).
+  - **Sticky bar:** shown at the top of `/rates` on phones, hidden at the
+    footer, absent on desktop.
+  - **Reveal and count-up:** both complete after jumping straight to the
+    bottom (`/agents`, `/design`).
+
 ## v23 — Lender marks (approval-gated logos) and the data color system (2026-10-10)
 
 ### LenderMark (item 7)

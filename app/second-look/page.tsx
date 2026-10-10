@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 export default function SecondLookPage() {
   const sl = copy.secondLook;
   return (
-    <PageShell
+    <PageShell stickyCta
       crumbs={[
         { name: "Home", path: "/" },
         { name: "Second Look", path: "/second-look" },

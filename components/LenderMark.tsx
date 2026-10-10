@@ -18,9 +18,11 @@ type Props = {
   size?: "sm" | "md" | "lg";
   labelled?: boolean;
   className?: string;
+  /** Style guide only (/design): a fictional sample logo instead of public/lenders/{slug}.svg. */
+  logoSrc?: string;
 };
 
-export default function LenderMark({ lender, size = "md", labelled = false, className = "" }: Props) {
+export default function LenderMark({ lender, size = "md", labelled = false, className = "", logoSrc }: Props) {
   const l = typeof lender === "string" ? lenderBrand(lender) : lender;
   if (!l) return null;
   const a11y = labelled ? { role: "img", "aria-label": l.name } : { "aria-hidden": true as const };
@@ -28,7 +30,7 @@ export default function LenderMark({ lender, size = "md", labelled = false, clas
     return (
       <span className={`lender-chip lender-chip--${size} ${className}`.trim()} {...a11y}>
         {/* eslint-disable-next-line @next/next/no-img-element -- local SVG, fixed size */}
-        <img src={lenderLogoPath(l.slug)} alt="" className="lender-chip__img" />
+        <img src={logoSrc ?? lenderLogoPath(l.slug)} alt="" className="lender-chip__img" />
       </span>
     );
   }

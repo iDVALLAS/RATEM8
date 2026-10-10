@@ -308,7 +308,13 @@ export default function M8LiveChat() {
                 className="text-[15px] leading-relaxed whitespace-pre-wrap"
                 style={{ color: "var(--fg)" }}
               >
-                {streamingText || <span style={{ opacity: 0.5 }}>…</span>}
+                {/* v24: skeleton lines until the first words arrive (no spinner). */}
+                {streamingText || (
+                  <span className="flex flex-col gap-2 pt-1" aria-hidden="true">
+                    <span className="skeleton" style={{ width: "72%", height: 10 }} />
+                    <span className="skeleton" style={{ width: "48%", height: 10 }} />
+                  </span>
+                )}
               </p>
             </div>
           </div>

@@ -19,9 +19,13 @@ showing example pricing. Live pricing stays off.
 - **Flags** (`lib/config.ts` → `CONFIG.pricing`, server-side env only):
   `PRICING_DEMO_EXAMPLES` on unless set to `"false"`; `PRICING_MANUAL`,
   `PRICING_LIVE`, `PRICING_RATESHEET`, `MLO_ROUTING` off by default.
-  `CONFIG.liveRatesEnabled` stays false and `lenderCountDisplay` stays null.
-- **Where rates may appear:** `/rates` only (noindex, not in the sitemap),
-  plus the setup preview inside the auth-gated `/mlo` admin. Nowhere else.
+  `CONFIG.liveRatesEnabled` stays false. Lender counts come from
+  `CONFIG.lenderCountMax` (14, said as "up to") and `lenderCountMin` (3: no
+  option set renders with fewer) since v22.
+- **Where rates may appear:** `/rates` (noindex, not in the sitemap), the
+  setup preview inside the auth-gated `/mlo` admin, and, since v21, the
+  restored scripted demo (`/chat`, `/demo`) and `/sample-brief` (below).
+  Nowhere else.
 - **Every pricing surface** shows the label "Example pricing · [date] · not
   a quote or commitment to lend." or "Rate snapshot · pulled [time] · not a
   quote or commitment to lend.", pinned at the top and repeated under the
@@ -50,8 +54,24 @@ showing example pricing. Live pricing stays off.
 - **Calculators** still take user-entered rates only and never supply one;
   `CALC_DISCLAIMER` renders on every calculator page and API response.
 - **The agent API** still never returns a rate the caller did not send.
-- The legacy scripted chat with real lender names and rates stays deleted;
-  the "Sarah" Bellevue scenario returns only as a fictional fixture.
+- **Changed 2026-10-10 (v21), owner instruction, attorney-cleared for the
+  demo:** the legacy scripted chat (Sarah, Bellevue refi, $640K, 98004,
+  with the original demo's named lenders UWM, Rocket Pro TPO and Kind
+  Lending) is restored at `/chat` and `/demo`. This overrides
+  `docs/SITE_BRIEF.md` §5 rule 1 for the demo and `/sample-brief` only.
+  - Every rate card there carries the persistent label "Example —
+    illustrative pricing, not an offer" (`EXAMPLE_PRICING_LABEL`).
+  - The card footer keeps "Indicative pricing · Subject to verification ·
+    Soft pull only", and the page keeps "Sample conversation. Live
+    pricing not yet active."
+  - No new named-lender display may be added beyond those three.
+  - **Open item for counsel:** the restored demo also contains its
+    original "PRICING PULLED LIVE", "Live · Pricing Sync 14s ago", "Synced
+    14s ago" and "Live Market" wording, which the "never the word live"
+    rule above would otherwise forbid. It was restored verbatim at the
+    owner's request and is listed in `ATTORNEY_REVIEW_LIST.md`.
+- **Lender logos** render only for a lender marked `logoApproved: true`
+  in `lib/lenders.ts` (all false at v23); otherwise a monogram tile.
 
 ## 2. Banned phrases
 

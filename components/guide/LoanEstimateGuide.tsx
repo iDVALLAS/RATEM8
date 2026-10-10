@@ -7,6 +7,7 @@ import LoanEstimateDiagram from "./LoanEstimateDiagram";
 import { leContent, leSections, type LeSectionId } from "@/lib/content/loan-estimate";
 import { prefersReducedMotion, seq } from "@/lib/useSceneTimeline";
 import "./guide.css";
+import ArrowText from "@/components/ui/ArrowText";
 
 /**
  * LoanEstimateGuide — owns the "active section" state shared by the
@@ -111,7 +112,7 @@ export default function LoanEstimateGuide() {
                   ))}
                 </ul>
                 <button type="button" className="le-note__show" onClick={() => showOnForm(sec.id)}>
-                  {leContent.showOnForm} →
+                  <ArrowText text={`${leContent.showOnForm} →`} />
                 </button>
               </div>
             </article>

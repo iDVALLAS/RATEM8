@@ -17,7 +17,7 @@ export default function NotFound() {
         </p>
         <Link href="/" className="cta cta--pill mt-10 inline-flex">
           <span className="cta__label">{copy.notFound.cta}</span>
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true" className="cta-arrow">→</span>
         </Link>
       </section>
     </PageShell>

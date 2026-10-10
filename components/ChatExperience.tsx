@@ -6,7 +6,11 @@ import ChatInput from "@/components/ChatInput";
 import BookingCTA from "@/components/BookingCTA";
 import ExamplePricingLabel from "@/components/ExamplePricingLabel";
 import LenderMark from "@/components/LenderMark";
+import SwipeRow from "@/components/ui/SwipeRow";
+import DetailSheet from "@/components/ui/DetailSheet";
+import CountUp from "@/components/ui/CountUp";
 import { lenderBrand, lenderTint } from "@/lib/lenders";
+import ArrowText from "@/components/ui/ArrowText";
 
 /**
  * ChatExperience — the M8 chat preview, extracted from v7's /chat
@@ -187,6 +191,8 @@ export default function ChatExperience() {
                           Synced 14s ago
                         </div>
                       </div>
+                      {/* v24: swipeable cards with dots on phones; stacked rows from md up. */}
+                      <SwipeRow label="Live wholesale options" variant="stack" className="rate-swipe">
                       {c.rateOptions.map((r) => {
                         const brand = lenderBrand(r.lenderKey);
                         // v23: tinted edge + wash from the lender's colour; the
@@ -220,7 +226,9 @@ export default function ChatExperience() {
                             <div className="rate-num-secondary">{r.apr}</div>
                           </div>
                           <div>
-                            <div className="rate-money">{r.payment}</div>
+                            <div className="rate-money">
+                              <CountUp value={r.payment} />
+                            </div>
                             <div className="rate-num-secondary">{r.paymentType}</div>
                           </div>
                           <div className="text-xs text-[var(--muted)]">
@@ -229,12 +237,32 @@ export default function ChatExperience() {
                             </div>
                             <div className="leading-tight">{r.pointsDetail}</div>
                           </div>
-                          <button className="lo-btn-secondary text-[10px]">
-                            DETAIL
-                          </button>
+                          {/* v24: DETAIL opens a bottom sheet (dialog on desktop). */}
+                          <DetailSheet label="DETAIL" title={`Option ${r.rank} · ${r.lender}`}>
+                            <ExamplePricingLabel className="mb-4" />
+                            <p className="font-mono text-[10px] tracking-[0.1em] uppercase text-[var(--muted)]">{r.designation}</p>
+                            <dl className="detail-dl mt-3">
+                              <dt>Rate</dt>
+                              <dd className="num">{r.rate}</dd>
+                              <dt>APR</dt>
+                              <dd className="num">{r.apr.replace(/^APR\s*/, "")}</dd>
+                              <dt>Payment</dt>
+                              <dd className="num">
+                                {r.payment} {r.paymentType}
+                              </dd>
+                              <dt>Points</dt>
+                              <dd>{r.pointsLabel}</dd>
+                              <dt>Note</dt>
+                              <dd>{r.pointsDetail}</dd>
+                            </dl>
+                            <p className="mt-4 font-mono text-[10px] tracking-[0.05em] text-[var(--muted)]">
+                              Indicative pricing · Subject to verification · Soft pull only
+                            </p>
+                          </DetailSheet>
                         </div>
                         );
                       })}
+                      </SwipeRow>
                       <div className="mt-4 pt-3 border-t border-[var(--rule)] grid sm:grid-cols-2 gap-2 font-mono text-[10px] tracking-[0.05em] text-[var(--muted)]">
                         <span>
                           Indicative pricing · Subject to verification · Soft
@@ -274,7 +302,9 @@ export default function ChatExperience() {
                               <LenderMark lender={h.lenderKey} size="sm" />
                               {h.label}
                             </div>
-                            <div className="rate-money">{h.amount}</div>
+                            <div className="rate-money">
+                              <CountUp value={h.amount} />
+                            </div>
                             <div className="font-mono text-[10px] text-[var(--muted)] mt-1">
                               {h.note}
                             </div>
@@ -292,7 +322,7 @@ export default function ChatExperience() {
           <div className="mt-8 flex flex-wrap gap-3">
             {c.followups.map((f) => (
               <button key={f} className="followup-btn">
-                → {f}
+                <ArrowText text={`→ ${f}`} />
               </button>
             ))}
           </div>

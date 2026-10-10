@@ -143,3 +143,14 @@ Nothing renders until **all** of these are real and counsel has signed off
 | `benchmark.rate` | same | `[PMMS 30-YEAR FIXED AVERAGE RATE — percent]` | That week's published 30-year fixed average, e.g. `6.30` |
 | `benchmark.feesAndPoints` | same | `[PMMS 30-YEAR FIXED AVERAGE FEES AND POINTS — percent of loan]` | That week's published fees and points. If the source doesn't publish it, the component stays off until counsel decides |
 | `benchmark.basis` | same | `[PMMS BASIS — …]` | The release's own description of what its average assumes, quoted |
+
+## Demo, live chat and lender brands (v21–v24)
+
+| Item | Where | Current | Needed |
+| --- | --- | --- | --- |
+| `CONFIG.demo.loBio["mlo-001"]` | `lib/config.ts` | "17 years originating · Avg close: 18 days · Available now · in office" (carried over from the v7 demo) | VERIFY both claims before the stealth gate lifts |
+| `RESEND_API_KEY`, `MLO_NOTIFICATION_EMAIL`, `LOANM8_FROM_EMAIL` | Vercel env (server) | unset → the demo's question box says it couldn't send | Set all three for `/api/chat-question` to email questions to the loan officer. The old `…_NOTIFICATION_EMAIL` and `RATEM8_FROM_EMAIL` names are no longer read |
+| `M8_LIVE_CHAT` | Vercel env (server) | unset → no live tab on `/demo`, `/api/m8-chat` returns 404 | `true` (plus `ANTHROPIC_API_KEY`) only after counsel signs off the draft prompt |
+| `logoApproved` (13 lenders) | `lib/lenders.ts` | all `false` → monogram tiles | Flip one at a time after confirming that lender's broker brand guidelines, and add `public/lenders/{slug}.svg` (a test fails the build without it) |
+| `brandColor` (13 lenders) | `lib/lenders.ts` | all `null` → LoanM8 data-palette tint | The hex from each lender's brand guide |
+| `CONFIG.lenderCountMax` | `lib/config.ts` | 14 | The operator's lender list on file (`lib/pricing/lenders.ts`) has 12: add two, or lower this to 12 |

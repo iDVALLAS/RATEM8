@@ -93,7 +93,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v20 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v24 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -104,7 +104,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 110 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 123 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -305,6 +305,34 @@ scanline), `components/join/join.css`, `components/chat/chat.css`,
 Timelines jump to their final step; Scenes set `data-reduced="true"`
 so CSS can drop transitions; StepList and Reveal render final state.
 
+### 4.11b v24 interaction layer — `components/ui/*`
+
+- **`Interactions.tsx`** is mounted once in `app/layout.tsx`.
+  - `[data-reveal]` (spring entrance; `="grid"` staggers children via
+    `--i`), `[data-draw]` (chart line `pathLength=1`, `.stage-bars`,
+    `.bar-draw`), and magnetic `.cta--primary`.
+  - Only elements that start below the fold are held back. The observer's
+    top `rootMargin` is huge, so jumping past content still reveals it.
+  - Never change text outside React here: `CountUp` is its own client
+    component (a DOM text rewrite caused React error 418).
+- **Other pieces:**
+  - `CountUp`: dollar figures only, never rates.
+  - `SwipeRow`: snap and dots, `variant="stack"` for rows from md up.
+  - `DetailSheet`: bottom sheet on phones, dialog on desktop.
+  - `StickyCtaBar`: phones; `PageShell stickyCta` on borrower pages;
+    hidden and inert at the footer.
+  - `Skeleton` and `EmptyState`: no spinners anywhere. `ArrowText` wraps
+    "→" for the arrow animation.
+- **Data colours:** `--data-1…6` (fills) and `--data-N-text` (AA per
+  surface).
+  - Charts, lender tints and state chips only. Never the orb or the
+    wordmark.
+  - `lib/contrast.test.ts` keeps them AA.
+- **Mesh backdrops:** `.scene::before/::after` and `.hm-hero`. Two still
+  gradient layers cross-fade over 48s (opacity only).
+- **`/design`** is the living style guide (noindex). Add new components
+  there.
+
 ### 4.12 Performance safeguards (what exists, and what does not)
 
 Exists:
@@ -435,6 +463,21 @@ with the source screenshot. Pricing APIs and the rate sheet engine
     (`containsSensitive`).
   - It never says "submitted".
   - M8 prompt §10 lists the same fields.
+- **Restored scripted demo (v21):**
+  - `components/ChatExperience.tsx`, `lib/demoChat.ts` and `ChatInput`
+    (Sarah / Bellevue / $640K / 98004) at `/chat` and in `/demo`'s
+    scripted tab.
+  - The homepage "I'm shopping a mortgage" button goes to `/chat`.
+  - Its MLO is `CONFIG.routing.stateAssignments.WA`, with pronoun and bio
+    from `CONFIG.demo`.
+  - Every rate card carries `ExamplePricingLabel`.
+  - The live M8 tab and `/api/m8-chat` sit behind `M8_LIVE_CHAT`
+    (`featureFlags.demoLiveChat`).
+  - `/chat?prep=1` is still the prep flow.
+- **Lender marks (v23):** `lib/lenders.ts` + `components/LenderMark.tsx`.
+  - A logo renders only when `logoApproved` (all false).
+  - Otherwise a monogram tile.
+  - Named lenders appear only where the original demo named them.
 - **M8:** `m8RoutingFacts()` in `lib/prompts/m8-system.ts` names only the
   matched MLO and tells M8 about the mover case. The live opening line
   swaps the same way.
@@ -479,13 +522,14 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 | Agent surface | `app/api/agent/*`, `lib/agent-api.ts`, `app/ai/*`, `app/llms.txt/*`, `AGENTS.md` |
 | Compliance docs | `COMPLIANCE.md`, `ATTORNEY_REVIEW_LIST.md`, `PLACEHOLDERS.md`, `docs/BUILD_CONTRACT.md`, `docs/SITE_BRIEF.md`, `docs/TYPOGRAPHY_GUIDE.md` |
 | Verification | `scripts/check-copy.mjs`, `scripts/qa/*.mjs`, `lib/*.test.ts`, `lib/second-look/*.test.ts` |
+| Demo and design system | `components/ChatExperience.tsx`, `lib/demoChat.ts`, `components/ChatInput.tsx`, `app/api/chat-question/route.ts`, `components/ExamplePricingLabel.tsx`, `lib/lenders.ts`, `components/LenderMark.tsx`, `components/StateChip.tsx`, `lib/state-colors.ts`, `components/ui/*`, `lib/contrast.ts`, `app/design/*`, `lib/content/design.ts` |
 | Pricing | `lib/pricing/*` (types, apr, build, antiSteering, anonymize, canonical, display, lenders, tenants, playbook, store, publish, summary, benchmark, providers/mock, providers/manual), `fixtures/pricing/examples.v1.json`, `components/pricing/*` (incl. `RateVsAverage.tsx`), `lib/content/rate-vs-average.ts`, `app/rates/page.tsx` |
 | MLO admin | `app/mlo/*` (setup, pricing, actions, MloChrome, mlo.css), `lib/mlo/auth.ts`, `lib/mlo/flash.ts`, `lib/content/mlo.ts` |
 | Patch log | `LoanM8_Project_Handoff_README.md` |
 
 ## 6. Dependencies
 
-No dependency was added in v12 through v19. Runtime (`package.json`):
+No dependency was added in v12 through v24. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,

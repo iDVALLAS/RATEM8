@@ -98,7 +98,7 @@ export default function CalcLayout({
               }}
             >
               Chat with M8
-              <span>→</span>
+              <span aria-hidden="true" className="cta-arrow">→</span>
             </Link>
           </div>
         </section>

@@ -37,7 +37,7 @@ export default function InvestorsPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 sm:px-6 py-6">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3" data-reveal="grid">
           {c.cards.map((card) => (
             <article key={card.title} className="card">
               <h2 className="ag-card-title">{card.title}</h2>

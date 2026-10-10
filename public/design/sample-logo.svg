@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" role="img" aria-label="Sample Lender (fictional)">
+  <rect x="2" y="6" width="28" height="28" rx="7" fill="#C2410C"/>
+  <path d="M10 26 L16 13 L22 26 Z" fill="#FFFFFF"/>
+  <text x="36" y="25" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#1F2937">SAMPLE</text>
+</svg>

@@ -52,7 +52,7 @@ export default async function StatePage({ params }: { params: Promise<Params> })
   const serviceJsonLd = stateServiceJsonLd(state.slug);
 
   return (
-    <PageShell crumbs={crumbs}>
+    <PageShell stickyCta crumbs={crumbs}>
       {serviceJsonLd ? <JsonLd data={serviceJsonLd} /> : null}
       <JsonLd
         data={webPageJsonLd({
@@ -113,7 +113,7 @@ export default async function StatePage({ params }: { params: Promise<Params> })
                 <span className="st-calc__title">{c.title}</span>
                 <span className="st-calc__body">{c.body}</span>
                 <span className="st-calc__go" aria-hidden="true">
-                  open →
+                  open <span className="cta-arrow">→</span>
                 </span>
               </Link>
             ))}

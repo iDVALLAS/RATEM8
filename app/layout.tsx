@@ -1,3 +1,4 @@
+import Interactions from "@/components/ui/Interactions";
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
@@ -76,6 +77,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         {/* MloContext: resolved per request by middleware (v15) when MLO_ROUTING is on; generic otherwise. */}
         <MloProvider value={mloValue}>{children}</MloProvider>
+        {/* v24: reveal / count-up / draw-in / magnetic hover (progressive, reduced-motion aware). */}
+        <Interactions />
         {/* Vercel Analytics only. No third-party trackers, no cookies set by us. */}
         <Analytics />
         <ReferralTracker />

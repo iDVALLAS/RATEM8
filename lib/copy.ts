@@ -189,6 +189,22 @@ export const copy = {
 
   // v21: the restored scripted demo (/chat, /demo). Its script lives in
   // lib/demoChat.ts; these are the strings added around it.
+  // v24: the phone-only bottom bar on borrower pages (StickyCtaBar).
+  stickyCta: {
+    label: "Next step",
+    cta: "Talk to a licensed loan officer",
+  },
+  // v24: designed loading and empty states (no spinners).
+  uiStates: {
+    loadingPricing: "Loading example pricing",
+    loadingDemo: "Loading the M8 demo",
+    loadingPage: "Loading",
+    pricingEmpty: "No pricing to show for this scenario right now.",
+    pricingEmptyBody: "Example pricing is dated and switched on per scenario. A licensed loan officer can price your actual situation.",
+    chartEmpty: "Nothing to chart yet.",
+    chartEmptyBody: "Enter values above and the chart draws itself.",
+  },
+
   demoChat: {
     bookCall: "Book a call with a licensed loan officer",
     notEnoughLenders: "Fewer than three lenders were eligible for this scenario, so no option set is shown.",

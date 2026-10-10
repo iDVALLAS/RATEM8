@@ -55,7 +55,7 @@ export default function AgentsPage() {
         <p className="code-label">{h.partnershipEyebrow}</p>
         <h2 className="ag-section-title">{h.partnership}</h2>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-8 grid gap-4 md:grid-cols-2" data-reveal="grid">
           {page.sections.map((s, i) => (
             <article key={s.title} className="card">
               <h3 className="ag-card-title">
@@ -91,7 +91,7 @@ export default function AgentsPage() {
         <p className="code-label">{h.buyersEyebrow}</p>
         <h2 className="ag-section-title">{h.buyers}</h2>
         <p className="ag-card-body mt-3 max-w-2xl">{copy.savings.agentsLine}</p>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-3" data-reveal="grid">
           {band.cards.map((c) => (
             <article key={c.title} className="card">
               <h3 className="ag-card-title">{c.title}</h3>
