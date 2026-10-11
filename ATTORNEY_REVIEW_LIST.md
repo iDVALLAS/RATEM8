@@ -191,6 +191,12 @@ conflict is recorded here.
 ## v21–v23 additions (2026-10-10)
 
 - **Brand/logo use (third-party trademarks, implied endorsement).**
+  - **Update 2026-10-11 (v26):** the owner supplied logo files and
+    approved showing them. Today they appear only next to the three
+    lenders the demo names.
+  - If any lender objects, `CONFIG.demo.namedLenders = false` reverts the
+    demo to "Lender 1 / 2 / 3".
+  - Questions below still stand for counsel.
   - `components/LenderMark.tsx` can show a lender's full-colour logo
     (`public/lenders/{slug}.svg`), but only for a lender marked
     `logoApproved: true` in `lib/lenders.ts`.

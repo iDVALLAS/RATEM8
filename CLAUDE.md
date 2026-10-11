@@ -94,7 +94,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v25 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v26 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -105,7 +105,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 125 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 128 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -479,10 +479,16 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   - The live M8 tab and `/api/m8-chat` sit behind `M8_LIVE_CHAT`
     (`featureFlags.demoLiveChat`).
   - `/chat?prep=1` is still the prep flow.
-- **Lender marks (v23):** `lib/lenders.ts` + `components/LenderMark.tsx`.
-  - A logo renders only when `logoApproved` (all false).
+- **Lender marks (v23, logos v26):** `lib/lenders.ts` +
+  `components/LenderMark.tsx`.
+  - A logo renders only when `logoApproved` AND `logoFile` is set. The
+    files are owner-supplied PNGs in `public/lenders/`, only ever cropped.
   - Otherwise a monogram tile.
+  - `brandColor` is each logo's own dominant colour.
   - Named lenders appear only where the original demo named them.
+  - `CONFIG.demo.namedLenders = false` reverts the demo to "Lender 1/2/3".
+  - The demo's option rows follow the card width (`@container ratecard`,
+    600px).
 - **M8:** `m8RoutingFacts()` in `lib/prompts/m8-system.ts` names only the
   matched MLO and tells M8 about the mover case. The live opening line
   swaps the same way.

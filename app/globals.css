@@ -2272,10 +2272,16 @@ button.beacon-pill { cursor: pointer; }
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
 }
 :root[data-theme="paper"] .lender-chip { background: var(--color-m8-paper); }
-.lender-chip__img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
-.lender-chip--sm { width: 40px; height: 24px; }
-.lender-chip--md { width: 64px; height: 36px; }
-.lender-chip--lg { width: 96px; height: 52px; }
+/* v26: supplied logos are wide (up to ~6:1), so chips have a fixed height
+   and a width that follows the logo, capped. */
+.lender-chip { display: inline-flex; align-items: center; justify-content: center; width: auto; }
+.lender-chip__img { display: block; width: auto; max-width: 100%; object-fit: contain; }
+.lender-chip--sm { height: 28px; max-width: 104px; padding: 3px 6px; }
+.lender-chip--sm .lender-chip__img { height: 20px; }
+.lender-chip--md { height: 40px; max-width: 160px; }
+.lender-chip--md .lender-chip__img { height: 30px; }
+.lender-chip--lg { height: 56px; max-width: 230px; }
+.lender-chip--lg .lender-chip__img { height: 44px; }
 
 /* ─── v23: lender cards — tinted left edge, soft wash, winner glow ─── */
 .lender-tinted {
@@ -2285,7 +2291,32 @@ button.beacon-pill { cursor: pointer; }
 }
 .rate-card-row.lender-tinted { border-radius: 10px; padding-left: 12px; }
 /* Grid cells may shrink (long point labels pushed DETAIL out of the card at ~1280px). */
-.rate-card-row > * { min-width: 0; overflow-wrap: anywhere; }
+.rate-card-row > * { min-width: 0; }
+/* v26: a rate or payment never breaks mid-number ("6.37 5%"). */
+.rate-card-row .rate-num, .rate-card-row .rate-money, .rate-card-row .rate-num-secondary { white-space: nowrap; }
+/* The row layout follows the CARD's width, not the viewport's: with both
+   sidebars open the chat column is only ~500px at 1024–1280. Wide card →
+   the original 6-column row (fixed rate/payment columns so rows align);
+   narrower card → a compact stacked row. Phones keep the swipe cards. */
+.rate-card { container-type: inline-size; container-name: ratecard; }
+@media (min-width: 768px) {
+  .rate-card-row {
+    grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 16px;
+    align-items: start;
+  }
+  .rate-card-row > :nth-child(1) { grid-column: 1; grid-row: 1 / span 4; padding-top: 4px; }
+  .rate-card-row > :nth-child(2) { grid-column: 2 / -1; }
+  .rate-card-row > :nth-child(3) { grid-column: 2; }
+  .rate-card-row > :nth-child(4) { grid-column: 3; }
+  .rate-card-row > :nth-child(5) { grid-column: 2 / -1; }
+  .rate-card-row > :nth-child(6) { grid-column: 2 / -1; justify-self: start; }
+  @container ratecard (min-width: 600px) {
+    .rate-card-row { grid-template-columns: 32px minmax(0, 1.3fr) 7.4rem 6.8rem minmax(0, 1.1fr) max-content; gap: 12px; align-items: center; }
+    .rate-card-row > :nth-child(n) { grid-column: auto; grid-row: auto; padding-top: 0; justify-self: auto; }
+    .rate-card-row > :nth-child(6) { justify-self: end; }
+  }
+}
 .rate-card-row .lo-btn-secondary { justify-self: end; max-width: 100%; }
 /* The original "selected" row kept its green rule; the tint replaces it. */
 .rate-card-row.lender-tinted.rate-card-row--selected { border-left: 0; margin-left: 0; padding-left: 14px; }

@@ -238,3 +238,28 @@ export type DemoChat = typeof demoChat;
 export function demoAsOf(now: Date = new Date()): string {
   return now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "America/Los_Angeles" });
 }
+
+/** A lender as the demo shows it: named (the original demo) or numbered. */
+export type DemoLender = { label: string; slug: string | null; index: number };
+
+/**
+ * v26: the owner's revert switch. CONFIG.demo.namedLenders false turns the
+ * original demo's named lenders into "Lender 1 / 2 / 3" (numbered tiles,
+ * no logos), everywhere the demo names them.
+ */
+export function demoLender(index: number, named: boolean = CONFIG.demo.namedLenders): DemoLender {
+  const r = demoChat.rateOptions[index];
+  return named ? { label: r.lender, slug: r.lenderKey, index } : { label: `Lender ${index + 1}`, slug: null, index };
+}
+
+/**
+ * The demo's "… · NAME" strings ("30yr · 0.5 pts · UWM", "OPTION 02 ·
+ * ROCKET PRO") with the lender part swapped for "Lender N" when numbered.
+ */
+export function demoLenderText(text: string, index: number, named: boolean = CONFIG.demo.namedLenders): string {
+  if (named) return text;
+  const cut = text.lastIndexOf(" · ");
+  const head = cut >= 0 ? text.slice(0, cut + 3) : "";
+  const label = `Lender ${index + 1}`;
+  return head + (text === text.toUpperCase() ? label.toUpperCase() : label);
+}

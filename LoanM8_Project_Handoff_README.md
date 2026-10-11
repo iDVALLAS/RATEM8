@@ -99,6 +99,79 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v26 — Owner-supplied lender logos and brand colours; revert-to-numbering switch (2026-10-11)
+
+**Owner, 2026-10-11:** "Here are the lender LOGO's. And if we have an issue
+with showing them we will revert to numbering them." (`Lender_Logos.zip`,
+14 PNGs.) The sandbox could not fetch logos from the web: its network
+policy blocks the lender domains, so nothing was downloaded.
+
+### Handling
+- **Unpacked** into an isolated folder outside the repo (uploaded files are
+  untrusted data). Every file was checked to be a real PNG; no SVGs, so no
+  script risk.
+- **Cropped** to the artwork with a small even margin, scaled to 96px tall
+  (2x a 48px chip), and re-encoded as plain PNG (no metadata), into
+  `public/lenders/{slug}.png`. Nothing was redrawn or recoloured.
+- **`brandColor`** for each lender is its logo's own dominant colour,
+  measured from the supplied file (`lib/lenders.ts`).
+
+### Logo status
+
+| Lender (registry) | File | Shown | Note |
+| --- | --- | --- | --- |
+| UWM | uwm.png | ✓ (demo) | #005F9F |
+| Rocket Pro TPO | rocket-pro.png | ✓ (demo) | Supplied file is the **Rocket Mortgage** logo. #C8202F |
+| Kind Lending | — | monogram | **Supplied file is cut off ("ind Lendir")**, so not used. Send a complete file |
+| The Loan Store | the-loan-store.png | approved | #103C60 |
+| PRMG | prmg.png | approved | #003DA6. Its *pricing* still needs display consent (`lib/pricing/lenders.ts`) |
+| Pennymac TPO | pennymac.png | approved | #F2C400 |
+| Freedom Mortgage | freedom.png | approved | #9F8731 |
+| REMN Wholesale | remn.png | approved | #00467F |
+| RISE TPO | rise.png | approved | File reads **"RiseUp Lending"**. #023B45 |
+| Newrez Wholesale | newrez.png | approved | #022F3D |
+| Aven | aven.png | approved | **New lender**; black-only logo, so it keeps a data-palette tint |
+| HELIX | helix.png | approved | **New lender**. #00A3F4 |
+| Nations Direct Mortgage | nations-direct.png | approved | **New lender**. #BF2232 |
+| NFTYDoor | nftydoor.png | approved | **New lender**. #0069C4 |
+| Provident Funding, HomeXpress, Plaza Home Mortgage | — | monogram | No logo in the set |
+
+- **Where logos show:** "Approved" means a logo will render wherever that
+  lender is named. Today only the scripted demo names lenders (UWM, Rocket
+  Pro TPO, Kind), so on the site you'll see the UWM and Rocket logos and
+  Kind's tile. `/rates` stays anonymized; no new named-lender display was
+  added.
+- **The four new lenders** are in the brand registry only, not in the
+  pricing panel (`lib/pricing/lenders.ts`, 12). The set has 14 logos,
+  which matches `lenderCountMax: 14`. Confirm whether Provident, HomeXpress
+  and Plaza are still on the panel and whether the four new ones should be
+  added to it.
+- **Revert switch:** set `CONFIG.demo.namedLenders` to `false`
+  (`lib/config.ts`). Every named spot in the demo then becomes "Lender 1 /
+  2 / 3", with numbered tiles and no logos: the option rows, the Detail
+  sheets, the hold-period labels and the "best quote" line. Tested in
+  `lib/demo-chat.test.ts`.
+
+### Layout fixes found on the way
+- **Logo chips** now have a fixed height and a width that follows the
+  logo (capped), so wide logos stay legible.
+- **The demo's option rows follow the card's width (container query), not
+  the viewport's:**
+  - ≥600px card → the original 6-column row, with fixed rate and payment
+    columns so rows align.
+  - Narrower (1024–1280 with both sidebars) → a stacked row.
+  - Phones keep the swipe cards.
+- **Rates and payments never break mid-number.** Before this, at 1280 the
+  v23 overflow rule could split "6.375%" into "6.37 5%".
+
+### Verified
+- `npm run verify` passes: 128 tests (new: an approved logo must have its
+  file, monograms are unique, Kind stays a monogram, the revert to
+  numbering), `check:bundle` (logos are static images, not JS).
+- `/chat` checked at 390, 800, 1024, 1280, 1440 and 1920 in Night and
+  Paper: the logos load, the rate columns align, nothing breaks
+  mid-number, and there is no horizontal overflow.
+
 ## v25 — Demo pricing: no "live", today's date; owner decisions on Geist and /rates (2026-10-11)
 
 **Owner, 2026-10-11:** "keep Geist, leave /rates as is and you can pull

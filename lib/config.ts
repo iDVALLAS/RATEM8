@@ -233,6 +233,13 @@ export const CONFIG = {
       "mlo-001": "17 years originating · Avg close: 18 days · Available now · in office",
     } as Record<string, string>,
     /** Pronoun the original demo copy used for this MLO (subject, verb "has", "will"). Unlisted MLOs get "they". */
+    /**
+     * v26: true shows the original demo's lender names and logos. If a
+     * lender objects, set false: the demo reverts to "Lender 1 / 2 / 3"
+     * with numbered tiles (owner 2026-10-11: "if we have an issue with
+     * showing them we will revert to numbering them").
+     */
+    namedLenders: true as boolean,
     loPronoun: {
       "mlo-001": { subject: "He", has: "has", will: "He'll" },
     } as Record<string, { subject: string; has: string; will: string }>,

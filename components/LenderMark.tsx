@@ -4,9 +4,9 @@ import { lenderBrand, lenderLogoPath, lenderTint, type LenderBrand } from "@/lib
  * LenderMark — a lender's mark (v23). Server component (lender names never
  * ship in browser JS; check:bundle).
  *
- * - `logoApproved: true` → the full-colour logo from
- *   public/lenders/{slug}.svg, inside a white/paper chip so a full-colour
- *   mark stays legible on the dark themes.
+ * - `logoApproved: true` with a supplied file → the full-colour logo from
+ *   public/lenders/ (`logoFile`), inside a white/paper chip so a
+ *   full-colour mark stays legible on the dark themes.
  * - otherwise → a monogram tile: the lender's initials on a square tinted
  *   with its brand colour (or, until that is confirmed, a data-palette hue).
  *
@@ -26,11 +26,12 @@ export default function LenderMark({ lender, size = "md", labelled = false, clas
   const l = typeof lender === "string" ? lenderBrand(lender) : lender;
   if (!l) return null;
   const a11y = labelled ? { role: "img", "aria-label": l.name } : { "aria-hidden": true as const };
-  if (l.logoApproved) {
+  const logo = logoSrc ?? lenderLogoPath(l);
+  if (l.logoApproved && logo) {
     return (
       <span className={`lender-chip lender-chip--${size} ${className}`.trim()} {...a11y}>
         {/* eslint-disable-next-line @next/next/no-img-element -- local SVG, fixed size */}
-        <img src={logoSrc ?? lenderLogoPath(l.slug)} alt="" className="lender-chip__img" />
+        <img src={logo} alt="" className="lender-chip__img" />
       </span>
     );
   }

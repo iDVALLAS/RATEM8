@@ -36,7 +36,7 @@ const BRAND = [
   ["Pine (paper text accent)", "#0F6E56", "--color-m8-pine"],
 ] as const;
 
-const SAMPLE: LenderBrand = { slug: "sample", name: d.sample.lender, monogram: d.sample.monogram, logoApproved: false, brandColor: null, tint: 4 };
+const SAMPLE: LenderBrand = { slug: "sample", name: d.sample.lender, monogram: d.sample.monogram, logoApproved: false, logoFile: null, brandColor: null, tint: 4 };
 
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (

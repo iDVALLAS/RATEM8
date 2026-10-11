@@ -13,18 +13,28 @@ describe("lender brands / LenderMark (v23)", () => {
     for (const slug of ["uwm", "rocket-pro", "kind"]) expect(lenderBrand(slug)).toBeDefined();
   });
 
-  it("an approved logo must have its file in public/lenders (the owner supplies it)", () => {
+  it("an approved logo must have its owner-supplied file in public/lenders", () => {
     for (const l of LENDER_BRANDS.filter((x) => x.logoApproved)) {
-      expect(existsSync(join(process.cwd(), "public", lenderLogoPath(l.slug))), `${l.slug}: approved but no logo file`).toBe(true);
+      const path = lenderLogoPath(l);
+      expect(path, `${l.slug}: approved but no logoFile`).not.toBeNull();
+      expect(existsSync(join(process.cwd(), "public", path!)), `${l.slug}: approved but ${path} is missing`).toBe(true);
     }
   });
 
-  it("renders a monogram tile, not a logo, while logoApproved is false", () => {
-    const html = renderToStaticMarkup(createElement(LenderMark, { lender: "uwm" }));
+  it("monograms are unique, and Kind (cropped file) stays a monogram", () => {
+    const m = LENDER_BRANDS.map((l) => l.monogram);
+    expect(new Set(m).size).toBe(m.length);
+    expect(lenderBrand("kind")!.logoApproved).toBe(false);
+  });
+
+  it("renders a monogram tile unless the logo is approved and supplied", () => {
+    const html = renderToStaticMarkup(createElement(LenderMark, { lender: "kind" }));
     expect(html).toContain("lender-mono");
     expect(html).not.toContain("<img");
-    const approved = renderToStaticMarkup(createElement(LenderMark, { lender: { ...lenderBrand("uwm")!, logoApproved: true }, labelled: true }));
-    expect(approved).toContain('src="/lenders/uwm.svg"');
+    const unapproved = renderToStaticMarkup(createElement(LenderMark, { lender: { ...lenderBrand("uwm")!, logoApproved: false } }));
+    expect(unapproved).not.toContain("<img");
+    const approved = renderToStaticMarkup(createElement(LenderMark, { lender: "uwm", labelled: true }));
+    expect(approved).toContain('src="/lenders/uwm.png"');
     expect(approved).toContain("lender-chip");
     expect(approved).toContain('aria-label="UWM"');
   });
