@@ -49,6 +49,7 @@ describe("the panel (v27)", () => {
       expect(l.products).toEqual(["heloc"]);
       expect(l.heloc?.automated).toBe(true);
       expect(l.heloc?.creditPull).toMatch(/one credit bureau/i);
+      expect(l.heloc?.creditPull).toMatch(/soft pull until the borrower applies/i);
       expect(l.heloc?.income).toMatch(/plaid/i);
       expect(offers(k, "first_mortgage")).toBe(false);
     }

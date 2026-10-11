@@ -99,6 +99,20 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v28 — HELOC credit pull is soft until application; "Soft pull only" wording stays (2026-10-11)
+
+- **Owner:** "the HELOC pull is soft until they apply, leave the wording".
+  This resolves the v27 flag.
+- **Recorded in:**
+  - the `heloc.creditPull` record for Aven, HELIX and NFTYDoor (now "One
+    credit bureau, soft pull until the borrower applies; which bureau
+    varies by program")
+  - `CLAUDE.md` §4b and `COMPLIANCE.md`
+  - a test asserting the record says soft-until-application
+- **No copy changed:** the M8 Code, the trust line and the footer still
+  say "Soft pull only".
+- **Verified:** `npm run verify` passes.
+
 ## v27 — The panel is the owner's 14 lenders; Aven, HELIX and NFTYDoor are HELOC-only (2026-10-11)
 
 **Owner, 2026-10-11:** "make the panel those 14 lenders but also take to
@@ -144,12 +158,10 @@ plaid connections for income."
 - `lenderCountMax` (14) now equals the panel size, and a test keeps them
   equal.
 
-### Flag for the owner
-- **Soft pull wording:** the site and demo say "Soft pull only" in
-  several places (the M8 Code, the trust line, the footer disclosure). The
-  HELOC programs pull a credit bureau. If that pull is hard, or happens
-  before the borrower authorizes it, the wording needs care when HELOC
-  files are offered. Nothing changed yet.
+### Flag for the owner (resolved in v28)
+- **Soft pull wording:** the HELOC programs pull a credit bureau. The
+  owner confirmed the pull is soft until the borrower applies, so the
+  wording stays.
 
 ### Verified
 - `npm run verify` passes (131 tests).

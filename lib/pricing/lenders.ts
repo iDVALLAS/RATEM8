@@ -28,15 +28,17 @@ export type LenderRecord = LenderRef & {
   displayConsent: boolean;
   /**
    * HELOC-only automated programs (owner, 2026-10-11): one credit bureau
-   * (not necessarily the same bureau from program to program) and income
-   * through a Plaid bank connection.
+   * (not necessarily the same bureau from program to program), a soft
+   * pull until the borrower applies, and income through a Plaid bank
+   * connection.
    */
   heloc?: { automated: true; creditPull: string; income: string };
 };
 
 const HELOC_PROGRAM = {
   automated: true,
-  creditPull: "One credit bureau; which bureau varies by program",
+  // Owner 2026-10-11: soft until the borrower applies, so "Soft pull only" copy stands.
+  creditPull: "One credit bureau, soft pull until the borrower applies; which bureau varies by program",
   income: "Plaid bank connection",
 } as const;
 

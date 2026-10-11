@@ -94,7 +94,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v27 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v28 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -386,7 +386,9 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   - **HELOC only (3): Aven, HELIX, NFTYDoor.** These are automated HELOC
     programs.
     - Each pulls **one credit bureau**, and not necessarily the same
-      bureau from program to program.
+      bureau from program to program. The pull is **soft until the
+      borrower applies**, so the site's "Soft pull only" wording stands
+      (owner, 2026-10-11).
     - Each verifies income through a **Plaid** bank connection.
     - They never price a first mortgage. `products: ["heloc"]`, and
       `publishSnapshot` refuses them in first-mortgage scenarios.

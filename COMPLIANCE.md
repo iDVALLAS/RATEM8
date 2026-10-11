@@ -54,8 +54,10 @@ showing example pricing. Live pricing stays off.
 
   Provident, HomeXpress and Plaza left the panel on 2026-10-11.
 - **HELOC-only programs (v27).** Aven, HELIX and NFTYDoor are automated
-  HELOC programs: one credit bureau (which bureau varies) and Plaid for
-  income. They are never priced or described as first-mortgage options.
+  HELOC programs: one credit bureau (which bureau varies), soft until the
+  borrower applies, and Plaid for income. They are never priced or
+  described as first-mortgage options. The "Soft pull only" wording is
+  unchanged (owner, 2026-10-11).
 - **Manual snapshots** require an attached source screenshot or PDF, are
   stored write-once with their sha256, and go stale after
   `PRICING_MANUAL_STALE_HOURS` (default 24). Every write is in the audit log.
