@@ -99,6 +99,61 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v27 — The panel is the owner's 14 lenders; Aven, HELIX and NFTYDoor are HELOC-only (2026-10-11)
+
+**Owner, 2026-10-11:** "make the panel those 14 lenders but also take to
+memory that Aven, NFTYdoor, and Helix are automated HELOC programs only
+that use a single credit bureau, not necessarily the same Bureau, and
+plaid connections for income."
+
+### Panel (`lib/pricing/lenders.ts`)
+- **14 lenders**, the same set as the logo registry (`lib/lenders.ts`).
+  - **Added:** Rocket Pro TPO, Nations Direct Mortgage, Aven, HELIX,
+    NFTYDoor.
+  - **Removed:** Provident Funding, HomeXpress, Plaza Home Mortgage. They
+    are gone from the brand registry too.
+- **New field `products`:**
+  - `["first_mortgage"]` for 11 lenders
+  - `["heloc"]` for Aven, HELIX and NFTYDoor, with a `heloc` record:
+    automated; one credit bureau, which bureau varies by program; income
+    through a Plaid bank connection
+- **New field `termsReviewed`:**
+  - `publishable()` now needs written consent, or reviewed terms with no
+    consumer-display restriction.
+  - The five lenders that weren't in the 2026-10-01 terms review (Rocket
+    Pro TPO, Nations Direct and the three HELOC programs) can't appear in
+    a published snapshot until reviewed or consented. PRMG still needs
+    consent.
+- **First mortgages only, everywhere that prices them:**
+  - `publishSnapshot` refuses a HELOC-only lender in a first-mortgage
+    scenario ("offers HELOCs only…"). Every current scenario is a first
+    mortgage.
+  - The `/mlo/pricing` entry form leaves HELOC-only lenders out.
+  - `/mlo/setup` labels them "HELOC only (automated: one credit bureau,
+    Plaid for income)" and marks unreviewed lenders.
+- **Demo:** "N more lenders shopped" now counts first-mortgage lenders
+  only. 11 shopped − 3 shown = **"8 more lenders shopped"** (was 11,
+  which counted HELOC programs that can't price a refinance).
+  "Up to 14 lenders" stays: it's the panel size.
+
+### Where it's remembered
+- `CLAUDE.md` §4b, `COMPLIANCE.md`, the data itself (`products`,
+  `heloc`), and tests (`lib/lender-count.test.ts` checks the 14 keys, the
+  three HELOC programs, the 11 first-mortgage lenders and
+  publishability).
+- `lenderCountMax` (14) now equals the panel size, and a test keeps them
+  equal.
+
+### Flag for the owner
+- **Soft pull wording:** the site and demo say "Soft pull only" in
+  several places (the M8 Code, the trust line, the footer disclosure). The
+  HELOC programs pull a credit bureau. If that pull is hard, or happens
+  before the borrower authorizes it, the wording needs care when HELOC
+  files are offered. Nothing changed yet.
+
+### Verified
+- `npm run verify` passes (131 tests).
+
 ## v26 — Owner-supplied lender logos and brand colours; revert-to-numbering switch (2026-10-11)
 
 **Owner, 2026-10-11:** "Here are the lender LOGO's. And if we have an issue

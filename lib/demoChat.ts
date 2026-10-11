@@ -25,6 +25,7 @@
  */
 
 import { CONFIG, STATES, mloById } from "./config";
+import { lendersFor } from "./pricing/lenders";
 
 const mlo = mloById(CONFIG.routing.stateAssignments.WA) ?? CONFIG.principalMlo;
 const first = mlo.firstName;
@@ -41,8 +42,12 @@ export const demoChat = {
     location: "98004 · WA",
   },
 
-  /** Lenders shopped for this scenario (the three shown plus the rest). */
-  lendersShopped: 14,
+  /**
+   * Lenders shopped for this scenario (the three shown plus the rest).
+   * v27: the panel's first-mortgage lenders only (11 of 14); the three
+   * HELOC-only programs can't price a rate/term refinance.
+   */
+  lendersShopped: lendersFor("first_mortgage").length,
 
   market: {
     rate: "6.625%",

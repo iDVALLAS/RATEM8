@@ -74,7 +74,21 @@ export default async function MloSetup({ searchParams }: Props) {
               {LENDERS.map((l) => (
                 <label key={l.key} className="mlo-check">
                   <input type="checkbox" name="active" value={l.key} defaultChecked={active.has(l.key)} />
-                  <span>{l.name}{publishable(l.key) ? "" : <><br /><span className="mlo-note">{c.restricted}</span></>}</span>
+                  <span>
+                    {l.name}
+                    {l.heloc ? (
+                      <>
+                        <br />
+                        <span className="mlo-note">{c.helocOnly}</span>
+                      </>
+                    ) : null}
+                    {publishable(l.key) ? null : (
+                      <>
+                        <br />
+                        <span className="mlo-note">{l.termsReviewed ? c.restricted : c.unreviewed}</span>
+                      </>
+                    )}
+                  </span>
                 </label>
               ))}
             </div>

@@ -1,8 +1,8 @@
 /**
  * lib/lenders.ts — lender BRAND registry for <LenderMark /> (v23).
  *
- * Separate from lib/pricing/lenders.ts (pricing consent flags), keyed by
- * the same slugs, plus the lenders the original demo named.
+ * Separate from lib/pricing/lenders.ts (the panel and its consent flags),
+ * keyed by the same slugs: the same 14 lenders (v27).
  *
  * Rules:
  *  - `logoApproved` is the owner's call per lender (v26: approved for every
@@ -54,12 +54,8 @@ export const LENDER_BRANDS: readonly LenderBrand[] = [
   // The supplied file reads "RiseUp Lending".
   { slug: "rise", name: "RISE TPO", monogram: "RT", logoApproved: true, logoFile: "rise.png", brandColor: "#023B45", tint: 4 },
   { slug: "newrez", name: "Newrez Wholesale", monogram: "NR", logoApproved: true, logoFile: "newrez.png", brandColor: "#022F3D", tint: 6 },
-  // No logo supplied for these three yet.
-  { slug: "provident", name: "Provident Funding", monogram: "PF", logoApproved: false, logoFile: null, brandColor: null, tint: 3 },
-  { slug: "homexpress", name: "HomeXpress", monogram: "HX", logoApproved: false, logoFile: null, brandColor: null, tint: 5 },
-  { slug: "plaza", name: "Plaza Home Mortgage", monogram: "PH", logoApproved: false, logoFile: null, brandColor: null, tint: 1 },
-  // v26: new in the owner's logo set. Names as printed on the supplied
-  // logos; not in lib/pricing/lenders.ts (the pricing panel) yet.
+  // v26: new in the owner's logo set (names as printed on the logos); on the
+  // panel since v27. Aven, HELIX and NFTYDoor are HELOC-only programs.
   { slug: "aven", name: "Aven", monogram: "AV", logoApproved: true, logoFile: "aven.png", brandColor: null, tint: 2 },
   { slug: "helix", name: "HELIX", monogram: "HL", logoApproved: true, logoFile: "helix.png", brandColor: "#00A3F4", tint: 1 },
   { slug: "nations-direct", name: "Nations Direct Mortgage", monogram: "ND", logoApproved: true, logoFile: "nations-direct.png", brandColor: "#BF2232", tint: 4 },

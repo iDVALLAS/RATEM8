@@ -94,7 +94,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v26 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v27 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -105,7 +105,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 128 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 131 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -377,8 +377,28 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 - **Tenants:** one per **sponsoring brokerage**, derived from the per-state
   sponsors in `lib/config.ts` (`lib/pricing/tenants.ts`). MLOs are seats.
   A brokerage's snapshots only price its own states.
-- **Lenders:** the owner's 12 in `lib/pricing/lenders.ts` (server-only).
-  PRMG, Plaza and HomeXpress cannot be published until `displayConsent`.
+- **Lenders (the panel, v27, owner 2026-10-11):** 14 lenders in
+  `lib/pricing/lenders.ts` (server-only), the same set as the logos in
+  `lib/lenders.ts`.
+  - **First mortgages (11):** UWM, Rocket Pro TPO, Kind Lending, The Loan
+    Store, PRMG, Pennymac TPO, Freedom Mortgage, REMN Wholesale, RISE TPO,
+    Newrez Wholesale, Nations Direct Mortgage.
+  - **HELOC only (3): Aven, HELIX, NFTYDoor.** These are automated HELOC
+    programs.
+    - Each pulls **one credit bureau**, and not necessarily the same
+      bureau from program to program.
+    - Each verifies income through a **Plaid** bank connection.
+    - They never price a first mortgage. `products: ["heloc"]`, and
+      `publishSnapshot` refuses them in first-mortgage scenarios.
+    - Never describe them with first-mortgage assumptions (tri-merge
+      credit, pay stubs or W-2s).
+  - **Removed 2026-10-11:** Provident Funding, HomeXpress, Plaza Home
+    Mortgage.
+  - **Publishing:** a lender is publishable only with `displayConsent`,
+    or with `termsReviewed` and no consumer-display restriction.
+    - PRMG restricts display.
+    - Rocket Pro TPO, Nations Direct and the three HELOC programs are
+      not yet reviewed.
 - **Playbook:** per-lender fields and a screened note
   (`lib/pricing/playbook.ts`); rendered after the cards, anonymized; never
   an input to selection.

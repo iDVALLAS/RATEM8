@@ -9,7 +9,7 @@
  *  - any input fails validation (buildPricingRun throws).
  */
 import { buildPricingRun } from "./build";
-import { lenderByKey, publishable, LENDERS } from "./lenders";
+import { lenderByKey, offers, publishable, LENDERS } from "./lenders";
 import { emptyEntry, screenNote, type PlaybookEntry } from "./playbook";
 import { exampleScenarios } from "./providers/mock";
 import { getStore, type TenantSettings } from "./store";
@@ -55,6 +55,8 @@ export async function publishSnapshot(req: PublishRequest): Promise<PublishResul
     const l = lenderByKey(q.lenderKey);
     if (!l) errors.push(`Unknown lender "${q.lenderKey}".`);
     else if (!active.has(q.lenderKey)) errors.push(`${l.name} is not one of this brokerage's active lenders.`);
+    // v27: every current scenario is a first mortgage; HELOC-only programs can't price it.
+    else if (!offers(q.lenderKey, "first_mortgage")) errors.push(`${l.name} offers HELOCs only, so it can't be priced in a first-mortgage scenario.`);
     else if (!publishable(q.lenderKey)) errors.push(`${l.name}'s terms restrict showing its pricing to consumers. Record written consent before including it.`);
   }
   if (errors.length) return { ok: false, errors };
@@ -117,5 +119,5 @@ export async function saveSettings(req: SettingsRequest): Promise<SettingsResult
 }
 
 export function allLenderOptions() {
-  return LENDERS.map((l) => ({ key: l.key, name: l.name, publishable: publishable(l.key) }));
+  return LENDERS.map((l) => ({ key: l.key, name: l.name, publishable: publishable(l.key), helocOnly: !l.products.includes("first_mortgage") }));
 }

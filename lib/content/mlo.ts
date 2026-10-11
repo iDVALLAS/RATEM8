@@ -16,6 +16,9 @@ export const mloContent = {
     lenders: "3 · Go-to lenders (up to 10)",
     lendersNote: "Keep at least three lenders that can be shown to consumers so the three-option comparison is possible.",
     restricted: "Terms restrict consumer display; needs written consent",
+    // v27
+    unreviewed: "Terms not reviewed yet; can't be shown to consumers until reviewed or consent is recorded",
+    helocOnly: "HELOC only (automated: one credit bureau, Plaid for income). Not used in first-mortgage scenarios",
     playbook: "4 · Lender playbook",
     playbookNote: "Your notes appear after the three options as \"Your loan officer's notes\", with the lender shown by letter. They never change ranking or which lenders appear. Notes about borrowers, places, or protected characteristics are rejected.",
     save: "Save lenders and playbook",

@@ -45,9 +45,17 @@ showing example pricing. Live pricing stays off.
 - **Lenders are anonymized** and re-lettered per snapshot. Real names and
   the letter mapping stay server-side (`npm run check:bundle` fails the
   build if a lender name reaches the browser).
-- **Lender consent.** Lenders whose terms restrict consumer display (PRMG,
-  Plaza, HomeXpress) cannot be published until written consent is recorded
-  in `lib/pricing/lenders.ts` (`publishSnapshot` refuses them).
+- **Lender consent.** These lenders cannot be published until written
+  consent is recorded in `lib/pricing/lenders.ts` (`publishSnapshot`
+  refuses them):
+  - lenders whose terms restrict consumer display (PRMG)
+  - since v27, lenders whose terms have not been reviewed (Rocket Pro TPO,
+    Nations Direct, Aven, HELIX, NFTYDoor)
+
+  Provident, HomeXpress and Plaza left the panel on 2026-10-11.
+- **HELOC-only programs (v27).** Aven, HELIX and NFTYDoor are automated
+  HELOC programs: one credit bureau (which bureau varies) and Plaid for
+  income. They are never priced or described as first-mortgage options.
 - **Manual snapshots** require an attached source screenshot or PDF, are
   stored write-once with their sha256, and go stale after
   `PRICING_MANUAL_STALE_HOURS` (default 24). Every write is in the audit log.

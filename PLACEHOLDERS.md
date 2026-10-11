@@ -152,6 +152,5 @@ Nothing renders until **all** of these are real and counsel has signed off
 | `RESEND_API_KEY`, `MLO_NOTIFICATION_EMAIL`, `LOANM8_FROM_EMAIL` | Vercel env (server) | unset → the demo's question box says it couldn't send | Set all three for `/api/chat-question` to email questions to the loan officer. The old `…_NOTIFICATION_EMAIL` and `RATEM8_FROM_EMAIL` names are no longer read |
 | `M8_LIVE_CHAT` | Vercel env (server) | unset → no live tab on `/demo`, `/api/m8-chat` returns 404 | `true` (plus `ANTHROPIC_API_KEY`) only after counsel signs off the draft prompt |
 | Kind Lending logo | `public/lenders/` | the supplied file is cropped ("ind Lendir") → monogram | A complete logo file |
-| Provident Funding, HomeXpress, Plaza logos | `public/lenders/` | none → monograms | Logo files, if they stay on the panel |
-| Pricing panel vs logo set | `lib/pricing/lenders.ts` | 12 lenders; the logo set adds Aven, HELIX, Nations Direct, NFTYDoor and has no Provident/HomeXpress/Plaza | Confirm the current panel |
-| `CONFIG.lenderCountMax` | `lib/config.ts` | 14 | The operator's lender list on file (`lib/pricing/lenders.ts`) has 12: add two, or lower this to 12 |
+| Terms review: Rocket Pro TPO, Nations Direct, Aven, HELIX, NFTYDoor | `lib/pricing/lenders.ts` (`termsReviewed`) | `false` → not publishable on `/rates` snapshots | Review each lender's broker terms (as `docs/work/pricing-integration-findings.md` did for the original 12), or record written consent |
+| `CONFIG.lenderCountMax` | `lib/config.ts` | 14 | Matches the 14-lender panel (v27). A test keeps them equal |

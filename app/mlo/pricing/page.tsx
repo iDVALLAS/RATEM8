@@ -4,7 +4,7 @@ import PageShell from "@/components/PageShell";
 import { CONFIG } from "@/lib/config";
 import { mloContent } from "@/lib/content/mlo";
 import { decodeFlash } from "@/lib/mlo/flash";
-import { LENDERS, publishable } from "@/lib/pricing/lenders";
+import { LENDERS, offers, publishable } from "@/lib/pricing/lenders";
 import { isFresh } from "@/lib/pricing/providers/manual";
 import { exampleScenarios } from "@/lib/pricing/providers/mock";
 import { SOURCE_TYPES } from "@/lib/pricing/publish";
@@ -29,7 +29,8 @@ export default async function MloPricing({ searchParams }: Props) {
   const scenario = scenarios.find((x) => x.id === s) ?? scenarios[0];
   const store = getStore();
   const settings = await store.latestSettings(tenant.id);
-  const lenders = LENDERS.filter((l) => settings?.activeLenderKeys.includes(l.key) && publishable(l.key));
+  // v27: every scenario is a first mortgage, so HELOC-only programs are not offered here.
+  const lenders = LENDERS.filter((l) => settings?.activeLenderKeys.includes(l.key) && publishable(l.key) && offers(l.key, "first_mortgage"));
   const recent = scenario ? (await store.listSnapshots(tenant.id, scenario.id)).slice(0, 10) : [];
 
   return (

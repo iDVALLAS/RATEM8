@@ -135,11 +135,10 @@ describe("tenants and lenders", () => {
     expect(tenantForState("AZ")).toBeTruthy();
     for (const t of tenants) expect(t.id.startsWith("brokerage-")).toBe(true);
   });
-  it("lists the operator's twelve lenders and blocks the restricted ones until consent", () => {
-    expect(LENDERS.length).toBe(12);
+  it("lists the operator's fourteen lenders and blocks restricted or unreviewed ones until consent", () => {
+    expect(LENDERS.length).toBe(14);
     expect(publishable("prmg")).toBe(false);
-    expect(publishable("plaza")).toBe(false);
-    expect(publishable("homexpress")).toBe(false);
+    expect(publishable("nations-direct")).toBe(false);
     expect(publishable("uwm")).toBe(true);
   });
 });
@@ -163,10 +162,15 @@ describe("manual snapshots", () => {
     await saveSettings({ tenantId: wa.id, activeLenderKeys: ["uwm", "pennymac", "kind", "prmg"], playbook: [], actor: "test" });
     const noSource = await publishSnapshot({ tenantId: wa.id, scenarioId: "bellevue-refi", quotes: [q("uwm", 6.25, 0)], source: null, actor: "test" });
     expect(noSource.ok).toBe(false);
-    const inactive = await publishSnapshot({ tenantId: wa.id, scenarioId: "bellevue-refi", quotes: [q("plaza", 6.25, 0)], source: { bytes: png, mime: "image/png" }, actor: "test" });
+    const inactive = await publishSnapshot({ tenantId: wa.id, scenarioId: "bellevue-refi", quotes: [q("freedom", 6.25, 0)], source: { bytes: png, mime: "image/png" }, actor: "test" });
     expect(inactive.ok).toBe(false);
     const restricted = await publishSnapshot({ tenantId: wa.id, scenarioId: "bellevue-refi", quotes: [q("prmg", 6.25, 0)], source: { bytes: png, mime: "image/png" }, actor: "test" });
     expect(restricted.ok).toBe(false);
+    // v27: a HELOC-only program can't be priced in a first-mortgage scenario.
+    await saveSettings({ tenantId: wa.id, activeLenderKeys: ["uwm", "pennymac", "kind", "aven"], playbook: [], actor: "test" });
+    const heloc = await publishSnapshot({ tenantId: wa.id, scenarioId: "bellevue-refi", quotes: [q("aven", 6.25, 0)], source: { bytes: png, mime: "image/png" }, actor: "test" });
+    expect(heloc.ok).toBe(false);
+    if (!heloc.ok) expect(heloc.errors.join(" ")).toMatch(/HELOCs only/);
   });
 
   it("publishes, stores the source hash, and writes the audit log", async () => {
