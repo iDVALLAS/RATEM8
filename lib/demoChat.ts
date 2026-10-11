@@ -77,7 +77,10 @@ export const demoChat = {
       sender: "M8",
       avatar: "M8",
       time: "11:42 AM",
-      label: "PRICING PULLED LIVE",
+      // v25 (owner 2026-10-11): no "live" on demo pricing. The date is today's,
+      // added at render time (ChatExperience), so it never goes stale.
+      label: "EXAMPLE PRICING",
+      datedLabel: true,
       content: [
         "Straight answer: with 760+ credit on a $640k primary in 98004, you're looking at 6.375% to 6.625% across our wholesale panel right now. Real improvement over your 7.25%.",
         `Here are the three options that meet the anti-steering requirements — lowest rate, lowest rate with no risky features, and lowest fees. All from lenders ${first} closes with regularly.`,
@@ -218,6 +221,8 @@ export type DemoMessage = {
   avatar: string;
   time: string;
   label?: string;
+  /** Append today's date to the label ("EXAMPLE PRICING · OCTOBER 11, 2026"). */
+  datedLabel?: boolean;
   content: string | string[];
   rateTable?: boolean;
   scenarioPills?: boolean;
@@ -225,3 +230,11 @@ export type DemoMessage = {
 };
 
 export type DemoChat = typeof demoChat;
+
+/**
+ * Today's calendar date for the demo's example-pricing labels (v25), in the
+ * operator's time zone. Computed per request, never at build time.
+ */
+export function demoAsOf(now: Date = new Date()): string {
+  return now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "America/Los_Angeles" });
+}

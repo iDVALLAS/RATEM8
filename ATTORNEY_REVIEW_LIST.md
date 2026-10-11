@@ -210,9 +210,8 @@ conflict is recorded here.
 - **Restored scripted demo (`/chat`, `/demo`), owner-attorney cleared for
   illustrative pricing.** Every rate card carries "Example — illustrative
   pricing, not an offer". Still confirm:
-  - The original wording "PRICING PULLED LIVE", "Live · Pricing Sync 14s
-    ago", "Synced 14s ago" and "Live Market" was restored verbatim. It
-    now sits next to the "illustrative" label.
+  - ~~The original "live" wording~~: removed by the owner on 2026-10-11
+    (v25). Demo pricing is labelled "Example pricing" with today's date.
   - The loan officer card's carried-over claims "17 years originating ·
     Avg close: 18 days" (`CONFIG.demo.loBio`) must be accurate.
   - The original "49 STATES" badge now shows the real licensed-state

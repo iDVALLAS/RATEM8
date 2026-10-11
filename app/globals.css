@@ -2566,3 +2566,16 @@ a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(
   border-color: color-mix(in srgb, var(--color-m8-green) 55%, var(--bg));
   color: var(--fg);
 }
+
+/* v25: the demo header's example-pricing badge. A still dot: nothing on a
+   pricing surface pulses or reads as "live". */
+.example-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--fg-soft);
+}
+.example-badge::before { content: ""; width: 7px; height: 7px; border-radius: 9999px; border: 1px solid var(--accent); }

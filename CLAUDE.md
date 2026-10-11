@@ -72,7 +72,8 @@ and turns the orb halo off.
   side-by-side ("apply to the whole site 100%"); a 2026-09-30 handoff
   note mentioned "Fraunces Bold hero, Exo for UI" and the owner then
   confirmed "keep Geist site-wide, ignore the Fraunces/Exo note."
-  Do not reintroduce Fraunces or Exo.
+  On 2026-10-11 a design brief asked for "optical sizing on Fraunces";
+  the owner answered "keep Geist". Do not reintroduce Fraunces or Exo.
 - Hand-drawn underlines under accent words are disabled site-wide
   (`.hand-underline { display: none !important }`) at the owner's
   request. `components/motion/Underline.tsx` is retained but dead.
@@ -93,7 +94,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v24 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v25 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -104,7 +105,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 123 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 125 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -471,6 +472,10 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   - Its MLO is `CONFIG.routing.stateAssignments.WA`, with pronoun and bio
     from `CONFIG.demo`.
   - Every rate card carries `ExamplePricingLabel`.
+  - v25: the demo never calls its pricing "live". Labels are dated with
+    today's calendar date (`demoAsOf()`, America/Los_Angeles, per
+    request). The one exception is the disclaimer "Live pricing not yet
+    active." (`lib/demo-chat.test.ts`).
   - The live M8 tab and `/api/m8-chat` sit behind `M8_LIVE_CHAT`
     (`featureFlags.demoLiveChat`).
   - `/chat?prep=1` is still the prep flow.

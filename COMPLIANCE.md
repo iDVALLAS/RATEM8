@@ -65,11 +65,16 @@ showing example pricing. Live pricing stays off.
     Soft pull only", and the page keeps "Sample conversation. Live
     pricing not yet active."
   - No new named-lender display may be added beyond those three.
-  - **Open item for counsel:** the restored demo also contains its
-    original "PRICING PULLED LIVE", "Live · Pricing Sync 14s ago", "Synced
-    14s ago" and "Live Market" wording, which the "never the word live"
-    rule above would otherwise forbid. It was restored verbatim at the
-    owner's request and is listed in `ATTORNEY_REVIEW_LIST.md`.
+  - **Resolved 2026-10-11 (v25, owner):** the demo no longer calls its
+    pricing "live".
+    - "PRICING PULLED LIVE" is now "EXAMPLE PRICING · [today's date]".
+    - "Live · Pricing Sync 14s ago" is now "Example pricing · [date]".
+    - "Live Market" is now "Market · [date]".
+    - "Live Wholesale Options" is now "Wholesale Options".
+    - "Synced 14s ago" is now "Example · [date]".
+    - The date is the calendar date at request time (America/Los_Angeles).
+    - The only remaining "live" is the disclaimer "Sample conversation.
+      Live pricing not yet active." (`lib/demo-chat.test.ts`).
 - **Lender logos** render only for a lender marked `logoApproved: true`
   in `lib/lenders.ts` (all false at v23); otherwise a monogram tile.
 

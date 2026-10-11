@@ -99,6 +99,41 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v25 — Demo pricing: no "live", today's date; owner decisions on Geist and /rates (2026-10-11)
+
+**Owner, 2026-10-11:** "keep Geist, leave /rates as is and you can pull
+'live' from pricing and use the current calendar date".
+
+- **Demo wording** (`components/ChatExperience.tsx`, `lib/demoChat.ts`):
+
+  | Before (restored v7 copy) | Now |
+  | --- | --- |
+  | Header "Live · Pricing Sync 14s ago" (pulsing dot) | "Example pricing · October 11, 2026" (still dot, `.example-badge`) |
+  | Message label "PRICING PULLED LIVE" | "EXAMPLE PRICING · OCTOBER 11, 2026" |
+  | Sidebar "Live Market" | "Market · October 11, 2026" |
+  | "◇ Live Wholesale Options · …" | "◇ Wholesale Options · …" |
+  | "Synced 14s ago" | "Example · October 11, 2026" |
+
+  - **The date** is today's calendar date in America/Los_Angeles,
+    computed per request (`demoAsOf()`; `/chat` and `/demo` already
+    render per request). It is never frozen at build time.
+  - **Kept:** the disclaimer "Sample conversation. Live pricing not yet
+    active.", which says live pricing is off. Also kept: every
+    `ExamplePricingLabel` and the footer line "Indicative pricing ·
+    Subject to verification · Soft pull only".
+  - **Test:** `lib/demo-chat.test.ts` fails if "live" or "sync" returns
+    anywhere in the demo outside that disclaimer, and checks the
+    time-zone date.
+- **Geist stays site-wide.** Item 9's "optical sizing on Fraunces" is
+  declined for good. This is the third confirmation (09-29, 09-30, 10-11).
+- **`/rates` is left as is:** v13 example pricing behind
+  `PRICING_DEMO_EXAMPLES`, plus the off-by-default `RateVsAverage`.
+- `COMPLIANCE.md`'s open "live" item is resolved;
+  `ATTORNEY_REVIEW_LIST.md` is updated.
+- **Verified:** `npm run verify` passes (125 tests). `/chat` was rendered
+  at 1440 and 390, shows today's date, and has no "live" outside the
+  disclaimer.
+
 ## v24 — Design upgrades, mobile patterns, skeletons, /design style guide, AA sweep (2026-10-10)
 
 ### Depth and type

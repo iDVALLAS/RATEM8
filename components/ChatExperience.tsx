@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { demoChat, demoPronoun } from "@/lib/demoChat";
+import { demoAsOf, demoChat, demoPronoun } from "@/lib/demoChat";
 import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import ChatInput from "@/components/ChatInput";
@@ -40,6 +40,9 @@ import ArrowText from "@/components/ui/ArrowText";
  */
 export default function ChatExperience() {
   const c = demoChat;
+  // v25: example pricing is dated with today's calendar date (rendered per
+  // request), and nothing on a pricing surface says "live".
+  const asOf = demoAsOf();
   const showOptions = new Set(c.rateOptions.map((r) => r.lender)).size >= CONFIG.lenderCountMin;
   const shopped = c.lendersShopped;
   const moreShopped =
@@ -75,7 +78,7 @@ export default function ChatExperience() {
 
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-2">
-            <span className="live-badge">Live · Pricing Sync 14s ago</span>
+            <span className="example-badge">Example pricing · {asOf}</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--rule)]">
             <span className="lo-avatar" style={{ width: 22, height: 22 }} />
@@ -124,7 +127,7 @@ export default function ChatExperience() {
 
           <div className="market-card">
             <ExamplePricingLabel className="mb-2" />
-            <div className="market-card-label">Live Market</div>
+            <div className="market-card-label">Market · {asOf}</div>
             <div className="market-card-rate">{c.market.rate}</div>
             <div className="market-card-meta">
               {c.market.label} ·{" "}
@@ -157,7 +160,9 @@ export default function ChatExperience() {
                     <span className="mx-2 opacity-50">·</span>
                     <span>{msg.time}</span>
                     {msg.label && (
-                      <span className="msg-meta--label ml-2">{msg.label}</span>
+                      <span className="msg-meta--label ml-2">
+                        {msg.datedLabel ? `${msg.label} · ${asOf.toUpperCase()}` : msg.label}
+                      </span>
                     )}
                   </div>
                   {Array.isArray(msg.content) ? (
@@ -184,15 +189,15 @@ export default function ChatExperience() {
                       <ExamplePricingLabel className="mb-3" />
                       <div className="flex items-center justify-between mb-3">
                         <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-[var(--color-m8-green)]">
-                          ◇ Live Wholesale Options · Conforming 30yr ·
+                          ◇ Wholesale Options · Conforming 30yr ·
                           $640,000 · 98004
                         </div>
                         <div className="font-mono text-[10px] tracking-[0.1em] text-[var(--muted)]">
-                          Synced 14s ago
+                          Example · {asOf}
                         </div>
                       </div>
                       {/* v24: swipeable cards with dots on phones; stacked rows from md up. */}
-                      <SwipeRow label="Live wholesale options" variant="stack" className="rate-swipe">
+                      <SwipeRow label="Wholesale options" variant="stack" className="rate-swipe">
                       {c.rateOptions.map((r) => {
                         const brand = lenderBrand(r.lenderKey);
                         // v23: tinted edge + wash from the lender's colour; the
