@@ -51,6 +51,7 @@ export const THEME_DOT_COLORS: Record<Theme, string> = {
 export const THEME_KEY = "loanm8.theme";
 export const DEFAULT_THEME: Theme = "night";
 
+
 /** Read the saved theme from localStorage, or fall back to the default. */
 export function readSavedTheme(): Theme {
   if (typeof window === "undefined") return DEFAULT_THEME;

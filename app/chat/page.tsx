@@ -1,21 +1,36 @@
 import ChatExperience from "@/components/ChatExperience";
+import PageShell from "@/components/PageShell";
+import ChatShell from "@/components/chat/ChatShell";
+import { copy } from "@/lib/copy";
 
 export const metadata = {
   title: "M8 Chat — LoanM8",
   description:
     "Preview the M8 conversation experience — anti-steering rate display, hold-period analysis, and a real licensed loan officer ready to close.",
-  // Legacy URL during stealth. /demo is the canonical preview route.
-  // Hidden by middleware while stealth is on; post-stealth, this can
-  // either redirect to /demo or stand on its own as the chat surface.
   robots: { index: false, follow: false },
 };
 
 /**
- * /chat — legacy entry point that now renders the same shared
- * ChatExperience component used by /demo. v7 had the chat content
- * inlined here; v9 extracts it into a shared component so both
- * routes stay in sync without duplication.
+ * /chat — the scripted M8 demo (v21: restored from the original build,
+ * the Sarah / Bellevue refi conversation in <ChatExperience />). It is
+ * where the homepage "I'm shopping a mortgage" button goes.
+ *
+ * /chat?prep=1 is the v18 "Prep my application with M8" flow, which
+ * keeps its AI disclosure gate (<ChatShell prep />).
+ *
+ * No model call here: live M8 is only the flagged tab on /demo.
  */
-export default function ChatPage() {
-  return <ChatExperience />;
+export default async function ChatPage({ searchParams }: { searchParams: Promise<{ prep?: string }> }) {
+  const { prep } = await searchParams;
+  if (prep !== "1") return <ChatExperience />;
+  return (
+    <PageShell
+      crumbs={[
+        { name: "Home", path: "/" },
+        { name: copy.chat.title, path: "/chat" },
+      ]}
+    >
+      <ChatShell prep />
+    </PageShell>
+  );
 }

@@ -1,23 +1,27 @@
 import { cookies } from "next/headers";
+import ChatExperience from "@/components/ChatExperience";
 import ChatExperienceWithToggle from "@/components/ChatExperienceWithToggle";
 import DemoPasswordGate from "@/components/DemoPasswordGate";
+import { CONFIG } from "@/lib/config";
 
 export const metadata = {
   title: "M8 Preview — LoanM8",
-  description:
-    "Preview the M8 conversation experience. By invitation only.",
+  description: "Tester preview of the M8 chat shell. By invitation only.",
   robots: { index: false, follow: false },
 };
 
 /**
- * /demo — v10.0 update
+ * /demo — the owner's password-gated tester tool.
  *
- * Now renders ChatExperienceWithToggle after auth, giving testers a
- * two-tab UI: the scripted Sarah demo OR live M8 (preview build).
+ * After auth this renders ChatExperienceWithToggle: a "Scripted demo"
+ * tab (the restored Sarah demo, <ChatExperience />, same as /chat) and,
+ * only when M8_LIVE_CHAT is on (v21), a "Live M8 (preview)" tab
+ * (<M8LiveChat />, which talks to the model through /api/m8-chat with
+ * the draft system prompt).
  *
- * The password gate is unchanged. The "you need password to see the
- * chat" security posture stays. Live M8 is behind the same gate as
- * the scripted demo, exactly as agreed for v10.0.
+ * The password gate below is unchanged. The live tab is allowed only
+ * behind it; the public /chat route never calls a model while
+ * CONFIG.featureFlags.chatLiveAi is false.
  */
 
 async function hashPassword(pw: string): Promise<string> {
@@ -38,8 +42,8 @@ export default async function DemoPage() {
     !!authCookie && !!expectedHash && authCookie.value === expectedHash;
 
   if (!authed) {
-    return <DemoPasswordGate />;
+    return <DemoPasswordGate contactEmail={CONFIG.demoContactEmail} />;
   }
 
-  return <ChatExperienceWithToggle />;
+  return <ChatExperienceWithToggle scripted={<ChatExperience />} liveEnabled={CONFIG.featureFlags.demoLiveChat} />;
 }

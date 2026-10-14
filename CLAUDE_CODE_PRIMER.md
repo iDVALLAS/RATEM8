@@ -1,3 +1,10 @@
+> **Superseded note (2026-09-29, one-shot site build).** Parts of this
+> primer describe the pre-build scaffold (Exo typography, the scripted
+> Sarah demo, `lib/licensing.ts` as the source of truth). The current
+> rules live in `docs/BUILD_CONTRACT.md` (contributor contract),
+> `docs/SITE_BRIEF.md` (the brief), `COMPLIANCE.md`, and `lib/config.ts`
+> (every fact). Where this file and those disagree, those win.
+
 # LoanM8 — Claude Code Build Primer
 
 **Paste this entire document into Claude Code as your first message. It contains everything Claude Code needs to build LoanM8 v1 and deploy it to Vercel on loanm8.com.**

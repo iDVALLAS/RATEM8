@@ -1,186 +1,81 @@
 # LoanM8 — Typography Guide
 
-**Primary typeface: Exo**
-A geometric sans-serif designed by Natanael Gama. Modern, clean,
-slightly futuristic. Pairs naturally with the orb's geometric form.
+**Type stack** (owner decision 2026-09-29, after a side-by-side; supersedes the brief's Fraunces display lock):
 
-This guide is the rulebook. Anyone working on LoanM8 — designers,
-developers, copywriters — should follow it.
+| Role          | Font               | Used for                                                     |
+|---------------|--------------------|--------------------------------------------------------------|
+| Display       | **Geist** (300, tight) | Headlines, the tagline, principle titles; accent words in a green gradient |
+| Body / UI     | **Geist**          | Paragraphs, buttons, nav, inputs, cards                      |
+| Labels / data | **JetBrains Mono** | Scene labels (`// 01 — drop`), eyebrows, numbers, badges     |
+
+Headline rules live under `:root[data-type="sans"]` in `app/globals.css`
+(the attribute is set statically on `<html>`). Fraunces is not
+downloaded; `--font-fraunces` aliases to Geist.
+
+"M8" in the wordmark is always M8 Green.
+
+Both are self-hosted (JetBrains Mono through `next/font/google`, served
+from `/_next/static`; Geist ships in the `geist` npm package). CSS variables:
+`--font-fraunces`, `--font-geist-sans`, `--font-jetbrains`. The theme
+aliases `--font-display`, `--font-sans`, `--font-serif`, `--font-mono`
+point at them in `app/globals.css`.
+
+> The previous Exo stack (v5–v11) was replaced by the one-shot site
+> build because the brief locks the fonts above. The Exo `.otf` files
+> were removed from `public/fonts/`.
 
 ---
 
-## The Type Stack
-
-| Role           | Font                | Used for                                    |
-|----------------|---------------------|---------------------------------------------|
-| Display + Sans | **Exo**             | Headlines, body, UI, the wordmark           |
-| Mono           | **JetBrains Mono**  | Numbers, labels, "Principle 01" eyebrows    |
-
-We deliberately do NOT use a serif. The previous Fraunces choice was
-replaced because the geometric sans pairs better with the orb's
-identity and reads more "loan intelligence platform" than "editorial
-think piece."
-
----
-
-## The Tagline — The Most Important Type Choice
-
-The tagline gets its rhetorical power from contrasting weights:
+## The tagline
 
 ```
-Loan intelligence.              ← Exo Bold (700)
-Free for all loan mates.        ← Exo Thin Italic (100, italic)
+Loan intelligence.        ← .tagline  (Geist 300, tight tracking, sheen)
+human authentication      ← .hm-hero__auth (Geist 300; "human" at full
+                             contrast, the rest at 55%, fingerprint mark)
 ```
 
-**Why this works.** The bold sets a confident, grounded statement.
-The thin italic reads as a promise — light, almost an exhale.
-Reader experiences the brand as confident BUT generous in two
-visual beats.
+Before 2026-09-29 the tagline was Fraunces 700 with the promise line
+"Free for the people." in italic Fraunces beneath it. The owner chose
+the sans treatment after a side-by-side; the promise line now lives in
+the footer and page metadata, not under the hero headline.
 
-Don't substitute Medium for Bold. Don't substitute Light for Thin.
-The wider the weight contrast, the better this reads.
+## The accent word
 
-**CSS class:** `.tagline` (defined in `app/globals.css`)
-**Override:** the italic span inside `<h1 className="tagline">` gets
-its weight automatically via the `.tagline em` selector.
+One word or short phrase per headline renders in the green gradient
+(`linear-gradient(100deg, M8 Green, accent, Deep Green)` clipped to the
+text; paper surfaces use a deeper variant for contrast). Use `Reveal`
+with `accent` or `AccentTitle` from `PrincipleCard`. Hand-drawn
+underlines are disabled site-wide (`.hand-underline { display: none }`)
+at the owner's request; `Underline.tsx` remains but is unused.
 
----
+Rules: one accent per headline. The accent is the *idea* of the
+sentence ("Drop it.", "Build your book", "A licensed human"), never a
+random word. Never two colours in one headline.
 
-## Weight Usage Map
+## Mono labels
 
-| Weight | Name        | Use for                                        |
-|-------:|-------------|------------------------------------------------|
-| 100    | Thin        | Tagline italic line ONLY. Reserved.            |
-| 200    | ExtraLight  | Optional for very large, airy headlines        |
-| 300    | Light       | Body text on secondary pages, long-form prose  |
-| 400    | Regular     | Default body text                              |
-| 500    | Medium      | UI buttons, nav links, principle card labels   |
-| 600    | SemiBold    | Card titles, section subheads, "How it works"  |
-| 700    | Bold        | Tagline first line, section H2 headlines       |
-| 800    | ExtraBold   | Reserved for marketing posters / launch deck   |
-| 900    | Black       | Almost never. Reserved.                        |
+`.code-label` for scene labels (`// 01 — drop`), `.principle-label` /
+`.eyebrow` for section eyebrows (uppercase, 0.2em tracking, green),
+`.mono-label` for quiet metadata (uppercase, muted). Mono is for
+structure and data, never for paragraphs.
 
-Most of the site uses three weights: **300 (Light)** for body,
-**500 (Medium)** for UI, **700 (Bold)** for headlines. Bold +
-Thin Italic appears only in the tagline. Keep the system tight.
+## Sizes (mobile → desktop)
 
----
+| Element            | Mobile           | Desktop           |
+|--------------------|------------------|-------------------|
+| h1 hero            | `text-5xl`       | `text-7xl`        |
+| h1 page            | `text-4xl`       | `text-6xl`        |
+| h2 section         | `text-3xl`       | `text-5xl`        |
+| Principle title    | 1.45rem          | 1.6rem            |
+| Body               | 1rem / 1.7       | 1rem / 1.7        |
+| Mono label         | 10–11px          | 11px              |
 
-## Italic Usage
+Body copy is Geist at weight 300 (`font-light`) when muted, 400 when
+primary. Headlines never exceed weight 700.
 
-Italic in Exo is meaningful — use it sparingly.
+## Contrast
 
-**Use italic for:**
-- The second line of the tagline
-- Pull quotes (rare; mostly in long-form pages)
-- True foreign words or titles ("the Loan Estimate")
-
-**Don't use italic for:**
-- Emphasis inside body text (use semi-bold instead, or restructure
-  the sentence)
-- "Cute" phrases or microcopy
-- M8 dialogue (M8 speaks in regular weight; voice carries warmth)
-
----
-
-## Size Scale
-
-Tailwind v4 utility classes work directly. Recommended scale:
-
-| Use                          | Tailwind class               | Weight |
-|------------------------------|------------------------------|-------:|
-| Hero tagline                 | `text-5xl sm:text-7xl`       | 700/100|
-| Page H1                      | `text-4xl sm:text-6xl`       | 700    |
-| Section H2                   | `text-4xl sm:text-5xl`       | 700    |
-| Card / step title (H3)       | `text-2xl`                   | 600    |
-| Mini-card title              | `text-xl`                    | 600    |
-| Body large (subhead)         | `text-lg leading-relaxed`    | 300    |
-| Body regular                 | `text-base leading-relaxed`  | 400    |
-| Body small                   | `text-sm`                    | 400    |
-| UI button                    | `text-base`                  | 500    |
-| Principle label / eyebrow    | `text-xs tracking-[0.18em]`  | 500 mono |
-| Compliance disclaimer        | `text-xs`                    | 400    |
-
----
-
-## Letter Spacing (Tracking)
-
-| Use                         | Letter spacing  |
-|-----------------------------|-----------------|
-| Headlines (display)         | `-0.025em` (tighter — Exo is wide otherwise) |
-| Body                        | `normal`        |
-| Eyebrow labels (mono)       | `0.18em` (wide, all-caps) |
-| Button text                 | `0` to `0.01em` |
-
-Always tighten Exo at display sizes. Loose tracking at large weights
-makes it feel uncertain.
-
----
-
-## Color Pairings
-
-Exo on `--m8-night` (dark mode default) reads best at:
-
-- **Headlines:** `--m8-paper` (#FAFAF9) for the bold line, then
-  `color-mix(in srgb, var(--m8-paper) 92%, var(--m8-green))` for
-  the italic — barely tinted toward green, not fully colored.
-- **Body:** `--muted` (paper at 65% opacity)
-- **Eyebrow / labels:** `--m8-green` at 80% mixed with paper —
-  slightly desaturated so it doesn't shout
-
-Don't put bold Exo in pure `--m8-green` at any size. The green is
-for accents and the orb. Headlines stay paper-colored.
-
----
-
-## Wordmark Specifics
-
-The "LoanM8" wordmark is set in Exo **SemiBold (600)** with:
-- "Rate" in `--m8-paper`
-- "M8" in `--m8-green`
-- Letter spacing: `-0.02em`
-- Subname "LOAN INTELLIGENCE" in JetBrains Mono, 10px, tracking 0.2em
-
-Don't change the weight of "M8" relative to "Rate" — they're the
-same weight, only the color differs. The lift comes from color, not
-from weight contrast.
-
----
-
-## What NOT to Do
-
-- **Don't pair Exo with another sans-serif.** It's the system.
-  Mixing in Geist, Inter, Helvetica, etc. fragments the brand.
-- **Don't use Black (900) on the web.** It looks chunky in browser
-  rendering. Reserve for print/poster work only.
-- **Don't italicize body paragraphs.** Italic is for the tagline
-  and rare emphasis.
-- **Don't all-caps anything except mono labels.** Exo at large sizes
-  in all caps reads as aggressive shouting.
-- **Don't drop below 14px for any user-facing text.** Compliance
-  disclaimer at 12px is the only exception, and it's required to be
-  small by convention but readable.
-
----
-
-## Quick Implementation Reference
-
-In Next.js, fonts are loaded via `next/font/local` in `app/layout.tsx`.
-The variable `--font-exo` is set on `<html>`. CSS variables route to it:
-
-```css
---font-display: var(--font-exo);
---font-sans: var(--font-exo);
-```
-
-In components, use `font-display` or `font-sans` Tailwind classes,
-plus weight utilities (`font-bold`, `font-medium`, `font-light`).
-
-For the tagline specifically, use the `.tagline` class on the
-container; weight contrast handles itself.
-
----
-
-End of guide. When in doubt: less weight contrast outside the tagline,
-tighter tracking on display sizes, paper for headlines, green for
-accents only.
+Paper mode swaps `--accent` from M8 Green to Deep Green because M8 Green
+fails 4.5:1 on paper for text. Always colour text with tokens
+(`var(--fg)`, `var(--muted)`, `var(--accent)`), never raw brand hex, so
+every theme and every scene chapter (night / forest / paper) stays AA.

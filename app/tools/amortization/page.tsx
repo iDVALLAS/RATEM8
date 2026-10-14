@@ -122,10 +122,10 @@ export default function AmortizationPage() {
                 strokeDasharray="2 3"
               />
               {/* Labels */}
-              <text x={pad} y={pad - 10} fontSize="10" fill="var(--muted)" fontFamily="monospace">
+              <text x={pad} y={pad - 10} fontSize="10" fill="var(--muted)" fontFamily="var(--font-jetbrains), monospace">
                 $ (0 → {formatDollars(maxY)})
               </text>
-              <text x={W - pad} y={H - pad + 20} fontSize="10" fill="var(--muted)" fontFamily="monospace" textAnchor="end">
+              <text x={W - pad} y={H - pad + 20} fontSize="10" fill="var(--muted)" fontFamily="var(--font-jetbrains), monospace" textAnchor="end">
                 Month {chartData.length - 1}
               </text>
             </svg>

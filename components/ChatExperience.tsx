@@ -1,7 +1,16 @@
 import Link from "next/link";
-import { demoChat } from "@/lib/demoChat";
-import { ANCHOR_LO } from "@/lib/licensing";
+import { demoAsOf, demoChat, demoLender, demoLenderText, demoPronoun } from "@/lib/demoChat";
+import { CONFIG } from "@/lib/config";
+import { copy } from "@/lib/copy";
 import ChatInput from "@/components/ChatInput";
+import BookingCTA from "@/components/BookingCTA";
+import ExamplePricingLabel from "@/components/ExamplePricingLabel";
+import LenderMark from "@/components/LenderMark";
+import SwipeRow from "@/components/ui/SwipeRow";
+import DetailSheet from "@/components/ui/DetailSheet";
+import CountUp from "@/components/ui/CountUp";
+import { lenderBrand, lenderTint, type LenderBrand } from "@/lib/lenders";
+import ArrowText from "@/components/ui/ArrowText";
 
 /**
  * ChatExperience — the M8 chat preview, extracted from v7's /chat
@@ -19,9 +28,34 @@ import ChatInput from "@/components/ChatInput";
  *
  * Compliance footer: "Sample conversation. Live pricing not yet
  * active." is preserved exactly as v7 had it.
+ *
+ * v21 restore (dropped by the one-shot rebuild): verbatim from main, plus
+ *  - ExamplePricingLabel on every rate card (the options card, each
+ *    option row, the hold-period card, both sidebar rate cards);
+ *  - "Book a call with a licensed loan officer" under the follow-ups;
+ *  - the option set renders only with at least CONFIG.lenderCountMin
+ *    lenders, and "N more lenders shopped" only when the scenario's
+ *    shopped count is real (lendersShopped, ≤ CONFIG.lenderCountMax);
+ *  - loan officer facts from config (lib/demoChat.ts).
  */
 export default function ChatExperience() {
   const c = demoChat;
+  // v25: example pricing is dated with today's calendar date (rendered per
+  // request), and nothing on a pricing surface says "live".
+  const asOf = demoAsOf();
+  // v26: named lenders with their supplied logos, or (if a lender objects)
+  // CONFIG.demo.namedLenders = false → "Lender 1 / 2 / 3" with numbered tiles.
+  const numbered = (i: number): LenderBrand => ({ slug: `lender-${i + 1}`, name: `Lender ${i + 1}`, monogram: String(i + 1), logoApproved: false, logoFile: null, brandColor: null, tint: (i + 1) as 1 | 2 | 3 });
+  const brandFor = (i: number) => {
+    const l = demoLender(i);
+    return l.slug ? lenderBrand(l.slug) : numbered(i);
+  };
+  const showOptions = new Set(c.rateOptions.map((r) => r.lender)).size >= CONFIG.lenderCountMin;
+  const shopped = c.lendersShopped;
+  const moreShopped =
+    Number.isInteger(shopped) && shopped <= CONFIG.lenderCountMax && shopped > c.rateOptions.length
+      ? shopped - c.rateOptions.length
+      : null;
 
   return (
     <div className="chat-page">
@@ -51,7 +85,7 @@ export default function ChatExperience() {
 
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-2">
-            <span className="live-badge">Live · Pricing Sync 14s ago</span>
+            <span className="example-badge">Example pricing · {asOf}</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--rule)]">
             <span className="lo-avatar" style={{ width: 22, height: 22 }} />
@@ -99,7 +133,8 @@ export default function ChatExperience() {
           </ul>
 
           <div className="market-card">
-            <div className="market-card-label">Live Market</div>
+            <ExamplePricingLabel className="mb-2" />
+            <div className="market-card-label">Market · {asOf}</div>
             <div className="market-card-rate">{c.market.rate}</div>
             <div className="market-card-meta">
               {c.market.label} ·{" "}
@@ -108,9 +143,10 @@ export default function ChatExperience() {
           </div>
 
           <div className="market-card">
+            <ExamplePricingLabel className="mb-2" />
             <div className="market-card-label">Your best quote</div>
             <div className="market-card-rate">{c.bestQuote.rate}</div>
-            <div className="market-card-meta">{c.bestQuote.detail}</div>
+            <div className="market-card-meta">{demoLenderText(c.bestQuote.detail, 0)}</div>
           </div>
         </aside>
 
@@ -131,7 +167,9 @@ export default function ChatExperience() {
                     <span className="mx-2 opacity-50">·</span>
                     <span>{msg.time}</span>
                     {msg.label && (
-                      <span className="msg-meta--label ml-2">{msg.label}</span>
+                      <span className="msg-meta--label ml-2">
+                        {msg.datedLabel ? `${msg.label} · ${asOf.toUpperCase()}` : msg.label}
+                      </span>
                     )}
                   </div>
                   {Array.isArray(msg.content) ? (
@@ -150,30 +188,47 @@ export default function ChatExperience() {
                   )}
 
                   {/* Rate options table */}
-                  {msg.rateTable && (
+                  {msg.rateTable && !showOptions && (
+                    <p className="rate-card mt-4 text-sm text-[var(--muted)]">{copy.demoChat.notEnoughLenders}</p>
+                  )}
+                  {msg.rateTable && showOptions && (
                     <div className="rate-card mt-4">
+                      <ExamplePricingLabel className="mb-3" />
                       <div className="flex items-center justify-between mb-3">
                         <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-[var(--color-m8-green)]">
-                          ◇ Live Wholesale Options · Conforming 30yr ·
+                          ◇ Wholesale Options · Conforming 30yr ·
                           $640,000 · 98004
                         </div>
                         <div className="font-mono text-[10px] tracking-[0.1em] text-[var(--muted)]">
-                          Synced 14s ago
+                          Example · {asOf}
                         </div>
                       </div>
-                      {c.rateOptions.map((r) => (
+                      {/* v24: swipeable cards with dots on phones; stacked rows from md up. */}
+                      <SwipeRow label="Wholesale options" variant="stack" className="rate-swipe">
+                      {c.rateOptions.map((r, i) => {
+                        const brand = brandFor(i);
+                        const lenderName = demoLender(i).label;
+                        // v23: tinted edge + wash from the lender's colour; the
+                        // lowest-total-cost option (the original "selected" row) glows.
+                        const winner = r.designation === "LOWEST TOTAL COST";
+                        return (
                         <div
                           key={r.rank}
-                          className={`rate-card-row ${
+                          className={`rate-card-row lender-tinted ${
                             r.selected ? "rate-card-row--selected" : ""
-                          }`}
+                          } ${winner ? "is-winner" : ""}`}
+                          style={brand ? ({ "--lender-tint": lenderTint(brand) } as React.CSSProperties) : undefined}
                         >
                           <div className="font-mono text-xs text-[var(--muted)]">
                             {r.rank}
                           </div>
                           <div>
-                            <div className="font-display font-semibold text-base text-[var(--fg)]">
-                              {r.lender}
+                            <ExamplePricingLabel className="example-label--row" />
+                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                              {brand ? <LenderMark lender={brand} size="sm" /> : null}
+                              <div className="font-display font-semibold text-base text-[var(--fg)]">
+                                {lenderName}
+                              </div>
                             </div>
                             <div className="font-mono text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] mt-1">
                               {r.designation}
@@ -184,7 +239,9 @@ export default function ChatExperience() {
                             <div className="rate-num-secondary">{r.apr}</div>
                           </div>
                           <div>
-                            <div className="rate-money">{r.payment}</div>
+                            <div className="rate-money">
+                              <CountUp value={r.payment} />
+                            </div>
                             <div className="rate-num-secondary">{r.paymentType}</div>
                           </div>
                           <div className="text-xs text-[var(--muted)]">
@@ -193,19 +250,42 @@ export default function ChatExperience() {
                             </div>
                             <div className="leading-tight">{r.pointsDetail}</div>
                           </div>
-                          <button className="lo-btn-secondary text-[10px]">
-                            DETAIL
-                          </button>
+                          {/* v24: DETAIL opens a bottom sheet (dialog on desktop). */}
+                          <DetailSheet label="DETAIL" title={`Option ${r.rank} · ${lenderName}`}>
+                            <ExamplePricingLabel className="mb-4" />
+                            <p className="font-mono text-[10px] tracking-[0.1em] uppercase text-[var(--muted)]">{r.designation}</p>
+                            <dl className="detail-dl mt-3">
+                              <dt>Rate</dt>
+                              <dd className="num">{r.rate}</dd>
+                              <dt>APR</dt>
+                              <dd className="num">{r.apr.replace(/^APR\s*/, "")}</dd>
+                              <dt>Payment</dt>
+                              <dd className="num">
+                                {r.payment} {r.paymentType}
+                              </dd>
+                              <dt>Points</dt>
+                              <dd>{r.pointsLabel}</dd>
+                              <dt>Note</dt>
+                              <dd>{r.pointsDetail}</dd>
+                            </dl>
+                            <p className="mt-4 font-mono text-[10px] tracking-[0.05em] text-[var(--muted)]">
+                              Indicative pricing · Subject to verification · Soft pull only
+                            </p>
+                          </DetailSheet>
                         </div>
-                      ))}
+                        );
+                      })}
+                      </SwipeRow>
                       <div className="mt-4 pt-3 border-t border-[var(--rule)] grid sm:grid-cols-2 gap-2 font-mono text-[10px] tracking-[0.05em] text-[var(--muted)]">
                         <span>
                           Indicative pricing · Subject to verification · Soft
                           pull only
                         </span>
-                        <span className="sm:text-right">
-                          11 more lenders shopped · None lower than #01
-                        </span>
+                        {moreShopped !== null ? (
+                          <span className="sm:text-right">
+                            {moreShopped} more lenders shopped · None lower than #01
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   )}
@@ -224,16 +304,20 @@ export default function ChatExperience() {
                   {/* Hold-period analysis */}
                   {msg.holdAnalysis && (
                     <div className="rate-card mt-4">
+                      <ExamplePricingLabel className="mb-3" />
                       <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-[var(--color-m8-green)] mb-4">
                         ◆ Hold-Period Analysis · 7 Years
                       </div>
                       <div className="grid grid-cols-3 gap-4">
-                        {c.holdAnalysis.map((h) => (
+                        {c.holdAnalysis.map((h, i) => (
                           <div key={h.label}>
-                            <div className="font-mono text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] mb-2">
-                              {h.label}
+                            <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.1em] uppercase text-[var(--muted)] mb-2">
+                              {brandFor(i) ? <LenderMark lender={brandFor(i)!} size="sm" /> : null}
+                              {demoLenderText(h.label, i)}
                             </div>
-                            <div className="rate-money">{h.amount}</div>
+                            <div className="rate-money">
+                              <CountUp value={h.amount} />
+                            </div>
                             <div className="font-mono text-[10px] text-[var(--muted)] mt-1">
                               {h.note}
                             </div>
@@ -251,9 +335,16 @@ export default function ChatExperience() {
           <div className="mt-8 flex flex-wrap gap-3">
             {c.followups.map((f) => (
               <button key={f} className="followup-btn">
-                → {f}
+                <ArrowText text={`→ ${f}`} />
               </button>
             ))}
+          </div>
+
+          {/* v21: the human hand-off, inside the demo. */}
+          <div className="mt-6 max-w-sm">
+            <BookingCTA kind="borrower" variant="secondary" intake={false}>
+              {copy.demoChat.bookCall}
+            </BookingCTA>
           </div>
         </main>
 
@@ -318,9 +409,11 @@ export default function ChatExperience() {
                 </div>
               </div>
             </div>
-            <p className="text-xs text-[var(--muted)] leading-relaxed mt-3 whitespace-pre-line">
-              {c.loanOfficer.bio.split(" · ").join("\n")}
-            </p>
+            {c.loanOfficer.bio ? (
+              <p className="text-xs text-[var(--muted)] leading-relaxed mt-3 whitespace-pre-line">
+                {c.loanOfficer.bio.split(" · ").join("\n")}
+              </p>
+            ) : null}
             <div className="mt-4 flex gap-2">
               <button className="lo-btn-secondary">Message</button>
               <button className="lo-btn-primary">Talk Now</button>
@@ -330,11 +423,11 @@ export default function ChatExperience() {
       </div>
 
       {/* ─── Input bar + disclosure ─── */}
-      <ChatInput />
+      <ChatInput mloFirst={c.loanOfficer.firstName} mloWill={demoPronoun.will} />
 
       <div className="demo-disclosure">
         LOANM8 never shares your data · Soft pull only ·{" "}
-        <b>Verified by a human MLO before signing</b> · NMLS #{ANCHOR_LO.nmls} ·{" "}
+        <b>Verified by a human MLO before signing</b> · NMLS #{c.loanOfficer.nmlsNumber} ·{" "}
         Sample conversation. Live pricing not yet active.
       </div>
     </div>

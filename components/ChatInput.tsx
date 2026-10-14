@@ -23,14 +23,26 @@ import { useState, useRef, useEffect } from "react";
  * Compliance:
  *  - Email field is optional (we don't gate on PII)
  *  - No SSN, no DOB, no hard pull — soft contact only
- *  - All inbound questions are stored 5 years (CFPB record-keeping)
  *  - The orb being clickable does NOT initiate any data collection
  *    until the user explicitly hits send
+ *
+ * v21: restored from main (dropped by the one-shot rebuild). Changes:
+ * the loan officer's first name and pronoun come in as props (from
+ * config via ChatExperience); the old Exo font reference is gone; and
+ * /api/chat-question now fails honestly when email isn't configured, so
+ * "Sent" only shows when the question was actually sent.
  */
 
 type OrbState = "idle" | "typing" | "sending";
 
-export default function ChatInput() {
+type ChatInputProps = {
+  /** The demo loan officer's first name (config). */
+  mloFirst: string;
+  /** "He'll" / "They'll", from CONFIG.demo.loPronoun. */
+  mloWill: string;
+};
+
+export default function ChatInput({ mloFirst, mloWill }: ChatInputProps) {
   const [question, setQuestion] = useState("");
   const [email, setEmail] = useState("");
   const [showEmail, setShowEmail] = useState(false);
@@ -105,9 +117,9 @@ export default function ChatInput() {
         >
           <span className="font-mono text-[10px] tracking-[0.15em] uppercase mr-2"
                 style={{ color: "var(--accent)" }}>
-            ✓ Sent to Jason
+            ✓ Sent to {mloFirst}
           </span>
-          He&apos;ll personally reply within a few hours. The full M8 chat
+          {mloWill} personally reply within a few hours. The full M8 chat
           launches soon — you&apos;ll be among the first to try it.{" "}
           <button
             onClick={() => setStatus("idle")}
@@ -144,7 +156,6 @@ export default function ChatInput() {
                 background: "var(--bg-elevated)",
                 borderColor: "var(--rule)",
                 color: "var(--fg)",
-                fontFamily: "var(--font-exo)",
                 animation: "m8-hint-in 200ms cubic-bezier(0.22, 1, 0.36, 1)",
               }}
               role="status"
@@ -194,7 +205,7 @@ export default function ChatInput() {
             else setShowEmail(true);
           }}
           disabled={!question.trim() || status === "sending"}
-          aria-label="Send to Jason"
+          aria-label={`Send to ${mloFirst}`}
           className="grid place-items-center w-10 h-10 rounded-lg disabled:opacity-40 transition-colors"
           style={{
             background: "var(--accent)",
@@ -220,7 +231,7 @@ export default function ChatInput() {
             ✓ Got it
           </span>
           <span className="text-sm text-[var(--muted)]">
-            Email so Jason can reply:
+            Email so {mloFirst} can reply:
           </span>
           <input
             type="email"
@@ -238,7 +249,7 @@ export default function ChatInput() {
             className="font-mono text-[10px] tracking-[0.15em] uppercase hover:underline disabled:opacity-50"
             style={{ color: "var(--accent)" }}
           >
-            Send →
+            Send <span aria-hidden="true" className="cta-arrow">→</span>
           </button>
           <button
             onClick={() => handleSubmit()}
@@ -251,7 +262,7 @@ export default function ChatInput() {
 
       {status === "error" && (
         <p className="mt-2 text-xs text-red-400 px-4">
-          Something went wrong sending that. Try again, or email Jason directly.
+          Something went wrong sending that. Try again, or email {mloFirst} directly.
         </p>
       )}
     </div>

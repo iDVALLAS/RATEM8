@@ -1,0 +1,327 @@
+/* components/motion/stage.css — the "large-format slide" language.
+   Stacked sheets on an ambient stage, slide headlines, the scroll-driven
+   step list, and floating UI cards.
+
+   Prefixes: .stage-  .sheet-  .steplist-  .float-card
+   Tokens only. No filter / backdrop-filter on sheets; transforms and
+   opacity are the only animated properties. */
+
+/* ─── Stage: the ambient full-bleed backdrop ────────────────────── */
+/* The gradient is the brand's own greens (Deep → Forest → Night) with
+   the orb's halo bleeding in at the edges. Like the orb, it renders the
+   same in every theme, so it keys off the brand tokens, not --bg. */
+
+.stage-root {
+  position: relative;
+  --stage-nav: 64px;      /* measured at runtime by SheetStack */
+  --stage-lip: 8px;       /* sliver of stage visible above a stuck sheet */
+  --stage-gutter: 0px;    /* side inset (0 on phones) */
+  --stage-radius: 28px;
+  background: var(--color-m8-night);
+  color: var(--color-m8-paper);
+  isolation: isolate;
+}
+@media (min-width: 768px) {
+  .stage-root { --stage-gutter: 24px; --stage-radius: 40px; }
+}
+@media (min-width: 1280px) {
+  .stage-root { --stage-gutter: 40px; }
+}
+
+/* Viewport-sized backdrop that stays pinned for the whole stage. Sticky
+   (not background-attachment: fixed) so it works on mobile and never
+   re-rasterizes. Gradients only.
+
+   The sticky element lives inside an absolutely positioned, clipped
+   layer that spans exactly the stage. Without that layer, a sticky
+   backdrop with a negative bottom margin keeps painting one viewport
+   PAST the end of the stage, covering whatever follows (on the home
+   page: the About section and the top of the footer). */
+.stage-backdrop-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: clip;
+  pointer-events: none;
+}
+.stage-backdrop {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 0% 50%, color-mix(in srgb, var(--color-m8-green) 26%, transparent) 0%, transparent 70%),
+    radial-gradient(60% 40% at 100% 50%, color-mix(in srgb, var(--color-m8-green) 26%, transparent) 0%, transparent 70%),
+    radial-gradient(90% 70% at 50% 0%, color-mix(in srgb, var(--color-m8-green) 18%, transparent) 0%, transparent 65%),
+    radial-gradient(120% 90% at 50% 45%, var(--color-m8-deep) 0%, var(--color-m8-forest) 48%, var(--color-m8-night) 100%);
+}
+
+/* ─── Sheet stack ───────────────────────────────────────────────── */
+
+.sheet-stack {
+  position: relative;
+  z-index: 1;
+  padding: var(--stage-lip) var(--stage-gutter) var(--stage-gutter);
+}
+@media (min-width: 768px) {
+  .sheet-stack { padding-top: 12px; }
+}
+
+/* Each sheet is sticky under the nav; the next one in flow slides up
+   OVER it. `--sheet-top` is set by SheetStack: nav height for sheets
+   that fit the viewport, negative for taller ones so they pin by their
+   bottom edge and every line of them can be read first. */
+.stage-root .sheet-item {
+  position: sticky;
+  top: var(--sheet-top, calc(var(--stage-nav) + var(--stage-lip)));
+  min-height: calc(100svh - var(--stage-nav) - var(--stage-lip));
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--stage-radius);
+  border-top: 1px solid var(--rule-strong);
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.35);
+  /* clip, not hidden: hidden would turn the sheet into a scrollport and
+     break position: sticky for the step list's pinned visual. */
+  overflow: clip;
+}
+.stage-root .sheet-item + .sheet-item { margin-top: 0; }
+
+/* Content that should fill the sheet and sit vertically centred. */
+.sheet-fill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ─── Slide headline ────────────────────────────────────────────── */
+/* Big Fraunces lines. Non-accent words at --fg-soft, the accent phrase
+   in M8 Green (via .reveal__accent). With `stage-headline--dim` the
+   lines before the key line sit at 55%. */
+
+.stage-headline { color: var(--fg-soft); }
+.stage-headline .stage-headline-line {
+  display: block;
+  color: var(--fg-soft);
+  transition: opacity 500ms ease-out;
+}
+.stage-headline .stage-headline-line.is-key { color: var(--fg-soft); }
+.stage-headline--dim .stage-headline-line:not(.is-key) { opacity: 0.55; }
+.stage-headline .reveal__accent { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .stage-headline .stage-headline-line { transition: none; }
+}
+
+/* ─── Step list ─────────────────────────────────────────────────── */
+
+.steplist-root {
+  display: grid;
+  gap: 24px;
+  margin-top: 28px;
+}
+@media (min-width: 1024px) {
+  .steplist-root {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+  }
+}
+
+.steplist-col { min-width: 0; }
+/* v17: tail space so the last step can sit in the middle band before the
+   section ends (desktop sheets pin by their bottom edge). */
+.steplist-tail { height: 8vh; }
+@media (min-width: 1024px) { .steplist-tail { height: 35vh; } }
+.steplist-root.is-reduced .steplist-tail { height: 0; }
+
+.steplist-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 28px;
+}
+@media (min-width: 1024px) { .steplist-items { gap: 0; } }
+
+.steplist-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 4px 0;
+  color: var(--muted);
+  opacity: 0.45;
+  transition: opacity 400ms ease-out, color 400ms ease-out;
+}
+@media (min-width: 1024px) {
+  .steplist-item { min-height: 34vh; padding: 24px 0; }
+}
+.steplist-item.is-active,
+.steplist-root.is-reduced .steplist-item { opacity: 1; color: var(--fg); }
+
+.steplist-dot {
+  margin-top: 0.55em;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  transition: background-color 300ms ease-out, border-color 300ms ease-out, box-shadow 300ms ease-out;
+}
+.steplist-item.is-active .steplist-dot,
+.steplist-root.is-reduced .steplist-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.steplist-label {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+.steplist-item:not(.is-active) .steplist-label { color: inherit; }
+.steplist-root.is-reduced .steplist-label { color: var(--accent); }
+.steplist-title {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin-top: 6px;
+  color: inherit;
+}
+@media (min-width: 640px) { .steplist-title { font-size: 1.7rem; } }
+.steplist-body {
+  margin-top: 8px;
+  max-width: 30rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  font-weight: 300;
+  color: inherit;
+}
+
+/* Visual: inline after each statement on phones, pinned on desktop. */
+.steplist-visual--inline { grid-column: 2; margin-top: 16px; }
+.steplist-pin { display: none; }
+@media (min-width: 1024px) {
+  .steplist-visual--inline { display: none; }
+  .steplist-pin {
+    display: block;
+    position: sticky;
+    top: 30vh;
+    align-self: start;
+  }
+}
+.steplist-visual {
+  animation: steplist-swap 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes steplist-swap {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.steplist-root.is-reduced .steplist-visual { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .steplist-item, .steplist-dot { transition: none; }
+  .steplist-visual { animation: none; }
+}
+
+/* ─── Floating UI card ──────────────────────────────────────────── */
+
+.float-card {
+  position: relative;
+  border-radius: 16px;
+  border: 1px solid var(--rule);
+  background: var(--bg-sunken);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), border-color 300ms ease-out;
+}
+.float-card:hover { transform: translateY(-4px); }
+/* A dashed bento slot becomes a float card once it fills. */
+.bento-slot.float-card { box-shadow: none; background: transparent; }
+.bento-slot--filled.float-card {
+  background: var(--bg-sunken);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-card { transition: none; }
+  .float-card:hover { transform: none; }
+}
+
+/* ─── Image block: gradient + orb, never a photo ────────────────── */
+
+.stage-visual {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  padding-bottom: 56px;
+}
+.stage-image {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  border-radius: 24px;
+  background:
+    radial-gradient(70% 60% at 30% 25%, color-mix(in srgb, var(--color-m8-green) 30%, transparent) 0%, transparent 70%),
+    linear-gradient(160deg, var(--color-m8-deep) 0%, var(--color-m8-forest) 55%, var(--color-m8-night) 100%);
+  overflow: clip;
+  /* Own stacking context: the orb's z-index stays inside the block, so
+     the float card always sits over it. */
+  isolation: isolate;
+}
+.stage-image .orb { display: block; }
+.stage-visual .float-card {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  width: min(78%, 300px);
+  padding: 16px;
+  /* Cards over the image block always sit on a dark surface, whatever
+     the chapter, so they use the night set explicitly. */
+  --bg-sunken: color-mix(in srgb, var(--color-m8-night) 88%, var(--color-m8-forest));
+  --fg: var(--color-m8-paper);
+  --fg-soft: color-mix(in srgb, var(--color-m8-paper) 85%, transparent);
+  --muted: color-mix(in srgb, var(--color-m8-paper) 65%, transparent);
+  --rule: color-mix(in srgb, var(--color-m8-paper) 14%, transparent);
+  --rule-strong: color-mix(in srgb, var(--color-m8-paper) 24%, transparent);
+  --accent: var(--color-m8-green);
+  --accent-soft: color-mix(in srgb, var(--color-m8-green) 14%, transparent);
+  color: var(--fg);
+}
+.stage-visual .float-card .mono-label { color: var(--muted); }
+.stage-visual .float-card .mono-label.is-accent { color: var(--accent); }
+.stage-visual-title {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin-top: 8px;
+  color: var(--fg);
+}
+.stage-bars { display: grid; gap: 6px; margin-top: 12px; }
+.stage-bars span {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--rule-strong);
+}
+.stage-bars span:nth-child(2) { width: 82%; }
+.stage-bars span:nth-child(3) { width: 58%; }
+.stage-bars span.is-accent { background: var(--accent); width: 40%; }
+.stage-visual-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

@@ -24,7 +24,9 @@ import { formatDollars, formatPercent1 } from "@/lib/calc/format";
 
 // Rough coefficients (low/high as % of home price) for state-level averages.
 // TX is notably higher due to state title insurance rates being set by regulators.
-const STATE_COEFFICIENTS: Record<StateCode, { low: number; high: number }> = {
+// v15: a licensed state without a range here (Oregon) is left out of the
+// picker until the owner supplies one. Ranges are never invented.
+const STATE_COEFFICIENTS: Partial<Record<StateCode, { low: number; high: number }>> = {
   WA: { low: 1.5, high: 3.0 },
   AZ: { low: 1.4, high: 2.8 },
   CA: { low: 1.3, high: 2.8 },
@@ -37,7 +39,7 @@ export default function ClosingCostsPage() {
   const [state, setState] = useState<StateCode>("WA");
 
   const results = useMemo(() => {
-    const coef = STATE_COEFFICIENTS[state];
+    const coef = STATE_COEFFICIENTS[state] ?? { low: 0, high: 0 };
     const loanAmount = homePrice * (1 - downPct / 100);
     const lowTotal = homePrice * (coef.low / 100);
     const highTotal = homePrice * (coef.high / 100);
@@ -96,7 +98,7 @@ export default function ClosingCostsPage() {
                 color: "var(--fg)",
               }}
             >
-              {LICENSED_STATES.map((s) => (
+              {LICENSED_STATES.filter((s) => STATE_COEFFICIENTS[s]).map((s) => (
                 <option key={s} value={s} style={{ background: "var(--bg)" }}>
                   {STATE_FULL_NAMES[s]}
                 </option>

@@ -1,25 +1,36 @@
 /**
  * Demo conversation data for the M8 chat preview.
  *
- * This is a static, pre-scripted demo that lets visitors see
- * what a real M8 conversation will look like. The chat is NOT
- * connected to Claude API yet — that ships in v8.
+ * v21: restored from the v7–v11 build (dropped by the one-shot rebuild).
+ * Content is the original Sarah / Bellevue refi / $640K / 98004 script,
+ * verbatim, with these deliberate changes (patch log v21):
+ *  - The loan officer's name and NMLS come from lib/config.ts (the MLO
+ *    assigned to WA), never typed here (check:identity).
+ *  - "49 STATES" is now the real licensed-state count from config.
+ *  - "14-lender wholesale panel" became "up to {lenderCountMax} lenders",
+ *    and "N more lenders shopped" is computed from `lendersShopped`.
+ *  - The bio line is the carried-over CONFIG.demo.loBio for that MLO.
+ *
+ * This is a static, pre-scripted demo. It is NOT connected to the Claude
+ * API. Live M8 is the separate, flagged tab on /demo (M8_LIVE_CHAT).
  *
  * Compliance:
- *  - Footer disclosure on the page says "Sample conversation.
- *    Live pricing not yet active." (UDAAP protection)
- *  - All rate numbers are indicative examples, clearly labeled
- *    "Indicative pricing · Subject to verification · Soft pull only"
- *  - Loan officer name + NMLS pulled from lib/licensing.ts
- *    (ANCHOR_LO) — single source of truth.
- *  - "49 STATES" badge represents platform-wide coverage via the
- *    multi-LO network, NOT the anchor LO's personal licensing.
- *    Pending compliance attorney scoping memo on whether this card
- *    needs to be state-dynamic when displayed alongside a named
- *    individual MLO. Documented for review.
+ *  - Footer disclosure: "Sample conversation. Live pricing not yet active."
+ *  - Every rate card carries EXAMPLE_PRICING_LABEL ("Example — illustrative
+ *    pricing, not an offer"); the rate card footer keeps "Indicative
+ *    pricing · Subject to verification · Soft pull only". Attorney-cleared
+ *    for the demo (owner 2026-10-10). CONFIG.liveRatesEnabled stays false.
+ *  - Named lenders (UWM, Rocket Pro TPO, Kind Lending) are the original
+ *    demo's; no new named-lender display is added.
  */
 
-import { ANCHOR_LO } from "./licensing";
+import { CONFIG, STATES, mloById } from "./config";
+import { lendersFor } from "./pricing/lenders";
+
+const mlo = mloById(CONFIG.routing.stateAssignments.WA) ?? CONFIG.principalMlo;
+const first = mlo.firstName;
+/** The pronoun the original copy used, from config; neutral otherwise. */
+export const demoPronoun = CONFIG.demo.loPronoun[mlo.id] ?? { subject: "They", has: "have", will: "They'll" };
 
 export const demoChat = {
   scenario: {
@@ -30,6 +41,13 @@ export const demoChat = {
     occupancy: "Primary",
     location: "98004 · WA",
   },
+
+  /**
+   * Lenders shopped for this scenario (the three shown plus the rest).
+   * v27: the panel's first-mortgage lenders only (11 of 14); the three
+   * HELOC-only programs can't price a rate/term refinance.
+   */
+  lendersShopped: lendersFor("first_mortgage").length,
 
   market: {
     rate: "6.625%",
@@ -64,10 +82,13 @@ export const demoChat = {
       sender: "M8",
       avatar: "M8",
       time: "11:42 AM",
-      label: "PRICING PULLED LIVE",
+      // v25 (owner 2026-10-11): no "live" on demo pricing. The date is today's,
+      // added at render time (ChatExperience), so it never goes stale.
+      label: "EXAMPLE PRICING",
+      datedLabel: true,
       content: [
         "Straight answer: with 760+ credit on a $640k primary in 98004, you're looking at 6.375% to 6.625% across our wholesale panel right now. Real improvement over your 7.25%.",
-        "Here are the three options that meet the anti-steering requirements — lowest rate, lowest rate with no risky features, and lowest fees. All from lenders Jason closes with regularly.",
+        `Here are the three options that meet the anti-steering requirements — lowest rate, lowest rate with no risky features, and lowest fees. All from lenders ${first} closes with regularly.`,
       ],
       rateTable: true,
     },
@@ -107,15 +128,16 @@ export const demoChat = {
       time: "11:44 AM",
       content: [
         "The points win, but by only ~$4–5k over 7 years — not life-changing money. Here's what I'd weigh more heavily: if rates drop meaningfully in the next 2–3 years and you'd consider refinancing again, the points become a sunk cost. Option 02 keeps your options open.",
-        "This is a judgment call, not just a math problem. Want me to loop in Jason? He has all this context now and can talk it through in 10 minutes.",
+        `This is a judgment call, not just a math problem. Want me to loop in ${first}? ${demoPronoun.subject} ${demoPronoun.has} all this context now and can talk it through in 10 minutes.`,
       ],
     },
-  ],
+  ] as DemoMessage[],
 
   rateOptions: [
     {
       rank: "01",
       lender: "UWM",
+      lenderKey: "uwm",
       designation: "LOWEST TOTAL COST",
       rate: "6.375%",
       apr: "APR 6.48%",
@@ -128,6 +150,7 @@ export const demoChat = {
     {
       rank: "02",
       lender: "Rocket Pro TPO",
+      lenderKey: "rocket-pro",
       designation: "LOWEST RATE · NO RISKY FEATURES",
       rate: "6.5%",
       apr: "APR 6.58%",
@@ -140,6 +163,7 @@ export const demoChat = {
     {
       rank: "03",
       lender: "Kind Lending",
+      lenderKey: "kind",
       designation: "LOWEST ORIGINATION FEES",
       rate: "6.625%",
       apr: "APR 6.69%",
@@ -161,33 +185,33 @@ export const demoChat = {
   ],
 
   holdAnalysis: [
-    { label: "OPTION 01 · UWM", amount: "$338,096", note: "Total cost · incl. points" },
-    { label: "OPTION 02 · ROCKET PRO", amount: "$342,210", note: "+$4,114 over 7yr" },
-    { label: "OPTION 03 · KIND", amount: "$343,108", note: "+$5,012 over 7yr" },
+    { label: "OPTION 01 · UWM", lenderKey: "uwm", amount: "$338,096", note: "Total cost · incl. points" },
+    { label: "OPTION 02 · ROCKET PRO", lenderKey: "rocket-pro", amount: "$342,210", note: "+$4,114 over 7yr" },
+    { label: "OPTION 03 · KIND", lenderKey: "kind", amount: "$343,108", note: "+$5,012 over 7yr" },
   ],
 
   followups: [
     "What if rates drop 0.5% next year?",
     "Show me a 15-year scenario",
-    "Loop in Jason",
+    `Loop in ${first}`,
     "Generate a strategy brief",
   ],
 
   m8Code: [
     { n: "01", text: "One loan officer, every option — no handoffs" },
     { n: "02", text: "Soft pull only · No trigger leads, ever" },
-    { n: "03", text: "14-lender wholesale panel · Every file" },
+    { n: "03", text: `Wholesale panel, up to ${CONFIG.lenderCountMax} lenders · Every file` },
     { n: "04", text: "All-in pricing surfaced upfront" },
     { n: "05", text: "AI shops · A licensed human verifies" },
   ],
 
   loanOfficer: {
-    name: ANCHOR_LO.name,
-    // "49 STATES" suffix is platform-coverage messaging via the multi-LO
-    // network — NOT the anchor LO's personal licensing. Compliance review
-    // pending; see the comment block at the top of this file.
-    nmls: `NMLS #${ANCHOR_LO.nmls} · 49 STATES`,
-    bio: "17 years originating · Avg close: 18 days · Available now · in office",
+    id: mlo.id,
+    name: mlo.name,
+    firstName: mlo.firstName,
+    nmls: `NMLS #${mlo.nmls} · ${STATES.length} STATES`,
+    nmlsNumber: mlo.nmls,
+    bio: CONFIG.demo.loBio[mlo.id] ?? "",
   },
 
   user: {
@@ -196,4 +220,51 @@ export const demoChat = {
   },
 };
 
+export type DemoMessage = {
+  role: "user" | "m8";
+  sender: string;
+  avatar: string;
+  time: string;
+  label?: string;
+  /** Append today's date to the label ("EXAMPLE PRICING · OCTOBER 11, 2026"). */
+  datedLabel?: boolean;
+  content: string | string[];
+  rateTable?: boolean;
+  scenarioPills?: boolean;
+  holdAnalysis?: boolean;
+};
+
 export type DemoChat = typeof demoChat;
+
+/**
+ * Today's calendar date for the demo's example-pricing labels (v25), in the
+ * operator's time zone. Computed per request, never at build time.
+ */
+export function demoAsOf(now: Date = new Date()): string {
+  return now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "America/Los_Angeles" });
+}
+
+/** A lender as the demo shows it: named (the original demo) or numbered. */
+export type DemoLender = { label: string; slug: string | null; index: number };
+
+/**
+ * v26: the owner's revert switch. CONFIG.demo.namedLenders false turns the
+ * original demo's named lenders into "Lender 1 / 2 / 3" (numbered tiles,
+ * no logos), everywhere the demo names them.
+ */
+export function demoLender(index: number, named: boolean = CONFIG.demo.namedLenders): DemoLender {
+  const r = demoChat.rateOptions[index];
+  return named ? { label: r.lender, slug: r.lenderKey, index } : { label: `Lender ${index + 1}`, slug: null, index };
+}
+
+/**
+ * The demo's "… · NAME" strings ("30yr · 0.5 pts · UWM", "OPTION 02 ·
+ * ROCKET PRO") with the lender part swapped for "Lender N" when numbered.
+ */
+export function demoLenderText(text: string, index: number, named: boolean = CONFIG.demo.namedLenders): string {
+  if (named) return text;
+  const cut = text.lastIndexOf(" · ");
+  const head = cut >= 0 ? text.slice(0, cut + 3) : "";
+  const label = `Lender ${index + 1}`;
+  return head + (text === text.toUpperCase() ? label.toUpperCase() : label);
+}
