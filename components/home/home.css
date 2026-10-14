@@ -56,8 +56,8 @@
   position: relative;
   z-index: 2;
   display: block;
-  width: 220px;
-  height: 220px;
+  width: var(--hero-orb, 220px);
+  height: var(--hero-orb, 220px);
   padding: 0;
   border: 0;
   border-radius: 9999px;
@@ -623,3 +623,19 @@
 .hm-savings__h { font-weight: 300; font-size: clamp(1.6rem, 3.2vw, 2.4rem); line-height: 1.1; letter-spacing: -0.02em; color: var(--fg); }
 .hm-savings__body { margin-top: 0; max-width: 36rem; }
 .hm-about__savings { margin-top: 28px; }
+
+/* ─── v30: desktop hero — a slightly larger orb, sitting higher ──────
+   Owner 2026-10-14: "the m8 orb looks a little small and crowded on
+   desktop… move it up slightly and enlarge it a slight bit".
+   - The orb scales with viewport height: 220px → 272px cap (≈232 at
+     800px tall, ≈261 at 900, 272 at 1080). Hue and shape are unchanged;
+     the monogram, gloss and halo are sized in % and scale with it.
+   - The hero block is biased upward (less padding above, more below), so
+     the orb sits closer to the nav instead of floating mid-screen.
+   - A little more air between the orb and Voice / Q & A.
+   Phones keep the v12 layout. */
+@media (min-width: 1024px) {
+  .hm-hero { --hero-orb: clamp(220px, 29vh, 272px); }
+  .hm-hero__inner { padding-top: 2vh; padding-bottom: 8vh; }
+  .hm-orb-wrap { gap: 16px; }
+}

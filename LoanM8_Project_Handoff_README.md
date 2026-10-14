@@ -99,6 +99,46 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v30 — Desktop hero orb: slightly larger and higher (2026-10-14)
+
+**Owner:** "the m8 orb looks a little small and crowded on desktop. can
+you move it up slightly and enlarge it a slight bit as well -- show me a
+mock up too". The before/after mockup (1280, 1440, 1920, 390) was
+approved ("lets go with the after").
+
+### Files
+- `components/home/home.css`
+  - `.hm-orb-btn` takes its size from `--hero-orb` (default 220px).
+  - New block at ≥1024px:
+    - `--hero-orb: clamp(220px, 29vh, 272px)`
+    - `.hm-hero__inner` padding 2vh top, 8vh bottom. The column stays
+      vertically centred, so the extra bottom padding lifts it.
+    - `.hm-orb-wrap` gap 16px
+- `components/home/HeroOrb.tsx`: the `Orb` width and height are
+  `var(--hero-orb, 220px)`.
+  - The monogram, halo, term field and popups are sized from the orb box
+    and scale with it.
+
+### Measured (orb size, orb top)
+| Viewport | Before | After |
+| --- | --- | --- |
+| 1280×800 | 220px, 115 | 232px, 111 |
+| 1440×900 | 220px, 156 | 261px, 113 |
+| 1920×1080 | 220px, 246 | 272px, 190 |
+| 390 (phone) | unchanged | unchanged |
+
+- At 1440 the Voice / Q & A row moves 2px and the action grid doesn't
+  move. The trust line still ends above the fold (862 of 900).
+- At 1280×800 it ends at 831 (was 819), still above the fold.
+- Nothing overlaps.
+
+### Verified
+- `npm run verify` passes.
+- `qa/overflow` is clean. Its only console error is the Vercel Analytics
+  script 404, which only exists on Vercel.
+- `qa/fonts` reports 0 findings. `qa/footer` and `qa/about` match the v29
+  results.
+
 ## v29 — What renders the MLO-match bar, and a Washington default when location can't be resolved (2026-10-14)
 
 **Owner request:** find what conditionally renders the homepage match bar

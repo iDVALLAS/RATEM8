@@ -145,7 +145,8 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
       <div className="hm-orb-stage">
         <TermField />
         <button type="button" onClick={onVoice} aria-label={ariaLabel} className="hm-orb-btn">
-          <Orb size="hero" state={state} className={`orb--mono ${pulse ? "orb--pulse" : ""}`.trim()}>
+          {/* v30: size follows --hero-orb (220px; larger on desktop, home.css). */}
+          <Orb size="hero" state={state} className={`orb--mono ${pulse ? "orb--pulse" : ""}`.trim()} style={{ width: "var(--hero-orb, 220px)", height: "var(--hero-orb, 220px)" }}>
             <OrbMonogram />
           </Orb>
         </button>

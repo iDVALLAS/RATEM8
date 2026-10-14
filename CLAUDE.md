@@ -94,7 +94,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v29 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v30 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -159,7 +159,10 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
   an `<Orb>` owns its state: `HeroOrb` (timers), `components/chat/ChatShell.tsx`
   (script player), `components/join/JoinScenes.tsx` and `SceneIntake.tsx`
   (step-to-state maps), `components/agents/StalledDeal.tsx`.
-- Sizes: hero 220px, ambient 48px, mark 24px, or `px` override.
+- Sizes: hero 220px, ambient 48px, mark 24px, or `px` override. The
+  homepage hero orb (v30) uses `--hero-orb`: 220px, and
+  `clamp(220px, 29vh, 272px)` at ≥1024px, with asymmetric hero padding
+  (2vh top, 8vh bottom) that sits the column higher.
 - Reduced motion: every state animation is `animation: none`; the base
   orb, its pseudo-elements, and the term field stop too.
 
