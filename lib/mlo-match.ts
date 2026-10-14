@@ -11,6 +11,9 @@
  *     an assign state (`borrowerChooses === false`). In borrower-choose
  *     states, or when it is unknown, IP alone never shows a name; a name
  *     appears only after the borrower picks.
+ *   - `source: "default"` (v29: location could not be resolved, so routing
+ *     used CONFIG.routing.fallbackState) → same rule as "ip": a name only
+ *     in an assign state. The beacon marks it "(default)".
  *
  * Whenever a name renders, that MLO's NMLS number renders on the same
  * page (the footer's MloFooterLine does it for every page).
@@ -21,7 +24,7 @@
 
 import type { Mlo, MloLicense, StateCode } from "./config";
 
-export type MloSource = "none" | "ip" | "borrower_stated" | "chosen";
+export type MloSource = "none" | "ip" | "borrower_stated" | "chosen" | "default";
 
 /**
  * Where routing landed (v15, Patch B; lib/routing.ts):
@@ -63,7 +66,7 @@ export const NO_MLO: MloContextValue = { mlo: null, source: "none", status: "off
 /** The MLO the page may name, or null for generic copy. */
 export function nameableMlo(v: MloContextValue): Mlo | null {
   if (!v.mlo || v.source === "none") return null;
-  if (v.source === "ip" && v.borrowerChooses !== false) return null;
+  if ((v.source === "ip" || v.source === "default") && v.borrowerChooses !== false) return null;
   return v.mlo;
 }
 

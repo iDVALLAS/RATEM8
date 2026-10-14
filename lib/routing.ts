@@ -37,6 +37,8 @@ export type RoutingConfig = {
   operatorMloId: string;
   stateAssignments: Partial<Record<StateCode, string>>;
   routingModeOverride: Partial<Record<StateCode, RoutingMode>>;
+  /** v29: state to route to when none can be resolved (null = ask). */
+  fallbackState?: StateCode | null;
 };
 
 export function defaultRoutingConfig(): RoutingConfig {
@@ -46,6 +48,7 @@ export function defaultRoutingConfig(): RoutingConfig {
     operatorMloId: CONFIG.routing.operatorMloId,
     stateAssignments: CONFIG.routing.stateAssignments,
     routingModeOverride: CONFIG.routing.routingModeOverride,
+    fallbackState: CONFIG.routing.fallbackState,
   };
 }
 
@@ -115,6 +118,12 @@ export function validateRouting(cfg: RoutingConfig = defaultRoutingConfig()): st
       errors.push(`${code} is an assign state with no entry in CONFIG.routing.stateAssignments.`);
     }
   }
+  if (cfg.fallbackState) {
+    if (!cfg.licensedStates.includes(cfg.fallbackState)) errors.push(`fallbackState ${cfg.fallbackState} is not a licensed state.`);
+    else if (routingMode(cfg.fallbackState, cfg) !== "assign" || !cfg.stateAssignments[cfg.fallbackState]) {
+      errors.push(`fallbackState ${cfg.fallbackState} must be an assign state with an assigned MLO, so the default never pre-selects in a choose state.`);
+    }
+  }
   return errors;
 }
 
@@ -158,6 +167,11 @@ export function resolveRoute(inputs: RouteInputs, cfg: RoutingConfig = defaultRo
   if (!stateCode && chosen && chosen.licenses.length === 1) {
     stateCode = chosen.licenses[0].state;
     source = "chosen";
+  }
+  // v29: location could not be resolved → the configured default state.
+  if (!stateCode && cfg.fallbackState) {
+    stateCode = cfg.fallbackState;
+    source = "default";
   }
   const base = {
     stateCode,
@@ -208,10 +222,13 @@ export function encodeRoute(v: MloContextValue): string {
 /**
  * Rebuilds the context from the middleware header. Only ids travel; every
  * fact is re-read from the registry, and anything inconsistent falls back
- * to "unknown" rather than rendering a mix of two MLOs.
+ * to the default state (v29), or "unknown" when no default is set,
+ * rather than rendering a mix of two MLOs.
  */
 export function decodeRoute(raw: string | null | undefined, cfg: RoutingConfig = defaultRoutingConfig()): MloContextValue {
-  const unknown: MloContextValue = { mlo: null, source: "none", status: "unknown" };
+  // v29: a missing or unreadable header is a failed lookup too: fall back
+  // to the default state (resolveRoute with no inputs), not to "unknown".
+  const unknown: MloContextValue = resolveRoute({}, cfg);
   if (!raw) return unknown;
   let w: Wire;
   try {
@@ -227,11 +244,15 @@ export function decodeRoute(raw: string | null | undefined, cfg: RoutingConfig =
     propertyState: usStateName(w.p) ? w.p : null,
   };
   const moved = !!(base.propertyState && base.ipState && base.propertyState !== base.ipState);
-  const src: MloSource = ["none", "ip", "borrower_stated", "chosen"].includes(w.src) ? w.src : "none";
+  // Inconsistent or unknown → the clean fallback, never a mix of the wire's
+  // state with the default MLO. With no fallback configured, keep v15's
+  // "unknown" carrying the decoded inputs.
+  const fallback: MloContextValue = unknown.status === "unknown" ? { ...unknown, ...base, moved } : unknown;
+  const src: MloSource = ["none", "ip", "borrower_stated", "chosen", "default"].includes(w.src) ? w.src : "none";
   if (w.s === "matched" && stateCode) {
     const m = cfg.mlos.find((x) => x.id === w.m);
     const l = m ? licenseFor(m, stateCode) : undefined;
-    if (!m || !l) return { ...unknown, ...base, moved };
+    if (!m || !l) return fallback;
     return { ...base, moved, state: stateCode as StateCode, mlo: m, license: l, source: src, status: "matched", borrowerChooses: routingMode(stateCode, cfg) === "choose" };
   }
   if (w.s === "choose" && stateCode) {
@@ -239,5 +260,5 @@ export function decodeRoute(raw: string | null | undefined, cfg: RoutingConfig =
     return { ...base, moved, state: stateCode as StateCode, mlo: null, source: src, status: "choose", borrowerChooses: true, candidates };
   }
   if (w.s === "unlicensed" && stateCode) return { ...base, moved, mlo: null, source: src, status: "unlicensed" };
-  return { ...unknown, ...base, moved };
+  return fallback;
 }

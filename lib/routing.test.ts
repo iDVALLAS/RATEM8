@@ -9,6 +9,7 @@ import {
   type RoutingConfig,
 } from "./routing";
 import type { Mlo } from "./config";
+import { nameableMlo } from "./mlo-match";
 
 const cfg = defaultRoutingConfig();
 const OPERATOR = cfg.operatorMloId; // the WA/AZ/CA/TX MLO
@@ -81,8 +82,16 @@ describe("resolveRoute", () => {
   });
 
   it("no state (or a non-US IP) means ask", () => {
-    expect(resolveRoute({}).status).toBe("unknown");
-    expect(resolveRoute({ ipCountry: "CA", ipRegion: "BC" }).status).toBe("unknown");
+    // v29: no resolvable location → the configured default (WA), marked "default".
+    const none = resolveRoute({});
+    expect(none.status).toBe("matched");
+    expect(none.stateCode).toBe("WA");
+    expect(none.source).toBe("default");
+    expect(resolveRoute({ ipCountry: "CA", ipRegion: "BC" }).source).toBe("default");
+    // With no fallback configured, v15 behaviour: ask.
+    const noFallback = { ...defaultRoutingConfig(), fallbackState: null };
+    expect(resolveRoute({}, noFallback).status).toBe("unknown");
+    expect(resolveRoute({ ipCountry: "CA", ipRegion: "BC" }, noFallback).status).toBe("unknown");
   });
 
   it("an explicit choice wins only where that MLO is licensed", () => {
@@ -103,8 +112,16 @@ describe("resolveRoute", () => {
     const back = decodeRoute(encodeRoute(r));
     expect(back).toMatchObject({ status: "matched", stateCode: "OR", moved: true, source: "borrower_stated" });
     expect(back.mlo?.id).toBe(OREGON);
-    expect(decodeRoute(JSON.stringify({ s: "matched", src: "ip", st: "WA", m: OREGON, ip: "WA", p: null })).status).toBe("unknown");
-    expect(decodeRoute("not json").status).toBe("unknown");
+    // v29: inconsistent, missing or garbled → the clean default, never a mix.
+    const bad = decodeRoute(JSON.stringify({ s: "matched", src: "ip", st: "OR", m: "mlo-001", ip: "OR", p: null }));
+    expect(bad.source).toBe("default");
+    expect(bad.stateCode).toBe("WA");
+    expect(bad.mlo?.id).toBe("mlo-001");
+    expect(decodeRoute("not json").source).toBe("default");
+    expect(decodeRoute(null).source).toBe("default");
+    const noFallback = { ...defaultRoutingConfig(), fallbackState: null };
+    expect(decodeRoute(JSON.stringify({ s: "matched", src: "ip", st: "WA", m: OREGON, ip: "WA", p: null }), noFallback).status).toBe("unknown");
+    expect(decodeRoute("not json", noFallback).status).toBe("unknown");
   });
 });
 
@@ -136,5 +153,34 @@ describe("MLO_ROUTING flag", () => {
     expect(mloRoutingOn(undefined, undefined)).toBe(false);
     expect(mloRoutingOn("false", "preview")).toBe(false);
     expect(mloRoutingOn("true", "production")).toBe(true);
+  });
+});
+
+describe("v29 default state when location can't be resolved", () => {
+  it("never overrides real inputs: a property cookie, a US IP region, or an unlicensed state", () => {
+    expect(resolveRoute({ propertyState: "OR" }).source).toBe("borrower_stated");
+    expect(resolveRoute({ ipCountry: "US", ipRegion: "AZ" }).source).toBe("ip");
+    const nv = resolveRoute({ ipCountry: "US", ipRegion: "NV" });
+    expect(nv.status).toBe("unlicensed");
+    expect(nv.source).toBe("ip");
+  });
+
+  it("names the default MLO under the same rule as an IP match (assign state only), and round-trips", () => {
+    const d = resolveRoute({});
+    expect(nameableMlo(d)?.id).toBe("mlo-001");
+    const back = decodeRoute(encodeRoute(d));
+    expect(back.source).toBe("default");
+    expect(back.status).toBe("matched");
+  });
+
+  it("rejects a default that isn't an assign state with an assigned MLO", () => {
+    expect(validateRouting({ ...defaultRoutingConfig(), fallbackState: "NV" as never }).join(" ")).toMatch(/not a licensed state/);
+    const cfg = { ...defaultRoutingConfig(), fallbackState: "WA" as const, routingModeOverride: { WA: "choose" as const }, stateAssignments: { ...defaultRoutingConfig().stateAssignments, WA: undefined } };
+    expect(validateRouting(cfg).join(" ")).toMatch(/must be an assign state/);
+  });
+
+  it("tells M8 the state was defaulted, so it asks where the property is", async () => {
+    const { m8RoutingFacts } = await import("./prompts/m8-system");
+    expect(m8RoutingFacts(resolveRoute({})).section).toMatch(/could not be detected, so the site defaulted to Washington/);
   });
 });

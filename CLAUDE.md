@@ -94,7 +94,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v28 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v29 is the latest). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
@@ -105,7 +105,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 131 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 135 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -453,12 +453,18 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 - **Resolution** (`middleware.ts`, behind `MLO_ROUTING`; `mloRoutingOn()`:
   "true"/"false" wins, unset = on for Vercel previews, off in production):
   - Order: choice cookie `lm8_mlo` → property cookie `lm8_property_state`
-    → `x-vercel-ip-country-region` → unknown ("Where's the property?").
+    → `x-vercel-ip-country-region` → **v29: `CONFIG.routing.fallbackState`
+    (WA), `source: "default"`**, shown as "Washington (default)". With the
+    fallback set to null it reverts to unknown ("Where's the property?").
+    A missing, garbled or inconsistent `x-lm8-route` also falls back.
   - The result goes to the app as the `x-lm8-route` header (ids only).
     `lib/route-context.ts` decodes it for the layout and `/rates`.
   - Flag off: `NO_MLO` and static pages.
-- **Naming rule:** `lib/mlo-match.ts`, unchanged from v14. With source
-  `none` copy is generic; `ip` names only in assign states.
+- **Naming rule:** `lib/mlo-match.ts`. With source `none` copy is
+  generic; `ip` and `default` (v29) name only in assign states.
+- **Production needs `MLO_ROUTING=true`** for any of this to render:
+  unset means off in production. Full dependency list: v29 patch log
+  entry.
 - **Context:** `components/mlo/MloContext.tsx` provides:
   - `MloProvider`, `useMloContext`, `useNamedMlo`, `MloText`
   - `MloFooterLine` (name, NMLS, state license and sponsor together)

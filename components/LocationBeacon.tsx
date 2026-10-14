@@ -18,6 +18,10 @@ import { CONFIG, mloById, type Mlo } from "@/lib/config";
  * State and name only: never an IP-derived ZIP or city.
  *
  * Renders nothing while MLO_ROUTING is off (context status "off").
+ * v29: when location can't be resolved, routing falls back to
+ * CONFIG.routing.fallbackState (Washington) with source "default"; the
+ * line then reads "Washington (default) · matched with …" (pill
+ * "WA (default) · Name").
  * Placements (v18): the nav on desktop; on phones a compact pill right
  * under the header ("● WA · Name · Change", not sticky) plus the full line
  * at the top of the mobile menu; and the MLO card. On phones "Change"
@@ -186,7 +190,8 @@ export default function LocationBeacon({ variant = "inline", className = "" }: {
     let lead: string | null = null;
     let name: string | null = null;
     if (ctx.status === "matched" && mlo) {
-      lead = `${code} · `;
+      // v29: a defaulted state reads "WA (default) · Name" (the name truncates first).
+      lead = ctx.source === "default" ? fill(r.pill.matchedDefaultLead, { code }) : `${code} · `;
       name = mlo.name;
     } else if (ctx.status === "choose") lead = fill(p.choose, { code });
     else if (ctx.status === "unlicensed") lead = fill(p.unlicensed, { code });
@@ -199,7 +204,7 @@ export default function LocationBeacon({ variant = "inline", className = "" }: {
             <span className="beacon-pill__text">{p.unknown}</span>
           </button>
         ) : (
-          <div className="beacon-pill">
+          <div className="beacon-pill" title={ctx.source === "default" ? fill(r.defaultTitle, { state: ctx.stateName ?? "" }) : undefined}>
             <span aria-hidden="true" className="beacon__dot" />
             <StateOutline code={ctx.stateCode} className="beacon__outline" />
             <span className="beacon-pill__lead">{lead}</span>
@@ -219,7 +224,8 @@ export default function LocationBeacon({ variant = "inline", className = "" }: {
 
   const state = ctx.stateName ?? "";
   let line: string;
-  if (ctx.status === "matched" && mlo) line = fill(r.matched, { state, name: mlo.name });
+  const defaulted = ctx.source === "default";
+  if (ctx.status === "matched" && mlo) line = fill(defaulted ? r.matchedDefault : r.matched, { state, name: mlo.name });
   else if (ctx.status === "choose") line = fill(r.choose, { state });
   else if (ctx.status === "unlicensed") line = fill(r.unlicensed, { state });
   else if (ctx.status === "matched") line = state;
@@ -230,7 +236,9 @@ export default function LocationBeacon({ variant = "inline", className = "" }: {
       <div className="beacon__row">
         <span aria-hidden="true" className="beacon__dot" />
         <StateOutline code={ctx.stateCode} className="beacon__outline" />
-        <span className="beacon__text">{line}</span>
+        <span className="beacon__text" title={defaulted ? fill(r.defaultTitle, { state }) : undefined}>
+          {line}
+        </span>
         <button type="button" className="beacon-link" aria-expanded={open} onClick={toggle}>
           {ctx.status === "unknown" ? r.set : r.change}
         </button>

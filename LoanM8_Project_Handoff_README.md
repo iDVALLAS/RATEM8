@@ -99,6 +99,81 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v29 — What renders the MLO-match bar, and a Washington default when location can't be resolved (2026-10-14)
+
+**Owner request:** find what conditionally renders the homepage match bar
+("Washington · matched with … Not right? Change"). List every env var,
+flag, cookie, middleware rule and header it depends on, say which must be
+set in Production, and add a visible fallback that defaults to
+Washington when the location lookup fails.
+
+### The chain
+`middleware.ts` → `x-lm8-route` header → `app/layout.tsx`
+(`routeContext()`) → `MloProvider` → `components/LocationBeacon.tsx`
+(rendered by `Nav`, plus the card in `AboutCards`).
+
+| Kind | Name | Effect on the bar |
+| --- | --- | --- |
+| Env (server) | `MLO_ROUTING` | `"true"` on, `"false"` off. **Unset = on only when `VERCEL_ENV` is `preview`, so OFF in Production** (`mloRoutingOn`). Off → `routeContext()` returns `NO_MLO` (status `off`) and `LocationBeacon` renders nothing. |
+| Env (Vercel, automatic) | `VERCEL_ENV` | Read only to apply the default above. |
+| Env (public) | `NEXT_PUBLIC_STEALTH_MODE` | Anything but `"false"` → anonymous visitors to `/` get `ComingSoonHomePage`, which has no Nav and so no bar. |
+| Env (server) | `DEMO_PASSWORD` | Entering it at `/demo` sets the `loanm8_demo_auth` cookie that gets past stealth. |
+| Config | `CONFIG.routing.stateAssignments`, `routingModeOverride`, `operatorMloId`, `fallbackState` (new) | Decide assign or choose, and the matched MLO. `validateRouting()` fails the build on a bad combination. |
+| Cookie | `lm8_property_state` | The borrower's stated property state (`POST /api/route-choice`, 30 days, httpOnly). Wins over IP. |
+| Cookie | `lm8_mlo` | The borrower's chosen MLO id (same route). |
+| Cookie | `loanm8_demo_auth` | Stealth bypass; its presence only. |
+| Request header (Vercel geo) | `x-vercel-ip-country`, `x-vercel-ip-country-region` | Used only when the country is `US` and the region is a real state code. Set by Vercel's edge; absent locally, and sometimes on VPNs or for unknown IPs. |
+| Request header (internal) | `x-lm8-route` | Set by the middleware with ids only. Any client-sent copy is deleted first. |
+| Middleware | `matcher` (everything but `_next/static`, `_next/image`, `_next/data`); `adminGate` (`/mlo`); stealth: public paths and cookie holders get `passThrough()` (which adds `x-lm8-route` when routing is on), anyone else is redirected to `/` | |
+| Client | `LocationBeacon` | `null` when status is `off`. Desktop line under the nav (`lg+`), phone pill under the header (`<lg`), the full line atop the mobile menu, and the About card. |
+
+**Must be set in Production for the bar to show:**
+1. `MLO_ROUTING=true`. Unset means off in Production; this is why it
+   doesn't show on loanm8.com.
+2. Either `NEXT_PUBLIC_STEALTH_MODE=false` (public), or visitors hold the
+   `/demo` cookie, which needs `DEMO_PASSWORD` set.
+
+`VERCEL_ENV` and the geo headers come from Vercel automatically.
+
+### The fallback (code)
+- `CONFIG.routing.fallbackState = "WA"`.
+  - When no state can be resolved, `resolveRoute` routes to Washington
+    with `source: "default"`. That covers no property cookie, no
+    single-state choice, and no usable geo header (missing, or non-US).
+  - `decodeRoute` does the same for a missing, garbled or inconsistent
+    `x-lm8-route`. It never mixes the wire's state with the default MLO.
+- **Real inputs always win.** A property cookie, a chosen MLO, or a US
+  IP region (licensed or not) is never overridden. Nevada still says "We
+  don't have a licensed loan officer in Nevada yet."
+- **Visible marker:**
+  - desktop: "Washington (default) · matched with [MLO]  Not right? Change"
+  - phone pill: "WA (default) · [MLO] · Change"
+  - The tooltip explains the default, and "Change" opens the state
+    picker as before.
+- **Naming:** `"default"` follows the same rule as `"ip"`; it names the
+  MLO only in an assign state. `validateRouting` requires the fallback to
+  be an assign state with an assigned MLO. Booking, the footer and M8 all
+  agree with the bar.
+- **M8:** told "Their location could not be detected, so the site
+  defaulted to Washington… ask where it is."
+- **Not covered:** the fallback can't render anything while
+  `MLO_ROUTING` is off. That switch is the Production fix above.
+
+### Verified
+- `npm run verify` passes (135 tests; new: the default, real inputs win,
+  decode fallbacks, naming, validation, the M8 line).
+- **Browser, routing on:**
+
+  | Visitor | Desktop | Phone |
+  | --- | --- | --- |
+  | No headers | "Washington (default) · matched with …" | "WA (default) · … · Change" |
+  | AZ | "Arizona · matched with …" | normal |
+  | NV | the unlicensed line | unlicensed |
+  | Canada | the Washington default | the Washington default |
+
+- At 320px the pill stays one line and "Change" stays on screen.
+  `qa/overflow` is clean.
+
 ## v28 — HELOC credit pull is soft until application; "Soft pull only" wording stays (2026-10-11)
 
 - **Owner:** "the HELOC pull is soft until they apply, leave the wording".

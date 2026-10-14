@@ -500,6 +500,9 @@ export const copy = {
   routing: {
     beaconLabel: "Your state and loan officer",
     matched: "{state} · matched with {name}",
+    // v29: location couldn't be resolved, so routing used the default state.
+    matchedDefault: "{state} (default) · matched with {name}",
+    defaultTitle: "We couldn't detect your location, so this shows {state}. Licensing follows the property: change it if the home is elsewhere.",
     choose: "{state} · choose your loan officer",
     unlicensed: "We don't have a licensed loan officer in {state} yet.",
     unknown: "Where's the property?",
@@ -516,6 +519,7 @@ export const copy = {
     /** v18 mobile pill under the header: state abbreviation, name truncates, "Change" never does. */
     pill: {
       matched: "{code} · {name}",
+      matchedDefaultLead: "{code} (default) · ",
       choose: "{code} · Choose your loan officer",
       unlicensed: "{code} · No licensed loan officer yet",
       unknown: "Choose your state",

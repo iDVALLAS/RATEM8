@@ -150,6 +150,9 @@ export function m8RoutingFacts(v: MloContextValue): { overrides: Partial<M8Promp
     const m = v.mlo;
     overrides.mloRoster = `${rosterLines([m])}\n  - ${m.firstName} is licensed in ${st} (license ${v.license.license}) through ${v.license.sponsor.name} (${v.license.sponsor.idLabel} #${v.license.sponsor.idNumber}).`;
     lines.push(`- This person is matched with ${m.name} for a property in ${st}. You may name them when you offer the handoff.`);
+    if (v.source === "default") {
+      lines.push(`- Their location could not be detected, so the site defaulted to ${st}. Before assuming the property is in ${st}, ask where it is. Licensing follows the property.`);
+    }
   } else if (v.status === "choose") {
     lines.push(`- ${st} is a state where the borrower chooses their loan officer. Do not recommend, rank, or name one; point them to the list on the page.`);
   } else if (v.status === "unlicensed") {

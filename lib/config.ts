@@ -205,6 +205,14 @@ export const CONFIG = {
       TX: "mlo-001",
     } as Partial<Record<StateCode, string>>,
     routingModeOverride: {} as Partial<Record<StateCode, "assign" | "choose">>,
+    /**
+     * v29 (owner 2026-10-14): when no state can be resolved (no property
+     * cookie, no choice, no usable Vercel geo header, or a missing/garbled
+     * routing header), route as if the visitor were here, so the match bar
+     * still renders. Marked source "default" and shown as "(default)".
+     * Must be an `assign` state (validateRouting). null = ask instead.
+     */
+    fallbackState: "WA" as StateCode | null,
   },
 
   contactEmail: env("NEXT_PUBLIC_CONTACT_EMAIL") ?? "[EMAIL]",
