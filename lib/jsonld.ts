@@ -20,13 +20,10 @@ export function organizationJsonLd(): JsonLd {
     url: absoluteUrl("/"),
     slogan: CONFIG.tagline,
     description:
-      "AI-powered mortgage rate-shopping brokerage. Loans are originated by licensed Mortgage Loan Originators. LoanM8 does not sell leads.",
+      "AI-powered mortgage rate-shopping platform. Loans are originated by a licensed sponsoring brokerage and its licensed Mortgage Loan Originators. LoanM8 does not sell leads.",
     areaServed: STATES.map((s) => ({ "@type": "State", name: s.name })),
     knowsAbout: ["Mortgage", "Loan Estimate", "Refinancing", "Mortgage points"],
   };
-  if (!isPlaceholder(CONFIG.entityNmls)) {
-    out.identifier = { "@type": "PropertyValue", propertyID: "NMLS", value: CONFIG.entityNmls };
-  }
   if (!isPlaceholder(CONFIG.contactEmail)) out.email = CONFIG.contactEmail;
   return out;
 }

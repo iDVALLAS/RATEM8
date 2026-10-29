@@ -11,7 +11,7 @@ import { disclosuresContent as c, LEGAL_STATUS } from "@/lib/content/legal";
 
 /**
  * /disclosures — the compliance hub. NMLS identifiers, per-state
- * licenses and regulators, Equal Housing Lender, the AI disclosure, the
+ * licenses and regulators, Equal Housing Opportunity, the AI disclosure, the
  * locked "not a commitment to lend" sentence, the generated disclaimer,
  * complaint routes, and the trade-name statement. Every fact renders
  * from lib/config.ts; bracketed values are shown as-is so nothing
@@ -63,7 +63,7 @@ export default function DisclosuresPage() {
           <div>
             <dt>{c.nmls.entityLabel}</dt>
             <dd>
-              {CONFIG.entityTradeName}, a trade name of {CONFIG.entityLegalName} · NMLS #<Fact value={CONFIG.entityNmls} />
+              {CONFIG.entityTradeName}, a trade name of {CONFIG.entityLegalName}
             </dd>
           </div>
           {ALL_MLOS.map((m) => (
@@ -155,7 +155,7 @@ export default function DisclosuresPage() {
         ))}
       </LegalSection>
 
-      {/* 03 Equal Housing Lender */}
+      {/* 03 Equal Housing Opportunity */}
       <LegalSection {...s[2]} index={2}>
         <p className="flex items-center gap-3" style={{ color: "var(--fg)" }}>
           <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">

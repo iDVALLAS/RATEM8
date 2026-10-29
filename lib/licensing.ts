@@ -41,7 +41,6 @@ export type LoanOfficer = {
   name: string;
   firstName: string;
   email: string;
-  phone: string;
   title: string;
   nmls: string;
   operatingEntity: { legalName: string; tradeName: string };
@@ -63,7 +62,6 @@ function toLoanOfficer(m: Mlo): LoanOfficer {
     name: m.name,
     firstName: m.firstName,
     email: CONFIG.contactEmail,
-    phone: "[(XXX) XXX-XXXX]",
     title: m.title,
     nmls: m.nmls,
     operatingEntity: {
@@ -150,7 +148,7 @@ export function buildDisclaimer(lo: LoanOfficer = anchor): string {
     `${tradeName} is a trade name of ${legalName}.`,
     `${lo.name} is an NMLS-licensed ${lo.title} (NMLS #${lo.nmls}).`,
     sponsorSentences,
-    `Equal Housing Lender. ${NOT_A_COMMITMENT}`,
+    `Equal Housing Opportunity. ${NOT_A_COMMITMENT}`,
   ].join(" ");
 }
 

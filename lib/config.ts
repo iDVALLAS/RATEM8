@@ -8,11 +8,11 @@
  * Bracketed values ("[LIKE THIS]") are placeholders that MUST be filled
  * before launch. See PLACEHOLDERS.md for the full list with file paths.
  *
- * Values that were already present in the repo (lib/licensing.ts, entered
- * by the site owner in earlier patches) are carried over and marked
- * `// carried over — VERIFY`. They were not invented for this build, but
- * every one of them still needs verification on nmlsconsumeraccess.org
- * before the stealth gate lifts.
+ * L1 (owner 2026-10-29): licensing lives in PLATFORM, SPONSOR / SPONSORS,
+ * the MLO registry (CONFIG.principalMlo, CONFIG.team) and CONFIG.states.
+ * Anything not yet confirmed is a bracketed to-be-determined value. A
+ * production build fails while any unconfirmed marker remains in this
+ * file (scripts/check-licensing.mjs lists them); previews only warn.
  */
 
 /**
@@ -36,7 +36,43 @@ const env = (key: string): string | undefined => {
 export type StateSlug = "washington" | "oregon" | "arizona" | "california" | "texas";
 export type StateCode = "WA" | "OR" | "AZ" | "CA" | "TX";
 
-export type Sponsor = { name: string; idLabel: string; idNumber: string };
+/** A sponsoring brokerage's license in one state (L1). */
+export type SponsorStateLicense = {
+  /** License type as the regulator names it, e.g. "Mortgage Broker License". */
+  type: string;
+  /** License number as issued (some states reuse the company NMLS ID). */
+  id: string;
+};
+
+/**
+ * A sponsoring brokerage: the licensed company every loan in its states is
+ * originated under. `name` / `idLabel` / `idNumber` are the short display
+ * triple ("Adcom Group Inc dba Home Trust Financial (NMLS #…)"); the rest
+ * feeds the footer, /licensing and the state pages (L1).
+ */
+export type Sponsor = {
+  name: string;
+  idLabel: string;
+  idNumber: string;
+  legalName?: string;
+  dba?: string;
+  nmls?: string;
+  address?: string;
+  phone?: string;
+  nmlsUrl?: string;
+  stateLicenses?: Partial<Record<StateCode, SponsorStateLicense>>;
+};
+
+/**
+ * The platform (L1, owner 2026-10-29). LoanM8, LLC owns the brand and runs
+ * the site. It holds no NMLS license and originates nothing: every loan is
+ * originated under the sponsoring brokerage's licenses below.
+ */
+export const PLATFORM = {
+  legalName: "LoanM8, LLC",
+  tradeName: "LoanM8 Loan Intelligence",
+  site: "LoanM8.com",
+} as const;
 
 /** The per-state facts typed into CONFIG.states. */
 export type StateBase = {
@@ -45,8 +81,12 @@ export type StateBase = {
   name: string;
   /** Where LoanM8 actually serves borrowers in this state. */
   serviceArea: string;
-  /** Entity-level license identifier for this state. */
-  entityLicense: string;
+  /**
+   * L1: whether LoanM8 markets here. Separate from licensing: a state can be
+   * licensed and live (borrowers who arrive are served) without being in
+   * marketing copy. lib/states.ts LAUNCH_STATES reads this.
+   */
+  marketed: boolean;
   /** Regulator display name. */
   regulatorName: string;
   /** Regulator URL (consumer complaint / license lookup). */
@@ -66,6 +106,8 @@ export type StateBase = {
  * per-state license, so a sponsor change is one edit in MLO_REGISTRY.
  */
 export type StateConfig = StateBase & {
+  /** Entity-level license line for this state, derived from the sponsor's stateLicenses. */
+  entityLicense: string;
   /** Sponsoring entity of the MLO assigned to this state (or the first serving MLO). */
   sponsor: Sponsor;
   /** Every sponsoring entity with an MLO serving this state. */
@@ -113,17 +155,50 @@ export type Mlo = {
   licenses: MloLicense[];
 };
 
-const SPONSOR_HOME_TRUST: Sponsor = {
-  name: "Home Trust Loans",
+/**
+ * The sponsoring brokerage (L1, owner 2026-10-29). To change sponsors,
+ * edit this object (or point an MLO license at a different one); every
+ * footer, disclosure, MLO card, chat disclosure and state page follows.
+ */
+export const SPONSOR: Sponsor = {
+  name: "Adcom Group Inc dba Home Trust Financial",
   idLabel: "NMLS",
-  idNumber: "1761573", // carried over — VERIFY on nmlsconsumeraccess.org
+  idNumber: "1761573",
+  legalName: "Adcom Group Inc",
+  dba: "Home Trust Financial",
+  nmls: "1761573",
+  address: "135 Lake St S, Ste 230, Kirkland, WA 98033",
+  phone: "833-395-5626",
+  nmlsUrl: "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/COMPANY/1761573",
+  stateLicenses: {
+    AZ: { type: "Mortgage Broker License", id: "1003167" },
+    CA: { type: "Licensed by the Department of Financial Protection and Innovation under the California Financing Law", id: "60DBO-98222" },
+    OR: { type: "Mortgage Lending License", id: "1761573" },
+    TX: { type: "Mortgage Company License", id: "1761573" },
+    WA: { type: "Consumer Loan Company License", id: "CL-1761573" },
+  },
 };
 
+/**
+ * Arizona sponsor of the operator's AZ license (owner 2026-10-29: keep as
+ * configured). Legal name, NMLS and license type are not on file yet.
+ */
 const SPONSOR_HOME_FINANCIAL_AZ: Sponsor = {
   name: "Home Financial",
   idLabel: "AZ License",
-  idNumber: "1037722", // carried over — VERIFY on nmlsconsumeraccess.org
+  idNumber: "1037722",
+  legalName: "[TBD — Home Financial legal entity name]",
+  nmls: "[TBD — Home Financial company NMLS #]",
+  stateLicenses: {
+    AZ: { type: "[TBD — AZ license type]", id: "1037722" },
+  },
 };
+
+/** Every sponsoring brokerage on file (for /licensing and the strict build check). */
+export const SPONSORS: Sponsor[] = [SPONSOR, SPONSOR_HOME_FINANCIAL_AZ];
+
+/** The operator's individual NMLS ID; owner 2026-10-29: the same license in every state. */
+const OPERATOR_NMLS = "1844143";
 
 export const CONFIG = {
   brandName: "LoanM8",
@@ -132,10 +207,9 @@ export const CONFIG = {
   siteUrl: env("NEXT_PUBLIC_SITE_URL") ?? "https://loanm8.com",
   tagline: "Loan intelligence. Free for the people.",
 
-  /** Legal operating entity. */
-  entityLegalName: "Shapiro Home Loans LLC", // carried over — VERIFY
-  entityTradeName: "LoanM8 Loan Intelligence", // carried over — VERIFY trade-name registration per state
-  entityNmls: "[ENTITY NMLS #]",
+  /** Platform operator (not a licensee; see PLATFORM). */
+  entityLegalName: PLATFORM.legalName,
+  entityTradeName: PLATFORM.tradeName,
 
   /**
    * The platform operator's MLO (LoanM8 is owned by this loan officer).
@@ -144,21 +218,20 @@ export const CONFIG = {
    */
   principalMlo: {
     id: "mlo-001",
-    name: "Jason Shapiro", // carried over — VERIFY
-    firstName: "Jason", // carried over
-    nmls: "1844143", // carried over — VERIFY on nmlsconsumeraccess.org
+    name: "Jason Shapiro", // owner-confirmed 2026-10-29
+    firstName: "Jason",
+    nmls: OPERATOR_NMLS, // owner-confirmed 2026-10-29
     title: "Mortgage Loan Originator",
     bioShort: "[BIO — two or three plain sentences. No years-in-business or volume claims unless verifiable.]",
-    nmlsConsumerAccessUrl:
-      "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/1844143", // carried over — VERIFY
+    nmlsConsumerAccessUrl: `https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/${OPERATOR_NMLS}`,
     photo: "[PHOTO]",
     calendly: env("NEXT_PUBLIC_CALENDLY_BORROWER") ?? "",
     applicationUrl: env("APPLICATION_URL_MLO_001") ?? "[APPLICATION URL — POS / 1003 link]",
     licenses: [
-      { state: "WA", license: "[WA MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
-      { state: "AZ", license: "[AZ MLO LICENSE #]", sponsor: SPONSOR_HOME_FINANCIAL_AZ, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
-      { state: "CA", license: "[CA MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
-      { state: "TX", license: "[TX MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+      { state: "WA", license: `NMLS ID ${OPERATOR_NMLS}`, sponsor: SPONSOR, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+      { state: "AZ", license: `NMLS ID ${OPERATOR_NMLS}`, sponsor: SPONSOR_HOME_FINANCIAL_AZ, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+      { state: "CA", license: `CA-DFPI ${OPERATOR_NMLS}`, sponsor: SPONSOR, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+      { state: "TX", license: `NMLS ID ${OPERATOR_NMLS}`, sponsor: SPONSOR, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
     ],
   } satisfies Mlo,
 
@@ -166,12 +239,12 @@ export const CONFIG = {
   team: [
     {
       id: "mlo-002",
-      name: "Ryder Fasse", // owner-supplied 2026-10-01 — VERIFY
+      name: "Ryder Fasse", // owner-confirmed 2026-10-29
       firstName: "Ryder",
-      nmls: "119822", // owner-supplied — VERIFY on nmlsconsumeraccess.org
+      nmls: "119822", // owner-confirmed 2026-10-29
       title: "Mortgage Loan Originator",
       bioShort: "[BIO — two or three plain sentences. No years-in-business or volume claims unless verifiable.]",
-      nmlsConsumerAccessUrl: "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/119822", // VERIFY
+      nmlsConsumerAccessUrl: "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/119822",
       photo: "[PHOTO]",
       calendly: env("NEXT_PUBLIC_CALENDLY_RYDER") ?? "",
       applicationUrl: env("APPLICATION_URL_MLO_002") ?? "[APPLICATION URL — POS / 1003 link]",
@@ -182,7 +255,7 @@ export const CONFIG = {
         // license, "Lic/Reg #: None" (Oregon uses the NMLS ID), Approved,
         // renewed through 2026; authorized to represent NMLS 1761573 since
         // 08/06/2021.
-        { state: "OR", license: "NMLS ID 119822", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "2021-08-06" },
+        { state: "OR", license: "NMLS ID 119822", sponsor: SPONSOR, sponsorSince: "2021-08-06" },
       ],
     },
   ] as Mlo[],
@@ -276,9 +349,9 @@ export const CONFIG = {
       code: "WA",
       name: "Washington",
       serviceArea: "Washington",
-      entityLicense: "[WA ENTITY LICENSE #]",
-      regulatorName: "[WA regulator name — e.g. Washington State Department of Financial Institutions]",
-      regulatorUrl: "[WA regulator URL]",
+      marketed: true,
+      regulatorName: "Washington State Department of Financial Institutions",
+      regulatorUrl: "https://dfi.wa.gov",
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
       twoPartyConsent: true,
     },
@@ -287,9 +360,10 @@ export const CONFIG = {
       code: "OR",
       name: "Oregon",
       serviceArea: "Oregon",
-      entityLicense: "[OR ENTITY LICENSE #]",
-      regulatorName: "[OR regulator name — e.g. Oregon Division of Financial Regulation]",
-      regulatorUrl: "[OR regulator URL]",
+      // Licensed and live via the Oregon MLO, but not in marketing copy (owner).
+      marketed: false,
+      regulatorName: "Oregon Division of Financial Regulation",
+      regulatorUrl: "https://dfr.oregon.gov",
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
       // Recording consent: counsel to confirm for phone/online chat (ORS 165.540).
       twoPartyConsent: false,
@@ -299,9 +373,9 @@ export const CONFIG = {
       code: "AZ",
       name: "Arizona",
       serviceArea: "Arizona",
-      entityLicense: "[AZ ENTITY LICENSE #]",
-      regulatorName: "[AZ regulator name — e.g. Arizona Department of Insurance and Financial Institutions]",
-      regulatorUrl: "[AZ regulator URL]",
+      marketed: true,
+      regulatorName: "Arizona Department of Insurance and Financial Institutions",
+      regulatorUrl: "https://difi.az.gov",
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
       twoPartyConsent: false,
     },
@@ -310,9 +384,9 @@ export const CONFIG = {
       code: "CA",
       name: "California",
       serviceArea: "California",
-      entityLicense: "[CA ENTITY LICENSE #]",
-      regulatorName: "[CA regulator name — e.g. California Department of Financial Protection and Innovation]",
-      regulatorUrl: "[CA regulator URL]",
+      marketed: true,
+      regulatorName: "Department of Financial Protection and Innovation",
+      regulatorUrl: "https://dfpi.ca.gov",
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel: CA licensing language]",
       twoPartyConsent: true,
     },
@@ -321,9 +395,9 @@ export const CONFIG = {
       code: "TX",
       name: "Texas",
       serviceArea: "Texas",
-      entityLicense: "[TX ENTITY LICENSE #]",
-      regulatorName: "[TX regulator name — e.g. Texas Department of Savings and Mortgage Lending]",
-      regulatorUrl: "[TX regulator URL]",
+      marketed: true,
+      regulatorName: "Texas Department of Savings and Mortgage Lending",
+      regulatorUrl: "https://www.sml.texas.gov",
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel: TX recovery-fund / complaint notice]",
       twoPartyConsent: false,
     },
@@ -464,9 +538,16 @@ function deriveState(base: StateBase): StateConfig {
   const lic = ordered.map((m) => licenseIn(m, base.code)!).filter(Boolean);
   const seen = new Set<string>();
   const sponsors = lic.map((l) => l.sponsor).filter((sp) => (seen.has(sponsorKey(sp)) ? false : (seen.add(sponsorKey(sp)), true)));
+  const sponsor = sponsors[0] ?? { name: "[SPONSOR]", idLabel: "NMLS", idNumber: "[#]" };
+  const entity = sponsor.stateLicenses?.[base.code];
   return {
     ...base,
-    sponsor: sponsors[0] ?? { name: "[SPONSOR]", idLabel: "NMLS", idNumber: "[#]" },
+    entityLicense: !entity
+      ? "[NO SPONSOR LICENSE ON FILE]"
+      : isPlaceholder(entity.type)
+        ? `[${entity.type.slice(1, -1)}, #${entity.id}]`
+        : `${entity.type} #${entity.id}`,
+    sponsor,
     sponsors,
     mloLicense: lic.length ? lic.map((l) => l.license).join(", ") : "[NO MLO LICENSED]",
   };

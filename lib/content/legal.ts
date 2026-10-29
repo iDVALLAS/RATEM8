@@ -319,13 +319,13 @@ export const disclosuresContent = {
   eyebrow: "// licenses & disclosures",
   title: "Licenses and disclosures",
   metaTitle: "Licenses and disclosures",
-  metaDescription: `NMLS identifiers, per-state licenses and regulators for ${STATES.map((s) => s.code).join(", ")}, Equal Housing Lender, the AI disclosure, and the not-a-commitment-to-lend statement.`,
+  metaDescription: `NMLS identifiers, per-state licenses and regulators for ${STATES.map((s) => s.code).join(", ")}, Equal Housing Opportunity, the AI disclosure, and the not-a-commitment-to-lend statement.`,
   intro: "Every fact on this page comes from one configuration file, so the footer, the state pages, and this page always agree. Bracketed values are pre-launch placeholders.",
 
   sections: [
     { id: "nmls", title: "NMLS" },
     { id: "licenses", title: "Licenses by state" },
-    { id: "equal-housing", title: "Equal Housing Lender" },
+    { id: "equal-housing", title: "Equal Housing Opportunity" },
     { id: "ai", title: "AI disclosure" },
     { id: "not-a-commitment", title: "Not a commitment to lend" },
     { id: "disclaimer", title: "Full disclaimer" },
@@ -350,9 +350,9 @@ export const disclosuresContent = {
 
   equalHousing: {
     label: copy.footer.equalHousing,
-    srLabel: "Equal Housing Lender logo",
+    srLabel: "Equal Housing Opportunity logo",
     body: "LoanM8 and its loan officers follow federal and state fair lending law. We do not discriminate on the basis of race, color, religion, national origin, sex, familial status, disability, or any other basis protected by law.",
-    counselNote: "Confirm the fair-lending sentence and whether the official Equal Housing Lender logo must appear on this page as well as in the footer.",
+    counselNote: "Confirm the fair-lending sentence and whether the official Equal Housing Opportunity logo must appear on this page as well as in the footer.",
   },
 
   ai: {

@@ -94,24 +94,30 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v30 is the latest). Every patch
+   `LoanM8_Project_Handoff_README.md` (v31 / L1 is the latest; the
+   production-launch series L1–L8 is indexed in `PATCHLOG.md`). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
 2. **Branch discipline.** Develop on the branch the session was given
-   (currently `claude/quirky-feynman-t01120`, PR
-   [iDVALLAS/RATEM8#19](https://github.com/iDVALLAS/RATEM8/pull/19)).
+   (currently `claude/loanm8-production-launch-b9z06n`; PR #19 was
+   merged).
    Never push to `main`. Never force-push a shared branch.
 3. **Preview only.** Every push builds a Vercel preview automatically
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 135 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, 145 vitest tests, `check:licensing` + production
+   build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
    `npm run check:identity` fails the build on MLO names (full or first),
    NMLS numbers or NMLS-labelled digit runs anywhere outside
-   `lib/config.ts`. Copy never names a loan officer directly: it carries a
+   `lib/config.ts`. Licensing (L1) is `PLATFORM`, `SPONSOR` / `SPONSORS`,
+   the MLO registry and `CONFIG.states` in that file. LoanM8, LLC holds
+   no NMLS license; loans originate under the sponsor. Unknowns are
+   `[TBD — …]`, and `check:licensing` fails a production build on any
+   TBD / VERIFY / XXXX left in `lib/config.ts`. Copy never names a loan officer directly: it carries a
    generic string plus a `…Named` template (`{first}` / `{name}`) rendered
    through `MloText` (see §4c).
 6. **Copy lives in `lib/copy.ts`** (UI strings) and `lib/content/*`

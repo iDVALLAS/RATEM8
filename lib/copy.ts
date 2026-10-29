@@ -320,7 +320,7 @@ export const copy = {
       },
     ],
     licensedLabel: "// licensed in",
-    equalHousing: "Equal Housing Lender",
+    equalHousing: "Equal Housing Opportunity",
     aiNote: `M8 is an AI, not a person. A licensed loan officer verifies every deal.`,
   },
 

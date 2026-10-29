@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/check-licensing.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
     "check:copy": "node scripts/check-copy.mjs",
     "verify": "npm run lint && npm run check:copy && npm run check:identity && npm test && npm run build && npm run check:bundle",
     "check:identity": "node scripts/check-identity.mjs",
+    "check:licensing": "node scripts/check-licensing.mjs",
     "check:bundle": "node scripts/check-client-bundle.mjs"
   },
   "dependencies": {

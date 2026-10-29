@@ -52,14 +52,13 @@ export default function LicenseBlock({ state }: { state: StateConfig }) {
         <div className="st-license__item">
           <dt>{copy.statePage.licenseLabel}</dt>
           <dd>
-            {CONFIG.entityLegalName}
-            {" · "}
-            <span className="st-placeholder">
-              {t.nmlsLabel} {CONFIG.entityNmls}
-            </span>
-            <br />
+            {state.sponsors.map((sp) => (
+              <span key={sp.name + sp.idNumber} className="block">
+                {t.originatedBy} {sp.name} ({sp.idLabel} #{sp.idNumber})
+              </span>
+            ))}
             <span className="text-sm" style={{ color: "var(--muted)" }}>
-              Originating through {state.sponsor.name} ({state.sponsor.idLabel} {state.sponsor.idNumber})
+              {t.operatedBy} {CONFIG.entityLegalName}
             </span>
           </dd>
         </div>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import StateChip from "@/components/StateChip";
 import Orb from "./Orb";
 import { copy } from "@/lib/copy";
-import { CONFIG, STATES, stateDisplay, NOT_A_COMMITMENT, isPlaceholder } from "@/lib/config";
+import { CONFIG, STATES, stateDisplay, NOT_A_COMMITMENT } from "@/lib/config";
 import { MloFooterLine } from "@/components/mlo/MloContext";
 import { groupBySponsor } from "@/lib/licensing";
 
@@ -16,7 +16,7 @@ import { groupBySponsor } from "@/lib/licensing";
  *     when MloContext has one — never a name without its number),
  *     sponsor sentences
  *   - per-state license lines (entity + MLO license, regulator)
- *   - Equal Housing Lender with an accessible text label
+ *   - Equal Housing Opportunity with an accessible text label
  *   - entity / trade-name disclaimer
  *   - the standard "not a commitment to lend" sentence
  *   - the AI disclosure
@@ -81,8 +81,7 @@ export default function Footer() {
         <div className="mt-10 grid gap-8 md:grid-cols-2 text-xs leading-relaxed font-light" style={{ color: "var(--muted)" }}>
           <div>
             <p className="mb-3">
-              {CONFIG.entityTradeName} is a trade name of {CONFIG.entityLegalName}
-              {isPlaceholder(CONFIG.entityNmls) ? "" : ` (NMLS #${CONFIG.entityNmls})`}.
+              {CONFIG.entityTradeName} is a trade name of {CONFIG.entityLegalName}.
               {/* An individual MLO (with NMLS #) only when MloContext has a match. */}
               <MloFooterLine />
             </p>
@@ -122,7 +121,7 @@ export default function Footer() {
               <path d="M8 13h8M8 15.5h8" strokeWidth="1.2" />
             </svg>
             <span>{copy.footer.equalHousing}</span>
-            <span className="sr-only">Equal Housing Lender logo</span>
+            <span className="sr-only">Equal Housing Opportunity logo</span>
           </div>
           <p className="font-mono text-[10px] tracking-[0.12em] uppercase" style={{ color: "var(--muted)" }}>
             © {new Date().getFullYear()} {CONFIG.entityLegalName}. All rights reserved.

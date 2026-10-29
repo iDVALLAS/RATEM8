@@ -11,18 +11,17 @@ nmlsconsumeraccess.org and with counsel.
 
 | Key | Current value | Fill with |
 |---|---|---|
-| `entityNmls` | `[ENTITY NMLS #]` | The licensed entity's NMLS ID (renders in footer, /disclosures, JSON-LD) |
-| `entityLegalName` | `Shapiro Home Loans LLC` (carried over) | Verify exact legal name |
+| `PLATFORM` (L1) | LoanM8, LLC · LoanM8 Loan Intelligence | Done (owner 2026-10-29). No NMLS: LoanM8, LLC is not a licensee, so `entityNmls` is gone |
+| `SPONSOR` (L1) | Adcom Group Inc dba Home Trust Financial, NMLS 1761573, five state licenses | Done (owner 2026-10-29). WA, OR, CA, TX loans originate here. Entity license per state is derived from `SPONSOR.stateLicenses` |
+| Home Financial (AZ sponsor) `legalName` / `nmls` / `stateLicenses.AZ.type` | `[TBD — …]` | **Blocks a production build** (`check:licensing`). Owner kept AZ under Home Financial, AZ License 1037722 |
+| Principal MLO and Ryder Fasse name / NMLS | 1844143 / 119822 | Done (owner 2026-10-29). The operator's license is `NMLS ID 1844143` in WA, AZ, TX and `CA-DFPI 1844143` in CA |
+| `states[*].regulatorName` / `regulatorUrl` | Filled (L1) | Official regulator sites; could not be fetched from the build sandbox, so open each once |
+| `states[*].marketed` (L1) | WA, AZ, CA, TX true; OR false | Marketing scope, separate from licensing |
+| `demo.loBio` | `17 years … Avg close: 18 days` (unverified) | **Blocks a production build** until removed (L3 deletes the demo) or verified |
 | `entityTradeName` | `LoanM8 Loan Intelligence` (carried over) | Verify trade-name registration in WA, AZ, CA, TX |
-| `principalMlo.name` | `Jason Shapiro` (carried over) | Verify |
-| `principalMlo.nmls` | `1844143` (carried over) | Verify on NMLS Consumer Access |
-| `principalMlo.nmlsConsumerAccessUrl` | Consumer Access URL for 1844143 (carried over) | Verify the URL resolves to the right record |
 | `principalMlo.bioShort` | `[BIO — …]` | Two or three plain sentences; no years-in-business or volume claims unless verifiable |
 | `principalMlo.photo` | `[PHOTO]` | Optional headshot path under `/public` (not rendered while bracketed) |
-| `principalMlo.licenses[WA/AZ/CA/TX].license` | `[WA MLO LICENSE #]` etc. | Individual state license numbers (v15: moved here from `states[*].mloLicense`) |
 | `principalMlo.licenses[*].sponsorSince` | `[SPONSOR EFFECTIVE DATE]` | Date each current sponsorship took effect |
-| `team[Ryder Fasse].name` / `.nmls` | `Ryder Fasse` / `119822` (owner-supplied 2026-10-01) | Verify on NMLS Consumer Access |
-| `team[Ryder Fasse].nmlsConsumerAccessUrl` | Consumer Access URL for 119822 | Verify the URL resolves to the right record |
 | `team[Ryder Fasse].bioShort` / `.photo` | `[BIO — …]` / `[PHOTO]` | Same rules as above |
 | `team[Ryder Fasse].licenses[OR]` | `NMLS ID 119822`, sponsor since `2021-08-06` (from his NMLS record, v15.1) | Done. Oregon issues no separate number |
 | `team[Ryder Fasse].calendly` | empty (or `NEXT_PUBLIC_CALENDLY_RYDER`) | Ryder's booking link; until set, his matched visitors see "Booking link coming soon" |
@@ -34,21 +33,10 @@ nmlsconsumeraccess.org and with counsel.
 | `demoContactEmail` | `info@loanm8.com` (or `NEXT_PUBLIC_DEMO_CONTACT_EMAIL`) | Where testers ask for the /demo password (v17); confirm the mailbox exists |
 | `lenderCountDisplay` | `null` | Leave null unless a verified, current count is approved for display |
 | `liveRatesEnabled` | `false` | Leave false until a live pricing integration and counsel sign-off exist |
-| `states[washington].entityLicense` | `[WA ENTITY LICENSE #]` | WA entity license |
-| `states[washington].regulatorName` / `regulatorUrl` | `[WA regulator name — …]` / `[WA regulator URL]` | Regulator display name and consumer URL |
 | `states[washington].requiredDisclosure` | `[STATE-SPECIFIC DISCLOSURE — confirm with counsel]` | Any WA-mandated disclosure text, or empty string if none |
-| Sponsors (all states) | Home Trust Loans, NMLS 1761573 (WA, OR, CA, TX); Home Financial, AZ License 1037722 (AZ) — carried over | Verify. v15: set per MLO, per state in `licenses[].sponsor`; `states[*].sponsor` is derived |
-| `states[arizona].entityLicense` | `[AZ ENTITY LICENSE #]` | AZ entity license |
-| `states[arizona].regulatorName` / `regulatorUrl` | placeholders | AZ regulator |
 | `states[arizona].requiredDisclosure` | placeholder | AZ disclosure text or empty |
-| `states[california].entityLicense` | placeholder | CA entity license |
-| `states[california].regulatorName` / `regulatorUrl` | placeholders | CA regulator |
 | `states[california].requiredDisclosure` | `[… CA licensing language]` | CA-mandated licensing language |
-| `states[texas].entityLicense` | placeholder | TX entity license |
-| `states[texas].regulatorName` / `regulatorUrl` | placeholders | TX regulator |
 | `states[texas].requiredDisclosure` | `[… TX recovery-fund / complaint notice]` | TX-mandated complaint / recovery fund notice |
-| `states[oregon].entityLicense` | `[OR ENTITY LICENSE #]` | The entity's Oregon license (v15) |
-| `states[oregon].regulatorName` / `regulatorUrl` | `[OR regulator name — e.g. Oregon Division of Financial Regulation]` / `[OR regulator URL]` | Oregon regulator |
 | `states[oregon].requiredDisclosure` | placeholder | Any Oregon-mandated disclosure, or empty |
 | `states[*].twoPartyConsent` | WA true, OR false, AZ false, CA true, TX false | Confirm with counsel (Oregon: phone/online chat vs. in-person rules, ORS 165.540) |
 | `secondLookRetention` | `[RETENTION — confirm with counsel]` | Retention period for Second Look uploads (also used on /privacy and in the consent screen) |

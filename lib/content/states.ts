@@ -34,6 +34,8 @@ export const statePageContent = {
   mloLabel: "MLO license",
   regulatorLabel: "State regulator",
   nmlsLabel: "NMLS",
+  originatedBy: "Loans originated by",
+  operatedBy: "Site operated by",
   originatorsLabel: "Loan originators",
   /** v14: shown until MloContext has a match; then the matched MLO and NMLS #. */
   originatorsGeneric: "Licensed, vetted loan officers, matched by state. Your loan officer's name and NMLS number appear here once you are matched.",

@@ -1,17 +1,17 @@
 /**
  * lib/states.ts — state scope helpers, derived from lib/config.ts.
  *
- * LAUNCH_STATES = where LoanM8 markets. The one-shot build launches in
- * the licensed states in CONFIG.states (five since v15), so launch scope equals the
- * licensed footprint. Both derive from CONFIG.states — one edit, every
- * consumer regenerates.
+ * LAUNCH_STATES = where LoanM8 markets (`marketed` in CONFIG.states).
+ * LICENSED_STATES = every state with a licensed MLO, marketed or not.
+ * L1: the two are separate flags (Oregon is licensed and live through its
+ * MLO but not marketed). Both derive from CONFIG.states.
  */
 
 import { STATES, type StateCode } from "./config";
 
 export type { StateCode };
 
-export const LAUNCH_STATES: StateCode[] = STATES.map((s) => s.code);
+export const LAUNCH_STATES: StateCode[] = STATES.filter((s) => s.marketed).map((s) => s.code);
 export const LICENSED_STATES: StateCode[] = STATES.map((s) => s.code);
 
 export const STATE_FULL_NAMES: Record<StateCode, string> = STATES.reduce(

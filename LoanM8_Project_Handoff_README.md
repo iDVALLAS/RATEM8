@@ -99,6 +99,80 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v31 / L1 — Licensing single source of truth (2026-10-29)
+
+First patch of the production-launch series (L1–L8, index in
+`PATCHLOG.md`). Owner answers 2026-10-29: the sponsor is Adcom Group Inc
+dba Home Trust Financial; AZ stays under Home Financial (AZ License
+1037722) as configured; the operator's individual license is NMLS
+1844143 in every state; LoanM8, LLC has no NMLS number; "Equal Housing
+Opportunity" replaces "Equal Housing Lender". Licensing stays in
+`lib/config.ts` (not a new `config/licensing.ts`) so there is one source
+and `check:identity` keeps its single allow-listed file.
+
+### Files
+- `lib/config.ts`
+  - `PLATFORM` (LoanM8, LLC, trade name, site). `CONFIG.entityLegalName`
+    / `entityTradeName` read it. `entityNmls` removed.
+  - `Sponsor` gains optional `legalName`, `dba`, `nmls`, `address`,
+    `phone`, `nmlsUrl`, `stateLicenses`. `SPONSOR` (Adcom, five state
+    licenses) and `SPONSORS` exported. Home Financial keeps its display
+    triple; its legal name, NMLS and AZ license type are `[TBD — …]`.
+  - Operator licenses: `NMLS ID 1844143` (WA, AZ, TX), `CA-DFPI 1844143`.
+  - `StateBase`: `entityLicense` removed (now derived in `deriveState`
+    from the assigned sponsor's `stateLicenses`); `marketed` added (OR
+    false); regulator names and URLs filled.
+- `scripts/check-licensing.mjs` (new), `package.json` (`check:licensing`,
+  and `build` runs it first). Markers: `TBD`, `VERIFY`, `XXXX` anywhere
+  in `lib/config.ts`. Strict on `VERCEL_ENV=production`,
+  `LICENSING_STRICT=true`, or `NODE_ENV=production` outside Vercel
+  previews; otherwise a warning. Decision: the owner asked for
+  "NODE_ENV=production", but `next build` sets that on every Vercel
+  preview too, which would block every preview until the TBDs are filled.
+- `lib/states.ts`: `LAUNCH_STATES` = marketed states; `LICENSED_STATES`
+  = all.
+- `lib/licensing.ts`: unused `phone` placeholder removed; Equal Housing
+  Opportunity.
+- `components/Footer.tsx`, `app/disclosures/page.tsx`, `lib/jsonld.ts`,
+  `lib/content/ai.ts`: no entity NMLS. JSON-LD says "platform", not
+  "brokerage".
+- `components/states/LicenseBlock.tsx`, `lib/content/states.ts`: the
+  license row names the originating sponsor(s), then "Site operated by
+  LoanM8, LLC" (it used to show the operator as the licensee).
+- "Equal Housing Lender" → "Equal Housing Opportunity" in `lib/copy.ts`,
+  `lib/content/legal.ts`, `lib/site.ts`, Footer and Disclosures comments.
+- Tests: `lib/licensing-config.test.ts` (new, 10), `lib/routing.test.ts`
+  (sponsor name).
+- Docs: `PLACEHOLDERS.md`, `ATTORNEY_REVIEW_LIST.md`,
+  `.env.local.example` (`MLO_NOTIFICATION_EMAIL` fixed; ~20 missing vars
+  listed), `CLAUDE.md`, `PATCHLOG.md`.
+
+### Verified
+- `npm run verify` passes (lint, check:copy, check:identity, 145 tests,
+  build, check:bundle). check:licensing warns on 4 values.
+- `VERCEL_ENV=production node scripts/check-licensing.mjs` exits 1 and
+  lists them.
+- Rendered (`next start`, stealth off): footer "LoanM8 Loan Intelligence
+  is a trade name of LoanM8, LLC."; Adcom for WA, OR, CA, TX and Home
+  Financial for AZ; `/states/oregon` shows "Loans originated by Adcom
+  Group Inc dba Home Trust Financial (NMLS #1761573)" and "Site operated
+  by LoanM8, LLC"; no "Shapiro Home Loans" anywhere.
+
+### Known issues
+- **Production builds fail** until the 4 markers clear: Home Financial
+  legal name, NMLS, and AZ license type; the unverified demo bio (L3
+  removes it). Merging to `main` now would fail the production deploy
+  while leaving the current production build serving.
+- Regulator URLs and the NMLS Consumer Access links could not be opened
+  from the sandbox (network policy). Open each once.
+- Pricing tenant ids derive from the sponsor name, so the Adcom tenant id
+  changed. Only local `.data/pricing/` snapshots are affected.
+- The footer's sentence structure is unchanged; L2 rewrites it.
+
+### Next up
+L2 — footer/disclaimer rewrite, EHO logo, Texas complaint notice,
+`/licensing`, MLO + sponsor on card, chat header and rate results.
+
 ## v30 — Desktop hero orb: slightly larger and higher (2026-10-14)
 
 **Owner:** "the m8 orb looks a little small and crowded on desktop. can
