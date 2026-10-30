@@ -232,3 +232,17 @@ conflict is recorded here.
     logged or stored on our side. Confirm the privacy notice covers it.
 - **Lender counts.** Copy says "up to 14 lenders" (`CONFIG.lenderCountMax`).
   The operator's lender list on file has 12.
+
+## L4 decisions (2026-10-30)
+
+- **Rate assumptions behind a toggle.** Each rate shows its APR beside it
+  with equal prominence, plus points and the as-of time. The trigger-term
+  disclosures (price, down payment, loan amount, LTV, credit score,
+  program and term, occupancy, property type, lock, pricing location) sit
+  behind a clearly labelled "Rate assumptions" toggle, closed by default.
+  Confirm this satisfies Reg Z §1026.24(c) and (d) for an online
+  advertisement.
+- **One reference scenario shown in every licensed state**, priced for
+  ZIP 98033 with a note that pricing elsewhere may differ. Confirm the
+  wording, and whether any state requires its own priced scenario.
+

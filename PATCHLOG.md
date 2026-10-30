@@ -9,8 +9,30 @@ continuity log. L-patches continue its numbering (L1 = v31).
 | L1 — Licensing single source of truth | v31 | Preview, awaiting owner sign-off |
 | L2 — Site-wide disclaimer rewrite, `/licensing`, TX notice | — | Not started |
 | L3 — Remove example mode, go live | — | Not started |
-| L4 — ARIVE live pricing (API + manual, gated) | — | Not started |
+| L4 — Pricing: manual ARIVE pull + screenshot (API later) | — | Not started; decisions below |
 | L5 — Accounts, data, security | — | Not started (provider choice needs owner OK) |
 | L6 — M8 chat redesign + browser voice | — | Not started |
 | L7 — M8 security and compliance sweep, red-team suite | — | Not started |
 | L8 — Launch checklist | — | Not started; promote only on the owner's "promote" |
+
+## Owner decisions for L4 (2026-10-30)
+
+- **Source:** manual pull in ARIVE with a source screenshot, entered in
+  `/mlo/pricing` (the Patch A path). The ARIVE API comes later. ARIVE's
+  Zapier integration covers loans and leads, not pricing, so it is not a
+  pricing path.
+- **Storage:** Vercel Blob (private) for snapshots and screenshots
+  (approved). The file store stays for local development.
+- **The one daily scenario** (not state-specific; shown in every state
+  as a reference, never as the visitor's quote):
+  - Purchase, price $400,000, 25% down ($100,000), loan $300,000, 75% LTV
+  - Conventional conforming, 30-year fixed
+  - Primary residence, single-family
+  - Credit score 780
+  - 30-day lock
+  - Priced for ZIP 98033 (Kirkland, WA); the assumptions say pricing
+    in other states may differ
+- **Display:** rate, APR (same prominence), points and the as-of date
+  and time stay visible. Everything else sits behind a closed, clearly
+  labelled "Rate assumptions" toggle (keyboard and screen-reader
+  accessible). Counsel to confirm (ATTORNEY_REVIEW_LIST.md).
