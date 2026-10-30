@@ -210,6 +210,56 @@ export const copy = {
     notEnoughLenders: "Fewer than three lenders were eligible for this scenario, so no option set is shown.",
   },
 
+  // v33: the redesigned M8 chat (/chat).
+  m8chat: {
+    title: "M8",
+    titleAccent: "Chat",
+    aiLine: "I'm an AI, not a person. A licensed loan officer verifies every recommendation.",
+    states: { idle: "Ready", listening: "Listening", thinking: "Thinking", speaking: "Speaking" },
+    repliesOn: "Voice replies on",
+    repliesOff: "Voice replies off",
+    listen: "Read this aloud",
+    stopListen: "Stop reading",
+    placeholder: "Ask M8 anything: rates, scenarios, fees, timing…",
+    listeningPlaceholder: "Listening…",
+    mic: "Talk to M8",
+    micStop: "Stop listening",
+    send: "Send",
+    disclosureLead: "M8 is an AI assistant.",
+    disclosureStrong: "A licensed loan officer verifies every recommendation.",
+    disclosureTail: "Not a commitment to lend.",
+    loEyebrow: "Your loan officer",
+    loEyebrowGeneric: "A licensed loan officer",
+    originatesThrough: "Originates through",
+    licensedIn: "Licensed",
+    whyNamed: "Why {first}: this conversation is about a home in {state}, and {first} is the licensed loan officer for {state}.",
+    startApplication: "Start application",
+    bookCall: "Book a call",
+    scenarioEyebrow: "This scenario",
+    assumptions: "Rate assumptions",
+    softPull: "Soft pull only · subject to verification",
+    holdEyebrow: "Hold-period analysis · 7 years",
+    sendHint: "Your question goes to {first}, who replies by email.",
+    sent: "Sent. {first} will reply by email.",
+    sendError: "That didn't send. Try again, or book a call.",
+    emailLabel: "Email for the reply (optional)",
+  },
+
+  // v33: M8's voice, everywhere it speaks or listens.
+  voice: {
+    consent: {
+      eyebrow: "Before you talk to M8",
+      title: "How voice works",
+      transcribe: "Your browser turns your speech into text. In Chrome that runs on Google's servers; in Safari, on Apple's.",
+      noRecording: "LoanM8 never records or stores your audio. Only the text reaches M8.",
+      readAloudDevice: "M8's replies are read aloud by your device's built-in voice.",
+      readAloudVendor: "M8's replies are read aloud by our voice provider, ElevenLabs, which receives the reply text to turn it into speech.",
+      noSensitive: "Don't say your Social Security number, date of birth or account numbers out loud.",
+      accept: "Turn on voice",
+      decline: "Keep typing instead",
+    },
+  },
+
   // v19 (Round 3, Item 3a): why LoanM8 costs less. A cost-structure
   // statement, not a rate claim; rates are never compared here.
   savings: {

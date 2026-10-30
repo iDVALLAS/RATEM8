@@ -99,6 +99,76 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v33 — M8 chat redesign + voice (2026-10-30)
+
+**Owner:** approved the chat mockup ("looks cleaner"); "change the circle
+next to the LO's name into their photo if they choose to"; replace
+"Example · illustrative" with a not-an-offer disclaimer ("That looks
+shady"); "move the chat/type box so it stays with the conversation";
+voice site-wide behind an easy switch, "use eleven labs for now".
+
+### Files
+- `components/m8chat/*` (new): `M8ChatPage` (server) is `/chat` now.
+  - Site nav and footer (PageShell). Orb header (`ChatHead`) follows M8's
+    voice state and carries the AI line and the "Voice replies" switch.
+  - Thread: user bubbles right, M8 left; a read-aloud button per M8
+    message (`SpeakButton`); rate card with numbered lenders, rate and APR
+    side by side, a `<details>` "Rate assumptions" toggle, and the new
+    disclaimer; hold-period card; follow-up chips fill the composer.
+  - `Composer`: sticky at the bottom of the conversation column (same
+    width as the messages), mic, send; still sends to the loan officer via
+    `/api/chat-question` (no live model). "Sent" only on success.
+  - Loan officer card: photo when `photo` is set, else a green circle;
+    name, NMLS, sponsor and its NMLS, licensed states, why matched, Book a
+    call, Start application (only with a real application URL). Pinned in
+    a rail at ≥1024px; above the thread below that.
+  - `m8chat.css`: semantic tokens only (Night, Dim, Paper).
+- `lib/voice/provider.ts` (new): `VoiceProvider` interface; `browser`
+  (speechSynthesis at rate 1.0, pitch 0.9, US English; Web Speech
+  recognition) and `elevenlabs` (TTS through the server route, one
+  sentence ahead; any failure falls back to the browser voice).
+- `app/api/voice/tts/route.ts`, `lib/voice/tts-guard.ts` (new): ElevenLabs
+  proxy. Key server-only; 503 unless `VOICE_PROVIDER=elevenlabs` and
+  `ELEVENLABS_API_KEY`; same-site only; 600 chars; 40 per minute per IP
+  (per instance); SSN/DOB/account-number shapes refused (422, spoken by
+  the device instead); nothing logged.
+- `components/voice/VoiceRoot.tsx`, `VoiceConsentSheet.tsx`, `voice.css`
+  (new): site-wide voice context in `app/layout.tsx`; consent before first
+  use (remembered in this browser only); the mic interrupts speech.
+- `components/home/HeroOrb.tsx`: Voice goes to `/chat?voice=1`, which asks
+  to turn voice replies on.
+- `lib/config.ts`: `CONFIG.voice` (provider, voice id "Rachel" default,
+  model `eleven_flash_v2_5`); the operator's `photo` is
+  `/images/mlo-001.jpg` (cropped from the business card; `/images/` is
+  public under stealth; `/mlo/*` is the admin and 404s); disclaimer
+  constants `NOT_AN_OFFER_LINE`, `SAMPLE_CONVERSATION_LINE`,
+  `RATE_DISCLAIMER_LEAD`, `RATE_DISCLAIMER_BODY`.
+- `lib/copy.ts` (`m8chat`, `voice`), `lib/content/legal.ts` (vendors:
+  ElevenLabs, browser speech services), `.env.local.example`,
+  `ATTORNEY_REVIEW_LIST.md`, `app/chat/page.tsx`.
+- Tests: `lib/voice/voice.test.ts` (11): sentence splitting keeps
+  decimals, voice choice, engine switch, guard, route (503 off, 422 never
+  calls the vendor, key only on the server), page has the disclaimer and
+  no "illustrative"/"live".
+
+### Verified
+- `npm run verify` passes (156 tests).
+- Browser QA (local `next start`, 1440 and 390): composer bottom = viewport
+  bottom, same left and width as the conversation column; no horizontal
+  overflow; one h1; voice switch opens the consent sheet and turns on after
+  accepting; a follow-up chip fills the composer; the photo loads.
+  `qa/overflow` ok for /chat. Only console error: the Vercel Analytics
+  script (Vercel-only).
+- Not verifiable here: real speech (headless has no audio) and ElevenLabs
+  (no key in this environment). Test on a phone once the key is set.
+
+### Known issues / next
+- `VOICE_PROVIDER=elevenlabs` and `ELEVENLABS_API_KEY` must be set in
+  Vercel (Preview); until then the browser voice speaks.
+- The rate limit is per server instance; L5 makes it shared.
+- /demo still renders the old `ChatExperience` until L3 deletes it.
+- The prep flow (`/chat?prep=1`) still has the old disabled voice modal.
+
 ## v32 — Lenders numbered; L4 pricing spec (2026-10-30)
 
 **Owner:** "for now change the lenders to Lender 1, Lender 2, etc ... to

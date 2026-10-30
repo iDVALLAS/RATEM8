@@ -213,7 +213,8 @@ export const CONFIG = {
     title: "Mortgage Loan Originator",
     bioShort: "[BIO — two or three plain sentences. No years-in-business or volume claims unless verifiable.]",
     nmlsConsumerAccessUrl: `https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/${OPERATOR_NMLS}`,
-    photo: "[PHOTO]",
+    // v33 (owner 2026-10-30): cropped from the business card until a proper headshot arrives.
+    photo: "/images/mlo-001.jpg",
     calendly: env("NEXT_PUBLIC_CALENDLY_BORROWER") ?? "",
     applicationUrl: env("APPLICATION_URL_MLO_001") ?? "[APPLICATION URL — POS / 1003 link]",
     licenses: [
@@ -403,6 +404,23 @@ export const CONFIG = {
     agent: env("NEXT_PUBLIC_CALENDLY_AGENT") ?? "",
     mlo: env("NEXT_PUBLIC_CALENDLY_MLO") ?? "",
     secondLook: env("NEXT_PUBLIC_CALENDLY_SECOND_LOOK") ?? "",
+  },
+
+  /**
+   * M8's voice (v33, owner 2026-10-30: "use eleven labs for now").
+   * VOICE_PROVIDER: "elevenlabs" (needs ELEVENLABS_API_KEY on the server) or
+   * "browser" (the device's built-in "robot" voice). Anything else, or a
+   * missing key, means the browser voice. Switching engines is this one
+   * setting; see lib/voice/provider.ts.
+   */
+  voice: {
+    provider: (env("VOICE_PROVIDER") === "elevenlabs" ? "elevenlabs" : "browser") as "elevenlabs" | "browser",
+    elevenLabs: {
+      /** ElevenLabs premade voice "Rachel" unless ELEVENLABS_VOICE_ID picks another. */
+      voiceId: env("ELEVENLABS_VOICE_ID") ?? "21m00Tcm4TlvDq8EQu7z",
+      /** The low-latency model, so speech starts quickly. */
+      modelId: env("ELEVENLABS_MODEL_ID") ?? "eleven_flash_v2_5",
+    },
   },
 
   featureFlags: {
@@ -619,6 +637,20 @@ export const SAMPLE_SENTENCE = "Sample — illustrative only, not an offer.";
  * the persistent label on every rate card that shows illustrative pricing.
  */
 export const EXAMPLE_PRICING_LABEL = "Example — illustrative pricing, not an offer";
+
+/**
+ * v33 (owner 2026-10-30: "I don't want it just to say illustrative example.
+ * That looks shady."): the rate-card disclaimer on the new M8 chat. The
+ * short line sits above the rates; the full text sits under them.
+ * Replaces the attorney-cleared EXAMPLE_PRICING_LABEL on /chat only;
+ * counsel to re-review (ATTORNEY_REVIEW_LIST.md).
+ */
+export const NOT_AN_OFFER_LINE = "Not an offer to lend";
+/** While the chat shows the scripted conversation (no real pricing yet). */
+export const SAMPLE_CONVERSATION_LINE = "Sample conversation";
+export const RATE_DISCLAIMER_LEAD = "This is not an offer or commitment to lend, a rate lock, or a Loan Estimate.";
+export const RATE_DISCLAIMER_BODY =
+  "Rates and APRs are based on the assumptions shown and on pricing at the time shown; they change daily and aren't available to every borrower. Your rate, APR, points and payment depend on your credit, income, assets, loan amount, loan-to-value, property, occupancy, location and lock period, and are confirmed only by a licensed loan officer. Payments are principal and interest only; taxes and insurance are extra, so your actual payment will be higher. All loans are subject to credit approval, underwriting and property eligibility. Equal Housing Opportunity.";
 
 /** AI disclosure — said before any interaction on every M8 surface. */
 export const AI_DISCLOSURE = "I'm an AI, not a person.";

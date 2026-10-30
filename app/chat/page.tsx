@@ -1,4 +1,4 @@
-import ChatExperience from "@/components/ChatExperience";
+import M8ChatPage from "@/components/m8chat/M8ChatPage";
 import PageShell from "@/components/PageShell";
 import ChatShell from "@/components/chat/ChatShell";
 import { copy } from "@/lib/copy";
@@ -11,9 +11,11 @@ export const metadata = {
 };
 
 /**
- * /chat — the scripted M8 demo (v21: restored from the original build,
- * the Sarah / Bellevue refi conversation in <ChatExperience />). It is
- * where the homepage "I'm shopping a mortgage" button goes.
+ * /chat — the M8 chat (v33 redesign, <M8ChatPage />), showing the scripted
+ * Sarah / Bellevue refi conversation until real pricing and live M8 land.
+ * It is where the homepage "I'm shopping a mortgage" button and the hero
+ * Voice button (/chat?voice=1) go. /demo keeps the old <ChatExperience />
+ * until L3 removes it.
  *
  * /chat?prep=1 is the v18 "Prep my application with M8" flow, which
  * keeps its AI disclosure gate (<ChatShell prep />).
@@ -22,7 +24,7 @@ export const metadata = {
  */
 export default async function ChatPage({ searchParams }: { searchParams: Promise<{ prep?: string }> }) {
   const { prep } = await searchParams;
-  if (prep !== "1") return <ChatExperience />;
+  if (prep !== "1") return <M8ChatPage />;
   return (
     <PageShell
       crumbs={[

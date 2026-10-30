@@ -9,6 +9,7 @@ import { themeBootScript } from "@/lib/theme";
 import { organizationJsonLd } from "@/lib/jsonld";
 import JsonLd from "@/components/JsonLd";
 import { MloProvider } from "@/components/mlo/MloContext";
+import VoiceRoot from "@/components/voice/VoiceRoot";
 import { routeContext } from "@/lib/route-context";
 import ReferralTracker from "@/components/ReferralTracker";
 import "./globals.css";
@@ -76,7 +77,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         {/* MloContext: resolved per request by middleware (v15) when MLO_ROUTING is on; generic otherwise. */}
-        <MloProvider value={mloValue}>{children}</MloProvider>
+        <MloProvider value={mloValue}>
+          {/* v33: M8's voice, site-wide; the engine is a server setting (CONFIG.voice). */}
+          <VoiceRoot kind={CONFIG.voice.provider}>{children}</VoiceRoot>
+        </MloProvider>
         {/* v24: reveal / count-up / draw-in / magnetic hover (progressive, reduced-motion aware). */}
         <Interactions />
         {/* Vercel Analytics only. No third-party trackers, no cookies set by us. */}

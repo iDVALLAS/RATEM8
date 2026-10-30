@@ -205,7 +205,19 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
     while the animation keeps running underneath, so it stays in sync.
   - Reduced motion: no breathing and no rise; the hover hold still shows
     it. Size and placement are unchanged from v14.
-- No microphone, no audio, no AI call. `CONFIG.featureFlags.voice` is false.
+- No microphone or AI call on the homepage itself. v33: Voice goes to
+  `/chat?voice=1`, which asks to turn on M8's voice (consent first).
+
+### 4.2b M8 chat and voice (v33) — `components/m8chat/*`, `lib/voice/*`, `components/voice/*`
+
+- `/chat` is `M8ChatPage`: orb header, thread, composer sticky inside the
+  conversation column, loan officer card (photo from `mlo.photo`).
+- Voice is one interface (`lib/voice/provider.ts`). `VOICE_PROVIDER` picks
+  the engine: `elevenlabs` (via `/api/voice/tts`, key server-only) or the
+  browser voice; failures fall back to the browser. `VoiceRoot` in the
+  layout owns consent and state. Add engines there, never in components.
+- Rate cards on /chat use `NOT_AN_OFFER_LINE` + `RATE_DISCLAIMER_*`,
+  never the "illustrative" label.
 
 ### 4.3 TermField — `components/TermField.tsx`
 

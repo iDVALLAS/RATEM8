@@ -1,0 +1,185 @@
+/* ─── v33: the redesigned M8 chat (/chat) ──────────────────────────
+   Semantic tokens only, so Night / Dim / Paper all work. The composer
+   is sticky inside the conversation column, so it stays with the
+   conversation and never spans the rail. */
+
+.m8c {
+  display: grid;
+  grid-template-columns: minmax(0, 760px) 320px;
+  gap: 48px;
+  justify-content: center;
+  padding: 0 24px;
+}
+.m8c-convo { min-width: 0; display: flex; flex-direction: column; min-height: calc(100svh - 120px); }
+.m8c-rail { padding-top: 28px; }
+.m8c-rail__inner { position: sticky; top: 96px; display: grid; gap: 16px; }
+.m8c-lo-mobile { display: none; }
+
+/* Header */
+.m8c-head { display: flex; align-items: center; gap: 16px; padding: 28px 0 22px; border-bottom: 1px solid var(--rule); }
+.m8c-head__orb { flex: none; }
+.m8c-head__text { min-width: 0; flex: 1; }
+.m8c-h1 { margin: 0; font-size: 26px; font-weight: 300; letter-spacing: -0.02em; line-height: 1.1; }
+.m8c-accent { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 55%, var(--fg))); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.m8c-state { display: inline-flex; align-items: center; gap: 6px; margin: 6px 0 0; font-family: var(--font-mono, ui-monospace), monospace; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--label-accent, var(--accent)); }
+.m8c-state i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.m8c-ai { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.m8c-voice {
+  display: inline-flex; align-items: center; gap: 8px; flex: none;
+  border: 1px dashed var(--rule-strong); border-radius: 999px; padding: 8px 14px;
+  font-size: 13px; color: var(--fg-soft); background: transparent; cursor: pointer;
+}
+.m8c-voice.is-on { border-style: solid; border-color: var(--accent); color: var(--fg); }
+.m8c-voice svg, .m8c-speak svg, .m8c-ic svg, .m8c-offer svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Thread */
+.m8c-thread { list-style: none; margin: 0; padding: 26px 0 8px; display: grid; gap: 22px; }
+.m8c-msg { display: flex; gap: 12px; }
+.m8c-msg__body { min-width: 0; flex: 1; }
+.m8c-avatar { flex: none; margin-top: 2px; }
+.m8c-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; font-family: var(--font-mono, ui-monospace), monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.m8c-meta b { color: var(--fg); font-weight: 500; }
+.m8c-meta__label { color: var(--label-accent, var(--accent)); }
+.m8c-p { margin: 0 0 10px; font-size: 15.5px; line-height: 1.6; color: var(--fg); }
+.m8c-msg--user { justify-content: flex-end; }
+.m8c-bubble {
+  max-width: 78%; background: var(--bg-elevated); border: 1px solid var(--rule);
+  border-radius: 18px 18px 4px 18px; padding: 12px 16px; font-size: 15.5px; line-height: 1.55;
+}
+.m8c-speak {
+  display: inline-grid; place-items: center; width: 26px; height: 22px; margin-left: 2px;
+  border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer;
+}
+.m8c-speak:hover, .m8c-speak:focus-visible, .m8c-speak.is-on { color: var(--accent); border-color: var(--rule); }
+.m8c-bars { display: inline-flex; gap: 2px; align-items: flex-end; height: 10px; }
+.m8c-bars i { width: 2px; height: 3px; background: var(--accent); animation: m8c-bar 0.9s ease-in-out infinite; }
+.m8c-bars i:nth-child(2) { animation-delay: 0.15s; }
+.m8c-bars i:nth-child(3) { animation-delay: 0.3s; }
+.m8c-bars i:nth-child(4) { animation-delay: 0.45s; }
+@keyframes m8c-bar { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(3.3); } }
+.m8c-bars i { transform-origin: bottom; }
+
+/* Cards */
+.m8c-card { border: 1px solid var(--rule); border-radius: 16px; background: var(--rate-card-bg, var(--bg-elevated)); padding: 18px; margin-top: 8px; }
+.m8c-small { font-size: 13px; color: var(--muted); }
+.m8c-eyebrow, .m8c-mono, .m8c-lbl, .m8c-rates__scenario, .m8c-offer, .m8c-opt__des {
+  font-family: var(--font-mono, ui-monospace), monospace; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.m8c-eyebrow { margin: 0 0 12px; font-size: 10.5px; color: var(--muted); }
+.m8c-mono { margin: 3px 0 0; font-size: 10.5px; color: var(--muted); }
+.m8c-lbl { display: block; font-size: 9.5px; color: var(--muted); margin-top: 3px; }
+.m8c-offer { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 10.5px; color: var(--fg-soft); }
+.m8c-offer svg { width: 13px; height: 13px; color: var(--accent); flex: none; }
+.m8c-rates__scenario { margin: 0 0 10px; font-size: 10.5px; color: var(--label-accent, var(--accent)); }
+.m8c-opts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.m8c-opt {
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.2fr; gap: 12px; align-items: center;
+  padding: 12px; border-radius: 12px; border: 1px solid var(--rule);
+}
+.m8c-opt.is-win { border-color: color-mix(in srgb, var(--accent) 60%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent); }
+.m8c-opt__who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.m8c-opt__name { margin: 0; font-weight: 500; font-size: 15px; }
+.m8c-opt__des { margin: 3px 0 0; font-size: 9.5px; color: var(--muted); }
+.m8c-opt__num { display: flex; flex-direction: column; }
+.m8c-rate { font-size: 22px; font-weight: 300; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.m8c-opt__pts { display: flex; flex-direction: column; font-size: 13px; color: var(--fg-soft); }
+.m8c-assump { margin-top: 12px; }
+.m8c-assump summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; list-style: none; }
+.m8c-assump summary::-webkit-details-marker { display: none; }
+.m8c-assump__btn { border: 1px solid var(--rule-strong); color: var(--fg-soft); border-radius: 999px; padding: 5px 12px; font-size: 12px; white-space: nowrap; }
+.m8c-assump__btn::after { content: " ▾"; }
+.m8c-assump[open] .m8c-assump__btn::after { content: " ▴"; }
+.m8c-assump ul { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px solid var(--rule); display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: 13px; }
+.m8c-assump li span { color: var(--muted); text-transform: capitalize; }
+.m8c-disclaimer { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--rule); font-size: 11.5px; line-height: 1.55; color: var(--muted); }
+.m8c-disclaimer b { color: var(--fg-soft); font-weight: 400; }
+.m8c-pills { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.m8c-pills li { border: 1px solid var(--rule); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; color: var(--muted); }
+.m8c-pills b { color: var(--fg); font-weight: 400; }
+.m8c-hold { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.m8c-money { margin: 4px 0 0; font-size: 22px; font-weight: 300; font-variant-numeric: tabular-nums; }
+
+/* Follow-ups */
+.m8c-followups { list-style: none; margin: 4px 0 0 40px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.m8c-fu { border: 1px solid var(--rule-strong); border-radius: 999px; padding: 8px 14px; font-size: 13.5px; color: var(--fg-soft); background: transparent; cursor: pointer; }
+.m8c-fu:hover, .m8c-fu:focus-visible { border-color: var(--accent); color: var(--fg); }
+
+/* Composer: sticky at the bottom of the conversation column. */
+.m8c-dock {
+  position: sticky; bottom: 0; z-index: 4; margin-top: auto;
+  padding: 18px 0 calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 72%, transparent);
+}
+.m8c-composer {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--rule-strong); background: var(--bg-elevated);
+  border-radius: 18px; padding: 8px 8px 8px 16px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+.m8c-composer:focus-within { border-color: color-mix(in srgb, var(--accent) 70%, transparent); }
+.m8c-input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: var(--fg); font: inherit; font-size: 15.5px; font-weight: 300; padding: 8px 0; }
+.m8c-input::placeholder { color: var(--muted); }
+.m8c-ic {
+  width: 40px; height: 40px; flex: none; display: grid; place-items: center;
+  border-radius: 12px; border: 1px solid var(--rule); background: transparent; color: var(--fg-soft); cursor: pointer;
+}
+.m8c-ic svg { width: 18px; height: 18px; }
+.m8c-ic.is-live { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.m8c-ic--send { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.m8c-ic--send svg { stroke-width: 2; }
+.m8c-ic--send:disabled { opacity: 0.45; cursor: not-allowed; }
+.m8c-email { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+.m8c-email input { flex: 1 1 200px; min-width: 0; background: var(--bg-elevated); border: 1px solid var(--rule); border-radius: 10px; padding: 7px 10px; color: var(--fg); font: inherit; }
+.m8c-email span { flex-basis: 100%; }
+.m8c-status { min-height: 0; margin: 6px 0 0; font-size: 13px; color: var(--fg-soft); text-align: center; }
+.m8c-status:empty { display: none; }
+.m8c-disclosure { margin: 10px 0 0; text-align: center; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.m8c-disclosure b { color: var(--fg-soft); font-weight: 400; }
+
+/* Loan officer card */
+.m8c-lo__who { display: flex; align-items: center; gap: 12px; }
+.m8c-photo { width: 52px; height: 52px; border-radius: 50%; flex: none; object-fit: cover; box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); }
+.m8c-photo--none { background: linear-gradient(135deg, var(--color-m8-deep), var(--color-m8-green)); }
+.m8c-lo__name { margin: 0; font-size: 17px; font-weight: 500; }
+.m8c-lo__fact { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--fg-soft); }
+.m8c-lo__fact span { color: var(--muted); }
+.m8c-lo__why { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--rule); font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+.m8c-lo__btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.m8c-lo__btns > * { flex: 1 1 120px; justify-content: center; text-align: center; }
+.m8c-btn--ghost { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--rule-strong); border-radius: 10px; padding: 10px; font-size: 13px; color: var(--fg-soft); }
+.m8c-rows { margin: 0; }
+.m8c-rows div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 13.5px; }
+.m8c-rows div:last-child { border-bottom: 0; }
+.m8c-rows dt { color: var(--muted); }
+.m8c-rows dd { margin: 0; text-align: right; }
+
+/* Tablet and phone: one column; the loan officer card moves above the thread. */
+@media (max-width: 1023px) {
+  .m8c { grid-template-columns: minmax(0, 760px); gap: 0; padding: 0 16px; }
+  .m8c-rail { display: none; }
+  .m8c-lo-mobile { display: block; margin-top: 14px; }
+  .m8c-lo-mobile .m8c-card { padding: 14px; }
+  .m8c-lo-mobile .m8c-eyebrow, .m8c-lo-mobile .m8c-lo__why { display: none; }
+  .m8c-lo-mobile .m8c-photo { width: 40px; height: 40px; }
+  .m8c-lo-mobile .m8c-lo__fact { margin-top: 8px; font-size: 12.5px; }
+  .m8c-lo-mobile .m8c-lo__btns { margin-top: 10px; }
+}
+@media (max-width: 640px) {
+  .m8c-head { padding: 16px 0; gap: 10px 12px; flex-wrap: wrap; }
+  .m8c-head__orb { width: 44px !important; height: 44px !important; }
+  .m8c-head__text { flex: 1 1 calc(100% - 60px); }
+  .m8c-h1 { font-size: 21px; }
+  .m8c-voice { margin-left: 56px; }
+  .m8c-p, .m8c-bubble { font-size: 15px; }
+  .m8c-bubble { max-width: 88%; }
+  .m8c-avatar { display: none; }
+  .m8c-followups { margin-left: 0; }
+  .m8c-opt { grid-template-columns: 1fr 1fr; row-gap: 8px; }
+  .m8c-opt__who, .m8c-opt__pts { grid-column: 1 / -1; }
+  .m8c-hold { grid-template-columns: 1fr; gap: 10px; }
+  .m8c-assump ul { grid-template-columns: 1fr; }
+  .m8c-disclosure { font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m8c-bars i { animation: none; transform: scaleY(2); }
+}

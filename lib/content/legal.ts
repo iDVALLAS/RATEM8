@@ -117,6 +117,8 @@ export const privacyContent = {
       { name: "Vercel", role: "Hosting and aggregate analytics." },
       { name: "Calendly", role: "Scheduling. Collects what you enter when you book." },
       { name: "Anthropic (Claude API)", role: "Powers AI features when they are enabled. Chat and live upload are off today." },
+      { name: "ElevenLabs", role: "Reads M8's replies aloud when you turn voice on. It receives the reply text, never your audio." },
+      { name: "Your browser's speech service (Google in Chrome, Apple in Safari)", role: "Turns your speech into text when you use the microphone. LoanM8 never records or stores your audio." },
     ],
   },
 

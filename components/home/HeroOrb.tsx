@@ -42,6 +42,8 @@ const PULSE_MS = 700;
 const SPEAK_MS = 1500;
 const REDIRECT_MS = 5500;
 const CHAT_HREF = "/chat";
+/** v33: Voice opens the chat with voice replies switched on (after consent). */
+const hrefFor = (which: Popup) => (which === "voice" ? `${CHAT_HREF}?voice=1` : CHAT_HREF);
 
 
 function VoiceIcon() {
@@ -96,7 +98,7 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
       setPopup(which);
       timers.current.push(window.setTimeout(() => setPulse(false), PULSE_MS));
       timers.current.push(window.setTimeout(() => setState("idle"), SPEAK_MS));
-      redirectTimer.current = window.setTimeout(() => router.push(CHAT_HREF), REDIRECT_MS);
+      redirectTimer.current = window.setTimeout(() => router.push(hrefFor(which)), REDIRECT_MS);
     },
     [clearRedirect, router],
   );
@@ -128,7 +130,7 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
   const renderPopup = (which: Popup, text: string) =>
     popup === which ? (
       <div className={`hm-pop hm-pop--${which === "voice" ? "left" : "right"}`} key={which}>
-        <Link href={CHAT_HREF} className="hm-pop__body" onClick={clearRedirect}>
+        <Link href={hrefFor(which)} className="hm-pop__body" onClick={clearRedirect}>
           <span aria-hidden="true" className="hm-pop__dot" />
           <span className="hm-pop__text">{text}</span>
           <span className="sr-only"> {redirectNote}</span>

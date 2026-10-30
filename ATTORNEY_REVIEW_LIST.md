@@ -250,3 +250,28 @@ conflict is recorded here.
   (c), (d), the comparative claim, Freddie Mac's terms, §1026.36(d)
   funding, state ad rules): `docs/work/L4-pricing-spec.md` §2.
 
+## v33 additions — M8 chat redesign and voice (2026-10-30)
+
+- **Rate-card disclaimer replaces the "Example — illustrative pricing"
+  label on /chat** (owner: "I don't want it just to say illustrative
+  example. That looks shady."). The old label was attorney-cleared on
+  2026-10-10; the new wording needs the same review:
+  - Above the rates: "Sample conversation · Not an offer to lend" (the
+    sample line drops once real pricing lands).
+  - Under the rates: `RATE_DISCLAIMER_LEAD` + `RATE_DISCLAIMER_BODY` in
+    `lib/config.ts` (not an offer, commitment, rate lock or Loan Estimate;
+    assumptions; changes daily; confirmed by a licensed loan officer;
+    payment is P&I only, taxes and insurance extra; subject to approval;
+    Equal Housing Opportunity).
+  - /demo and /sample-brief still use the old label until L3.
+- **Voice.** Consent sheet before M8 first listens or speaks
+  (`copy.voice.consent`). Confirm it is adequate in WA and CA (two-party
+  consent): no audio is recorded or stored; speech-to-text runs in the
+  browser's own service (Google's servers in Chrome, Apple's in Safari);
+  replies are sent as text to ElevenLabs to be spoken. Vendors added to
+  /privacy. Text that looks like an SSN, date of birth or account number
+  is never sent to ElevenLabs (it is read by the device voice instead).
+- **Loan officer photo** on the chat card (owner-supplied; cropped from
+  the business card until a headshot arrives). Confirm no state rule on
+  advertising photos of the originator.
+

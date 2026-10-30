@@ -1,0 +1,17 @@
+/* v33: the voice consent sheet — bottom sheet on phones, centred dialog on desktop. */
+.vc-layer { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, 0.55); display: flex; align-items: flex-end; justify-content: center; }
+.vc-sheet {
+  width: 100%; max-width: 520px; background: var(--color-m8-panel, #0d1a15); color: var(--color-m8-paper);
+  border-top: 1px solid var(--color-m8-green); border-radius: 20px 20px 0 0;
+  padding: 22px 20px calc(24px + env(safe-area-inset-bottom));
+}
+.vc-eyebrow { margin: 0; font-family: var(--font-mono, ui-monospace), monospace; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-m8-green); }
+.vc-title { margin: 6px 0 8px; font-size: 20px; font-weight: 400; }
+.vc-list { margin: 8px 0 16px; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; line-height: 1.55; color: color-mix(in srgb, var(--color-m8-paper) 85%, transparent); }
+.vc-ok, .vc-no { display: block; width: 100%; border-radius: 12px; padding: 13px; font: inherit; font-size: 15px; cursor: pointer; }
+.vc-ok { background: var(--color-m8-green); color: var(--color-m8-forest); border: 0; font-weight: 500; }
+.vc-no { margin-top: 8px; background: transparent; color: color-mix(in srgb, var(--color-m8-paper) 85%, transparent); border: 1px solid color-mix(in srgb, var(--color-m8-paper) 24%, transparent); }
+@media (min-width: 768px) {
+  .vc-layer { align-items: center; }
+  .vc-sheet { border: 1px solid var(--color-m8-green); border-radius: 20px; }
+}
