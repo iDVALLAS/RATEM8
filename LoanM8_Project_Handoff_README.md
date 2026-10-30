@@ -162,6 +162,10 @@ voice site-wide behind an easy switch, "use eleven labs for now".
 - Not verifiable here: real speech (headless has no audio) and ElevenLabs
   (no key in this environment). Test on a phone once the key is set.
 
+- Follow-up: the owner sent a headshot; `public/images/mlo-001.jpg` is now
+  that photo cropped to the circle they marked (400×400), replacing the
+  business-card crop.
+
 ### Known issues / next
 - `VOICE_PROVIDER=elevenlabs` and `ELEVENLABS_API_KEY` must be set in
   Vercel (Preview); until then the browser voice speaks.

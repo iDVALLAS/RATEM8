@@ -213,7 +213,7 @@ export const CONFIG = {
     title: "Mortgage Loan Originator",
     bioShort: "[BIO — two or three plain sentences. No years-in-business or volume claims unless verifiable.]",
     nmlsConsumerAccessUrl: `https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/${OPERATOR_NMLS}`,
-    // v33 (owner 2026-10-30): cropped from the business card until a proper headshot arrives.
+    // Owner headshot (2026-10-30), cropped to the circle the owner marked.
     photo: "/images/mlo-001.jpg",
     calendly: env("NEXT_PUBLIC_CALENDLY_BORROWER") ?? "",
     applicationUrl: env("APPLICATION_URL_MLO_001") ?? "[APPLICATION URL — POS / 1003 link]",
