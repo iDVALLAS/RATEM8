@@ -24,10 +24,11 @@ describe("scripted demo pricing copy (v25)", () => {
 });
 
 
-describe("named lenders, with a revert to numbering (v26)", () => {
-  it("shows the original demo's lenders by default", () => {
-    expect(CONFIG.demo.namedLenders).toBe(true);
-    expect(demoLender(0)).toEqual({ label: "UWM", slug: "uwm", index: 0 });
+describe("named lenders, with a revert to numbering (v26, numbered since v32)", () => {
+  it("numbers the demo's lenders while the switch is off (owner 2026-10-30)", () => {
+    expect(CONFIG.demo.namedLenders).toBe(false);
+    expect(demoLender(0)).toEqual({ label: "Lender 1", slug: null, index: 0 });
+    expect(demoLender(0, true)).toEqual({ label: "UWM", slug: "uwm", index: 0 });
   });
 
   it("reverts every named spot to 'Lender N' when the switch is off", () => {

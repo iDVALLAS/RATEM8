@@ -224,7 +224,7 @@ describe("manual snapshots", () => {
     expect(serializeRun(after!.run)).toBe(serializeRun(before!.run));
     expect(after!.run.selection).toEqual(before!.run.selection);
     expect(after!.notes.length).toBe(4);
-    for (const n of after!.notes) expect(n.lender).toMatch(/^Lender [A-Z]+$/);
+    for (const n of after!.notes) expect(n.lender).toMatch(/^Lender \d+$/);
   });
 
   it("selection is a function of quotes only", () => {

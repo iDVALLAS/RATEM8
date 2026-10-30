@@ -1,19 +1,17 @@
 /**
  * lib/pricing/anonymize.ts — Mode A lender anonymity.
  *
- * Lenders are re-lettered for every run: the order is the sha256 of
- * runId + lenderKey, so the same lender is not always "Lender A" and a
+ * Lenders are renumbered for every run: the order is the sha256 of
+ * runId + lenderKey, so the same lender is not always "Lender 1" and a
  * long-run mapping cannot be inferred from position. Deterministic for a
  * given run, so a stored run rebuilds identically. The real mapping is
  * returned separately and must only ever be stored server-side.
  */
 import { sha256Hex } from "./canonical";
 
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
+/** v32: numbered ("Lender 1"), matching the demo's numbered lenders. */
 export function letterFor(index: number): string {
-  if (index < LETTERS.length) return `Lender ${LETTERS[index]}`;
-  return `Lender ${LETTERS[Math.floor(index / LETTERS.length) - 1]}${LETTERS[index % LETTERS.length]}`;
+  return `Lender ${index + 1}`;
 }
 
 /** Map lenderKey → public label for one run. */

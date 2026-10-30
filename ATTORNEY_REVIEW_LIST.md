@@ -245,4 +245,8 @@ conflict is recorded here.
 - **One reference scenario shown in every licensed state**, priced for
   ZIP 98033 with a note that pricing elsewhere may differ. Confirm the
   wording, and whether any state requires its own priced scenario.
+- **Posted rate: Freddie Mac weekly average minus 0.25%** (owner will
+  honor it). Full spec and the six counsel questions (Reg Z §1026.24(a),
+  (c), (d), the comparative claim, Freddie Mac's terms, §1026.36(d)
+  funding, state ad rules): `docs/work/L4-pricing-spec.md` §2.
 

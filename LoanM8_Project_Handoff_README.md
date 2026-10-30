@@ -99,6 +99,43 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v32 — Lenders numbered; L4 pricing spec (2026-10-30)
+
+**Owner:** "for now change the lenders to Lender 1, Lender 2, etc ... to
+stay away from any legalities there but put that switch back to lender
+logos and such on the future builds". Also: spec a posted rate at
+Freddie Mac's weekly average minus 0.25% ("i would honor it"), and the
+weekly pull.
+
+### Files
+- `lib/config.ts`: `CONFIG.demo.namedLenders` → `false`, with the
+  restore instructions in its comment (set `true` to bring back names
+  and approved logos).
+- `lib/pricing/anonymize.ts`, `lib/pricing/types.ts`: anonymized pricing
+  says "Lender 1/2/3" instead of "Lender A/B/C", matching the demo.
+- `lib/demo-chat.test.ts`: expects numbered lenders by default; the
+  named path is still tested.
+- `docs/work/L4-pricing-spec.md` (new): the weekly pull, the posted rate
+  (offer, qualifying profile, honor window, ARIVE evidence check before
+  it posts, mockup, build pieces, counsel list), and six owner decisions.
+- `ATTORNEY_REVIEW_LIST.md`, `PATCHLOG.md`.
+
+### Decisions
+- Freddie Mac stopped reporting points and fees in November 2022, so the
+  posted rate carries its own points rule (recommended: zero discount
+  points). The v19 `benchmarkComparison.feesAndPoints` field can never be
+  filled and is retired in L4.
+- Fannie Mae publishes no consumer rate average; the benchmark is Freddie
+  Mac's PMMS only.
+
+### Verified
+- `npm run verify` passes. No real lender name reaches the browser with
+  the switch off (`check:bundle`).
+
+### Next up
+L2 after the owner's L1 sign-off. L4 waits on the six decisions in the
+spec.
+
 ## v31 / L1 — Licensing single source of truth (2026-10-29)
 
 First patch of the production-launch series (L1–L8, index in

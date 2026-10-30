@@ -84,7 +84,7 @@ export type QuoteInput = {
 
 /** One lender's normalized, computed result. Public: anonymized. */
 export type LenderQuote = {
-  /** Public label, e.g. "Lender C". Re-lettered per run. */
+  /** Public label, e.g. "Lender 3". Renumbered per run. */
   lender: string;
   productLabel: string;
   eligible: boolean;
