@@ -161,7 +161,7 @@ export type Mlo = {
  * Owner 2026-10-30: the sponsor will most likely change to Barrett soon.
  * When it does, replace this object with the new company's confirmed facts
  * (never from memory); the header lockup, footer, /licensing, cards and
- * routing all follow. Unconfirmed values go in as "[TBD — …]".
+ * routing all follow. Unconfirmed values go in as bracketed to-be-determined values.
  *
  * The sponsoring brokerage (L1, owner 2026-10-29). To change sponsors,
  * edit this object (or point an MLO license at a different one); every
@@ -640,15 +640,13 @@ export const FOOTER_LEGAL =
   "Equal Housing Opportunity. This is not a commitment to lend or an offer to extend credit. All loans are subject to credit approval, underwriting, and property eligibility. Rates, terms, and programs are subject to change without notice. Not all programs are available in all states.";
 
 /**
- * L2: the Texas Consumer Complaint and Recovery Fund Notice for a licensed
- * mortgage company, rendered on /licensing/texas. It must be the current
- * form from the Texas Department of Savings and Mortgage Lending
- * (sml.texas.gov), copied verbatim. Not filled from memory or another
- * lender's site: the owner pastes it, or the build sandbox is allowed to
- * reach sml.texas.gov. Blocks a production build until then.
+ * L2: the Texas consumer complaint notice for a licensed mortgage company's
+ * website, rendered on /licensing/texas: SML's current §56.200(c) form,
+ * copied verbatim (the 2024 form no longer carries recovery fund text).
  */
 export const TEXAS_COMPLAINT_NOTICE = {
-  text: "[TBD — Texas consumer complaint and recovery fund notice for mortgage companies, verbatim from sml.texas.gov]",
+  // Verbatim from SML's "Figure: 7 TAC §56.200(c)" website form, supplied by the owner 2026-10-30.
+  text: "TEXAS RESIDENTS: CONSUMERS WISHING TO FILE A COMPLAINT AGAINST A MORTGAGE COMPANY OR RESIDENTIAL MORTGAGE LOAN ORIGINATOR LICENSED IN TEXAS SHOULD SEND A COMPLETED COMPLAINT FORM TO THE DEPARTMENT OF SAVINGS AND MORTGAGE LENDING (SML): 2601 N. LAMAR BLVD., SUITE 201, AUSTIN, TEXAS 78705; TEL: 1-877-276-5550. INFORMATION AND FORMS ARE AVAILABLE ON SML'S WEBSITE: SML.TEXAS.GOV.",
   /**
    * The rule the website form implements. Owner's note (2026-10-30), and
    * SML's forms page lists the website notice under 7 TAC §56.200(c)
@@ -658,6 +656,28 @@ export const TEXAS_COMPLAINT_NOTICE = {
   /** Where SML publishes the current form. */
   sourceUrl: "https://sml.texas.gov/download/mortgage-company-complaint-recovery-fund-notice",
 };
+
+/**
+ * The Texas Mortgage Company Disclosure, Figure: 7 TAC §56.200(b), verbatim
+ * from the SML form the owner supplied (2026-10-30). Given to each Texas
+ * loan applicant, "issued by" the originator with their name and NMLS ID;
+ * used by the application flow (L5), not the website notice. The website
+ * notice is §56.200(c) (TEXAS_COMPLAINT_NOTICE).
+ */
+export const TEXAS_APPLICANT_DISCLOSURE = {
+  form: "Figure: 7 TAC §56.200(b)",
+  title: "TEXAS MORTGAGE COMPANY DISCLOSURE",
+  lead: "Pursuant to Texas Finance Code Section 156.004, you are notified of the following:",
+  bullets: [
+    "We will either submit your loan application to a participating lender or make your loan ourselves. In connection with this mortgage loan, we are acting as an independent contractor and not as your agent.",
+    "We will be compensated in compliance with the federal Truth in Lending Act and Regulation Z (see 12 C.F.R. § 1026.36(d)) (if applicable).",
+  ],
+  complaint:
+    "CONSUMERS WISHING TO FILE A COMPLAINT AGAINST A MORTGAGE COMPANY OR RESIDENTIAL MORTGAGE LOAN ORIGINATOR LICENSED IN TEXAS, OR TO FILE A CLAIM AGAINST A RESIDENTIAL MORTGAGE LOAN ORIGINATOR LICENSED IN TEXAS SHOULD SEND A COMPLETED COMPLAINT FORM OR CLAIM APPLICATION TO THE DEPARTMENT OF SAVINGS AND MORTGAGE LENDING (SML): 2601 N. LAMAR BLVD., SUITE 201, AUSTIN, TEXAS 78705; TEL: 1-877-276-5550. INFORMATION AND FORMS ARE AVAILABLE ON SML's WEBSITE: SML.TEXAS.GOV.",
+  issuedByLabel: "ISSUED BY:",
+  originatorLabel: "Residential Mortgage Loan Originator:",
+  nmlsLabel: "NMLS ID:",
+} as const;
 
 /** Calculator disclaimer — rendered on every calculator page and API response. */
 export const CALC_DISCLAIMER =

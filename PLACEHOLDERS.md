@@ -17,7 +17,7 @@ nmlsconsumeraccess.org and with counsel.
 | Principal MLO and Ryder Fasse name / NMLS | 1844143 / 119822 | Done (owner 2026-10-29). The operator's license is `NMLS ID 1844143` in WA, AZ, TX and `CA-DFPI 1844143` in CA |
 | `states[*].regulatorName` / `regulatorUrl` | Filled (L1) | Official regulator sites; could not be fetched from the build sandbox, so open each once |
 | `states[*].marketed` (L1) | WA, AZ, CA, TX true; OR false | Marketing scope, separate from licensing |
-| `TEXAS_COMPLAINT_NOTICE.text` / `.citation` (L2) | `[TBD — …]` | **Blocks a production build.** Paste the current SML form for mortgage companies, verbatim, and its rule citation |
+| `TEXAS_COMPLAINT_NOTICE` (L2) | SML §56.200(c) website form, verbatim | Done (owner supplied the form, 2026-10-30) |
 | `demo.loBio` | `17 years … Avg close: 22 days (varies by loan)` | Done (owner 2026-10-30) |
 | `entityTradeName` | `LoanM8 Loan Intelligence` (carried over) | Verify trade-name registration in WA, AZ, CA, TX |
 | `principalMlo.bioShort` | `[BIO — …]` | Two or three plain sentences; no years-in-business or volume claims unless verifiable |

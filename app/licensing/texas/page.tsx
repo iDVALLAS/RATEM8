@@ -6,10 +6,10 @@ import { sponsorFullName, sponsorLicenseLine } from "@/lib/licensing";
 import { texasNoticeContent as c, LEGAL_STATUS } from "@/lib/content/legal";
 
 /**
- * /licensing/texas (L2) — the Texas Consumer Complaint and Recovery Fund
- * Notice, verbatim from config (TEXAS_COMPLAINT_NOTICE). Until the owner
- * supplies the current SML form, the placeholder renders visibly and
- * check:licensing blocks a production build.
+ * /licensing/texas (L2) — the Texas consumer complaint notice, SML's
+ * §56.200(c) website form, verbatim from config (TEXAS_COMPLAINT_NOTICE).
+ * A placeholder would render visibly, and check:licensing blocks a
+ * production build while one remains.
  */
 export const metadata: Metadata = { title: c.metaTitle, description: c.metaDescription };
 

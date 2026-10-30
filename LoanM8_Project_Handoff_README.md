@@ -99,6 +99,28 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v35.1 — Texas forms (2026-10-30)
+
+- **Website notice:** `TEXAS_COMPLAINT_NOTICE.text` is SML's "Figure: 7 TAC
+  §56.200(c)" form, verbatim (owner-supplied PDF). The 2024 form has no
+  recovery fund text, so the page and links are titled "Texas Consumer
+  Complaint Notice". `check:licensing` is clean: production builds are no
+  longer blocked.
+- **Applicant disclosure:** `TEXAS_APPLICANT_DISCLOSURE` holds the "Figure:
+  7 TAC §56.200(b)" Texas Mortgage Company Disclosure, verbatim, for the
+  application flow (L5): issued per applicant with the originator's name
+  and NMLS ID. Not shown on the website.
+- **Wrap mortgage disclosure** (owner-supplied .docx): the Texas form for
+  wrap loans (a loan that leaves the seller's lien in place). Per-loan,
+  with property, lienholder, insurance and tax details and buyer
+  signatures. Not website content; needed only if wrap financing is ever
+  offered. Not built.
+- **Hotfix** (owner-approved, merged to main separately): the live
+  coming-soon page shows "LoanM8 powered by Home Trust Financial · NMLS
+  #…" (`COMING_SOON_SPONSOR` on main). When this branch merges in L3,
+  resolve the overlap in `components/ComingSoonHomePage.tsx` and
+  `lib/config.ts` in favour of `SponsorLockup` and `SPONSOR`.
+
 ## v35 — Sponsor lockup beside the LoanM8 name (Texas team-name rule) (2026-10-30)
 
 **Owner:** raised the Texas rule (team name/logo must carry the sponsoring
