@@ -644,8 +644,14 @@ export const FOOTER_LEGAL =
  */
 export const TEXAS_COMPLAINT_NOTICE = {
   text: "[TBD — Texas consumer complaint and recovery fund notice for mortgage companies, verbatim from sml.texas.gov]",
-  /** The rule the form implements, as SML cites it (owner's note: 7 TAC §56.200(c); to confirm). */
-  citation: "[TBD — rule citation printed on the current SML form]",
+  /**
+   * The rule the website form implements. Owner's note (2026-10-30), and
+   * SML's forms page lists the website notice under 7 TAC §56.200(c)
+   * (Chapter 56 replaced Chapter 80 for mortgage companies in Nov 2024).
+   */
+  citation: "7 TAC §56.200(c)",
+  /** Where SML publishes the current form. */
+  sourceUrl: "https://sml.texas.gov/download/mortgage-company-complaint-recovery-fund-notice",
 };
 
 /** Calculator disclaimer — rendered on every calculator page and API response. */
