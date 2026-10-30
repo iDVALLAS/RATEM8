@@ -18,7 +18,7 @@ import { CONFIG } from "@/lib/config";
  * Audit logging: every attempt (success and failure) is logged with
  * timestamp + IP + user-agent. In v10 this should hit a real database
  * for compliance audit trail; for now console logs are enough for
- * a stealth-launch preview.
+ * the tester preview (/chat?preview=1).
  */
 
 type Body = { password?: unknown };

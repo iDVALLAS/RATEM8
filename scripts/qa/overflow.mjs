@@ -1,12 +1,12 @@
 // LoanM8 QA script. Needs Playwright available to Node and a server on
-// http://localhost:3100 started with NEXT_PUBLIC_STEALTH_MODE=false.
+// http://localhost:3100 (npm start).
 // Env: QA_CHROME = path to a Chromium binary (optional; Playwright's own
 // browser is used when unset), QA_OUT = folder for screenshots.
 import fs from "node:fs";
 import { chromium } from "playwright";
 const base = "http://localhost:3100";
-const routes = ["/","/second-look","/join","/agents","/investors","/calculators","/calculators/points-breakeven","/calculators/refinance-breakeven","/calculators/rent-vs-buy","/calculators/affordability","/states/washington","/states/oregon","/states/texas","/principles","/rates","/loan-estimate","/sample-brief","/chat","/ai","/privacy","/terms","/disclosures","/tools","/tools/points"];
-const shots = new Set(["/","/second-look","/join","/agents","/investors","/calculators/points-breakeven","/principles","/rates","/loan-estimate","/sample-brief","/chat","/ai","/states/washington","/disclosures"]);
+const routes = ["/","/second-look","/join","/agents","/investors","/calculators","/calculators/points-breakeven","/calculators/refinance-breakeven","/calculators/rent-vs-buy","/calculators/affordability","/states/washington","/states/oregon","/states/texas","/principles","/rates","/loan-estimate","/rate-strategy-brief","/chat","/ai","/privacy","/terms","/disclosures","/tools","/tools/points"];
+const shots = new Set(["/","/second-look","/join","/agents","/investors","/calculators/points-breakeven","/principles","/rates","/loan-estimate","/rate-strategy-brief","/chat","/ai","/states/washington","/disclosures"]);
 const out = process.argv[2] || process.env.QA_OUT || "/tmp/loanm8-qa";
 fs.mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.QA_CHROME || undefined });

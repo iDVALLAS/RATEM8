@@ -98,16 +98,19 @@ describe("TTS route (v33)", () => {
   });
 });
 
-describe("the new M8 chat page (v33)", () => {
+describe("the M8 chat page (v33, L3)", () => {
   const src = readFileSync("components/m8chat/M8ChatPage.tsx", "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "");
-  it("carries the not-an-offer line and full disclaimer, never the 'illustrative' badge", () => {
-    expect(src).toContain("NOT_AN_OFFER_LINE");
-    expect(src).toContain("RATE_DISCLAIMER_LEAD");
-    expect(src).not.toMatch(/ExamplePricingLabel|EXAMPLE_PRICING_LABEL|illustrative/i);
+  it("shows no scripted conversation and no 'illustrative' or 'example' badge", () => {
+    expect(src).not.toMatch(/demoChat|ExamplePricingLabel|illustrative/i);
   });
-  it("never calls the sample pricing live", () => {
+  it("never calls anything live", () => {
     expect(src).not.toMatch(/\blive\b/i);
+  });
+  it("opens with M8's AI disclosure", async () => {
+    const { copy } = await import("@/lib/copy");
+    expect(copy.m8chat.intro.startsWith("I'm M8, an AI, not a person.")).toBe(true);
+    expect(copy.m8chat.introNamed.startsWith("I'm M8, an AI, not a person.")).toBe(true);
   });
 });

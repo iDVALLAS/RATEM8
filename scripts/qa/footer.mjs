@@ -1,5 +1,5 @@
 // LoanM8 QA script. Needs Playwright available to Node and a server on
-// http://localhost:3100 started with NEXT_PUBLIC_STEALTH_MODE=false.
+// http://localhost:3100 (npm start).
 // Env: QA_CHROME = path to a Chromium binary (optional; Playwright's own
 // browser is used when unset), QA_OUT = folder for screenshots.
 import fs from "node:fs";

@@ -1,9 +1,9 @@
-import { SAMPLE_LABEL } from "@/lib/config";
+import { FICTIONAL_LABEL } from "@/lib/config";
 
 /**
- * SampleBadge — the mono badge every demo frame carries.
- * Text is locked: "SAMPLE — ILLUSTRATIVE ONLY".
+ * SampleBadge — the mono badge on every frame built around a fictional
+ * borrower. L3 text: FICTIONAL_LABEL ("FICTIONAL BORROWER · HOW M8 WORKS").
  */
-export default function SampleBadge({ className = "", text = SAMPLE_LABEL }: { className?: string; text?: string }) {
+export default function SampleBadge({ className = "", text = FICTIONAL_LABEL }: { className?: string; text?: string }) {
   return <span className={`sample-badge ${className}`}>{text}</span>;
 }

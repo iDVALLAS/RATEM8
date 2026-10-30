@@ -46,7 +46,7 @@ export default function SampleDoc({ fieldState, scan = false, className = "" }: 
       <div className={`scanline ${scan ? "is-on" : ""}`} />
       <div className="sl-doc__head">
         <span className="sl-doc__title">Loan Estimate</span>
-        <span className="sl-doc__meta">Sample · page 1 of 3</span>
+        <span className="sl-doc__meta">Fictional · page 1 of 3</span>
       </div>
       <Row label="Applicant" value={SAMPLE_DOC.borrower} />
       <Row label="Property" value={SAMPLE_DOC.property} />
@@ -68,7 +68,7 @@ export default function SampleDoc({ fieldState, scan = false, className = "" }: 
       <Field {...f("lenderCredits")} state={st("lenderCredits")} />
       <Field {...f("cashToClose")} state={st("cashToClose")} />
 
-      <p className="sl-doc__note">Sample — illustrative only, not an offer. Fictional borrower, fictional figures.</p>
+      <p className="sl-doc__note">Fictional borrower, fictional figures. Shown to explain how M8 works. Not an offer to lend.</p>
     </div>
   );
 }

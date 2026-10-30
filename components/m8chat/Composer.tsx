@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useVoice } from "@/components/voice/VoiceRoot";
 import { copy } from "@/lib/copy";
-import { PREFILL_EVENT } from "./FollowUps";
 
 /**
  * The composer (v33). Docked at the bottom of the conversation column
@@ -13,13 +12,19 @@ import { PREFILL_EVENT } from "./FollowUps";
  * - Type, or tap the mic: the transcript lands in the box to edit or send.
  *   The mic stops M8 if it is speaking. Hidden where the browser can't
  *   transcribe.
- * - Sending goes to the loan officer through /api/chat-question (the
- *   scripted chat has no live model). An optional email appears once
- *   there is a question. "Sent" shows only when it was actually sent.
+ * - Sending goes to the visitor's loan officer through /api/chat-question
+ *   (two-way chat with M8 is still in private testing). An optional email
+ *   appears once there is a question. "Sent" shows only when it was
+ *   actually sent. `first` is the matched loan officer, or null (generic).
  * - With voice replies on, the confirmation is read aloud.
  */
-export default function Composer({ first }: { first: string }) {
+/** Anything on the page can fill the composer: dispatch this event with the text. */
+export const PREFILL_EVENT = "m8:prefill";
+
+export default function Composer({ first }: { first: string | null }) {
   const t = copy.m8chat;
+  const sentText = first ? t.sent.replaceAll("{first}", first) : t.sentGeneric;
+  const hintText = first ? t.sendHint.replaceAll("{first}", first) : t.sendHintGeneric;
   const v = useVoice();
   const [q, setQ] = useState("");
   const [email, setEmail] = useState("");
@@ -65,7 +70,7 @@ export default function Composer({ first }: { first: string }) {
       setStatus("sent");
       setQ("");
       setEmail("");
-      if (v.repliesOn) void v.speak(t.sent.replaceAll("{first}", first));
+      if (v.repliesOn) void v.speak(sentText);
     } catch {
       setStatus("error");
     }
@@ -108,11 +113,11 @@ export default function Composer({ first }: { first: string }) {
         <div className="m8c-email">
           <label htmlFor="m8c-email">{t.emailLabel}</label>
           <input id="m8c-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-          <span>{t.sendHint.replaceAll("{first}", first)}</span>
+          <span>{hintText}</span>
         </div>
       ) : null}
       <p className="m8c-status" role="status" aria-live="polite">
-        {status === "sent" ? t.sent.replaceAll("{first}", first) : status === "error" ? error || t.sendError : ""}
+        {status === "sent" ? sentText : status === "error" ? error || t.sendError : ""}
       </p>
       <p className="m8c-disclosure">
         {t.disclosureLead} <b>{t.disclosureStrong}</b> {t.disclosureTail}

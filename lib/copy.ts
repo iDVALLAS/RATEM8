@@ -65,7 +65,7 @@ export const copy = {
     secondary: [
       { href: "/second-look", label: "Second Look" },
       { href: "/loan-estimate", label: "Loan Estimate guide" },
-      { href: "/sample-brief", label: "Sample brief" },
+      { href: "/rate-strategy-brief", label: "Rate Strategy Brief" },
       { href: "/ai", label: "For AI assistants" },
     ],
     menuLabel: "Menu",
@@ -187,8 +187,6 @@ export const copy = {
     ],
   },
 
-  // v21: the restored scripted demo (/chat, /demo). Its script lives in
-  // lib/demoChat.ts; these are the strings added around it.
   // v24: the phone-only bottom bar on borrower pages (StickyCtaBar).
   stickyCta: {
     label: "Next step",
@@ -196,18 +194,13 @@ export const copy = {
   },
   // v24: designed loading and empty states (no spinners).
   uiStates: {
-    loadingPricing: "Loading example pricing",
-    loadingDemo: "Loading the M8 demo",
+    loadingPricing: "Loading pricing",
+    loadingDemo: "Loading M8",
     loadingPage: "Loading",
-    pricingEmpty: "No pricing to show for this scenario right now.",
-    pricingEmptyBody: "Example pricing is dated and switched on per scenario. A licensed loan officer can price your actual situation.",
+    pricingEmpty: "This week's pricing isn't posted yet.",
+    pricingEmptyBody: "A licensed loan officer posts pricing from the sponsoring company's pricing engine. Until it's up, your loan officer can price your actual situation.",
     chartEmpty: "Nothing to chart yet.",
     chartEmptyBody: "Enter values above and the chart draws itself.",
-  },
-
-  demoChat: {
-    bookCall: "Book a call with a licensed loan officer",
-    notEnoughLenders: "Fewer than three lenders were eligible for this scenario, so no option set is shown.",
   },
 
   // v35: the sponsor lockup beside the LoanM8 name.
@@ -215,17 +208,30 @@ export const copy = {
     poweredBy: "powered by",
   },
 
-  // v33: the redesigned M8 chat (/chat).
+  // v33: the redesigned M8 chat (/chat). L3: no scripted conversation.
   m8chat: {
     title: "M8",
     titleAccent: "Chat",
     aiLine: "I'm an AI, not a person. A licensed loan officer verifies every recommendation.",
+    convoLabel: "Conversation with M8",
+    railLabel: "Your loan officer",
     states: { idle: "Ready", listening: "Listening", thinking: "Thinking", speaking: "Speaking" },
     repliesOn: "Voice replies on",
     repliesOff: "Voice replies off",
     listen: "Read this aloud",
     stopListen: "Stop reading",
-    placeholder: "Ask M8 anything: rates, scenarios, fees, timing…",
+    intro:
+      "I'm M8, an AI, not a person. I explain mortgage options in plain words and run the numbers with you. Two-way chat with me is still in private testing, so for now, start with one of the tools below, or send a question and your licensed loan officer will answer by email.",
+    introNamed:
+      "I'm M8, an AI, not a person. I explain mortgage options in plain words and run the numbers with you. Two-way chat with me is still in private testing, so for now, start with one of the tools below, or send a question and {first}, your licensed loan officer, will answer by email.",
+    startersLabel: "Start here",
+    starters: [
+      { label: "What can I afford?", sub: "Payment, price range and cash to close", href: "/calculators/affordability" },
+      { label: "Shop my refi", sub: "When a lower rate pays for itself", href: "/calculators/refinance-breakeven" },
+      { label: "Second Look", sub: "How M8 reads a Loan Estimate", href: "/second-look" },
+      { label: "Points vs. no points", sub: "Find the break-even month", href: "/calculators/points-breakeven" },
+    ],
+    placeholder: "Ask a question: rates, scenarios, fees, timing…",
     listeningPlaceholder: "Listening…",
     mic: "Talk to M8",
     micStop: "Stop listening",
@@ -235,19 +241,18 @@ export const copy = {
     disclosureTail: "Not a commitment to lend.",
     loEyebrow: "Your loan officer",
     loEyebrowGeneric: "A licensed loan officer",
+    loGeneric: "Tell us where the property is and you'll see the licensed loan officer for that state, with their NMLS number.",
     originatesThrough: "Originates through",
     licensedIn: "Licensed",
-    whyNamed: "Why {first}: this conversation is about a home in {state}, and {first} is the licensed loan officer for {state}.",
     startApplication: "Start application",
     bookCall: "Book a call",
-    scenarioEyebrow: "This scenario",
-    assumptions: "Rate assumptions",
-    softPull: "Soft pull only · subject to verification",
-    holdEyebrow: "Hold-period analysis · 7 years",
     sendHint: "Your question goes to {first}, who replies by email.",
+    sendHintGeneric: "Your question goes to a licensed loan officer, who replies by email.",
     sent: "Sent. {first} will reply by email.",
+    sentGeneric: "Sent. A licensed loan officer will reply by email.",
     sendError: "That didn't send. Try again, or book a call.",
     emailLabel: "Email for the reply (optional)",
+    previewOff: "Two-way chat with M8 is switched off (M8_LIVE_CHAT). Turn it on in the Preview environment to test it here.",
   },
 
   // v33: M8's voice, everywhere it speaks or listens.
@@ -349,7 +354,7 @@ export const copy = {
           { href: "/second-look", label: "Second Look" },
           { href: "/calculators", label: "Calculators" },
           { href: "/loan-estimate", label: "Loan Estimate guide" },
-          { href: "/sample-brief", label: "Sample Rate Strategy Brief" },
+          { href: "/rate-strategy-brief", label: "The Rate Strategy Brief" },
           { href: "/chat", label: "M8 Chat" },
         ],
       },
@@ -392,7 +397,7 @@ export const copy = {
     heading: "Got an offer? Drop it. M8 reads it.",
     accent: "Drop it.",
     sub: "You already have a Loan Estimate from someone else. Good. M8 walks through it line by line, in plain English, and tells you which questions to ask. It does not compare it to our pricing and it does not tell you to switch.",
-    sampleNote: "The demo below uses a fictional Loan Estimate. Nothing you see is a real offer.",
+    sampleNote: "The walkthrough below uses a fictional Loan Estimate. Nothing you see is a real offer.",
     scenes: [
       { label: "// 01 — drop", title: "Drop the document.", body: "A Loan Estimate is a standard three-page form. M8 reads the standard fields, nothing else." },
       { label: "// 02 — read", title: "M8 reads the fields.", body: "Interest rate. APR. Points. Lender credits. Section A origination charges. Section B and C services. Cash to close." },
@@ -425,7 +430,7 @@ export const copy = {
     live: {
       eyebrow: "// live decode",
       heading: "Decode your own Loan Estimate.",
-      comingSoon: "Live decode opens soon. Try the sample above.",
+      comingSoon: "Live decode opens soon. The walkthrough above uses a fictional borrower.",
       consent: {
         title: "Before you upload",
         items: [
@@ -476,7 +481,7 @@ export const copy = {
     ],
     briefGenerating: "Rate Strategy Brief · generating",
     handled: {
-      borrower: { label: "// routed borrower", name: "Sample borrower", detail: "Purchase · WA · pre-approval requested", sample: "fictional" },
+      borrower: { label: "// routed borrower", name: "Fictional borrower", detail: "Purchase · WA · pre-approval requested", sample: "fictional" },
       comparison: { label: "// wholesale comparison", options: ["Lowest rate suitable", "Lowest rate, no risky features", "Lowest total points & fees"], note: "Anti-steering layout. Fictional labels, no figures." },
       pipeline: { label: "// pipeline", steps: ["Application", "LE", "Lock", "Close"] },
       compliance: { label: "// compliance", items: ["Soft pull only", "Disclosures logged", "Documented decisions"] },
@@ -791,8 +796,8 @@ export const copy = {
       cta: "Continue",
       back: "Not now",
     },
-    demoBadge: "DEMO",
-    demoNote: "Scripted demo. Live chat opens after compliance review. Nothing here is a rate quote or an offer.",
+    demoBadge: "PREVIEW",
+    demoNote: "Two-way chat with M8 opens after compliance review. Nothing here is a rate quote or an offer.",
     comingSoon: "Live chat is opening soon. In the meantime, a licensed loan officer can talk now.",
     devToggle: "orb state",
     states: ["idle", "listening", "thinking", "speaking"] as const,
@@ -805,7 +810,7 @@ export const copy = {
       { from: "user", text: "Can you tell me if it's a good deal?" },
       { from: "m8", text: "I can tell you what every line means and which questions to ask. Whether it's the right loan for you is a decision a licensed human makes with you, in writing. Want me to set that up?" },
     ],
-    inputPlaceholder: "Live chat opens after review",
+    inputPlaceholder: "Two-way chat opens after review",
     voice: {
       title: "Voice",
       disabled: "Voice is not available yet.",

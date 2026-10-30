@@ -56,7 +56,7 @@ export const homeContent = {
       "The questions worth asking before you sign.",
     ],
     textEquivalent:
-      "A small tilted Loan Estimate document is scanned top to bottom by a green line. Four rows light up as M8 reads them and are tagged 'explained' or 'yours to shop'. A card then fills in describing what you get back: every line in plain English, which fees are set by the lender and which you can shop, and the questions worth asking. The document is a sample with no figures.",
+      "A small tilted Loan Estimate document is scanned top to bottom by a green line. Four rows light up as M8 reads them and are tagged 'explained' or 'yours to shop'. A card then fills in describing what you get back: every line in plain English, which fees are set by the lender and which you can shop, and the questions worth asking. The document is fictional and shows no figures.",
   },
   mlo: {
     textEquivalent: "A headline reveals word by word with the phrase 'Build your book' underlined.",

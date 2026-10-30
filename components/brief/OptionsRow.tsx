@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import ExamplePricingLabel from "@/components/ExamplePricingLabel";
+import SampleBadge from "@/components/SampleBadge";
 import { briefContent as c, type BriefOption } from "@/lib/content/sample-brief";
 
 /**
@@ -9,8 +9,7 @@ import { briefContent as c, type BriefOption } from "@/lib/content/sample-brief"
  * mobile, a 3-column grid from md up) with a `.swipe-dots` indicator
  * driven by an IntersectionObserver on each card.
  *
- * v21: every card carries the persistent ExamplePricingLabel ("Example —
- * illustrative pricing, not an offer"; attorney-cleared for /sample-brief).
+ * L3: every card carries the fictional-borrower badge (SampleBadge).
  * Lenders are numbered, never named.
  */
 export default function OptionsRow({ options }: { options: readonly BriefOption[] }) {
@@ -47,7 +46,7 @@ export default function OptionsRow({ options }: { options: readonly BriefOption[
               <span className="br-opt__key" aria-hidden="true">
                 {o.key}
               </span>
-              <ExamplePricingLabel />
+              <SampleBadge />
             </div>
             <div>
               <p className="br-opt__label">{o.label}</p>

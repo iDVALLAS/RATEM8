@@ -99,6 +99,78 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v36 / L3 — Example mode removed, site open (2026-10-30)
+
+**Owner:** "yes start L3". Spec: delete the scripted demo, the toggle,
+/demo, the example/illustrative/sample badges, the stealth gate and the
+coming-soon page; open robots and the sitemap; keep a hidden `?preview=1`
+for QA; www redirect, HTTPS, HSTS. Earlier agreements: no unlabeled
+example rates (rates wait for L4), fictional content keeps an honest label
+without "example/illustrative/sample", homepage buttons one column on
+phones.
+
+### Removed
+- `app/demo/*`, `components/ChatExperience.tsx`,
+  `ChatExperienceWithToggle.tsx`, `ChatInput.tsx`, `ExamplePricingLabel.tsx`,
+  `ComingSoonHomePage.tsx`, `components/m8chat/FollowUps.tsx`,
+  `lib/demoChat.ts`, `lib/demo-chat.test.ts`; `CONFIG.demo` (its bio line
+  "17 years originating · Avg close: 22 days (varies by loan)" is owner-
+  confirmed if a bio is wanted later); `copy.demoChat`;
+  `EXAMPLE_PRICING_LABEL`, `SAMPLE_LABEL`, `SAMPLE_SENTENCE`.
+- The stealth gate (`middleware.ts`, `app/page.tsx`, `app/robots.ts`).
+  `NEXT_PUBLIC_STEALTH_MODE` no longer does anything.
+
+### Changed
+- `middleware.ts`: admin gate and routing only; `/demo` → 308
+  `/chat?preview=1`; `/sample-brief` → 308 `/rate-strategy-brief`.
+- `/chat` (`components/m8chat/M8ChatPage.tsx`): no scripted conversation.
+  M8's opening message (AI disclosure first), four starter cards
+  (affordability, refi break-even, Second Look, points break-even), the
+  composer (question → the visitor's loan officer by email; generic copy
+  when unmatched), and the visitor's matched loan officer card (photo,
+  NMLS, sponsor, location beacon) from `routeContext()`.
+- `/chat?preview=1` (`app/chat/page.tsx`, `lib/preview-auth.ts`): the tester
+  password, then two-way M8 chat when `M8_LIVE_CHAT` is on. noindex.
+  `/api/m8-chat` uses the same helper. `/design` is testers-only (404).
+- Example pricing off by default (`PRICING_DEMO_EXAMPLES` must be "true");
+  /rates shows "This week's pricing isn't posted yet." and stays noindex
+  until L4. Page title "Rates".
+- Fictional content: `FICTIONAL_LABEL` "FICTIONAL BORROWER · HOW M8 WORKS"
+  and `FICTIONAL_SENTENCE` replace the "SAMPLE — ILLUSTRATIVE ONLY" badge
+  and sentence (Second Look walkthrough, Loan Estimate guide, /join
+  scenes, the brief's option cards, the calculator figure line). Fictional
+  documents say "Fictional Borrower", "123 Main St".
+- `/sample-brief` → `/rate-strategy-brief` ("The Rate Strategy Brief").
+- Copy: privacy (chat → loan officer by email, voice, Resend added as a
+  vendor), terms, /ai, the agent OpenAPI text, the prep flow's badge.
+- `CONFIG.namedLenders` (moved from `CONFIG.demo`): the lender-name switch.
+- Homepage action grid: one column below 640px.
+- `next.config.ts`: HSTS (2 years, subdomains, no preload), nosniff,
+  referrer policy, SAMEORIGIN framing, Permissions-Policy (microphone for
+  this site only).
+- `.env.local.example`, QA scripts, tests (`lib/pricing/copy.test.ts`,
+  `lib/lender-count.test.ts`, `lib/voice/voice.test.ts`).
+
+### Verified
+- `npm run verify` passes (159 tests); check:licensing clean.
+- Local server: `/demo` 308 → `/chat?preview=1`; `/sample-brief` 308 →
+  `/rate-strategy-brief`; `/design` 404; robots.txt allows the site and
+  disallows /api (except /api/agent), /mlo, /design; the sitemap lists
+  /rate-strategy-brief, /chat, /licensing, /licensing/texas; every
+  response carries the security headers.
+- Text sweep over 26 routes: no "sample", "illustrative", "example",
+  "demo" or "Sarah" left in visible text.
+- `qa/overflow`: 48/48 ok.
+
+### Not done / owner
+- **`www.loanm8.com`:** the Vercel connection here can't edit project
+  domains (403). DNS already points `www` at Vercel (Cloudflare CNAME, not
+  misconfigured). Owner: Vercel → ratem-8 → Settings → Domains → Add
+  `www.loanm8.com` → redirect to `loanm8.com` (308).
+- Production: nothing here is live until the owner promotes (L8). When this
+  branch merges, take `SponsorLockup` over the hotfix's
+  `COMING_SOON_SPONSOR` (the coming-soon page is deleted here).
+
 ## v35.1 — Texas forms (2026-10-30)
 
 - **Website notice:** `TEXAS_COMPLAINT_NOTICE.text` is SML's "Figure: 7 TAC

@@ -23,13 +23,13 @@ export const SAMPLE_FIELDS: SampleField[] = [
 ];
 
 export const SAMPLE_DOC = {
-  borrower: "Sample Borrower",
-  property: "123 Sample St",
+  borrower: "Fictional Borrower",
+  property: "123 Main St",
   loanAmount: "$400,000",
   term: "30 years",
   purpose: "Purchase",
   product: "Fixed rate",
-  dateIssued: "Sample date",
+  dateIssued: "Fictional date",
   sectionA: [
     { label: "% of Loan Amount (Points) 1.000%", value: "$4,000" },
     { label: "Application fee", value: "$395" },

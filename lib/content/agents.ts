@@ -21,13 +21,13 @@ export const agentsContent = {
   scene: {
     sceneLabel: "// stalled deal",
     cardLabel: "Offer accepted",
-    address: "123 Sample St",
-    sampleTag: "sample",
+    address: "123 Main St",
+    sampleTag: "fictional",
     orbLine: "reading the situation",
     briefChip: "Rate Strategy Brief · drafted",
     statusKey: "status",
     textEquivalent:
-      "A buyer card reads \"Offer accepted, 123 Sample St\" with the status \"financing: unclear\" flickering in a warning tone and only the first timeline dot, Offer, lit. M8 slides in and reads the situation. The status flips to \"financing: documented\", the flicker stops, the timeline dots light up in order from Offer through Pre-approval, LE reviewed, and Lock to Clear to close, the card gains a solid green border, and a small chip reads \"Rate Strategy Brief · drafted\". The address is a fictional sample.",
+      "A buyer card reads \"Offer accepted, 123 Main St\" with the status \"financing: unclear\" flickering in a warning tone and only the first timeline dot, Offer, lit. M8 slides in and reads the situation. The status flips to \"financing: documented\", the flicker stops, the timeline dots light up in order from Offer through Pre-approval, LE reviewed, and Lock to Clear to close, the card gains a solid green border, and a small chip reads \"Rate Strategy Brief · drafted\". The address is fictional.",
   },
 
   /** Section headings the page adds around the locked copy. */

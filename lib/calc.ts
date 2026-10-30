@@ -374,7 +374,7 @@ export function pointsVsCredit(input: PointsVsCreditInput): PointsVsCreditResult
     breakevenMonth,
     monthlyDifference,
     assumptions: [
-      { key: "sample", label: "Figures", value: "Sample — illustrative only, not an offer." },
+      { key: "sample", label: "Figures", value: "Fictional borrower, fictional figures. Not an offer to lend." },
       { key: "term", label: "Term", value: `${term} months` },
       { key: "basis", label: "Basis", value: "Principal & interest only" },
     ],

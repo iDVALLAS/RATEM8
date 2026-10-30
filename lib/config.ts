@@ -287,7 +287,7 @@ export const CONFIG = {
 
   contactEmail: env("NEXT_PUBLIC_CONTACT_EMAIL") ?? "[EMAIL]",
   privacyEmail: "privacy@loanm8.com",
-  /** Where testers ask for the /demo password (shown on the gate). */
+  /** Where testers ask for the tester password (shown on the /chat?preview=1 gate). */
   demoContactEmail: env("NEXT_PUBLIC_DEMO_CONTACT_EMAIL") ?? "info@loanm8.com",
 
   /**
@@ -300,30 +300,13 @@ export const CONFIG = {
   nmlsConsumerAccessHome: "https://www.nmlsconsumeraccess.org/",
 
   /**
-   * v21: the restored v7 scripted demo (/chat, /demo; lib/demoChat.ts).
-   * The loan officer card's bio line is carried over verbatim from that
-   * demo, keyed by MLO id so it only renders for the MLO it describes.
-   * "17 years originating" confirmed by the owner 2026-10-30.
-   * "Avg close: 22 days" owner-supplied 2026-10-30 ("it's loan dependent"),
-   * so it always carries "varies by loan" and is never a promise.
+   * The lender-name switch (v32; L3 moved it out of the deleted demo).
+   * false shows lenders as "Lender 1 / 2 / 3"; true shows names and the
+   * approved logos. Owner 2026-10-30: false for now ("to stay away from any
+   * legalities"); flip to true in a future build. Every public lender
+   * display reads this.
    */
-  demo: {
-    loBio: {
-      "mlo-001": "17 years originating · Avg close: 22 days (varies by loan) · Available now · in office",
-    } as Record<string, string>,
-    /** Pronoun the original demo copy used for this MLO (subject, verb "has", "will"). Unlisted MLOs get "they". */
-    /**
-     * The lender-name switch. true shows lender names and logos; false
-     * shows "Lender 1 / 2 / 3" with numbered tiles.
-     * v32 (owner 2026-10-30): false for now ("to stay away from any
-     * legalities"). Flip back to true in a future build to restore names
-     * and logos; nothing else needs to change.
-     */
-    namedLenders: false as boolean,
-    loPronoun: {
-      "mlo-001": { subject: "He", has: "has", will: "He'll" },
-    } as Record<string, { subject: string; has: string; will: string }>,
-  },
+  namedLenders: false as boolean,
 
   /**
    * Lender counts (v21, owner 2026-10-10). Copy never states a fixed panel
@@ -440,7 +423,7 @@ export const CONFIG = {
     /** /api/agent/* endpoints. */
     agentApi: true,
     /**
-     * v21: the "Live M8 (preview)" tab on password-gated /demo and the
+     * v21: two-way M8 chat for testers (L3: /chat?preview=1, was /demo) and the
      * /api/m8-chat route behind it. OFF unless M8_LIVE_CHAT is exactly
      * "true" (and ANTHROPIC_API_KEY is set, which stays unset until counsel
      * signs off the draft prompt).
@@ -450,14 +433,15 @@ export const CONFIG = {
 
   /**
    * Pricing display (Patch A, manual path). Server-side env vars only.
-   * - demoExamples: counsel-approved example pricing; ON unless set "false".
+   * - demoExamples: the example pricing fixtures. L3: OFF unless set "true"
+   *   (QA only); the public site shows no example rates.
    * - manual: show the latest manual snapshot (pulled by a licensed person
    *   in the sponsoring brokerage's pricing engine) when one is fresh.
    * - live / ratesheet / mloRouting: OFF. No surface may say "live" while
    *   `live` is false.
    */
   pricing: {
-    demoExamples: env("PRICING_DEMO_EXAMPLES") !== "false",
+    demoExamples: env("PRICING_DEMO_EXAMPLES") === "true",
     manual: env("PRICING_MANUAL") === "true",
     live: env("PRICING_LIVE") === "true",
     ratesheet: env("PRICING_RATESHEET") === "true",
@@ -683,21 +667,23 @@ export const TEXAS_APPLICANT_DISCLOSURE = {
 export const CALC_DISCLAIMER =
   "Estimates for education only. Not a loan offer, rate quote, or commitment to lend. Enter your own rate; LoanM8 does not display rates on this page.";
 
-/** Sample-data badge text. */
-export const SAMPLE_LABEL = "SAMPLE — ILLUSTRATIVE ONLY";
-export const SAMPLE_SENTENCE = "Sample — illustrative only, not an offer.";
 /**
- * v21 (owner 2026-10-10, attorney-cleared for the demo and /sample-brief):
- * the persistent label on every rate card that shows illustrative pricing.
+ * L3 (owner 2026-10-30: drop "example", "illustrative", "sample"): the
+ * badge on content built around a fictional borrower (the Second Look
+ * walkthrough, the Loan Estimate guide, the /join scenes, the Rate Strategy
+ * Brief). Made-up numbers still say they are made up, in plain words.
+ * Replaces the attorney-cleared "SAMPLE — ILLUSTRATIVE ONLY"; counsel to
+ * re-review (ATTORNEY_REVIEW_LIST.md).
  */
-export const EXAMPLE_PRICING_LABEL = "Example — illustrative pricing, not an offer";
+export const FICTIONAL_LABEL = "FICTIONAL BORROWER · HOW M8 WORKS";
+export const FICTIONAL_SENTENCE = "A fictional borrower, shown to explain how M8 works. Not an offer to lend.";
 
 /**
  * v33 (owner 2026-10-30: "I don't want it just to say illustrative example.
  * That looks shady."): the rate-card disclaimer on the new M8 chat. The
  * short line sits above the rates; the full text sits under them.
- * Replaces the attorney-cleared EXAMPLE_PRICING_LABEL on /chat only;
- * counsel to re-review (ATTORNEY_REVIEW_LIST.md).
+ * Replaced the attorney-cleared example-pricing label; counsel to
+ * re-review (ATTORNEY_REVIEW_LIST.md).
  */
 export const NOT_AN_OFFER_LINE = "Not an offer to lend";
 /** While the chat shows the scripted conversation (no real pricing yet). */

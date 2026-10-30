@@ -8,7 +8,7 @@
 // Principles are imported verbatim from lib/principles.ts.
 //
 // This prompt is only used by the password-gated tester preview
-// (/demo → Live M8 tab → /api/m8-chat). The public /chat route never
+// (/chat?preview=1 → /api/m8-chat). The public /chat route never
 // calls a model while CONFIG.featureFlags.chatLiveAi is false.
 //
 // Recording / consent: the UI in front of this prompt shows the AI

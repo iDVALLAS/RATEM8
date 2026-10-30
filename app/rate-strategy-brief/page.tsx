@@ -14,11 +14,11 @@ const UPDATED = "2026-09-29";
 export const metadata: Metadata = {
   title: c.metaTitle,
   description: c.metaDescription,
-  alternates: { canonical: "/sample-brief" },
+  alternates: { canonical: "/rate-strategy-brief" },
 };
 
 /**
- * /sample-brief — a sample Rate Strategy Brief rendered as a document
+ * /rate-strategy-brief (L3; was /sample-brief) — a Rate Strategy Brief for a fictional borrower, rendered as a document
  * that opens on scroll. Fictional borrower, fictional figures, numbered
  * lenders, SAMPLE on every section.
  */
@@ -27,12 +27,12 @@ export default function SampleBriefPage() {
     <PageShell stickyCta
       crumbs={[
         { name: "Home", path: "/" },
-        { name: "Sample brief", path: "/sample-brief" },
+        { name: "Rate Strategy Brief", path: "/rate-strategy-brief" },
       ]}
     >
       <JsonLd
         data={webPageJsonLd({
-          path: "/sample-brief",
+          path: "/rate-strategy-brief",
           name: c.metaTitle,
           description: c.metaDescription,
           dateModified: UPDATED,

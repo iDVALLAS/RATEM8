@@ -5,7 +5,7 @@ import Stage from "@/components/motion/Stage";
 import SampleBadge from "@/components/SampleBadge";
 import OptionsRow from "./OptionsRow";
 import { briefContent as c, briefSample as s } from "@/lib/content/sample-brief";
-import { NOT_A_COMMITMENT, SAMPLE_SENTENCE } from "@/lib/config";
+import { NOT_A_COMMITMENT, FICTIONAL_SENTENCE } from "@/lib/config";
 import { seq } from "@/lib/useSceneTimeline";
 import "./brief.css";
 
@@ -89,7 +89,7 @@ export default function SampleBrief() {
                 ))}
               </ul>
               <p className="br-doc__foot">
-                {SAMPLE_SENTENCE} {NOT_A_COMMITMENT}
+                {FICTIONAL_SENTENCE} {NOT_A_COMMITMENT}
               </p>
             </Section>
           </article>

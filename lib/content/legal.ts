@@ -70,8 +70,8 @@ export const privacyContent = {
         body: "Booking runs on Calendly, a third-party scheduling vendor. Whatever you type into the booking form (name, email, notes) is collected by Calendly under its own privacy policy and shared with us so we can hold the call.",
       },
       {
-        label: "Second Look sample",
-        body: "The sample walkthrough uses a fictional Loan Estimate. Nothing is uploaded and nothing about you is collected.",
+        label: "Second Look walkthrough",
+        body: "The walkthrough uses a fictional Loan Estimate. Nothing is uploaded and nothing about you is collected.",
       },
       {
         label: "Second Look live upload",
@@ -81,7 +81,7 @@ export const privacyContent = {
       {
         label: "Chat and voice",
         status: flags.chatLiveAi || flags.voice ? "currently on" : "not live",
-        body: "Chat is a scripted demo today and stores nothing. Voice is off. When live chat opens, transcripts may be recorded for compliance review; see Recording below.",
+        body: "M8 chat sends your typed question to a licensed loan officer by email and stores nothing else. Two-way chat with M8 is not open yet. Voice turns your speech into text in your browser; no audio is recorded or stored. When two-way chat opens, transcripts may be recorded for compliance review; see Recording below.",
       },
       {
         label: "Email",
@@ -117,6 +117,7 @@ export const privacyContent = {
       { name: "Vercel", role: "Hosting and aggregate analytics." },
       { name: "Calendly", role: "Scheduling. Collects what you enter when you book." },
       { name: "Anthropic (Claude API)", role: "Powers AI features when they are enabled. Chat and live upload are off today." },
+      { name: "Resend", role: "Delivers the questions you send from M8 chat to your loan officer by email." },
       { name: "ElevenLabs", role: "Reads M8's replies aloud when you turn voice on. It receives the reply text, never your audio." },
       { name: "Your browser's speech service (Google in Chrome, Apple in Safari)", role: "Turns your speech into text when you use the microphone. LoanM8 never records or stores your audio." },
     ],
@@ -257,7 +258,7 @@ export const termsContent = {
       title: "No offers or quotes online",
       note: "Confirm that no page of the site can be read as an offer, quote, or pre-qualification.",
       paragraphs: [
-        "This site displays no interest rates and makes no offers. Any figure you see in a demo is a labeled sample. Pricing, eligibility, and terms are discussed only with a licensed loan officer, and only after verification.",
+        "This site displays no interest rates and makes no offers. Any figure shown with a fictional borrower is labeled as fictional. Pricing, eligibility, and terms are discussed only with a licensed loan officer, and only after verification.",
       ],
     },
     {

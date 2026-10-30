@@ -1,5 +1,5 @@
 /**
- * lib/content/sample-brief.ts — content for /sample-brief.
+ * lib/content/sample-brief.ts — content for /rate-strategy-brief (was /sample-brief).
  *
  * A sample Rate Strategy Brief for a fictional borrower. Every figure is
  * fictional and labeled as such; no lender is named (Lender 1/2/3). The
@@ -26,8 +26,8 @@ export type BriefOption = {
 };
 
 export const briefSample = {
-  borrower: "Sample Borrower",
-  date: "Sample date",
+  borrower: "Fictional Borrower",
+  date: "Fictional date",
   situation: [
     ["Goal", "Purchase, primary residence"],
     ["Area", "Washington"],
@@ -102,10 +102,10 @@ export const briefSample = {
 } as const;
 
 export const briefContent = {
-  metaTitle: "Sample Rate Strategy Brief — LoanM8",
+  metaTitle: "The Rate Strategy Brief — LoanM8",
   metaDescription:
-    "What the written Rate Strategy Brief looks like: a fictional borrower's situation, three options compared the anti-steering way, plain-English tradeoffs, questions to ask, and next steps. Sample figures only.",
-  banner: "SAMPLE — fictional borrower, fictional figures. Not an offer.",
+    "What the written Rate Strategy Brief looks like: a fictional borrower's situation, three options compared the anti-steering way, plain-English tradeoffs, questions to ask, and next steps. Fictional figures only.",
+  banner: "Fictional borrower, fictional figures. Shown to explain the brief. Not an offer to lend.",
   eyebrow: "// rate strategy brief",
   heading: "The document you leave with.",
   accent: "leave with",
@@ -116,7 +116,7 @@ export const briefContent = {
   sections: {
     situation: "Your situation",
     options: "Three options compared",
-    optionsSub: "Presented the anti-steering way: the lowest rate you qualify for, the lowest rate without risky features, and the lowest total points and fees. Lenders are numbered, not named, in this sample.",
+    optionsSub: "Presented the anti-steering way: the lowest rate you qualify for, the lowest rate without risky features, and the lowest total points and fees. Lenders are numbered, not named, here.",
     tradeoffs: "Plain-English tradeoffs",
     questions: "Questions to ask",
     next: "Next steps",
@@ -132,7 +132,7 @@ export const briefContent = {
   },
   swipeHint: "Swipe to compare",
   textEquivalent:
-    "A paper document titled Rate Strategy Brief unfolds and its sections appear in order: the borrower's situation (a fictional purchase in Washington), three loan options labeled A, B, and C with fictional rates, APRs, points or credits, monthly payments, and cash to close from lenders numbered 1, 2, and 3, then plain-English tradeoffs, questions to ask, and next steps. Every page is marked SAMPLE.",
+    "A paper document titled Rate Strategy Brief unfolds and its sections appear in order: the borrower's situation (a fictional purchase in Washington), three loan options labeled A, B, and C with fictional rates, APRs, points or credits, monthly payments, and cash to close from lenders numbered 1, 2, and 3, then plain-English tradeoffs, questions to ask, and next steps. Every page is marked as a fictional borrower.",
   ctaEyebrow: "// next step",
   ctaHeading: "Want one with your numbers in it?",
   ctaSub: "A short call with a licensed loan officer starts it. Nothing is pulled and nothing is locked until you say so.",

@@ -9,7 +9,7 @@ import Orb, { type OrbState } from "@/components/Orb";
 import SampleBadge from "@/components/SampleBadge";
 import BookingCTA from "@/components/BookingCTA";
 import { copy } from "@/lib/copy";
-import { SAMPLE_SENTENCE } from "@/lib/config";
+import { FICTIONAL_SENTENCE } from "@/lib/config";
 import { seq } from "@/lib/useSceneTimeline";
 import SampleDoc, { type FieldState } from "./SampleDoc";
 import PointsToggle, { type ToggleValue } from "./PointsToggle";
@@ -62,10 +62,10 @@ const readFieldState = (step: number, i: number): FieldState =>
   step >= 3 + 2 * i ? "found" : step >= 2 + 2 * i ? "reading" : "idle";
 
 const TEXT_EQ = {
-  drop: `${scenes[0].title} A dashed drop slot appears. A tilted sample Loan Estimate for a fictional borrower slides in from the left and settles flat. The M8 orb wakes from idle to listening. ${SAMPLE_SENTENCE}`,
-  read: `${scenes[1].title} A green scan line sweeps down the sample document. Seven fields light up in sequence, each tagged "reading…" then "found": interest rate 6.500%, APR 6.712%, points $4,000, lender credits $0, Section A origination charges $5,195, Section B and C services $3,880, cash to close $47,250. The orb is thinking. ${SAMPLE_SENTENCE}`,
-  decoded: `${scenes[2].title} A dashed grid fills card by card: ${decoded.trueCost.title} — ${decoded.trueCost.body} ${decoded.negotiable.title} — ${decoded.negotiable.body} ${decoded.cashToClose.title} — ${decoded.cashToClose.body} ${decoded.toggle.title} — ${decoded.toggle.body} ${decoded.questions.title}: ${decoded.questions.items.join(" ")} The orb is speaking. ${SAMPLE_SENTENCE}`,
-  toggle: `${scenes[3].title} An interactive switch, "${copy.secondLook.toggleLabels.points}" or "${copy.secondLook.toggleLabels.credit}", updates the monthly principal-and-interest payment, the upfront cost, and the break-even month using deterministic math on a fictional $400,000 loan. A row of eight timeline dots (months 0 to 84) lights up in sequence to the break-even month. ${SAMPLE_SENTENCE}`,
+  drop: `${scenes[0].title} A dashed drop slot appears. A tilted Loan Estimate for a fictional borrower slides in from the left and settles flat. The M8 orb wakes from idle to listening. ${FICTIONAL_SENTENCE}`,
+  read: `${scenes[1].title} A green scan line sweeps down the fictional document. Seven fields light up in sequence, each tagged "reading…" then "found": interest rate 6.500%, APR 6.712%, points $4,000, lender credits $0, Section A origination charges $5,195, Section B and C services $3,880, cash to close $47,250. The orb is thinking. ${FICTIONAL_SENTENCE}`,
+  decoded: `${scenes[2].title} A dashed grid fills card by card: ${decoded.trueCost.title} — ${decoded.trueCost.body} ${decoded.negotiable.title} — ${decoded.negotiable.body} ${decoded.cashToClose.title} — ${decoded.cashToClose.body} ${decoded.toggle.title} — ${decoded.toggle.body} ${decoded.questions.title}: ${decoded.questions.items.join(" ")} The orb is speaking. ${FICTIONAL_SENTENCE}`,
+  toggle: `${scenes[3].title} An interactive switch, "${copy.secondLook.toggleLabels.points}" or "${copy.secondLook.toggleLabels.credit}", updates the monthly principal-and-interest payment, the upfront cost, and the break-even month using deterministic math on a fictional $400,000 loan. A row of eight timeline dots (months 0 to 84) lights up in sequence to the break-even month. ${FICTIONAL_SENTENCE}`,
   handoff: `${scenes[4].title} The orb settles back to idle. A card reads: ${copy.secondLook.handoff.title} ${copy.secondLook.handoff.body} A booking button follows.`,
 };
 
@@ -252,7 +252,7 @@ export default function SecondLookDemo() {
                 <SceneHead i={3} />
                 <OrbStrip state={step >= 1 ? "listening" : "idle"} />
                 <p className="mono-label" style={{ marginTop: 16 }}>
-                  {SAMPLE_SENTENCE}
+                  {FICTIONAL_SENTENCE}
                 </p>
               </div>
               <div className={`card step-in ${step >= 1 ? "is-on" : ""}`}>

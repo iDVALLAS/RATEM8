@@ -4,11 +4,11 @@ import { copy } from "@/lib/copy";
 import { homeContent } from "@/lib/content/home";
 
 /**
- * ActionGrid — the four-button grid. Two columns on every viewport,
- * each row-2 button directly under its parent:
+ * ActionGrid — the four-button grid. Two columns from 640px (L3: one
+ * column on phones), each row-2 button directly under its parent:
  *
  *   [ I'm shopping a mortgage (primary) ] [ I'm a real estate agent (secondary) ]
- *     → /chat, the scripted demo (v21)
+ *     → /chat
  *   [ Get a second look (outline, LE)   ] [ I'm a hungry MLO (outline, //)     ]
  *
  * Row 2 is outlined + mono icon: distinct, never louder than primary.

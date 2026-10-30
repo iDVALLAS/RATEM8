@@ -100,6 +100,14 @@
 .m8c-hold { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .m8c-money { margin: 4px 0 0; font-size: 22px; font-weight: 300; font-variant-numeric: tabular-nums; }
 
+/* Starter cards (L3) */
+.m8c-starters { list-style: none; margin: 4px 0 0 40px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.m8c-starter { display: flex; flex-direction: column; gap: 4px; border: 1px dashed var(--rule-strong); border-radius: 14px; padding: 14px 16px; color: var(--fg); }
+.m8c-starter:hover, .m8c-starter:focus-visible { border-style: solid; border-color: var(--accent); }
+.m8c-starter__title { font-size: 15px; }
+.m8c-starter__sub { font-size: 12.5px; color: var(--muted); }
+.m8c-lo__beacon { margin-top: 12px; }
+
 /* Follow-ups */
 .m8c-followups { list-style: none; margin: 4px 0 0 40px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .m8c-fu { border: 1px solid var(--rule-strong); border-radius: 999px; padding: 8px 14px; font-size: 13.5px; color: var(--fg-soft); background: transparent; cursor: pointer; }
@@ -174,6 +182,7 @@
   .m8c-bubble { max-width: 88%; }
   .m8c-avatar { display: none; }
   .m8c-followups { margin-left: 0; }
+  .m8c-starters { margin-left: 0; grid-template-columns: 1fr; }
   .m8c-opt { grid-template-columns: 1fr 1fr; row-gap: 8px; }
   .m8c-opt__who, .m8c-opt__pts { grid-column: 1 / -1; }
   .m8c-hold { grid-template-columns: 1fr; gap: 10px; }

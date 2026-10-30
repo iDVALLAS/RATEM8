@@ -3,18 +3,11 @@ import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/site";
 
 /**
- * robots.txt — generated, replaces the old static public/robots.txt.
- *
- * Two modes:
- *  - Stealth (NEXT_PUBLIC_STEALTH_MODE !== "false", the default): only the
- *    coming-soon homepage, /demo, /ai, /llms.txt, and this file are
- *    crawlable. Matches middleware.ts, which redirects everything else.
- *  - Live: everything is crawlable except /api/ (other than /api/agent/)
- *    and /demo. AI crawlers and search crawlers are listed by name so the
- *    policy is explicit and auditable.
- *
- * This policy can be tightened later (per bot, per path) without touching
- * any page. Keep the list in sync with COMPLIANCE.md / docs/ai-visibility-checklist.md.
+ * robots.txt — generated. L3: the site is public, so everything is
+ * crawlable except /api/ (other than /api/agent/), the loan officer admin
+ * (/mlo) and the living style guide (/design). AI crawlers and search
+ * crawlers are listed by name so the policy is explicit and auditable.
+ * Keep in sync with COMPLIANCE.md / docs/ai-visibility-checklist.md.
  */
 
 const AI_AND_SEARCH_BOTS = [
@@ -30,23 +23,8 @@ const AI_AND_SEARCH_BOTS = [
 ];
 
 export default function robots(): MetadataRoute.Robots {
-  const stealth = process.env.NEXT_PUBLIC_STEALTH_MODE !== "false";
-
-  if (stealth) {
-    return {
-      rules: [
-        {
-          userAgent: "*",
-          allow: ["/$", "/demo", "/ai", "/llms.txt", "/robots.txt"],
-          disallow: "/",
-        },
-      ],
-      sitemap: absoluteUrl("/sitemap.xml"),
-    };
-  }
-
   const allow = ["/", "/api/agent/"];
-  const disallow = ["/api/", "/demo"];
+  const disallow = ["/api/", "/mlo", "/design"];
 
   return {
     rules: [

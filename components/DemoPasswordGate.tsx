@@ -6,12 +6,12 @@ import { useState } from "react";
 import Footer from "./Footer";
 
 /**
- * The password form shown when a visitor hits /demo without a valid auth cookie.
+ * The tester password form at /chat?preview=1 (L3; was /demo).
  *
  * Behavior:
  *  - Visitor enters password, hits enter or clicks button
  *  - POST to /api/demo-auth with the password
- *  - On success: cookie is set server-side, page reloads, the chat experience renders
+ *  - On success: cookie is set server-side, the page reloads into the tester view
  *  - On failure: error shown, no cookie set
  *
  * Failed-attempt logging (in the API route) lets you see who's trying.
@@ -35,18 +35,8 @@ export default function DemoPasswordGate({ contactEmail }: { contactEmail: strin
       });
 
       if (res.ok) {
-        // Redirect to the homepage instead of reloading /demo.
-        // The homepage is cookie-aware (see app/page.tsx): with the
-        // new auth cookie set, the visitor lands on the full marketing
-        // homepage (breathing orb, principles, how-it-works, etc.)
-        // rather than staying on the demo chat surface. This makes
-        // /demo an auth checkpoint, not a destination — the site
-        // becomes explorable from the front door the moment they
-        // authenticate.
-        //
-        // They can still navigate to /demo (or /chat) directly to
-        // see the chat interface with the Scripted/Live M8 toggle.
-        window.location.href = "/";
+        // L3: the gate lives at /chat?preview=1; reload to show the tester view.
+        window.location.reload();
       } else {
         const data = await res.json().catch(() => ({}));
         setStatus("error");
@@ -64,7 +54,7 @@ export default function DemoPasswordGate({ contactEmail }: { contactEmail: strin
       <main className="grain min-h-screen flex flex-col">
         <header className="px-6 py-6">
           <div className="mx-auto max-w-7xl flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3" aria-label="Back to coming soon">
+            <Link href="/" className="flex items-center gap-3" aria-label="LoanM8 home">
               <span className="orb" style={{ width: 20, height: 20 }} />
               <span className="font-display font-medium tracking-tight text-lg">
                 Loan<span style={{ color: "var(--accent)" }}>M8</span>
@@ -72,7 +62,7 @@ export default function DemoPasswordGate({ contactEmail }: { contactEmail: strin
             </Link>
             <span className="font-mono text-[10px] tracking-[0.18em] uppercase"
                   style={{ color: "var(--muted)" }}>
-              Demo · Invitation only
+              Tester preview
             </span>
           </div>
         </header>
@@ -93,8 +83,8 @@ export default function DemoPasswordGate({ contactEmail }: { contactEmail: strin
 
           <p className="text-base leading-relaxed max-w-md mx-auto font-light mb-10"
              style={{ color: "var(--muted)" }}>
-            The M8 demo is in private preview. Drop your invitation password
-            below to take a look.
+            Two-way chat with M8 is in private testing. Enter the tester
+            password to try it.
           </p>
 
           <div className="w-full max-w-sm">
@@ -116,7 +106,7 @@ export default function DemoPasswordGate({ contactEmail }: { contactEmail: strin
                 }}
                 placeholder="Password"
                 className="flex-1 bg-transparent outline-none text-[15px] placeholder:text-[var(--muted)]"
-                aria-label="Demo password"
+                aria-label="Tester password"
                 autoFocus
               />
               <button

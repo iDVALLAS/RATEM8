@@ -30,8 +30,8 @@ export const mloContent = {
   pricing: {
     heading: "Pricing snapshots",
     intro: "Enter today's results for one scenario exactly as they appear in the pricing engine, attach the screenshot or PDF they came from, and publish. APR, payments and the three options are computed for you.",
-    flagOff: "PRICING_MANUAL is off, so published snapshots are stored but /rates keeps showing example pricing.",
-    flagOn: "PRICING_MANUAL is on. A fresh snapshot replaces the example on /rates for this scenario.",
+    flagOff: "PRICING_MANUAL is off, so published snapshots are stored but /rates shows no pricing.",
+    flagOn: "PRICING_MANUAL is on. A fresh snapshot shows on /rates for this scenario.",
     stale: "Snapshots older than {h} hours are never shown.",
     scenario: "Scenario",
     source: "Source screenshot or PDF (required, kept private)",

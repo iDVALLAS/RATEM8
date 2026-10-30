@@ -1,6 +1,6 @@
 /**
  * lib/content/design.ts — strings for /design, the living style guide
- * (v24). Internal, noindex, behind the stealth gate. It uses a fictional
+ * (v24). Internal, noindex, testers only. It uses a fictional
  * "Sample Lender" only: no real lender is named or shown here, and no
  * real rate is displayed (rate slots read "x.xxx%").
  */
@@ -46,7 +46,7 @@ export const designContent = {
     bars: ["Option 01", "Option 02", "Option 03"],
     empty: "Nothing to show yet.",
     emptyBody: "Empty states say what's missing and what to do next.",
-    loading: "Loading example pricing",
+    loading: "Loading pricing",
     sticky: "Sticky CTA bar (phones, borrower pages)",
   },
 } as const;

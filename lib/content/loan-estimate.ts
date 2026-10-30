@@ -187,14 +187,14 @@ export const leSections: LeSection[] = [
  * Cash to Close table reconciles to page 1.
  */
 export const leSample = {
-  applicant: "Sample Borrower",
-  property: "123 Sample St, Anytown, WA",
+  applicant: "Fictional Borrower",
+  property: "123 Main St, Anytown, WA",
   salePrice: "$500,000",
   loanTerm: "30 years",
   purpose: "Purchase",
   product: "Fixed Rate",
   loanType: "Conventional",
-  loanId: "SAMPLE-000000",
+  loanId: "000000000",
   rateLock: "NO",
 
   loanAmount: "$400,000",

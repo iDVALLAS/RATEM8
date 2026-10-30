@@ -4,63 +4,14 @@ import { CHOICE_COOKIE, PROPERTY_COOKIE, ROUTE_HEADER, encodeRoute, resolveRoute
 import { mloRoutingOn } from "@/lib/config";
 
 /**
- * LoanM8 stealth-launch middleware — v9.1 (cookie-aware version).
+ * LoanM8 middleware (L3: the site is public; the stealth gate is gone).
  *
- * Behavior:
- *  - Anonymous visitors (no demo auth cookie): only / and /demo are
- *    reachable. Every other URL redirects to the coming-soon homepage.
- *  - Authenticated visitors (has demo auth cookie): full site is open.
- *    They can browse /, /demo, /agents, /about, /chat, every subpage,
- *    everything. The cookie is their all-access pass.
- *
- * The cookie check here is shallow — we only check that the cookie
- * EXISTS. The deep hash check (does this cookie's value match the
- * current DEMO_PASSWORD's hash?) still happens inside /demo/page.tsx
- * before the chat content renders. So a stale cookie can browse the
- * marketing pages but can't see the chat without re-entering the
- * password. This is intentional — marketing pages aren't sensitive,
- * the chat experience is.
- *
- * To take the whole site fully public, set NEXT_PUBLIC_STEALTH_MODE=false.
- * The middleware no-ops and everyone sees everything.
- *
- * Change vs v9:
- *  - Added authentication check before the redirect block
- *  - If demo cookie is present, let the request through to ANY page
- *  - Anonymous behavior is identical to v9
+ *  - /mlo/* is the loan officer admin: HTTP Basic auth (adminGate).
+ *  - /demo (retired in L3) redirects to /chat?preview=1, the tester path;
+ *    /sample-brief redirects to /rate-strategy-brief.
+ *  - Every request gets the visitor's MLO route header (routedHeaders).
  */
 
-const PUBLIC_PATHS = [
-  "/",
-  "/demo",
-  "/robots.txt",
-  "/sitemap.xml",
-  "/favicon.ico",
-  "/favicon.png",
-  // AI-agent readiness + legally required pages. These stay reachable
-  // even in stealth: crawlers, assistants, and regulators need them.
-  "/llms.txt",
-  "/ai",
-  "/ai.md",
-  "/principles.md",
-  "/calculators/methodology.md",
-  "/disclosures",
-  "/licensing",
-  "/licensing/texas",
-  "/privacy",
-  "/terms",
-];
-
-const PUBLIC_PREFIXES = [
-  "/demo/",
-  "/api/",
-  "/api/agent/",
-  "/states/",
-  "/_next/",
-  "/fonts/",
-  "/audio/",
-  "/images/",
-];
 
 /**
  * v15 (Patch B): state-based MLO routing, resolved here once per request
@@ -90,11 +41,6 @@ function passThrough(request: NextRequest): NextResponse {
   return NextResponse.next({ request: { headers: routedHeaders(request) } });
 }
 
-function isPublic(pathname: string): boolean {
-  if (PUBLIC_PATHS.includes(pathname)) return true;
-  return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-}
-
 /** Length-independent string comparison (edge runtime has no timingSafeEqual). */
 function safeEqual(a: string, b: string): boolean {
   let diff = a.length ^ b.length;
@@ -107,8 +53,7 @@ function safeEqual(a: string, b: string): boolean {
  * /mlo/* is the loan officer admin (lenders, playbook, manual pricing
  * snapshots). HTTP Basic auth against MLO_ADMIN_USER / MLO_ADMIN_PASSWORD
  * (server-side env only). Unset credentials → the area does not exist (404).
- * Checked before the stealth gate, so stealth never exposes it. A stand-in
- * for real accounts, which do not exist in this repo yet.
+ * A stand-in for real accounts (L5).
  */
 function adminGate(request: NextRequest): NextResponse | null {
   const { pathname } = request.nextUrl;
@@ -138,39 +83,23 @@ export function middleware(request: NextRequest) {
   const gated = adminGate(request);
   if (gated) return gated;
 
-  const stealthMode = process.env.NEXT_PUBLIC_STEALTH_MODE !== "false";
-
-  // Stealth off → site is fully public. Middleware no-ops.
-  if (!stealthMode) return passThrough(request);
-
+  // L3: the tester tool moved to /chat?preview=1.
   const { pathname } = request.nextUrl;
-
-  // Public paths are always allowed (homepage, demo route, assets, robots, etc.)
-  if (isPublic(pathname)) return passThrough(request);
-
-  // ─── v9.1 NEW: cookie-aware all-access for authenticated testers ───
-  //
-  // If they have the demo auth cookie, they've proved they have the
-  // password at some point in the last 30 days. Let them browse anything.
-  //
-  // This is a SHALLOW check — we don't validate the cookie value against
-  // the current password hash here. That would require computing SHA-256
-  // on every request, which adds latency. The deep validation happens
-  // inside /demo/page.tsx before the chat content renders. So:
-  //
-  //   - Anonymous visitor → marketing pages blocked, demo password-gated
-  //   - Authenticated visitor → marketing pages open, demo accessible
-  //   - Stale cookie visitor → marketing pages open (low risk),
-  //     demo prompts for password again (chat still gated)
-  const authCookie = request.cookies.get("loanm8_demo_auth");
-  if (authCookie?.value) {
-    return passThrough(request);
+  if (pathname === "/demo" || pathname.startsWith("/demo/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/chat";
+    url.search = "?preview=1";
+    return NextResponse.redirect(url, 308);
   }
 
-  // No cookie, not a public path → redirect to coming-soon
-  const url = request.nextUrl.clone();
-  url.pathname = "/";
-  return NextResponse.redirect(url, 307);
+  // L3: the brief moved off the "sample" URL.
+  if (pathname === "/sample-brief") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/rate-strategy-brief";
+    return NextResponse.redirect(url, 308);
+  }
+
+  return passThrough(request);
 }
 
 export const config = {

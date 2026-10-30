@@ -47,7 +47,7 @@ function sampleText(): string {
     "Loan ID: SAMPLE-000123",
     `Loan amount: ${SAMPLE_DOC.loanAmount}`,
     ...SAMPLE_FIELDS.map((f) => `${f.label}: ${f.value}`),
-    "Sample — illustrative only, not an offer.",
+    "Fictional borrower, fictional figures. Not an offer to lend.",
   ];
   return lines.join("\n");
 }
@@ -66,7 +66,7 @@ function makeSampleImage(): string | null {
     ctx.fillText("Loan Estimate", 40, 60);
     ctx.font = "13px ui-monospace, monospace";
     ctx.fillStyle = "#5F5E5A";
-    ctx.fillText("SAMPLE — ILLUSTRATIVE ONLY", 40, 84);
+    ctx.fillText("FICTIONAL BORROWER · HOW M8 WORKS", 40, 84);
     ctx.fillRect(40, 96, 560, 2);
     ctx.fillStyle = "#1A1A19";
     ctx.font = "16px system-ui, sans-serif";

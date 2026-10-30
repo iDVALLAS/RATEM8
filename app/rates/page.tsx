@@ -22,7 +22,7 @@ import { rateOfficerLine } from "@/lib/licensing";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Example rates",
+  title: "Rates",
   description: "How M8 shows pricing: the three options anti-steering rules describe, then every result, with APR, points, fees and lock period. Dated examples, not quotes.",
   alternates: { canonical: "/rates" },
   robots: { index: false, follow: true },
@@ -41,7 +41,7 @@ export default async function RatesPage({ searchParams }: Props) {
   const unlicensed = route.status === "unlicensed" ? copy.routing.unlicensedRates.replace("{state}", route.stateName ?? "") : null;
 
   return (
-    <PageShell stickyCta crumbs={[{ name: "Home", path: "/" }, { name: "Example rates", path: "/rates" }]}>
+    <PageShell stickyCta crumbs={[{ name: "Home", path: "/" }, { name: "Rates", path: "/rates" }]}>
       <header className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 pb-6 sm:pt-12">
         <Reveal as="h1" text={c.heading} accent={c.headingAccent} immediate className="tagline text-4xl sm:text-6xl leading-tight mb-5" />
         <p className="text-lg leading-relaxed font-light max-w-3xl" style={{ color: "var(--muted)" }}>{c.sub}</p>

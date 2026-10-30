@@ -311,3 +311,19 @@ conflict is recorded here.
 - **Sponsor change** to Barrett (owner: likely soon): re-review all
   sponsor-facing text when it happens.
 
+## L3 additions — the site opens (2026-10-30)
+
+- **Fictional-content label** replaces the attorney-cleared "SAMPLE —
+  ILLUSTRATIVE ONLY": badge "FICTIONAL BORROWER · HOW M8 WORKS"; sentence
+  "A fictional borrower, shown to explain how M8 works. Not an offer to
+  lend." (`FICTIONAL_LABEL`, `FICTIONAL_SENTENCE`). Used where fictional
+  figures, including rates, appear (Second Look walkthrough, Loan Estimate
+  guide, /join, /rate-strategy-brief).
+- **The site is public and indexable.** Everything previously behind the
+  stealth gate is now public: the remaining counsel items in this list
+  apply to a live site.
+- **/chat** sends a borrower's typed question to the loan officer by email
+  (Resend); privacy text and vendor list updated.
+- **HSTS** includes subdomains; confirm no loanm8.com subdomain needs
+  plain HTTP.
+

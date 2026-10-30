@@ -5,7 +5,7 @@
  * requires compliance counsel review before any deployment) and is
  * built from lib/config.ts facts by `buildM8SystemPrompt()`.
  *
- * Only the password-gated tester preview (/demo → Live M8 tab →
+ * Only the password-gated tester preview (/chat?preview=1 →
  * /api/m8-chat) talks to a model. The public /chat route never does
  * while CONFIG.featureFlags.chatLiveAi is false.
  */

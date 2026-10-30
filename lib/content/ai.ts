@@ -84,7 +84,7 @@ const qa: AiQa[] = [
     links: [
       { label: "Calculators", path: "/calculators" },
       { label: "Second Look", path: "/second-look" },
-      { label: "Sample Rate Strategy Brief", path: "/sample-brief" },
+      { label: "The Rate Strategy Brief", path: "/rate-strategy-brief" },
     ],
   },
   {
@@ -95,7 +95,7 @@ const qa: AiQa[] = [
       ...(CONFIG.liveRatesEnabled
         ? []
         : [
-            `No rate quotes online. ${CONFIG.brandName} shows only dated, anonymized example pricing, labelled as examples and never as a quote or commitment to lend, and the agent API returns no rates or pricing. Calculators use only the rate the borrower enters. M8 never quotes a rate from memory.`,
+            `No rate quotes online. ${CONFIG.brandName} shows no rates until a licensed loan officer posts pricing, always with its date, APR and assumptions, never as a quote or commitment to lend, and the agent API returns no rates or pricing. Calculators use only the rate the borrower enters. M8 never quotes a rate from memory.`,
           ]),
       `No credit pulls online. ${NOT_A_CREDIT_PULL} Nothing on this site, in chat, or in the API pulls credit. A soft pull happens only when a borrower asks a licensed loan officer for one; a hard pull only when the borrower decides to apply.`,
       `No approvals. M8 does not approve, deny, pre-approve, or commit. ${NOT_A_COMMITMENT}`,
@@ -115,7 +115,7 @@ const qa: AiQa[] = [
         ? `Book a call with a licensed loan officer: ${bookingUrl}`
         : "Book a call with a licensed loan officer: booking link coming soon (not configured yet).",
       `Second Look, for a borrower who already holds a Loan Estimate: ${absoluteUrl("/second-look")}`,
-      `M8 chat: ${absoluteUrl("/chat")} (AI disclosure and recording consent come first; scripted demo until live chat passes review).`,
+      `M8 chat: ${absoluteUrl("/chat")} (AI disclosure and recording consent come first; two-way chat opens after compliance review).`,
       `Machine-readable version of these links: ${absoluteUrl("/api/agent/handoff")}`,
     ],
     links: [

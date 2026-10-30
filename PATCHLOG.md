@@ -10,7 +10,7 @@ continuity log. L-patches continue its numbering (L1 = v31).
 | v32 — Lenders numbered ("Lender 1, 2, 3"); L4 pricing spec | v32 | Preview, awaiting owner sign-off |
 | v33 — M8 chat redesign + voice (ElevenLabs, browser fallback) — part of L6 | v33 | Preview, awaiting owner sign-off |
 | L2 — Site-wide disclaimer rewrite, `/licensing`, TX notice | v34, v35 (sponsor lockup) | Preview, awaiting owner sign-off; Texas notice text needed |
-| L3 — Remove example mode, go live | — | Not started |
+| L3 — Remove example mode, go live | v36 | Preview, awaiting owner sign-off; `www` domain step is the owner's |
 | L4 — Pricing: weekly ARIVE pull + screenshot, Freddie Mac −0.25% posted rate | — | Specced in `docs/work/L4-pricing-spec.md`; 6 owner decisions open |
 | L5 — Accounts, data, security | — | Not started (provider choice needs owner OK) |
 | L6 — M8 chat redesign + browser voice | — | Not started |

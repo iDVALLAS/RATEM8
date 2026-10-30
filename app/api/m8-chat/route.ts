@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
+import { isTesterAuthed } from "@/lib/preview-auth";
 import { M8_MODEL, M8_MAX_TOKENS } from "@/lib/m8";
 import { buildM8SystemPrompt, m8RoutingFacts } from "@/lib/prompts/m8-system";
 import { decodeRoute, ROUTE_HEADER } from "@/lib/routing";
@@ -23,7 +24,7 @@ async function systemPrompt(): Promise<string> {
  *
  * Streams a response from the Claude API back to the browser as
  * Server-Sent Events. The only client is components/M8LiveChat.tsx,
- * rendered on /demo behind the tester password. The public /chat
+ * rendered on /chat?preview=1 behind the tester password. The public /chat
  * route never calls this while CONFIG.featureFlags.chatLiveAi is false.
  *
  * SYSTEM PROMPT: lib/prompts/m8-system.ts (DRAFT — requires compliance
@@ -42,7 +43,7 @@ async function systemPrompt(): Promise<string> {
  *    an explicit consent record before the first message.
  *
  * GATE: the request must carry the same demo auth cookie that
- * app/demo/page.tsx validates (SHA-256 of "loanm8:" + DEMO_PASSWORD).
+ * lib/preview-auth.ts validates (SHA-256 of "loanm8:" + DEMO_PASSWORD).
  * middleware.ts leaves /api/* public, so the route checks it itself.
  * Fails closed when DEMO_PASSWORD or ANTHROPIC_API_KEY is unset.
  *
@@ -64,24 +65,7 @@ type RequestBody = {
   messages?: ChatMessage[];
 };
 
-// --------- Gate (mirrors app/demo/page.tsx; keep the two in sync) ---------
-
-async function hashPassword(pw: string): Promise<string> {
-  if (!pw) return "";
-  const data = new TextEncoder().encode("loanm8:" + pw);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function isTesterAuthed(): Promise<boolean> {
-  const expected = await hashPassword(process.env.DEMO_PASSWORD || "");
-  if (!expected) return false;
-  const cookieStore = await cookies();
-  const authCookie = cookieStore.get("loanm8_demo_auth");
-  return !!authCookie && authCookie.value === expected;
-}
+// --------- Gate: lib/preview-auth.ts (the /chat?preview=1 tester cookie) ---------
 
 // --------- Validation helpers ---------
 
@@ -121,7 +105,7 @@ export async function POST(req: Request) {
     return json(404, { ok: false, error: "Live M8 is off." });
   }
 
-  // Tester gate first. Same cookie the /demo page validates.
+  // Tester gate first. Same cookie /chat?preview=1 validates.
   if (!(await isTesterAuthed())) {
     return json(401, { ok: false, error: "Tester access required." });
   }

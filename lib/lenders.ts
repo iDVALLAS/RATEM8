@@ -14,7 +14,7 @@
  *    lender has no file.
  *  - `brandColor` is measured from the lender's own logo file (its
  *    dominant colour); null tints with our data palette (`tint`).
- *  - Fallback if a lender objects: set CONFIG.demo.namedLenders = false and
+ *  - Fallback if a lender objects: set CONFIG.namedLenders = false and
  *    the demo reverts to "Lender 1 / 2 / 3" with numbered tiles.
  *  - Lender names render only where a named display already existed (the
  *    original scripted demo). Public pricing stays anonymized.

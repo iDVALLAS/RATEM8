@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { isTesterAuthed } from "@/lib/preview-auth";
 import PageShell from "@/components/PageShell";
 import CTAButton from "@/components/CTAButton";
-import ExamplePricingLabel from "@/components/ExamplePricingLabel";
 import SampleBadge from "@/components/SampleBadge";
 import LenderMark from "@/components/LenderMark";
 import StateChip from "@/components/StateChip";
@@ -19,7 +20,7 @@ import "./design.css";
 
 /**
  * /design — the living style guide (v24). noindex, not in the sitemap,
- * behind the stealth gate like every non-public page. Fictional lender
+ * testers only (the /chat?preview=1 password; 404 otherwise). Fictional lender
  * only; no real rates.
  */
 export const metadata: Metadata = {
@@ -48,7 +49,9 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   );
 }
 
-export default function DesignPage() {
+export default async function DesignPage() {
+  // L3: the site is public; the style guide is for testers only.
+  if (!(await isTesterAuthed())) notFound();
   return (
     <PageShell crumbs={[{ name: "Home", path: "/" }, { name: "Design", path: "/design" }]}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-14">
@@ -118,7 +121,6 @@ export default function DesignPage() {
 
         <Section title={d.sections.labels}>
           <div className="flex flex-wrap items-center gap-3">
-            <ExamplePricingLabel />
             <SampleBadge />
           </div>
         </Section>
@@ -137,8 +139,7 @@ export default function DesignPage() {
           <div className="ds-grid" data-reveal="grid">
             {d.sample.designations.map((des, i) => (
               <article key={des} className={`ds-lcard lender-tinted ${i === 0 ? "is-winner" : ""}`} style={{ "--lender-tint": `var(--data-${i + 1})` } as React.CSSProperties}>
-                <ExamplePricingLabel />
-                <div className="flex items-center gap-2 mt-3">
+                    <div className="flex items-center gap-2 mt-3">
                   <LenderMark lender={{ ...SAMPLE, tint: (i + 1) as 1 | 2 | 3 }} size="sm" />
                   <span className="font-medium">{d.sample.lender}</span>
                 </div>
@@ -167,7 +168,7 @@ export default function DesignPage() {
                 <p className="ds-rate num mt-2">{d.sample.rate}</p>
                 <div className="mt-3">
                   <DetailSheet label={d.sample.detail} title={d.sample.detailTitle}>
-                    <ExamplePricingLabel className="mb-3" />
+                    <SampleBadge className="mb-3" />
                     <p style={{ color: "var(--fg-soft)" }}>{d.sample.detailBody}</p>
                   </DetailSheet>
                 </div>

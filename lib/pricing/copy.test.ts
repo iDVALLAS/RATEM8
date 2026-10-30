@@ -18,8 +18,8 @@ describe("pricing copy", () => {
     expect(copy.pricing.labelExample).toMatch(/not a quote or commitment to lend/);
     expect(copy.pricing.labelSnapshot).toMatch(/not a quote or commitment to lend/);
   });
-  it("ships example pricing on and every live path off by default", () => {
-    expect(CONFIG.pricing.demoExamples).toBe(true);
+  it("ships with no example pricing (L3) and every live path off by default", () => {
+    expect(CONFIG.pricing.demoExamples).toBe(false);
     expect(CONFIG.pricing.manual).toBe(false);
     expect(CONFIG.pricing.ratesheet).toBe(false);
     expect(CONFIG.pricing.mloRouting).toBe(false);

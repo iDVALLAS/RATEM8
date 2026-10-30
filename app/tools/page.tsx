@@ -6,7 +6,7 @@ export const metadata = {
   title: "Mortgage calculators — LoanM8",
   description:
     "12 calculators for shopping a mortgage: monthly payment, refi breakeven, rent vs buy, DTI, points buydown, amortization, bi-weekly payoff, VA funding fee, PMI drop, closing costs, escrow, and payoff acceleration. No sign-up, no data collected.",
-  robots: { index: false, follow: false }, // stealth-gated
+  robots: { index: false, follow: false }, // legacy tools; kept out of search
 };
 
 /**

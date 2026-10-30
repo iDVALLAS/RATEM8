@@ -25,11 +25,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
   Analytics only (no third-party trackers, no tracking cookies). With
   `MLO_ROUTING` on, two functional first-party cookies hold the
   borrower's stated property state and chosen loan officer (§4c).
-- **Stealth:** while `NEXT_PUBLIC_STEALTH_MODE` is anything but
-  `"false"`, anonymous visitors get the coming-soon page. Legally and
-  machine-required routes stay public (`/ai`, `/llms.txt`,
-  `/disclosures`, `/privacy`, `/terms`, `/states/*`, `/api/agent/*`,
-  robots, sitemap). See `middleware.ts`.
+- **Public since L3 (v36):** the stealth gate and coming-soon page are
+  gone. `/chat?preview=1` (tester password, `DEMO_PASSWORD`) is the hidden
+  QA path for two-way M8 chat; `/design` is testers-only. No example
+  pricing; fictional content carries `FICTIONAL_LABEL`.
 
 ## 2. Brand rules
 
@@ -515,7 +514,7 @@ with the source screenshot. Pricing APIs and the rate sheet engine
     (`containsSensitive`).
   - It never says "submitted".
   - M8 prompt §10 lists the same fields.
-- **Restored scripted demo (v21):**
+- **Scripted demo (v21) — removed in L3 (v36).** Historical notes:
   - `components/ChatExperience.tsx`, `lib/demoChat.ts` and `ChatInput`
     (Sarah / Bellevue / $640K / 98004) at `/chat` and in `/demo`'s
     scripted tab.

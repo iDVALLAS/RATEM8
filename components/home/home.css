@@ -153,15 +153,16 @@
 
 /* ─── Four-button grid ──────────────────────────────────────────── */
 
+/* L3: one column on phones (two columns squeezed the labels word by word). */
 .hm-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   margin: 26px auto 0;
   max-width: 44rem;
   text-align: left;
 }
-@media (min-width: 640px) { .hm-grid { gap: 14px; } }
+@media (min-width: 640px) { .hm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } }
 .hm-grid > * { min-width: 0; }
 .hm-grid .cta { height: 100%; min-height: 64px; align-items: center; }
 .hm-grid .cta__label { font-size: 0.95rem; }

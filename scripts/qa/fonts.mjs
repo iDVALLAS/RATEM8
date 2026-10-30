@@ -1,11 +1,11 @@
 // LoanM8 QA script. Needs Playwright available to Node and a server on
-// http://localhost:3100 started with NEXT_PUBLIC_STEALTH_MODE=false.
+// http://localhost:3100 (npm start).
 // Env: QA_CHROME = path to a Chromium binary (optional; Playwright's own
 // browser is used when unset), QA_OUT = folder for screenshots.
 import fs from "node:fs";
 import { chromium } from "playwright";
 const base = "http://localhost:3100";
-const routes = ["/", "/second-look", "/join", "/agents", "/calculators", "/calculators/points-breakeven", "/calculators/rent-vs-buy", "/calculators/affordability", "/states/washington", "/principles", "/loan-estimate", "/sample-brief", "/chat", "/ai", "/privacy", "/terms", "/disclosures", "/tools", "/tools/points", "/tools/amortization"];
+const routes = ["/", "/second-look", "/join", "/agents", "/calculators", "/calculators/points-breakeven", "/calculators/rent-vs-buy", "/calculators/affordability", "/states/washington", "/principles", "/loan-estimate", "/rate-strategy-brief", "/chat", "/ai", "/privacy", "/terms", "/disclosures", "/tools", "/tools/points", "/tools/amortization"];
 const b = await chromium.launch({ executablePath: process.env.QA_CHROME || undefined });
 const ctx = await b.newContext({ viewport: { width: 1280, height: 800 } });
 const page = await ctx.newPage();
