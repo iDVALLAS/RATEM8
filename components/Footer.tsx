@@ -89,7 +89,8 @@ export default function Footer() {
         <div className="mt-10 grid gap-8 md:grid-cols-2 text-xs leading-relaxed font-light" style={{ color: "var(--muted)" }}>
           <div>
             <p className="mb-3">{tradeNameLine()}</p>
-            <p className="mb-3">
+            {/* v35: full contrast and body size; the sponsor's identity is never de-emphasized (Texas rule). */}
+            <p className="mb-3 text-sm" style={{ color: "var(--fg)" }}>
               {originationLead()} (
               <a href={SPONSOR.nmlsUrl} target="_blank" rel="noopener noreferrer" className="footer-link underline">
                 {copy.footer.nmlsConsumerAccess}

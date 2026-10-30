@@ -210,6 +210,11 @@ export const copy = {
     notEnoughLenders: "Fewer than three lenders were eligible for this scenario, so no option set is shown.",
   },
 
+  // v35: the sponsor lockup beside the LoanM8 name.
+  sponsorLockup: {
+    poweredBy: "powered by",
+  },
+
   // v33: the redesigned M8 chat (/chat).
   m8chat: {
     title: "M8",

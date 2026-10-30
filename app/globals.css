@@ -1454,6 +1454,14 @@ html, body {
   background: color-mix(in srgb, var(--bg) 78%, transparent);
   border-bottom: 1px solid var(--rule);
 }
+/* v35: sponsor lockup (Texas team-name rule). Full contrast, never shaded. */
+.sponsor-lockup { color: var(--fg); margin: 0; }
+.sponsor-lockup b { font-weight: 500; }
+.sponsor-lockup__by { color: var(--fg-soft); }
+/* display comes from the caller's classes (hidden md:inline-flex), so the phone header can hide it. */
+.sponsor-lockup--stack { flex-direction: column; line-height: 1.2; font-size: 1rem; padding-left: 14px; border-left: 1px solid var(--rule-strong); white-space: nowrap; }
+.sponsor-lockup--line { font-size: 15px; line-height: 1.4; }
+.nav-sponsor-line { border-top: 1px solid var(--rule); padding: 8px 16px; text-align: center; }
 .nav-link { color: var(--fg-soft); transition: color 150ms ease-out; padding: 6px 2px; }
 .nav-link:hover, .nav-link--active { color: var(--accent); }
 .nav-burger {

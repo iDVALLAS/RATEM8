@@ -290,3 +290,24 @@ conflict is recorded here.
   see only Ryder Fasse).
 - **Equal Housing Opportunity mark**: confirm the glyph-plus-text form.
 
+## v35 additions — sponsor lockup and brand (2026-10-30)
+
+- **"LoanM8 powered by Home Trust Financial · NMLS #1761573"** beside the
+  logo (stacked, slightly smaller than the wordmark) on every page, and one
+  line on phones. Confirm it meets Texas's "substantially equivalent
+  prominence" for team names (owner's sources: SML RMLO social media
+  guidance v3, Nov 2024 rule update; 7 TAC team-name rule). Whether
+  "Home Trust Financial" (the dba) suffices or the legal name is required.
+- **Is "LoanM8" a team name, an assumed name of the sponsor, or a third
+  party's brand?** Whether the sponsor must register it on its NMLS record.
+- **The other four states (WA, OR, AZ, CA):** confirm each state's
+  advertising rules on trade names not on the license, the licensee's name
+  as licensed, and IDs in ads. Texas's rule is the only explicit team-name
+  rule found so far.
+- **Brand ownership:** trademark for LoanM8 in LoanM8, LLC's name; review
+  the owner's agreement with the sponsor (IP, leads, outside business);
+  a written agreement between LoanM8, LLC and the sponsor on brand, site
+  and borrower data; RESPA review of the marketing relationship.
+- **Sponsor change** to Barrett (owner: likely soon): re-review all
+  sponsor-facing text when it happens.
+

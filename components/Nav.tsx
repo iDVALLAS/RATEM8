@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SponsorLockup from "@/components/SponsorLockup";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Wordmark from "./Wordmark";
@@ -77,9 +78,13 @@ export function Nav() {
           Skip to content
         </a>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 py-3 sm:py-4">
-          <Link href="/" aria-label="LoanM8 home" className="shrink-0">
-            <Wordmark />
-          </Link>
+          {/* v35: the sponsor rides with the LoanM8 name (Texas team-name rule). */}
+          <div className="flex items-center gap-3.5 min-w-0">
+            <Link href="/" aria-label="LoanM8 home" className="shrink-0">
+              <Wordmark />
+            </Link>
+            <SponsorLockup variant="stack" className="hidden md:inline-flex" />
+          </div>
 
           <nav className="hidden items-center text-sm lg:flex" aria-label="Primary">
             <div className="nav-group nav-group--primary">
@@ -118,6 +123,11 @@ export function Nav() {
               <span className={`nav-burger__bar ${open ? "nav-burger__bar--x2" : ""}`} />
             </button>
           </div>
+        </div>
+
+        {/* v35: phones carry the lockup as one line inside the sticky header, so it never scrolls away from the logo. */}
+        <div className="nav-sponsor-line md:hidden">
+          <SponsorLockup variant="line" />
         </div>
 
         {/* v15 location beacon (desktop). Renders nothing while MLO_ROUTING is off. */}

@@ -158,6 +158,11 @@ export type Mlo = {
 };
 
 /**
+ * Owner 2026-10-30: the sponsor will most likely change to Barrett soon.
+ * When it does, replace this object with the new company's confirmed facts
+ * (never from memory); the header lockup, footer, /licensing, cards and
+ * routing all follow. Unconfirmed values go in as "[TBD — …]".
+ *
  * The sponsoring brokerage (L1, owner 2026-10-29). To change sponsors,
  * edit this object (or point an MLO license at a different one); every
  * footer, disclosure, MLO card, chat disclosure and state page follows.

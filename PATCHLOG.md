@@ -9,7 +9,7 @@ continuity log. L-patches continue its numbering (L1 = v31).
 | L1 — Licensing single source of truth | v31 | Preview, awaiting owner sign-off |
 | v32 — Lenders numbered ("Lender 1, 2, 3"); L4 pricing spec | v32 | Preview, awaiting owner sign-off |
 | v33 — M8 chat redesign + voice (ElevenLabs, browser fallback) — part of L6 | v33 | Preview, awaiting owner sign-off |
-| L2 — Site-wide disclaimer rewrite, `/licensing`, TX notice | v34 | Preview, awaiting owner sign-off; Texas notice text needed |
+| L2 — Site-wide disclaimer rewrite, `/licensing`, TX notice | v34, v35 (sponsor lockup) | Preview, awaiting owner sign-off; Texas notice text needed |
 | L3 — Remove example mode, go live | — | Not started |
 | L4 — Pricing: weekly ARIVE pull + screenshot, Freddie Mac −0.25% posted rate | — | Specced in `docs/work/L4-pricing-spec.md`; 6 owner decisions open |
 | L5 — Accounts, data, security | — | Not started (provider choice needs owner OK) |
@@ -38,3 +38,29 @@ continuity log. L-patches continue its numbering (L1 = v31).
   and time stay visible. Everything else sits behind a closed, clearly
   labelled "Rate assumptions" toggle (keyboard and screen-reader
   accessible). Counsel to confirm (ATTORNEY_REVIEW_LIST.md).
+
+## To-do (owner requests, not yet scheduled)
+
+- **MLO backend: each loan officer plugs in their own sponsoring
+  brokerage** (owner 2026-10-30: "other mlo's and brokerage will be in the
+  platform"). Today sponsors live in `lib/config.ts` (`SPONSOR`,
+  `SPONSORS`, each MLO's `licenses[].sponsor`) and change by code edit.
+  The backend needs:
+  - per-MLO sponsor records: legal name, dba, company NMLS, address,
+    phone, NMLS Consumer Access link, per-state company licenses, and an
+    effective date (sponsorships change);
+  - admin verification before anything goes public (checked on NMLS
+    Consumer Access), with an audit trail;
+  - storage in the hosted store chosen in L5 (accounts, MFA for MLOs);
+  - everything that reads `SPONSOR` today reading the matched MLO's
+    sponsor instead. The header "powered by" lockup already does (v35:
+    owner, "based on the LO location that pops up or is changed to"); still
+    to switch: the footer, the
+    cards, /licensing, rate results; routing's assign-vs-choose rule
+    already compares sponsors per MLO.
+  - In a "choose" state with several brokerages and no pick yet, the
+    lockup shows the default sponsor; decide what it shows (counsel).
+  - Belongs with L5 (accounts) or right after it.
+- **Sponsor change to Barrett** (owner 2026-10-30: "will soon be changing
+  to Barrett most likely"). One edit to `SPONSOR` in `lib/config.ts` with
+  the new company's confirmed facts; nothing typed from memory.

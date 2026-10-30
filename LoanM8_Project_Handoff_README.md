@@ -99,6 +99,47 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v35 — Sponsor lockup beside the LoanM8 name (Texas team-name rule) (2026-10-30)
+
+**Owner:** raised the Texas rule (team name/logo must carry the sponsoring
+company's name and NMLS ID in substantially equivalent prominence, with a
+linking phrase, never masked); chose option B from the mockups ("roll with
+B for right now"); the sponsor "will soon be changing to Barrett most
+likely"; asked for a to-do: a backend where each MLO plugs in their
+sponsoring brokerage (PATCHLOG.md, To-do).
+
+### Files
+- `components/SponsorLockup.tsx` (new): "powered by {dba} / NMLS #{id}"
+  from `SPONSOR`. `stack` beside the wordmark (header, ≥768px, divider);
+  `line` with the wordmark (inside the sticky header on phones, so it never
+  scrolls away from the logo; the coming-soon page).
+- `components/Nav.tsx`, `components/ComingSoonHomePage.tsx`,
+  `app/globals.css` (`.sponsor-lockup*`, `.nav-sponsor-line`).
+- `components/Footer.tsx`: the originating-company paragraph at full
+  contrast and body size (it was small and muted).
+- `lib/copy.ts` (`sponsorLockup.poweredBy`), `lib/config.ts` (Barrett note
+  on `SPONSOR`; Texas notice citation 7 TAC §56.200(c) and source URL).
+
+### Verified
+- `npm run verify` passes. Browser: desktop 1440 and tablet 834 show the
+  stack beside the logo; phone 390 shows one line in the sticky header,
+  still in view after scrolling; the coming-soon page shows the line under
+  its headline; no horizontal overflow; `qa/overflow` clean.
+- Bug found and fixed in QA: the stack's own `display` overrode Tailwind's
+  `hidden` (unlayered CSS beats utilities), so phones showed it twice.
+
+### Known issues / next
+- The live coming-soon page at loanm8.com still lacks the lockup until a
+  production promote (owner's call).
+- Other states: Texas's team-name rule is the explicit one found so far;
+  the other four states' advertising rules (licensee name as licensed, ID
+  in ads, unregistered trade names) are on the counsel list. One site
+  serves every state, so the lockup shows everywhere regardless.
+- The lockup follows the visitor's match (owner: "based on the LO location
+  that pops up or is changed to"): the matched MLO's license in that state
+  names the sponsor; no match → `SPONSOR`. Identical output today (one
+  sponsor). Test: `components/SponsorLockup.test.tsx`.
+
 ## v34 / L2 — Footer disclaimer rewrite, /licensing, Texas notice, loan officer + sponsor on every card (2026-10-30)
 
 **Owner:** "L1 approved, go ahead with L2". Spec: L2 in the production

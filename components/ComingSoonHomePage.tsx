@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { LAUNCH_STATES_LONG } from "@/lib/states";
+import SponsorLockup from "@/components/SponsorLockup";
 import ArrowText from "@/components/ui/ArrowText";
 
 /**
@@ -54,6 +55,9 @@ export default function ComingSoonHomePage() {
           >
             M8 is being built.
           </h1>
+
+          {/* v35: the sponsor with the LoanM8 name (Texas team-name rule). */}
+          <SponsorLockup variant="line" className="mb-8" />
 
           <p
             className="text-lg leading-relaxed max-w-md mx-auto font-light"
