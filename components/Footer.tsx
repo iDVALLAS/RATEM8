@@ -2,9 +2,10 @@ import Link from "next/link";
 import StateChip from "@/components/StateChip";
 import Orb from "./Orb";
 import { copy } from "@/lib/copy";
-import { CONFIG, STATES, stateDisplay, NOT_A_COMMITMENT } from "@/lib/config";
-import { MloFooterLine } from "@/components/mlo/MloContext";
-import { groupBySponsor } from "@/lib/licensing";
+import { CONFIG, SPONSOR, STATES, stateDisplay, FOOTER_LEGAL } from "@/lib/config";
+import FooterOfficerLines from "@/components/mlo/FooterOfficerLines";
+import EqualHousingLogo from "@/components/legal/EqualHousingLogo";
+import { originationLead, sponsorLicenseLines, tradeNameLine } from "@/lib/licensing";
 
 /**
  * Footer — LOCKED compliance block, one line per licensed state.
@@ -20,9 +21,16 @@ import { groupBySponsor } from "@/lib/licensing";
  *   - entity / trade-name disclaimer
  *   - the standard "not a commitment to lend" sentence
  *   - the AI disclosure
+ *
+ * L2 (owner 2026-10-29): the compliance block is the owner's four
+ * paragraphs, every fact from lib/config.ts:
+ *   1. trade name (exact sentence, nothing after it)
+ *   2. originating company + NMLS Consumer Access + every state license
+ *   3. loan officer(s), swapped by the visitor's matched state
+ *   4. FOOTER_LEGAL (Equal Housing Opportunity, not an offer, …)
+ * plus the Equal Housing Opportunity mark, /licensing and the Texas notice.
  */
 export default function Footer() {
-  const sponsorGroups = groupBySponsor();
   return (
     <footer className="site-footer" role="contentinfo">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-16">
@@ -80,20 +88,18 @@ export default function Footer() {
         {/* Compliance block */}
         <div className="mt-10 grid gap-8 md:grid-cols-2 text-xs leading-relaxed font-light" style={{ color: "var(--muted)" }}>
           <div>
+            <p className="mb-3">{tradeNameLine()}</p>
             <p className="mb-3">
-              {CONFIG.entityTradeName} is a trade name of {CONFIG.entityLegalName}.
-              {/* An individual MLO (with NMLS #) only when MloContext has a match. */}
-              <MloFooterLine />
+              {originationLead()} (
+              <a href={SPONSOR.nmlsUrl} target="_blank" rel="noopener noreferrer" className="footer-link underline">
+                {copy.footer.nmlsConsumerAccess}
+              </a>
+              ). {sponsorLicenseLines().join(" · ")}.
             </p>
             <p className="mb-3">
-              {sponsorGroups.map((g, i) => (
-                <span key={`${g.sponsor.name}-${g.sponsor.idNumber}`}>
-                  Loans in {g.states.map((s) => s.fullName).join(", ")} are originated through {g.sponsor.name} ({g.sponsor.idLabel} #{g.sponsor.idNumber}).
-                  {i < sponsorGroups.length - 1 ? " " : ""}
-                </span>
-              ))}
+              <FooterOfficerLines />
             </p>
-            <p className="mb-3">{NOT_A_COMMITMENT}</p>
+            <p className="mb-3">{FOOTER_LEGAL}</p>
             <p>{copy.footer.aiNote}</p>
           </div>
           <div>
@@ -104,24 +110,30 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-            <p className="mt-4">
-              <Link href="/disclosures" className="footer-link">
-                Full licensing and disclosures
-              </Link>
-            </p>
+            <ul className="mt-4 space-y-1.5">
+              <li>
+                <Link href="/licensing" className="footer-link">
+                  {copy.footer.licensingLink}
+                </Link>
+              </li>
+              <li>
+                <Link href="/licensing/texas" className="footer-link">
+                  {copy.footer.texasNotice}
+                </Link>
+              </li>
+              <li>
+                <Link href="/disclosures" className="footer-link">
+                  {copy.footer.disclosuresLink}
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
 
         <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3 text-xs" style={{ color: "var(--muted)" }}>
-            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
-              <path d="M3 11 12 3l9 8" />
-              <path d="M5 10v10h14V10" />
-              <path d="M9 20v-6h6v6" />
-              <path d="M8 13h8M8 15.5h8" strokeWidth="1.2" />
-            </svg>
+            <EqualHousingLogo size={30} />
             <span>{copy.footer.equalHousing}</span>
-            <span className="sr-only">Equal Housing Opportunity logo</span>
           </div>
           <p className="font-mono text-[10px] tracking-[0.12em] uppercase" style={{ color: "var(--muted)" }}>
             © {new Date().getFullYear()} {CONFIG.entityLegalName}. All rights reserved.

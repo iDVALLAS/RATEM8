@@ -386,3 +386,52 @@ export const disclosuresContent = {
 export function privacyNoticeStates() {
   return privacyContent.stateNotices.order.map((code) => stateByCode(code)).filter((s): s is NonNullable<typeof s> => Boolean(s));
 }
+
+/* ─── L2: /licensing and /licensing/texas ───────────────────────── */
+
+export const licensingContent = {
+  path: "/licensing",
+  crumbName: "Licensing",
+  metaTitle: "Licensing",
+  metaDescription: "Every license behind LoanM8: the originating company, its state licenses, each loan officer's NMLS number, regulators and state notices.",
+  eyebrow: "// licensing",
+  title: "Who is licensed to make your loan",
+  intro: "LoanM8 is a trade name of a platform company that does not lend. Every loan is originated by the licensed company and loan officers below. Look any of them up on NMLS Consumer Access.",
+  sections: [
+    { id: "company", title: "The originating company" },
+    { id: "state-licenses", title: "State licenses" },
+    { id: "loan-officers", title: "Loan officers" },
+    { id: "notices", title: "State notices" },
+  ],
+  labels: {
+    platform: "Platform",
+    platformNote: "Operates the site. Not a lender or mortgage broker, and holds no NMLS license.",
+    company: "Originating company",
+    nmls: "NMLS",
+    lookUp: "Look up on NMLS Consumer Access",
+    address: "Address",
+    phone: "Phone",
+    state: "State",
+    license: "License",
+    number: "Number",
+    regulator: "Regulator",
+    officer: "Loan officer",
+    licenses: "State licenses",
+    sponsoredBy: "through",
+    texas: "Texas Consumer Complaint and Recovery Fund Notice",
+    otherStates: "State-specific notices for the other states are added here as counsel confirms them.",
+  },
+} as const;
+
+export const texasNoticeContent = {
+  path: "/licensing/texas",
+  crumbName: "Texas complaint notice",
+  metaTitle: "Texas Consumer Complaint Notice",
+  metaDescription: "The Texas Department of Savings and Mortgage Lending consumer complaint and recovery fund notice for our originating company.",
+  eyebrow: "// texas",
+  title: "Texas Consumer Complaint and Recovery Fund Notice",
+  intro: "Texas requires mortgage companies to tell borrowers how to file a complaint with the state regulator. The notice below is the Texas Department of Savings and Mortgage Lending's form.",
+  sections: [{ id: "notice", title: "The notice" }, { id: "company", title: "Our Texas license" }],
+  regulatorLink: "Texas Department of Savings and Mortgage Lending",
+  pending: "The current form is being added from the Department's website.",
+} as const;

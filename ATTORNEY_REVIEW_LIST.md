@@ -275,3 +275,18 @@ conflict is recorded here.
   the business card until a headshot arrives). Confirm no state rule on
   advertising photos of the originator.
 
+## L2 additions (2026-10-30)
+
+- **Footer text** (owner's wording): trade-name line; "Mortgage loans are
+  originated by Adcom Group Inc dba Home Trust Financial, NMLS #…" with
+  every state license; the loan officer line (adds the operator's AZ
+  license number); the Equal Housing Opportunity / not-an-offer
+  paragraph. Confirm it satisfies each state's advertising rules.
+- **Texas Consumer Complaint and Recovery Fund Notice** at
+  /licensing/texas: confirm the correct form for a mortgage company
+  (the owner's note cites 7 TAC §56.200(c); posted copies cite 7 TAC
+  ch. 80 or 81) and paste it verbatim into `TEXAS_COMPLAINT_NOTICE`.
+- **Footer names both loan officers** for every visitor (Oregon visitors
+  see only Ryder Fasse).
+- **Equal Housing Opportunity mark**: confirm the glyph-plus-text form.
+

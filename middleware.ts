@@ -45,6 +45,8 @@ const PUBLIC_PATHS = [
   "/principles.md",
   "/calculators/methodology.md",
   "/disclosures",
+  "/licensing",
+  "/licensing/texas",
   "/privacy",
   "/terms",
 ];

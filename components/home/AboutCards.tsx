@@ -62,6 +62,15 @@ export default function AboutCards({ s }: { s: Strings }) {
                   </>
                 ) : null}
               </p>
+              {/* L2: the originating company and its NMLS number, from the matched license. */}
+              {ctx.license ? (
+                <p className="hm-about__cred">
+                  {cred.sponsor
+                    .replace("{sponsor}", ctx.license.sponsor.legalName && ctx.license.sponsor.dba ? `${ctx.license.sponsor.legalName} dba ${ctx.license.sponsor.dba}` : ctx.license.sponsor.name)
+                    .replace("{sponsorLabel}", ctx.license.sponsor.idLabel)
+                    .replace("{sponsorId}", ctx.license.sponsor.idNumber)}
+                </p>
+              ) : null}
               <LocationBeacon variant="card" />
               {/* v18: this MLO's own application (hidden without a link). */}
               <ApplyCta variant="outline" className="mt-4" />

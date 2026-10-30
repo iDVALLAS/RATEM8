@@ -9,7 +9,7 @@ continuity log. L-patches continue its numbering (L1 = v31).
 | L1 — Licensing single source of truth | v31 | Preview, awaiting owner sign-off |
 | v32 — Lenders numbered ("Lender 1, 2, 3"); L4 pricing spec | v32 | Preview, awaiting owner sign-off |
 | v33 — M8 chat redesign + voice (ElevenLabs, browser fallback) — part of L6 | v33 | Preview, awaiting owner sign-off |
-| L2 — Site-wide disclaimer rewrite, `/licensing`, TX notice | — | Not started |
+| L2 — Site-wide disclaimer rewrite, `/licensing`, TX notice | v34 | Preview, awaiting owner sign-off; Texas notice text needed |
 | L3 — Remove example mode, go live | — | Not started |
 | L4 — Pricing: weekly ARIVE pull + screenshot, Freddie Mac −0.25% posted rate | — | Specced in `docs/work/L4-pricing-spec.md`; 6 owner decisions open |
 | L5 — Accounts, data, security | — | Not started (provider choice needs owner OK) |

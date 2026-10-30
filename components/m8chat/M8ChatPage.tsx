@@ -18,6 +18,7 @@ import {
 } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import { lenderBrand, lenderTint, type LenderBrand } from "@/lib/lenders";
+import { rateOfficerLine } from "@/lib/licensing";
 import ChatHead from "./ChatHead";
 import SpeakButton from "./SpeakButton";
 import Composer from "./Composer";
@@ -49,6 +50,8 @@ export default function M8ChatPage() {
   const stateName = stateByCode(STATE)?.name ?? STATE;
   const photo = !isPlaceholder(mlo.photo) && mlo.photo.startsWith("/") ? mlo.photo : null;
   const t = copy.m8chat;
+  // L2: every rate result names the loan officer and originating company for its state.
+  const officerLine = rateOfficerLine(STATE);
   const why = t.whyNamed.replaceAll("{first}", mlo.firstName).replaceAll("{state}", stateName);
 
   const numbered = (i: number): LenderBrand => ({ slug: `lender-${i + 1}`, name: `Lender ${i + 1}`, monogram: String(i + 1), logoApproved: false, logoFile: null, brandColor: null, tint: (i + 1) as 1 | 2 | 3 });
@@ -206,6 +209,7 @@ export default function M8ChatPage() {
                         <p className="m8c-disclaimer">
                           <b>{RATE_DISCLAIMER_LEAD}</b> {RATE_DISCLAIMER_BODY}
                         </p>
+                        {officerLine ? <p className="m8c-officer">{officerLine}</p> : null}
                       </div>
                     ) : null}
 

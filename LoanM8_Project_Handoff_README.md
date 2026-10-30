@@ -99,6 +99,75 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v34 / L2 — Footer disclaimer rewrite, /licensing, Texas notice, loan officer + sponsor on every card (2026-10-30)
+
+**Owner:** "L1 approved, go ahead with L2". Spec: L2 in the production
+launch prompt (footer paragraphs verbatim, EHO logo, Texas notice at
+/licensing/texas, /licensing in every footer, MLO + NMLS + sponsor +
+sponsor NMLS on the MLO card, chat and every rate result, Oregon → Ryder).
+
+### Files
+- `lib/licensing.ts`: line builders, all from config:
+  `tradeNameLine`, `originationLead`, `sponsorLicenseLine(s)`,
+  `sponsorFullName`, `operatorOfficerLine`, `stateOfficerLine`,
+  `officerFooterLines(matchedMloId)`, `rateOfficerLine(state)`.
+- `lib/config.ts`: `SponsorStateLicense.idLabel` (TX: "NMLS");
+  `FOOTER_LEGAL` (owner's closing paragraph, verbatim);
+  `TEXAS_COMPLAINT_NOTICE` (`[TBD …]` text and citation).
+- `components/Footer.tsx`: the four paragraphs (trade name only; the
+  originating company + NMLS Consumer Access link + every state license;
+  loan officer(s) via `components/mlo/FooterOfficerLines.tsx`;
+  `FOOTER_LEGAL`), the AI note, the EHO mark
+  (`components/legal/EqualHousingLogo.tsx`), and links to /licensing,
+  the Texas notice and /disclosures. The per-state license list stays.
+- `app/licensing/page.tsx` (new): platform (no license), originating
+  company (address, phone, NMLS Consumer Access), state licenses with
+  regulator links, every loan officer with per-state licenses, notices.
+- `app/licensing/texas/page.tsx` (new): renders `TEXAS_COMPLAINT_NOTICE`;
+  the placeholder shows visibly until filled.
+- `middleware.ts` (both pages public under stealth), `lib/site.ts`
+  (sitemap, llms.txt), `lib/copy.ts` (footer links, Company column,
+  `routing.credential.sponsor`), `lib/content/legal.ts` (page content).
+- `components/home/AboutCards.tsx`: the matched card adds "Originates
+  through {sponsor} · NMLS #…".
+- `components/m8chat/M8ChatPage.tsx` + css, `app/rates/page.tsx`: every
+  rate result ends with "Loan officer: {name}, NMLS #… · Originated by
+  {sponsor}, NMLS #…" for its scenario's state (Oregon → its MLO).
+- Tests: `lib/l2-footer.test.ts` (6).
+
+### Decisions
+- The footer's loan officer line adds the operator's AZ license
+  (AZ-1037722) next to CA-DFPI: the owner's text predates the business
+  card. Lines are built from config, so the parenthetical lists every
+  state license that differs from the NMLS ID.
+- Visitor matched to another MLO (Oregon) sees only that MLO in the
+  footer; everyone else sees both lines, as the owner wrote them. The
+  footer names loan officers for every visitor (owner's text), an
+  exception to the v14 rule that copy names an MLO only for a match.
+- The scripted chat stays with the Washington loan officer: the sample
+  is a Washington property, and routing is by property state. Live chat
+  (L4/L6) follows the visitor's matched MLO.
+- The EHO mark is the house-and-equals glyph with the words as real text
+  beside it (SVG text at footer size would be ~5px).
+- Texas notice: not typed from memory. sml.texas.gov is blocked from
+  the build sandbox, and lender-posted copies cite conflicting rules
+  (7 TAC ch. 80 vs 81; the owner's note says §56.200(c)).
+
+### Verified
+- `npm run verify` passes (162 tests). check:licensing warns on the two
+  Texas TBDs (a production build fails until they are filled).
+- Browser (local, routing on): footer text matches the spec; an Oregon
+  visitor's footer shows only Ryder on `/` and `/privacy`; the WA and OR
+  home cards show the sponsor line; /licensing and /licensing/texas
+  return 200 with one h1; /rates and /chat show the officer line.
+- With routing off at build time, static pages show the default
+  (both-officer) footer; previews and production with `MLO_ROUTING=true`
+  render per request.
+
+### Next up
+L3 (remove example mode, open the site, the homepage as the landing
+page). Waiting on the owner for the Texas notice text and citation.
+
 ## v33 — M8 chat redesign + voice (2026-10-30)
 
 **Owner:** approved the chat mockup ("looks cleaner"); "change the circle

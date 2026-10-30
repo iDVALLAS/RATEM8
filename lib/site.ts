@@ -40,6 +40,8 @@ export const ROUTES: SiteRoute[] = [
   { path: "/sample-brief", title: "Sample Rate Strategy Brief", description: "What the written brief a borrower keeps looks like. Clearly labeled sample with fictional figures.", changeFrequency: "monthly", priority: 0.7, llms: true },
   { path: "/chat", title: "M8 Chat", description: "The M8 chat interface. AI disclosure and recording consent first. Scripted demo until live chat passes compliance review.", changeFrequency: "monthly", priority: 0.7, llms: true },
   { path: "/ai", title: "For AI assistants", description: "Plain-language answers to what LoanM8 is and is not, where it is licensed, what M8 can and cannot do, and how to hand a borrower off.", changeFrequency: "monthly", priority: 0.9, llms: true, markdown: "/ai.md" },
+  { path: "/licensing", title: "Licensing", description: "The originating company, its state licenses, every loan officer's NMLS number, regulators and state notices.", changeFrequency: "monthly", priority: 0.6, llms: true },
+  { path: "/licensing/texas", title: "Texas Consumer Complaint Notice", description: "The Texas Department of Savings and Mortgage Lending complaint and recovery fund notice.", changeFrequency: "yearly", priority: 0.4, llms: false },
   { path: "/disclosures", title: "Licenses & disclosures", description: "NMLS, per-state licenses, Equal Housing Opportunity, AI disclosure, regulator links.", changeFrequency: "monthly", priority: 0.6, llms: true },
   { path: "/privacy", title: "Privacy", description: "What LoanM8 collects, uses, shares (never sold), and how to export or delete it.", changeFrequency: "monthly", priority: 0.5, llms: true },
   { path: "/terms", title: "Terms", description: "Terms of use.", changeFrequency: "yearly", priority: 0.3 },

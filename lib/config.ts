@@ -42,6 +42,8 @@ export type SponsorStateLicense = {
   type: string;
   /** License number as issued (some states reuse the company NMLS ID). */
   id: string;
+  /** How the number is labelled when it isn't a plain "#" (TX: "NMLS"). */
+  idLabel?: string;
 };
 
 /**
@@ -174,7 +176,7 @@ export const SPONSOR: Sponsor = {
     AZ: { type: "Mortgage Broker License", id: "1003167" },
     CA: { type: "Licensed by the Department of Financial Protection and Innovation under the California Financing Law", id: "60DBO-98222" },
     OR: { type: "Mortgage Lending License", id: "1761573" },
-    TX: { type: "Mortgage Company License", id: "1761573" },
+    TX: { type: "Mortgage Company License", id: "1761573", idLabel: "NMLS" },
     WA: { type: "Consumer Loan Company License", id: "CL-1761573" },
   },
 };
@@ -624,6 +626,27 @@ export const MLO_REF_FULL = "a licensed, vetted loan officer";
 /** The standard footer sentence — rendered on every page. Locked text. */
 export const NOT_A_COMMITMENT =
   "This is not a commitment to lend. Rates, terms, and program availability subject to change. Approval subject to verification of income, assets, and credit.";
+
+/**
+ * L2 (owner 2026-10-29): the footer's closing paragraph, verbatim from the
+ * owner's spec. NOT_A_COMMITMENT stays for the pages that already use it.
+ */
+export const FOOTER_LEGAL =
+  "Equal Housing Opportunity. This is not a commitment to lend or an offer to extend credit. All loans are subject to credit approval, underwriting, and property eligibility. Rates, terms, and programs are subject to change without notice. Not all programs are available in all states.";
+
+/**
+ * L2: the Texas Consumer Complaint and Recovery Fund Notice for a licensed
+ * mortgage company, rendered on /licensing/texas. It must be the current
+ * form from the Texas Department of Savings and Mortgage Lending
+ * (sml.texas.gov), copied verbatim. Not filled from memory or another
+ * lender's site: the owner pastes it, or the build sandbox is allowed to
+ * reach sml.texas.gov. Blocks a production build until then.
+ */
+export const TEXAS_COMPLAINT_NOTICE = {
+  text: "[TBD — Texas consumer complaint and recovery fund notice for mortgage companies, verbatim from sml.texas.gov]",
+  /** The rule the form implements, as SML cites it (owner's note: 7 TAC §56.200(c); to confirm). */
+  citation: "[TBD — rule citation printed on the current SML form]",
+};
 
 /** Calculator disclaimer — rendered on every calculator page and API response. */
 export const CALC_DISCLAIMER =

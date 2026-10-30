@@ -19,6 +19,10 @@ import {
   STATE_CODES_LINE,
   NOT_A_COMMITMENT,
   type StateCode,
+  PLATFORM,
+  SPONSOR,
+  type Sponsor,
+  type SponsorStateLicense,
 } from "./config";
 
 export type { StateCode };
@@ -158,3 +162,79 @@ export const STATE_LIST_LONG = STATE_NAMES_LINE;
 export const NMLS_BADGE = getNmlsBadge();
 export const DISCLAIMER = buildDisclaimer();
 export const PRIVACY_EMAIL = CONFIG.privacyEmail;
+
+/* ─── L2: licensing lines, every one built from lib/config.ts ─────── */
+
+
+const STATE_ORDER = (a: string, b: string) => a.localeCompare(b);
+
+/** "{ST} {type} #{id}", "{ST} {type}, {idLabel} #{id}" (TX), or "CA: Licensed by …, License #{id}". */
+export function sponsorLicenseLine(code: string, l: SponsorStateLicense): string {
+  if (/^Licensed\b/.test(l.type)) return `${code}: ${l.type}, License #${l.id}`;
+  if (l.idLabel) return `${code} ${l.type}, ${l.idLabel} #${l.id}`;
+  return `${code} ${l.type} #${l.id}`;
+}
+
+/** Every state license the sponsor holds, alphabetical by state. */
+export function sponsorLicenseLines(sp: Sponsor = SPONSOR): string[] {
+  return Object.entries(sp.stateLicenses ?? {})
+    .sort(([a], [b]) => STATE_ORDER(a, b))
+    .map(([code, l]) => sponsorLicenseLine(code, l!));
+}
+
+/** "Adcom Group Inc dba Home Trust Financial" (or the display name). */
+export function sponsorFullName(sp: Sponsor = SPONSOR): string {
+  return sp.legalName && sp.dba ? `${sp.legalName} dba ${sp.dba}` : sp.name;
+}
+
+/** The footer's first line (owner's exact wording). */
+export function tradeNameLine(): string {
+  return `${PLATFORM.tradeName} is a trade name of ${PLATFORM.legalName}.`;
+}
+
+/** "Mortgage loans are originated by {legal name} dba {dba}, NMLS #{nmls}" (the link follows it). */
+export function originationLead(sp: Sponsor = SPONSOR): string {
+  return `Mortgage loans are originated by ${sponsorFullName(sp)}, NMLS #${sp.nmls ?? sp.idNumber}`;
+}
+
+/** State-issued individual licenses that differ from the NMLS ID (the AZ number, "CA-DFPI {nmls}"). */
+function distinctLicenses(m: Mlo): string[] {
+  return m.licenses.map((l) => l.license).filter((x) => !/^NMLS ID\b/.test(x));
+}
+
+/** "Loan Officer: {name}, NMLS #{nmls} ({state licenses that differ from the NMLS ID})." */
+export function operatorOfficerLine(m: Mlo = ALL_MLOS[0]): string {
+  const extra = distinctLicenses(m);
+  return `Loan Officer: ${m.name}, NMLS #${m.nmls}${extra.length ? ` (${extra.join(" · ")})` : ""}.`;
+}
+
+/** "{State} borrowers: {name}, NMLS #{nmls}, originating under {dba}'s {State} {license type} #{id}." */
+export function stateOfficerLine(m: Mlo, code: string, lead?: string): string {
+  const lic = m.licenses.find((l) => l.state === code);
+  const stateName = STATES.find((s) => s.code === code)?.name ?? code;
+  const sl = lic?.sponsor.stateLicenses?.[code as StateCode];
+  const under = lic && sl ? `, originating under ${lic.sponsor.dba ?? lic.sponsor.name}'s ${stateName} ${sl.type} #${sl.id}` : "";
+  return `${lead ?? `${stateName} borrowers:`} ${m.name}, NMLS #${m.nmls}${under}.`;
+}
+
+/**
+ * The footer's loan officer paragraph. Default: the operator, then each
+ * other MLO for the states they serve. A visitor matched to another MLO
+ * (Oregon → its MLO) sees only that MLO, as their loan officer.
+ */
+export function officerFooterLines(matchedMloId?: string | null): string[] {
+  const operator = ALL_MLOS.find((m) => m.id === CONFIG.routing.operatorMloId) ?? ALL_MLOS[0];
+  const others = ALL_MLOS.filter((m) => m.id !== operator.id);
+  const matched = others.find((m) => m.id === matchedMloId);
+  if (matched) return matched.licenses.map((l) => stateOfficerLine(matched, l.state, "Loan Officer:"));
+  return [operatorOfficerLine(operator), ...others.flatMap((m) => m.licenses.map((l) => stateOfficerLine(m, l.state)))];
+}
+
+/** The loan officer and originating company for a priced scenario in this state (every rate result). */
+export function rateOfficerLine(code: string): string | null {
+  const m = ALL_MLOS.find((x) => x.id === CONFIG.routing.stateAssignments[code as StateCode]);
+  const lic = m?.licenses.find((l) => l.state === code);
+  if (!m || !lic) return null;
+  return `Loan officer: ${m.name}, NMLS #${m.nmls} · Originated by ${sponsorFullName(lic.sponsor)}, ${lic.sponsor.idLabel} #${lic.sponsor.idNumber}`;
+}
+

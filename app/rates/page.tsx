@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { copy } from "@/lib/copy";
 import { displayScenarios, resolveDisplay } from "@/lib/pricing/display";
 import { routeContext } from "@/lib/route-context";
+import { rateOfficerLine } from "@/lib/licensing";
 
 /**
  * /rates — example pricing (and, when PRICING_MANUAL is on, the latest
@@ -60,6 +61,12 @@ export default async function RatesPage({ searchParams }: Props) {
         </nav>
 
         {unlicensed ? <p className="card">{unlicensed}</p> : display ? <PricingDisplay display={display} /> : <EmptyState title={copy.uiStates.pricingEmpty} body={copy.uiStates.pricingEmptyBody} />}
+        {/* L2: the loan officer and originating company for this scenario's state (Oregon → its MLO). */}
+        {!unlicensed && display && active && rateOfficerLine(active.state) ? (
+          <p className="mt-4 text-xs" style={{ color: "var(--fg-soft)" }}>
+            {rateOfficerLine(active.state)}
+          </p>
+        ) : null}
         {/* v19 (Item 3b): OFF by default; only beside its own dated example, never beside a snapshot. */}
         {!unlicensed && display?.mode === "example" && active?.id === CONFIG.pricing.benchmarkComparison.scenarioId ? <RateVsAverage /> : null}
 

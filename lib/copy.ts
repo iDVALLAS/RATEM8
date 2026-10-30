@@ -363,6 +363,7 @@ export const copy = {
         links: [
           { href: "/principles", label: "The eight principles" },
           { href: "/#about", label: "About" },
+          { href: "/licensing", label: "Licensing" },
           { href: "/disclosures", label: "Licenses & disclosures" },
           { href: "/privacy", label: "Privacy" },
           { href: "/terms", label: "Terms" },
@@ -371,6 +372,11 @@ export const copy = {
     ],
     licensedLabel: "// licensed in",
     equalHousing: "Equal Housing Opportunity",
+    // L2
+    nmlsConsumerAccess: "NMLS Consumer Access",
+    licensingLink: "Licensing",
+    texasNotice: "Texas Consumer Complaint Notice",
+    disclosuresLink: "Full disclosures",
     aiNote: `M8 is an AI, not a person. A licensed loan officer verifies every deal.`,
   },
 
@@ -580,6 +586,8 @@ export const copy = {
       licensedIn: "Licensed in {state}",
       nmls: "NMLS #{nmls}",
       verify: "Verify on NMLS Consumer Access →",
+      // L2: the originating company on every loan officer card.
+      sponsor: "Originates through {sponsor} · {sponsorLabel} #{sponsorId}",
     },
     chooseHeading: "Choose your loan officer in {state}",
     chooseSub: "Every loan officer licensed for this state, in random order. Nothing is pre-selected.",

@@ -119,7 +119,9 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    `[TBD — …]`, and `check:licensing` fails a production build on any
    TBD / VERIFY / XXXX left in `lib/config.ts`. Copy never names a loan officer directly: it carries a
    generic string plus a `…Named` template (`{first}` / `{name}`) rendered
-   through `MloText` (see §4c).
+   through `MloText` (see §4c). Exception (L2, owner's text): the
+   footer's loan officer line (`officerFooterLines`) and /licensing name
+   every MLO from config.
 6. **Copy lives in `lib/copy.ts`** (UI strings) and `lib/content/*`
    (long-form). Do not invent statistics, timing promises, or
    testimonials.
