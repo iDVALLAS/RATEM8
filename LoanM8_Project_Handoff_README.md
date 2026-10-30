@@ -159,15 +159,26 @@ and `check:identity` keeps its single allow-listed file.
   by LoanM8, LLC"; no "Shapiro Home Loans" anywhere.
 
 ### Known issues
-- **Production builds fail** until the 4 markers clear: Home Financial
-  legal name, NMLS, and AZ license type; the unverified demo bio (L3
-  removes it). Merging to `main` now would fail the production deploy
-  while leaving the current production build serving.
+- (Cleared in L1.1 below.) Production builds failed on 4 markers: three
+  Home Financial fields and the unverified demo bio.
 - Regulator URLs and the NMLS Consumer Access links could not be opened
   from the sandbox (network policy). Open each once.
 - Pricing tenant ids derive from the sponsor name, so the Adcom tenant id
   changed. Only local `.data/pricing/` snapshots are affected.
 - The footer's sentence structure is unchanged; L2 rewrites it.
+
+### L1.1 correction (2026-10-30, before sign-off)
+- The owner's business card shows "HOME TRUST FINANCIAL NMLS 1761573"
+  with "AZ-1037722 · CA-DFPI 1844143 · WA-1844143 · TX-1844143". So
+  1037722 is the operator's **individual Arizona license**, and the
+  configured "Home Financial" sponsor was a shortened Home Trust
+  Financial. The separate AZ sponsor and its three TBDs are removed: all
+  five states originate under Adcom; AZ's entity license is Adcom's
+  Mortgage Broker License #1003167. (The owner's note said "103772"; the
+  card's 1037722 is used.)
+- "17 years originating" is owner-confirmed. Average close is now
+  "22 days (varies by loan)" per the owner ("it's loan dependent").
+  `check:licensing` is clean: nothing blocks a production build.
 
 ### Next up
 L2 — footer/disclaimer rewrite, EHO logo, Texas complaint notice,

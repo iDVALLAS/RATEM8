@@ -179,25 +179,14 @@ export const SPONSOR: Sponsor = {
   },
 };
 
-/**
- * Arizona sponsor of the operator's AZ license (owner 2026-10-29: keep as
- * configured). Legal name, NMLS and license type are not on file yet.
- */
-const SPONSOR_HOME_FINANCIAL_AZ: Sponsor = {
-  name: "Home Financial",
-  idLabel: "AZ License",
-  idNumber: "1037722",
-  legalName: "[TBD — Home Financial legal entity name]",
-  nmls: "[TBD — Home Financial company NMLS #]",
-  stateLicenses: {
-    AZ: { type: "[TBD — AZ license type]", id: "1037722" },
-  },
-};
-
 /** Every sponsoring brokerage on file (for /licensing and the strict build check). */
-export const SPONSORS: Sponsor[] = [SPONSOR, SPONSOR_HOME_FINANCIAL_AZ];
+export const SPONSORS: Sponsor[] = [SPONSOR];
 
-/** The operator's individual NMLS ID; owner 2026-10-29: the same license in every state. */
+/**
+ * The operator's individual NMLS ID; owner 2026-10-29: the license number in
+ * WA, CA and TX. Arizona issues its own individual license number (owner's
+ * business card, 2026-10-30: "AZ-1037722", sponsored by Home Trust Financial).
+ */
 const OPERATOR_NMLS = "1844143";
 
 export const CONFIG = {
@@ -229,7 +218,7 @@ export const CONFIG = {
     applicationUrl: env("APPLICATION_URL_MLO_001") ?? "[APPLICATION URL — POS / 1003 link]",
     licenses: [
       { state: "WA", license: `NMLS ID ${OPERATOR_NMLS}`, sponsor: SPONSOR, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
-      { state: "AZ", license: `NMLS ID ${OPERATOR_NMLS}`, sponsor: SPONSOR_HOME_FINANCIAL_AZ, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
+      { state: "AZ", license: "AZ-1037722", sponsor: SPONSOR, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
       { state: "CA", license: `CA-DFPI ${OPERATOR_NMLS}`, sponsor: SPONSOR, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
       { state: "TX", license: `NMLS ID ${OPERATOR_NMLS}`, sponsor: SPONSOR, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
     ],
@@ -306,12 +295,13 @@ export const CONFIG = {
    * v21: the restored v7 scripted demo (/chat, /demo; lib/demoChat.ts).
    * The loan officer card's bio line is carried over verbatim from that
    * demo, keyed by MLO id so it only renders for the MLO it describes.
-   * carried over — VERIFY: "17 years" and "Avg close: 18 days" are claims
-   * that must be accurate before the stealth gate lifts.
+   * "17 years originating" confirmed by the owner 2026-10-30.
+   * "Avg close: 22 days" owner-supplied 2026-10-30 ("it's loan dependent"),
+   * so it always carries "varies by loan" and is never a promise.
    */
   demo: {
     loBio: {
-      "mlo-001": "17 years originating · Avg close: 18 days · Available now · in office",
+      "mlo-001": "17 years originating · Avg close: 22 days (varies by loan) · Available now · in office",
     } as Record<string, string>,
     /** Pronoun the original demo copy used for this MLO (subject, verb "has", "will"). Unlisted MLOs get "they". */
     /**

@@ -39,7 +39,7 @@ TPO and Angel Oak from the first pass are kept in §6b for reference only.
    as data, not code:
    - Sponsorship is stored **per MLO, per state, with an effective date**
      (today the repo stores it per state only: Home Trust Loans for WA,
-     CA and TX; Home Financial for AZ; see `lib/config.ts`).
+     CA, TX and AZ; see `lib/config.ts`).
    - It is editable from an **admin-only backend setting** (no deploy
      needed), with `lib/config.ts` as the seed and fallback. A one-line
      config edit also works for a session agent.

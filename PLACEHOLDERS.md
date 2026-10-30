@@ -13,11 +13,11 @@ nmlsconsumeraccess.org and with counsel.
 |---|---|---|
 | `PLATFORM` (L1) | LoanM8, LLC · LoanM8 Loan Intelligence | Done (owner 2026-10-29). No NMLS: LoanM8, LLC is not a licensee, so `entityNmls` is gone |
 | `SPONSOR` (L1) | Adcom Group Inc dba Home Trust Financial, NMLS 1761573, five state licenses | Done (owner 2026-10-29). WA, OR, CA, TX loans originate here. Entity license per state is derived from `SPONSOR.stateLicenses` |
-| Home Financial (AZ sponsor) `legalName` / `nmls` / `stateLicenses.AZ.type` | `[TBD — …]` | **Blocks a production build** (`check:licensing`). Owner kept AZ under Home Financial, AZ License 1037722 |
+| `principalMlo.licenses[AZ]` | `AZ-1037722`, sponsor Adcom (Home Trust Financial) | Done (owner business card, 2026-10-30). "Home Financial" was a shortened Home Trust Financial; one sponsor in all five states |
 | Principal MLO and Ryder Fasse name / NMLS | 1844143 / 119822 | Done (owner 2026-10-29). The operator's license is `NMLS ID 1844143` in WA, AZ, TX and `CA-DFPI 1844143` in CA |
 | `states[*].regulatorName` / `regulatorUrl` | Filled (L1) | Official regulator sites; could not be fetched from the build sandbox, so open each once |
 | `states[*].marketed` (L1) | WA, AZ, CA, TX true; OR false | Marketing scope, separate from licensing |
-| `demo.loBio` | `17 years … Avg close: 18 days` (unverified) | **Blocks a production build** until removed (L3 deletes the demo) or verified |
+| `demo.loBio` | `17 years … Avg close: 22 days (varies by loan)` | Done (owner 2026-10-30) |
 | `entityTradeName` | `LoanM8 Loan Intelligence` (carried over) | Verify trade-name registration in WA, AZ, CA, TX |
 | `principalMlo.bioShort` | `[BIO — …]` | Two or three plain sentences; no years-in-business or volume claims unless verifiable |
 | `principalMlo.photo` | `[PHOTO]` | Optional headshot path under `/public` (not rendered while bracketed) |

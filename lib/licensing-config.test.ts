@@ -20,11 +20,9 @@ describe("L1 licensing config", () => {
     }
   });
 
-  it("originates WA, OR, CA and TX under the sponsor; AZ stays under its configured sponsor", () => {
-    for (const code of ["WA", "OR", "CA", "TX"]) {
-      expect(STATES.find((s) => s.code === code)!.sponsor.name).toBe(SPONSOR.name);
-    }
-    expect(STATES.find((s) => s.code === "AZ")!.sponsor.idNumber).toBe("1037722");
+  it("originates every licensed state under the one sponsor", () => {
+    for (const st of STATES) expect(st.sponsor.name, st.code).toBe(SPONSOR.name);
+    expect(STATES.find((s) => s.code === "AZ")!.entityLicense).toBe("Mortgage Broker License #1003167");
   });
 
   it("routes Oregon to the Oregon MLO and every other state to the operator", () => {
@@ -35,10 +33,11 @@ describe("L1 licensing config", () => {
     }
   });
 
-  it("uses the operator's NMLS ID as the license in every state (CA labelled CA-DFPI)", () => {
+  it("uses the operator's NMLS ID as the license in WA and TX, CA-DFPI in CA, and the AZ-issued number in AZ", () => {
     const m = CONFIG.principalMlo;
     for (const l of m.licenses) {
-      expect(l.license).toBe(l.state === "CA" ? `CA-DFPI ${m.nmls}` : `NMLS ID ${m.nmls}`);
+      if (l.state === "AZ") expect(l.license).toMatch(/^AZ-\d{7}$/);
+      else expect(l.license).toBe(l.state === "CA" ? `CA-DFPI ${m.nmls}` : `NMLS ID ${m.nmls}`);
     }
   });
 
@@ -50,7 +49,7 @@ describe("L1 licensing config", () => {
 
   it("keeps the confirmed sponsor free of unconfirmed markers", () => {
     expect(findGaps(JSON.stringify(SPONSOR))).toEqual([]);
-    expect(SPONSORS[0]).toBe(SPONSOR);
+    expect(SPONSORS).toEqual([SPONSOR]);
   });
 
   it("says Equal Housing Opportunity, not Equal Housing Lender", () => {
