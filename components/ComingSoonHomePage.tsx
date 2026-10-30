@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { LAUNCH_STATES_LONG } from "@/lib/states";
+import { COMING_SOON_SPONSOR } from "@/lib/config";
 import ArrowText from "@/components/ui/ArrowText";
 
 /**
@@ -54,6 +55,13 @@ export default function ComingSoonHomePage() {
           >
             M8 is being built.
           </h1>
+
+          {/* Hotfix: the sponsoring company with the LoanM8 name, full contrast (Texas team-name rule). */}
+          <p className="text-lg mb-8" style={{ color: "var(--fg)" }}>
+            Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>{" "}
+            <span style={{ color: "var(--fg-soft)" }}>powered by</span>{" "}
+            <b style={{ fontWeight: 500 }}>{COMING_SOON_SPONSOR.dba}</b> · NMLS #{COMING_SOON_SPONSOR.nmls}
+          </p>
 
           <p
             className="text-lg leading-relaxed max-w-md mx-auto font-light"

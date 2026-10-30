@@ -119,6 +119,14 @@ const SPONSOR_HOME_TRUST: Sponsor = {
   idNumber: "1761573", // carried over — VERIFY on nmlsconsumeraccess.org
 };
 
+/**
+ * Hotfix (owner 2026-10-30): the sponsor shown with the LoanM8 name on the
+ * coming-soon page, so the public page carries the sponsoring company's
+ * name and NMLS ID (Texas team-name rule). The full licensing rework (L1+)
+ * replaces this with SPONSOR.
+ */
+export const COMING_SOON_SPONSOR = { dba: "Home Trust Financial", nmls: "1761573" } as const;
+
 const SPONSOR_HOME_FINANCIAL_AZ: Sponsor = {
   name: "Home Financial",
   idLabel: "AZ License",
