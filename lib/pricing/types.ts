@@ -14,7 +14,7 @@ export type ProviderId = "arive" | "optimal_blue" | "ratesheet" | "manual" | "mo
 /** Where a displayed run came from. Never "live" while PRICING_LIVE is off. */
 export type RunMode = "example" | "snapshot";
 
-export type LoanPurpose = "purchase" | "rate_term_refi";
+export type LoanPurpose = "purchase" | "rate_term_refi" | "cash_out_refi";
 
 /**
  * A scenario described in bands, not as one borrower's file. Banding keeps
@@ -28,8 +28,8 @@ export type BandedScenario = {
   state: StateCode;
   location: string;
   purpose: LoanPurpose;
-  occupancy: "primary";
-  propertyType: "single_family";
+  occupancy: "primary" | "second_home" | "investment";
+  propertyType: "single_family" | "condo" | "multi_2_4";
   propertyValue: number;
   loanAmount: number;
   ficoBand: string;
@@ -37,6 +37,13 @@ export type BandedScenario = {
   termMonths: number;
   /** Plain-language assumptions shown next to every price. */
   assumptions: string[];
+  /** v37 weekly grid fields (absent on the v13 example fixtures). */
+  program?: "conventional" | "fha" | "va";
+  /** Down payment (purchase) or equity (refinance), percent of value. */
+  downPct?: number;
+  creditScore?: number;
+  zip?: string;
+  lockDays?: number;
 };
 
 /**

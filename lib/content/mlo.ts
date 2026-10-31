@@ -4,7 +4,7 @@
  */
 export const mloContent = {
   title: "MLO admin",
-  nav: { setup: "Setup", pricing: "Pricing snapshots", rates: "View /rates" },
+  nav: { quotes: "Quotes", thursday: "Thursday pricing", setup: "Setup", pricing: "Scenario pricing", rates: "View /rates" },
   tenantLabel: "Sponsoring brokerage",
   setup: {
     heading: "Setup",
@@ -33,6 +33,8 @@ export const mloContent = {
     flagOff: "PRICING_MANUAL is off, so published snapshots are stored but /rates shows no pricing.",
     flagOn: "PRICING_MANUAL is on. A fresh snapshot shows on /rates for this scenario.",
     stale: "Snapshots older than {h} hours are never shown.",
+    weekly: "The six weekly scenarios show on /rates for {h} hours after you publish them, then hide themselves until the next Thursday's pull.",
+    weeklyOff: "PRICING_WEEKLY is off on this deployment, so published scenarios are stored but not shown.",
     scenario: "Scenario",
     source: "Source screenshot or PDF (required, kept private)",
     publish: "Publish snapshot",

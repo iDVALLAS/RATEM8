@@ -327,3 +327,12 @@ conflict is recorded here.
 - **HSTS** includes subdomains; confirm no loanm8.com subdomain needs
   plain HTTP.
 
+
+## L4 additions — weekly pricing and personal estimates (2026-10-31)
+
+1. **Posted rates** (`lib/content/posted-rate.ts`, `components/pricing/PostedRateCard.tsx`): the full list in `docs/work/L4-pricing-spec.md` §2 (Reg Z §1026.24 terms actually available and trigger terms; the comparison with Freddie Mac's weekly average and its basis; Freddie Mac's terms for naming PMMS; how honoring is funded under §1026.36(d); state rate-ad rules). Off in production until `POSTED_RATES=true`.
+2. **Personal estimate disclaimer** (owner's wording, `lib/content/quotes.ts`): "This is not an offer or commitment to lend. It is estimated pricing for the scenario you gave in your LoanM8 session, priced and approved by {name}, NMLS #{nmls}, on {date and time}." Is an approved estimate an advertisement, a pre-application quote, or something that triggers Loan Estimate timing? It collects no name, SSN, address or income, so it should not be an "application" under Reg X/Z; confirm.
+3. **Email consent** line in M8 quote mode and the two borrower emails (`lib/content/quotes.ts`).
+4. **AI assistants** receiving approved pricing and submitting estimate requests (`/api/agent/rates`, `/api/agent/quote`); off until `AGENT_PRICING=true`.
+5. **Supervised automation** (L4b): the owner reports ARIVE allows supervised, auto-generated inputs for pricing estimates; keep the written terms on file. Optimal Blue (LoanSifter) not confirmed.
+6. **Retention** of quote requests (scenario + email) and pricing screenshots in private Blob storage: set a period.

@@ -93,7 +93,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
 
 1. **Sequential numbered patches.** One patch per discrete, reviewable
    change. Number continues from the last entry in
-   `LoanM8_Project_Handoff_README.md` (v31 / L1 is the latest; the
+   `LoanM8_Project_Handoff_README.md` (v37 / L4 is the latest; the
    production-launch series L1–L8 is indexed in `PATCHLOG.md`). Every patch
    appends an entry there: files, what was verified, QA results, known
    issues, decisions, next up.
@@ -105,7 +105,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    (two projects until the duplicate `ratem-8-m4oy` is deleted). Do not
    promote to production and do not merge; the owner approves promotion.
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 145 vitest tests, `check:licensing` + production
+   `check:identity`, 175 vitest tests, `check:licensing` + production
    build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
@@ -456,6 +456,21 @@ with the source screenshot. Pricing APIs and the rate sheet engine
     `lib/content/rate-vs-average.ts`.
   - Counsel's list of every claim location is in the v19 patch log entry.
 
+## 4b2. Weekly pricing and personal estimates (v37, L4)
+
+- Flags `PRICING_WEEKLY`, `POSTED_RATES`, `PERSONAL_QUOTES` (unset = on in
+  previews, off in production); `AGENT_PRICING` exactly "true".
+- Posted rates `lib/pricing/posted-rate.ts` (PMMS − 0.25%, rounded down to
+  0.125%, zero points, honor window Thu 9 AM PT → Wed 11:59 PM PT), entered
+  at `/mlo/thursday`. Grid `lib/pricing/grid.ts` (six rows, $400K, ZIP 98033).
+- Personal estimates: `lib/quotes/*` (scenario schema, flow machine,
+  write-once event store, service), M8 quote mode `/chat?quote=1` (no form),
+  queue `/mlo/quotes`, borrower page `/estimate/{id}?k=` (HMAC key,
+  `QUOTE_LINK_SECRET`). Only an MLO licensed in the property's state approves.
+- Storage `lib/records.ts`: private Vercel Blob (`BLOB_READ_WRITE_TOKEN`),
+  local folder in dev. APR fees and closing-cost % in `CONFIG.pricing`.
+- M8 never quotes the posted-rate comparison; it links to /rates.
+
 ## 4c. Loan officers, states and routing (v14 naming, v15 Patch B routing)
 
 - **Registry:** `lib/config.ts`.
@@ -592,7 +607,8 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 
 No dependency was added in v12 through v24. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
-`zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`.
+`zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`,
+`@vercel/blob ^2.8.2` (v37, private storage).
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,
 `typescript ^5`, `eslint ^9.17`, `eslint-config-next ^15.1`,
 `vitest ^5.0.2`, `@types/*`. There is **no** animation library

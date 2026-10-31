@@ -429,6 +429,13 @@ export const CONFIG = {
      * signs off the draft prompt).
      */
     demoLiveChat: env("M8_LIVE_CHAT") === "true",
+    /**
+     * v37 (L4): AI assistants get the approved weekly pricing and can send a
+     * personal quote request (/api/agent/rates, /api/agent/quote). OFF
+     * unless AGENT_PRICING is exactly "true": counsel signs off on
+     * publishing rates to machines first.
+     */
+    agentPricing: env("AGENT_PRICING") === "true",
   },
 
   /**
@@ -450,6 +457,34 @@ export const CONFIG = {
     examplesAsOf: "2026-10-01",
     /** A manual snapshot older than this many hours is never shown. */
     manualStaleHours: Number(env("PRICING_MANUAL_STALE_HOURS") ?? 24),
+    /**
+     * v37 (L4). Each flag: "true"/"false" wins; unset = ON in Vercel
+     * previews, OFF in production (same rule as MLO_ROUTING), so the owner
+     * reviews on a preview and turns each on in production after counsel.
+     * - weekly: the six-scenario grid on /rates, priced each Thursday.
+     * - postedRates: the two posted rates (Freddie Mac weekly average
+     *   minus 0.25%, zero points). ⚖ counsel list in docs/work/L4-pricing-spec.md §2.
+     * - personalQuotes: M8 quote mode, the approval queue and estimates.
+     */
+    weekly: mloRoutingOn(env("PRICING_WEEKLY"), env("VERCEL_ENV")),
+    postedRates: mloRoutingOn(env("POSTED_RATES"), env("VERCEL_ENV")),
+    personalQuotes: mloRoutingOn(env("PERSONAL_QUOTES"), env("VERCEL_ENV")),
+    /** A grid scenario older than this many hours hides itself (one week). */
+    weeklyStaleHours: Number(env("PRICING_WEEKLY_STALE_HOURS") ?? 168),
+    /**
+     * Owner 2026-10-31: the loan officer's compensation is lender-paid (in
+     * the rate). These lender fees are the prepaid finance charges in every
+     * APR LoanM8 shows. Estimated total closing costs are shown separately.
+     */
+    fees: { underwriting: 1150, processing: 550 },
+    closingCostPct: 1.5,
+    /** Posted rates: Freddie Mac PMMS weekly average minus this, rounded down to `postedStep`. */
+    postedMargin: 0.25,
+    postedStep: 0.125,
+    /** Posted-rate qualifying profile (owner 2026-10-31). */
+    postedProfile: { creditFloor: 780, minDownPct: 25, examplePrice: 400000, lockDays: 30 },
+    /** Where alerts about new quote requests go (server only). Falls back to MLO_NOTIFICATION_EMAIL. */
+    quoteAlertEmail: env("QUOTE_ALERT_EMAIL") ?? env("MLO_NOTIFICATION_EMAIL"),
     /**
      * v19 (Round 3, Item 3b): the dated example-vs-benchmark comparison
      * (components/pricing/RateVsAverage.tsx). OFF unless

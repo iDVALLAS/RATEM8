@@ -11,7 +11,7 @@
 import { buildPricingRun } from "./build";
 import { lenderByKey, offers, publishable, LENDERS } from "./lenders";
 import { emptyEntry, screenNote, type PlaybookEntry } from "./playbook";
-import { exampleScenarios } from "./providers/mock";
+import { allScenarios } from "./grid";
 import { getStore, type TenantSettings } from "./store";
 import { tenantById } from "./tenants";
 import type { QuoteInput } from "./types";
@@ -37,7 +37,7 @@ export async function publishSnapshot(req: PublishRequest): Promise<PublishResul
   if (!store.writable) return { ok: false, errors: [store.reason ?? "Snapshot storage is read-only."] };
   const tenant = tenantById(req.tenantId);
   if (!tenant) return { ok: false, errors: ["Unknown brokerage tenant."] };
-  const scenario = exampleScenarios().find((s) => s.id === req.scenarioId);
+  const scenario = allScenarios().find((s) => s.id === req.scenarioId);
   if (!scenario) return { ok: false, errors: ["Unknown scenario."] };
   if (!tenant.states.includes(scenario.state)) return { ok: false, errors: [`This brokerage does not price ${scenario.state} scenarios.`] };
 
@@ -49,16 +49,7 @@ export async function publishSnapshot(req: PublishRequest): Promise<PublishResul
   }
   if (req.quotes.length === 0) errors.push("Enter at least one lender result.");
 
-  const settings = await store.latestSettings(tenant.id);
-  const active = new Set(settings?.activeLenderKeys ?? []);
-  for (const q of req.quotes) {
-    const l = lenderByKey(q.lenderKey);
-    if (!l) errors.push(`Unknown lender "${q.lenderKey}".`);
-    else if (!active.has(q.lenderKey)) errors.push(`${l.name} is not one of this brokerage's active lenders.`);
-    // v27: every current scenario is a first mortgage; HELOC-only programs can't price it.
-    else if (!offers(q.lenderKey, "first_mortgage")) errors.push(`${l.name} offers HELOCs only, so it can't be priced in a first-mortgage scenario.`);
-    else if (!publishable(q.lenderKey)) errors.push(`${l.name}'s terms restrict showing its pricing to consumers. Record written consent before including it.`);
-  }
+  errors.push(...(await lenderErrors(tenant.id, req.quotes)));
   if (errors.length) return { ok: false, errors };
 
   const now = req.now ?? new Date();
@@ -81,6 +72,25 @@ export async function publishSnapshot(req: PublishRequest): Promise<PublishResul
   const sourceSha256 = await store.putSource(req.source!.bytes, req.source!.mime, req.actor, tenant.id);
   await store.putSnapshot({ run: built.run, inputs, mapping: built.mapping, sourceSha256, sourceMime: req.source!.mime, enteredBy: req.actor, enteredAt: pricedAt });
   return { ok: true, runId: built.run.runId, inputsHash: built.run.inputsHash };
+}
+
+/**
+ * Lender rules shared by snapshots and personal estimates (v37): active
+ * for the brokerage, a first-mortgage lender, and publishable to consumers.
+ */
+export async function lenderErrors(tenantId: string, quotes: QuoteInput[]): Promise<string[]> {
+  const errors: string[] = [];
+  const settings = await getStore().latestSettings(tenantId);
+  const active = new Set(settings?.activeLenderKeys ?? []);
+  for (const q of quotes) {
+    const l = lenderByKey(q.lenderKey);
+    if (!l) errors.push(`Unknown lender "${q.lenderKey}".`);
+    else if (!active.has(q.lenderKey)) errors.push(`${l.name} is not one of this brokerage's active lenders.`);
+    // v27: every current scenario is a first mortgage; HELOC-only programs can't price it.
+    else if (!offers(q.lenderKey, "first_mortgage")) errors.push(`${l.name} offers HELOCs only, so it can't be priced in a first-mortgage scenario.`);
+    else if (!publishable(q.lenderKey)) errors.push(`${l.name}'s terms restrict showing its pricing to consumers. Record written consent before including it.`);
+  }
+  return errors;
 }
 
 export type SettingsRequest = {

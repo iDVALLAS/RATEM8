@@ -26,3 +26,22 @@
 .mlo-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .mlo-table th, .mlo-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--rule); color: var(--fg-soft); }
 .mlo-table th { font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+
+/* v37 (L4): approval queue and Thursday pricing */
+.mlo-queue { display: grid; gap: 16px; }
+@media (min-width: 1000px) { .mlo-queue { grid-template-columns: 340px minmax(0, 1fr); align-items: start; } }
+.mlo-qlist { display: grid; gap: 10px; }
+.mlo-qitem { display: block; border: 1px solid var(--rule); border-radius: 14px; padding: 12px 14px; color: var(--fg-soft); text-decoration: none; font-size: 0.9rem; line-height: 1.45; background: var(--bg-elevated); }
+.mlo-qitem[aria-current="true"] { border-color: var(--accent); }
+.mlo-tag { display: inline-block; font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; margin-bottom: 6px; border: 1px solid var(--rule-strong); color: var(--fg-soft); }
+.mlo-tag--priced { border-color: #e8a87c; color: #e8a87c; }
+.mlo-tag--approved { border-color: var(--accent); color: var(--accent); }
+.mlo-tag--rejected { border-color: #d4583c; color: #d4583c; }
+.mlo-facts { display: grid; gap: 8px 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 8px 0 14px; }
+@media (min-width: 800px) { .mlo-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.mlo-facts dt { font-size: 0.78rem; color: var(--muted); }
+.mlo-facts dd { color: var(--fg); margin: 0; }
+.mlo-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.mlo-btn--ghost { background: transparent; color: var(--fg); border-color: var(--rule-strong); }
+.mlo-btn--danger { background: transparent; color: #e98b74; border-color: #d4583c; }
+.mlo-shot { max-width: 100%; border: 1px solid var(--rule); border-radius: 10px; margin-top: 8px; }

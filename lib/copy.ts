@@ -888,9 +888,17 @@ export const copy = {
     eyebrowSnapshot: "// rate snapshot",
     labelExample: "Example pricing · {date} · not a quote or commitment to lend.",
     labelSnapshot: "Rate snapshot · pulled {date} · not a quote or commitment to lend.",
-    heading: "Three options first. Then every result.",
-    headingAccent: "every result.",
-    sub: "When M8 shows pricing, it leads with the three options federal anti-steering rules describe: the lowest rate, the lowest rate without risky features, and the lowest points and origination fees. Then every other result, including lenders that said no and why.",
+    // v37 (L4): /rates is this week's pricing.
+    heading: "This week's pricing.",
+    headingAccent: "pricing.",
+    sub: "Priced by a licensed loan officer in the sponsoring company's pricing engine every Thursday afternoon, Pacific time. Rates change daily. Each scenario leads with the three options federal anti-steering rules describe: the lowest rate, the lowest rate without risky features, and the lowest points and origination fees.",
+    gridHeading: "Six common scenarios, priced Thursday",
+    gridSub: "$400,000 price · priced for ZIP 98033 · primary home · single-family · 30-day lock. Pick one to see its three options.",
+    gridCardRate: "Rate · APR, lowest rate without risky features",
+    gridNotPriced: "Not posted this week",
+    estimateHeading: "Want your exact numbers?",
+    estimateBody: "Tell M8 your scenario. A licensed loan officer prices it and approves it before it reaches you. No Social Security number and no credit pull.",
+    estimateCta: "Get my personal estimate",
     scenarioNav: "Scenarios",
     personaPrefix: "Scenario for",
     cards: {
@@ -928,6 +936,11 @@ export const copy = {
     exampleSource: "Fictional lenders and figures for illustration. Not an offer, a quote, or a commitment to lend.",
     snapshotSource: "Prices as shown in the sponsoring brokerage's pricing engine when they were pulled, entered by a licensed loan officer, with lenders shown by letter. Prices change during the day. Not an offer, a quote, or a commitment to lend.",
     cta: "Talk to a licensed loan officer",
+  },
+
+  // v37 (L4): M8 quote mode at /chat?quote=1.
+  quoteMode: {
+    disclosure: "These questions are scripted; nothing you type here goes to an AI model. Your answers go only to a licensed loan officer, and only when you tap Send.",
   },
 
   notFound: {

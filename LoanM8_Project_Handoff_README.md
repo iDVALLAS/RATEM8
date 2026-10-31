@@ -99,6 +99,99 @@ Ordered roughly by dependency. Most items block the day you flip
 
 ---
 
+## v37 / L4 — Weekly pricing, posted rates, personal estimates (2026-10-31)
+
+**Owner:** "Yes, start L4 A&B and show me mock ups before you put anything
+to the site"; mockups approved ("i approve all mockups"); round 3: no
+borrower form, M8 collects the scenario; ARIVE allows supervised inputs
+for pricing estimates. L4b (the assistant on the owner's computer) is
+not in this patch.
+
+### What shipped
+- **Private storage** `lib/records.ts`: one write-once record store.
+  Vercel Blob with **private** access when `BLOB_READ_WRITE_TOKEN` is set
+  (namespaced `loanm8/prod` vs `loanm8/preview`), a local folder in dev,
+  memory in tests. Pricing snapshots and screenshots use it too
+  (`RecordSnapshotStore` in `lib/pricing/store.ts`). New dependency:
+  `@vercel/blob` (owner approved Vercel Blob, 2026-10-30).
+- **Posted rates** `lib/pricing/posted-rate.ts`: Freddie Mac PMMS 30- and
+  15-year averages entered each Thursday at `/mlo/thursday`; posted =
+  average − 0.25%, rounded **down** to 0.125%; zero points; APR on a
+  $300,000 loan ($400,000, 25% down) with the $1,700 lender fees. Publishes
+  only with the honor checkbox; shows from Thursday 9 AM PT to the next
+  Wednesday 11:59 PM PT; withdrawable. Card: `PostedRateCard.tsx`, strings
+  `lib/content/posted-rate.ts` (allowlisted in `check:copy`).
+- **Weekly grid** `lib/pricing/grid.ts`: the six owner-approved rows
+  (20%/740, 10%/700, 5%/680, FHA 3.5%/680, VA 0%/720, refi 70% LTV/760),
+  $400,000, ZIP 98033. Priced in `/mlo/pricing` with a screenshot; shows
+  for 168 hours (`PRICING_WEEKLY_STALE_HOURS`), then hides.
+- **/rates** rebuilt to the mockup: posted cards, six scenario cards (rate
+  and APR of the lowest-rate-without-risky-features option), the selected
+  scenario's three options (existing `PricingDisplay`), the personal
+  estimate card. Phones: the sticky label is static (it slid under the
+  header + sponsor line).
+- **M8 quote mode** `/chat?quote=1` (`components/chat/QuoteFlow.tsx`,
+  machine `lib/quotes/flow.ts`): one question at a time, chips and typed
+  amounts ("520k", "10%"), a summary with Change on every row, email and
+  consent, then Send. Scripted; no AI call. Shows the closest scenario
+  already published this week, as priced, with its options.
+- **Quotes** `lib/quotes/*`: one zod scenario for M8 and AI assistants
+  (strict: unknown fields such as an SSN are refused); ZIP → state for the
+  five licensed states only; write-once events requested → priced →
+  approved/rejected → sent. Lender rules shared with snapshots
+  (`lenderErrors`: active, first-mortgage, publishable; PRMG and the HELOC
+  programs can't be used). The estimate link key is an HMAC of the id
+  (`QUOTE_LINK_SECRET`); no key is stored; a wrong key is a 404.
+- **Approval queue** `/mlo/quotes`: list + detail, lender-row entry with a
+  required screenshot (`/mlo/source/{sha}` shows it, admin only), real
+  lender names for the loan officer, "Approve and send" behind a
+  "reviewed against the screenshot" checkbox, Reject with an internal
+  reason, event history. Only a loan officer licensed in the property's
+  state can approve (`MLO_ADMIN_MLO_ID`, default the operator): an Oregon
+  request waits for the Oregon loan officer's login (L5).
+- **Estimate page** `/estimate/{id}?k=…` (noindex, no-referrer): the
+  owner's disclaimer in bold, the loan officer's note, the three options,
+  lender fees and 1.5% closing-cost line, the rate disclaimer, the loan
+  officer card.
+- **Email** (Resend, existing env): alert to the loan officer (no borrower
+  email in it), "we got your request" and "your estimate is ready" to the
+  borrower. Not configured → nothing claims it was sent. Preview links
+  point at the preview deployment.
+- **AI assistants** `GET /api/agent/rates`, `POST /api/agent/quote`, OFF
+  unless `AGENT_PRICING=true`. The estimate is emailed to the person,
+  never returned to the assistant.
+- **Flags** `PRICING_WEEKLY`, `POSTED_RATES`, `PERSONAL_QUOTES`: unset = on
+  in previews, off in production.
+
+### Verified
+- `npm run lint`, `check:copy`, `check:identity`, `npm test` (175 tests,
+  16 new in `lib/quotes/quotes.test.ts`: rounding, DST-correct window,
+  honor checkbox, withdraw, grid rows, record-store publishing and the
+  one-week hide, ZIP map, nearest scenario, quote mode, lifecycle,
+  licensed-state approval, strict schema), production build,
+  `check:bundle` (no lender names or secrets in browser files).
+- Local end-to-end with Playwright (flags on, test numbers only): set
+  lenders → publish posted rates (5.875% / 5.125% from 6.17 / 5.41) →
+  price three grid scenarios → quote mode on a 390px phone → price and
+  approve in the queue → estimate page renders; a bad key is a 404. No
+  horizontal overflow at 390px. Console errors were only the analytics
+  script, which 404s outside Vercel.
+
+### Known issues / owner steps
+- **Connect a Vercel Blob store** to the project (Storage → Blob → connect;
+  this sets `BLOB_READ_WRITE_TOKEN`). Until then, Vercel deployments show
+  "Private storage is not connected" in the admin and M8 quote mode says
+  estimates aren't available.
+- Set `QUOTE_LINK_SECRET` (16+ random characters) in Vercel, and the Resend
+  env vars for email.
+- Oregon requests can't be approved until per-officer logins exist (L5).
+- The homepage one-liner linking to the posted rate is not built yet.
+- ⚖ Counsel items added to `ATTORNEY_REVIEW_LIST.md` (L4 additions).
+
+### Next up
+- Owner review on the preview, then L4b (the pricing assistant on the
+  owner's computer, built with the owner present), then L5.
+
 ## v36 / L3 — Example mode removed, site open (2026-10-30)
 
 **Owner:** "yes start L3". Spec: delete the scripted demo, the toggle,

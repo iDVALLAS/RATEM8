@@ -55,6 +55,8 @@ const AVERAGE_CLAIM = [/national[\s-]+average/i, /\b(below|under|lower than|less
 const AVERAGE_CLAIM_ALLOWED = new Set([
   "components/pricing/RateVsAverage.tsx",
   "lib/content/rate-vs-average.ts",
+  // v37 (L4): the posted-rate card's benchmark line (owner decision, counsel review pending).
+  "lib/content/posted-rate.ts",
   "lib/pricing/benchmark.ts",
   "lib/pricing/benchmark.test.ts",
   "components/pricing/RateVsAverage.test.tsx",

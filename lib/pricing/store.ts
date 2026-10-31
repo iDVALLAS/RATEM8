@@ -15,6 +15,7 @@ import path from "node:path";
 import { canonicalJson, sha256Hex } from "./canonical";
 import type { PlaybookEntry } from "./playbook";
 import type { PricingRun, RunInputs } from "./types";
+import { getJson, getRecords, putJson, stamp, type RecordStore } from "@/lib/records";
 
 export type StoredSnapshot = {
   run: PricingRun;
@@ -56,6 +57,8 @@ export interface SnapshotStore {
   latestSettings(tenantId: string): Promise<TenantSettings | null>;
   putSettings(s: Omit<TenantSettings, "version">): Promise<TenantSettings>;
   audit(): Promise<AuditEvent[]>;
+  /** v37: the private source file (admin only). */
+  getSource(sha256: string): Promise<Uint8Array | null>;
 }
 
 const safe = (s: string) => s.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -78,6 +81,7 @@ export class MemoryStore implements SnapshotStore {
     return h;
   }
   async hasSource(h: string) { return this.sources.has(h); }
+  async getSource(h: string) { return this.sources.get(h)?.bytes ?? null; }
   async putSnapshot(s: StoredSnapshot) {
     if (this.snaps.some((x) => x.run.runId === s.run.runId)) throw new Error("snapshot already exists");
     this.snaps.push(structuredClone(s));
@@ -144,6 +148,10 @@ export class FileStore implements SnapshotStore {
   async hasSource(h: string) {
     try { await fs.access(this.p("sources", `${h}.bin`)); return true; } catch { return false; }
   }
+  async getSource(h: string) {
+    if (!/^[a-f0-9]{64}$/.test(h)) return null;
+    try { return new Uint8Array(await fs.readFile(this.p("sources", `${h}.bin`))); } catch { return null; }
+  }
   async putSnapshot(s: StoredSnapshot) {
     const dir = this.p("tenants", safe(s.run.tenantId), "snapshots", safe(s.run.scenario.id));
     await this.writeOnce(path.join(dir, `${safe(s.run.pricedAt)}-${s.run.inputsHash.slice(0, 12)}.json`), JSON.stringify(s, null, 2));
@@ -174,12 +182,67 @@ export class FileStore implements SnapshotStore {
   }
 }
 
+/**
+ * v37 (L4): the same snapshot store on the private record store
+ * (lib/records.ts), so pricing can be published on Vercel through Blob.
+ */
+export class RecordSnapshotStore implements SnapshotStore {
+  readonly kind: string;
+  readonly writable: boolean;
+  readonly reason?: string;
+  constructor(private r: RecordStore) {
+    this.kind = `records:${r.kind}`;
+    this.writable = r.writable;
+    this.reason = r.reason;
+  }
+  private async log(e: AuditEvent) { await putJson(this.r, `pricing/audit/${stamp(new Date(e.at))}.json`, e); }
+  private async readAll<T>(prefix: string): Promise<T[]> {
+    const keys = (await this.r.list(prefix)).filter((k) => k.endsWith(".json"));
+    const out = await Promise.all(keys.map((k) => getJson<T>(this.r, k)));
+    return out.filter((x): x is Awaited<T> => x !== null) as T[];
+  }
+  async putSource(bytes: Uint8Array, mime: string, actor: string, tenantId: string) {
+    const h = sha256Hex(bytes);
+    if (await this.hasSource(h)) return h;
+    await this.r.put(`pricing/sources/${h}.bin`, bytes, mime);
+    await this.log({ at: new Date().toISOString(), actor, action: "source.put", tenantId, detail: { sha256: h, mime, bytes: bytes.length } });
+    return h;
+  }
+  async hasSource(h: string) { return (await this.r.list(`pricing/sources/${h}.bin`)).length > 0; }
+  async putSnapshot(s: StoredSnapshot) {
+    await putJson(this.r, `pricing/tenants/${safe(s.run.tenantId)}/snapshots/${safe(s.run.scenario.id)}/${safe(s.run.pricedAt)}-${s.run.inputsHash.slice(0, 12)}.json`, s);
+    await this.log({ at: s.enteredAt, actor: s.enteredBy, action: "snapshot.publish", tenantId: s.run.tenantId, detail: { runId: s.run.runId, scenario: s.run.scenario.id, inputsHash: s.run.inputsHash, sourceSha256: s.sourceSha256 } });
+  }
+  async latestSnapshot(t: string, sc: string) { return (await this.listSnapshots(t, sc))[0] ?? null; }
+  async listSnapshots(t: string, sc: string) {
+    const all = await this.readAll<StoredSnapshot>(`pricing/tenants/${safe(t)}/snapshots/${safe(sc)}/`);
+    return all.sort((a, b) => b.run.pricedAt.localeCompare(a.run.pricedAt));
+  }
+  async latestSettings(t: string) {
+    const all = await this.readAll<TenantSettings>(`pricing/tenants/${safe(t)}/settings/`);
+    return all.sort((a, b) => b.version - a.version)[0] ?? null;
+  }
+  async putSettings(s: Omit<TenantSettings, "version">) {
+    const prev = await this.latestSettings(s.tenantId);
+    const rec: TenantSettings = { ...s, version: (prev?.version ?? 0) + 1 };
+    await putJson(this.r, `pricing/tenants/${safe(s.tenantId)}/settings/${String(rec.version).padStart(6, "0")}.json`, rec);
+    await this.log({ at: s.updatedAt, actor: s.updatedBy, action: "settings.save", tenantId: s.tenantId, detail: { version: rec.version, hash: sha256Hex(canonicalJson(rec)) } });
+    return rec;
+  }
+  async audit() {
+    return (await this.readAll<AuditEvent>("pricing/audit/")).sort((a, b) => a.at.localeCompare(b.at));
+  }
+  /** The private screenshot behind a snapshot (admin only). */
+  async getSource(h: string) { return /^[a-f0-9]{64}$/.test(h) ? this.r.get(`pricing/sources/${h}.bin`) : null; }
+}
+
 let override: SnapshotStore | null = null;
 /** Tests swap the store. */
 export function setStoreForTests(s: SnapshotStore | null) { override = s; }
 
 export function getStore(): SnapshotStore {
   if (override) return override;
+  if (process.env.BLOB_READ_WRITE_TOKEN) return new RecordSnapshotStore(getRecords());
   const dir = process.env.PRICING_STORE_DIR;
   if (dir) return new FileStore(dir, true);
   const root = path.join(process.cwd(), ".data", "pricing");

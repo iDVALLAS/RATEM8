@@ -11,7 +11,8 @@
  * names never leave the server.
  */
 import { CONFIG } from "@/lib/config";
-import { manualProvider } from "./providers/manual";
+import { allScenarios, gridScenarios, isGridScenario } from "./grid";
+import { isFresh, manualProvider } from "./providers/manual";
 import { exampleScenarios, mockProvider } from "./providers/mock";
 import { summarize } from "./playbook";
 import { getStore } from "./store";
@@ -26,13 +27,37 @@ export type DisplayRun = {
   notes: PublicNote[];
 };
 
+/** v37: /rates shows the weekly grid; the v13 examples only in QA (PRICING_DEMO_EXAMPLES). */
 export function displayScenarios(): BandedScenario[] {
-  return exampleScenarios();
+  return CONFIG.pricing.demoExamples ? [...gridScenarios(), ...exampleScenarios()] : gridScenarios();
+}
+
+async function notesFor(tenantId: string, mapping: Record<string, string>): Promise<PublicNote[]> {
+  const settings = await getStore().latestSettings(tenantId);
+  const notes: PublicNote[] = [];
+  if (!settings) return notes;
+  for (const [label, key] of Object.entries(mapping)) {
+    const e = settings.playbook.find((p) => p.lenderKey === key);
+    if (e && (e.note.trim() || summarize(e).length)) notes.push({ lender: label, traits: summarize(e), note: e.note.trim() });
+  }
+  return notes.sort((a, b) => a.lender.localeCompare(b.lender));
+}
+
+/** The latest weekly-grid snapshot, if it is inside the one-week window. */
+export async function resolveGrid(scenarioId: string, now: Date = new Date()): Promise<DisplayRun | null> {
+  if (!CONFIG.pricing.weekly || !isGridScenario(scenarioId)) return null;
+  const scenario = gridScenarios().find((s) => s.id === scenarioId)!;
+  const tenant = tenantForState(scenario.state);
+  if (!tenant) return null;
+  const snap = await getStore().latestSnapshot(tenant.id, scenario.id);
+  if (!snap || !isFresh(snap.run.pricedAt, now, CONFIG.pricing.weeklyStaleHours)) return null;
+  return { run: snap.run, mode: "snapshot", notes: await notesFor(tenant.id, snap.mapping) };
 }
 
 export async function resolveDisplay(scenarioId: string): Promise<DisplayRun | null> {
-  const scenario = displayScenarios().find((s) => s.id === scenarioId);
+  const scenario = allScenarios().find((s) => s.id === scenarioId);
   if (!scenario) return null;
+  if (isGridScenario(scenarioId)) return resolveGrid(scenarioId);
 
   if (CONFIG.pricing.manual) {
     const tenant = tenantForState(scenario.state);
