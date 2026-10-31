@@ -226,8 +226,8 @@ Posted-rate qualifying profile, updated: credit score **780+** (row 1 of the gri
   - The owner gets an alert and approves or rejects each one. Nothing
     reaches a borrower, the grid or an AI assistant until approved, and
     every approval is logged (who, when, what).
-  - Owner to confirm that ARIVE's and Optimal Blue's terms allow this
-    kind of supervised automation.
+  - Owner, after the mockups: ARIVE allows auto-generated, supervised
+    inputs for pricing estimates. (Keep the written source on file.)
 - **Personal quote disclaimer (owner's wording, tidied):** "This is not an
   offer or commitment to lend. It is estimated pricing for the scenario you
   gave in your LoanM8 session, priced and approved by {loan officer}, NMLS
@@ -239,9 +239,22 @@ Posted-rate qualifying profile, updated: credit score **780+** (row 1 of the gri
   the approved quote by email. Live after counsel signs off on publishing
   rates to machines.
 
+## 5. Owner decisions, round 3 (after the mockups, 2026-10-31)
+
+- **No separate borrower form.** M8 collects the scenario in chat, one
+  question at a time with tap-to-answer chips, like the prep flow, and
+  fills the structured scenario behind the scenes. "Get my personal
+  estimate" on /rates opens M8 in quote mode. Before sending, M8 shows a
+  one-line summary ("Here's what I'll send to your loan officer") with
+  Send and Change; the borrower never sees a form, but nothing is sent
+  without their tap and their email consent.
+- The structured scenario is the same object for M8 and for AI assistants
+  (agent API, JSON). Nothing borrower-facing renders it as a form.
+- **Pricing worker terms:** see round 2 (ARIVE allows supervised inputs).
+
 ### Build order
 1. **L4 (website):** the posted-rate card and grid on /rates; the quote
-   request (borrower form, M8, agent API); an approval queue in /mlo with
+   request (M8 quote mode and the agent API, one shared scenario schema); an approval queue in /mlo with
    alerts by email; the approved quote page and email; the weekly confirm;
    the agent API and structured data behind a flag; Vercel Blob storage.
 2. **L4b (the worker on the owner's computer):** an AI assistant that reads
