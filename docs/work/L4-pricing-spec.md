@@ -208,3 +208,42 @@ interest (it depends on the closing date) or states an assumption about it.
 
 Posted-rate qualifying profile, updated: credit score **780+** (row 1 of the grid,
 25% down, sits inside it; the evidence check prices 780 at 80% LTV).
+
+## 4. Owner decisions, round 2 (2026-10-31)
+
+- **Grid:** rows 1 (30-yr) and 5 (15-yr), 780+ / 25% down, are posted at
+  Freddie Mac's weekly average minus 0.25%, zero points, behind the weekly
+  "I can honor these rates" confirmation. Rows 2–4 and 6–8 are priced each
+  Thursday in ARIVE (option b).
+- **Pricing worker (owner: "fine to have an AI working pulling the
+  scenario … on a logged-in computer and then I approve for each one"):**
+  - An AI assistant runs on the owner's own computer, in a browser where
+    the owner is already logged in to ARIVE (or LoanSifter). The login never
+    leaves that machine; no server holds it.
+  - It takes queued scenarios from LoanM8 (the six weekly rows and every
+    personal quote request), prices them, and sends back the results with
+    a screenshot.
+  - The owner gets an alert and approves or rejects each one. Nothing
+    reaches a borrower, the grid or an AI assistant until approved, and
+    every approval is logged (who, when, what).
+  - Owner to confirm that ARIVE's and Optimal Blue's terms allow this
+    kind of supervised automation.
+- **Personal quote disclaimer (owner's wording, tidied):** "This is not an
+  offer or commitment to lend. It is estimated pricing for the scenario you
+  gave in your LoanM8 session, priced and approved by {loan officer}, NMLS
+  #{id}, on {date and time}." Shown with the APR, the assumptions, the
+  standard rate disclaimer and the originating company. Counsel to review.
+- **AI assistants** get the approved weekly grid instantly (agent API,
+  `llms.txt`, structured data) and can submit a personal quote request;
+  they receive the nearest approved scenario right away and the person gets
+  the approved quote by email. Live after counsel signs off on publishing
+  rates to machines.
+
+### Build order
+1. **L4 (website):** the posted-rate card and grid on /rates; the quote
+   request (borrower form, M8, agent API); an approval queue in /mlo with
+   alerts by email; the approved quote page and email; the weekly confirm;
+   the agent API and structured data behind a flag; Vercel Blob storage.
+2. **L4b (the worker on the owner's computer):** an AI assistant that reads
+   the queue, drives the logged-in pricing screen and posts results for
+   approval. Built and tested on the owner's machine with the owner present.
