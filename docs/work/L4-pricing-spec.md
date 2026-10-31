@@ -101,11 +101,11 @@ points"; the cap is then printed on the card.)
 | Purpose | Purchase |
 | Program | Conventional conforming, 30-year fixed |
 | Down payment | 20% or more (LTV ≤ 80%) |
-| Credit score | **[owner: 740+? 760+? 780+?]** |
+| Credit score | **780+** (owner 2026-10-31) |
 | Occupancy / property | Primary residence, single-family (1 unit) |
 | Loan amount | Up to the conforming limit for the county |
 | Lock | 30 days, locked within the posted week |
-| States | **[owner: all five, including Oregon via Ryder Fasse, or the four marketed states]** |
+| States | **All five** (owner 2026-10-31; Oregon via its loan officer) |
 | Approval | Subject to credit approval, underwriting and property eligibility |
 
 ### Posted week (the honor window)
@@ -192,13 +192,19 @@ points"; the cap is then printed on the card.)
 6. State advertising rules in all five states (some require the license
    number on rate ads: the card shows sponsor and MLO NMLS via L2).
 
-## 3. Owner decisions needed
+## 3. Owner decisions (2026-10-31)
 
-1. **Credit score floor** for the posted rate: 740, 760 or 780?
-2. **Points rule**: zero discount points (recommended), or a cap?
-3. **LoanM8's standard fees** for the APR (lender fees, any borrower-paid
-   broker fee). Needed for any APR shown.
-4. **States**: all five (Ryder honors it in Oregon), or the four
-   marketed states?
-5. **Pull day**: Thursday afternoon (recommended) instead of Monday?
-6. **Scenario grid**: keep the 8 rows above, or cut/swap?
+| # | Decision | Answer |
+|---|---|---|
+| 1 | Posted-rate credit floor | **780+** |
+| 2 | Points rule | **Zero discount points** ("hard to nail down points costs") |
+| 3 | Fees for the APR | **Underwriting $1,150 + processing $550 = $1,700** in prepaid finance charges. The loan officer's compensation is lender-paid (in the rate), so no borrower-paid broker fee. Estimated total closing costs shown separately at **1.5%** of the loan amount (owner: "a standard 1.5% closing costs"). Third-party costs (title, appraisal, recording) are not finance charges and stay out of the APR. |
+| 4 | States | **All five** (Oregon via its loan officer) |
+| 5 | Pull day | **Thursday afternoon, Pacific** |
+| 6 | Scenario grid | Mocked up for the owner (8 rows as in §1); awaiting yes or changes |
+
+Open for the build, counsel to confirm: whether the advertised APR includes prepaid
+interest (it depends on the closing date) or states an assumption about it.
+
+Posted-rate qualifying profile, updated: credit score **780+** (row 1 of the grid,
+25% down, sits inside it; the evidence check prices 780 at 80% LTV).
