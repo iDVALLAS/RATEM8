@@ -11,7 +11,7 @@ continuity log. L-patches continue its numbering (L1 = v31).
 | v33 — M8 chat redesign + voice (ElevenLabs, browser fallback) — part of L6 | v33 | Preview, awaiting owner sign-off |
 | L2 — Site-wide disclaimer rewrite, `/licensing`, TX notice | v34, v35 (sponsor lockup) | Preview, awaiting owner sign-off; Texas notice text needed |
 | L3 — Remove example mode, go live | v36 | Preview, awaiting owner sign-off; `www` domain step is the owner's |
-| L4 — Pricing: weekly grid, Freddie Mac −0.25% posted rates, personal estimates (M8 quote mode, approval queue) | v37 | Preview, awaiting owner sign-off; Blob store + `QUOTE_LINK_SECRET` are the owner's |
+| L4 — Pricing: weekly grid, Freddie Mac −0.25% posted rates, personal estimates (M8 quote mode, approval queue) | v37 | **Signed off by the owner 2026-10-31.** Preview only; Blob store + `QUOTE_LINK_SECRET` are the owner's; production flags stay off until counsel |
 | L4b — Pricing assistant on the owner's computer | — | Not started; built with the owner present |
 | L5 — Accounts, data, security | — | Not started (provider choice needs owner OK) |
 | L6 — M8 chat redesign + browser voice | — | Not started |

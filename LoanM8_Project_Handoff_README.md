@@ -188,8 +188,13 @@ not in this patch.
 - The homepage one-liner linking to the posted rate is not built yet.
 - ⚖ Counsel items added to `ATTORNEY_REVIEW_LIST.md` (L4 additions).
 
+### Sign-off
+- Owner, 2026-10-31: "i sign off". Not promoted; production flags
+  (`PRICING_WEEKLY`, `POSTED_RATES`, `PERSONAL_QUOTES`, `AGENT_PRICING`)
+  stay off until counsel clears the L4 items.
+
 ### Next up
-- Owner review on the preview, then L4b (the pricing assistant on the
+- L4b (the pricing assistant on the
   owner's computer, built with the owner present), then L5.
 
 ## v36 / L3 — Example mode removed, site open (2026-10-30)
