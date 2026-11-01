@@ -24,9 +24,12 @@ export function organizationJsonLd(): JsonLd {
     areaServed: STATES.map((s) => ({ "@type": "State", name: s.name })),
     knowsAbout: ["Mortgage", "Loan Estimate", "Refinancing", "Mortgage points"],
   };
-  if (!isPlaceholder(CONFIG.entityNmls)) {
-    out.identifier = { "@type": "PropertyValue", propertyID: "NMLS", value: CONFIG.entityNmls };
-  }
+  // C2: LoanM8, LLC holds no NMLS license; loans are originated under the sponsor's.
+  out.parentOrganization = {
+    "@type": "Organization",
+    name: CONFIG.sponsorDisplayName,
+    identifier: { "@type": "PropertyValue", propertyID: "NMLS", value: CONFIG.sponsor.nmls },
+  };
   if (!isPlaceholder(CONFIG.contactEmail)) out.email = CONFIG.contactEmail;
   return out;
 }

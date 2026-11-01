@@ -313,7 +313,7 @@ export const copy = {
       },
     ],
     licensedLabel: "// licensed in",
-    equalHousing: "Equal Housing Lender",
+    equalHousing: "Equal Housing Opportunity",
     aiNote: `M8 is an AI, not a person. A licensed loan officer verifies every deal.`,
   },
 
@@ -742,7 +742,7 @@ export const copy = {
         genericNote: "Tell us where the property is and we'll match you with a licensed loan officer.",
         unlicensed: "We don't have a licensed loan officer in {state} yet.",
         nmls: "NMLS #{nmls}",
-        sponsor: "{sponsor} · {label} {id}",
+        sponsor: "{sponsor} · {label} #{id}",
         talk: "Talk to a loan officer",
         talkNamed: "Talk to {first}",
       },

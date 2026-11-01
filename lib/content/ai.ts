@@ -14,7 +14,6 @@ import {
   CONFIG,
   STATES,
   stateDisplay,
-  isPlaceholder,
   hasBooking,
   LICENSED_IN_LINE,
   MLO_REF_FULL,
@@ -42,9 +41,7 @@ const UPDATED = "2026-09-29";
 
 const bookingUrl = hasBooking(CONFIG.calendly.borrower) ? CONFIG.calendly.borrower : null;
 
-const entityLine = isPlaceholder(CONFIG.entityNmls)
-  ? `The operating entity is ${CONFIG.entityLegalName}. NMLS identifiers are listed on the disclosures page.`
-  : `The operating entity is ${CONFIG.entityLegalName}, NMLS #${CONFIG.entityNmls}.`;
+const entityLine = `${CONFIG.entityTradeName} is a trade name of ${CONFIG.entityLegalName}. Mortgage loans are originated by ${CONFIG.sponsorDisplayName}, NMLS #${CONFIG.sponsor.nmls}. Every license is listed on the licensing page.`;
 
 const qa: AiQa[] = [
   {

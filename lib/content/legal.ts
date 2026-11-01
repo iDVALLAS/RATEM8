@@ -350,7 +350,7 @@ export const disclosuresContent = {
 
   equalHousing: {
     label: copy.footer.equalHousing,
-    srLabel: "Equal Housing Lender logo",
+    srLabel: "Equal Housing Opportunity logo",
     body: "LoanM8 and its loan officers follow federal and state fair lending law. We do not discriminate on the basis of race, color, religion, national origin, sex, familial status, disability, or any other basis protected by law.",
     counselNote: "Confirm the fair-lending sentence and whether the official Equal Housing Lender logo must appear on this page as well as in the footer.",
   },

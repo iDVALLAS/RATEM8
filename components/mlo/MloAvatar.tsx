@@ -1,14 +1,17 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import type { Mlo } from "@/lib/config";
 
 /**
  * MloAvatar — a loan officer's round headshot (C1).
  *
- * The photo comes from the MLO's `photo` in lib/config.ts and renders only
- * when it is a real file path under /team/. Anything else (a bracketed
- * placeholder, an empty string) draws an initials avatar in M8 Green, so
- * there is never a broken image. Alt text carries the name and NMLS number
- * together, from config.
+ * The photo comes from the MLO's `photo` (config/licensing.ts, via
+ * lib/config.ts) and renders only when it is a file path under /team/.
+ * Anything else, or a file that doesn't load (a photo listed before it is
+ * supplied), draws an initials avatar in M8 Green, so there is never a
+ * broken image. Alt text carries the name and NMLS number together.
  *
  * Sizes by placement (launch brief L1): 72 on the MLO card, 36 in the chat
  * header, 28 on rate results.
@@ -27,8 +30,9 @@ function initials(name: string): string {
 }
 
 export default function MloAvatar({ mlo, size }: { mlo: Pick<Mlo, "name" | "nmls" | "photo">; size: number }) {
+  const [failed, setFailed] = useState(false);
   const alt = `${mlo.name}, NMLS #${mlo.nmls}`;
-  if (hasPhoto(mlo)) {
+  if (hasPhoto(mlo) && !failed) {
     return (
       <Image
         src={mlo.photo}
@@ -37,6 +41,7 @@ export default function MloAvatar({ mlo, size }: { mlo: Pick<Mlo, "name" | "nmls
         height={size}
         className="mlo-avatar rounded-full"
         style={{ width: size, height: size }}
+        onError={() => setFailed(true)}
       />
     );
   }

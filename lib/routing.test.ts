@@ -67,7 +67,7 @@ describe("resolveRoute", () => {
 
     const or = resolveRoute({ ipCountry: "US", ipRegion: "OR" });
     expect(or.mlo?.id).toBe(OREGON);
-    expect(or.license?.sponsor.name).toBe("Home Trust Loans");
+    expect(or.license?.sponsor.name).toBe("Adcom Group Inc dba Home Trust Financial");
   });
 
   it("a CA IP with an OR property routes to the OR MLO and flags the move", () => {
@@ -133,7 +133,7 @@ describe("M8 routing facts", () => {
     const prompt = buildM8SystemPrompt(overrides);
     const m = v.mlo!;
     expect(prompt).toContain(`${m.name}, ${m.title}, NMLS #${m.nmls}`);
-    expect(prompt).toContain("Home Trust Loans");
+    expect(prompt).toContain("Adcom Group Inc dba Home Trust Financial");
     expect(section).toContain("The property is in Oregon, but their connection suggests California. Licensing follows the property");
     const operator = cfg.mlos.find((x) => x.id === OPERATOR)!;
     expect(prompt + section).not.toContain(operator.name);

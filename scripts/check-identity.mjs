@@ -2,7 +2,7 @@
 /**
  * scripts/check-identity.mjs — fails the build when a loan officer's name,
  * an NMLS number, or an NMLS-labelled digit run is typed anywhere in the
- * shipped code outside lib/config.ts (the one place facts live).
+ * shipped code outside lib/config.ts and config/licensing.ts (where facts live).
  *
  * Scans app/, components/, lib/, public/, middleware.ts. Docs are exempt.
  * Run: npm run check:identity
@@ -11,9 +11,10 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOT = new URL("..", import.meta.url).pathname;
-const SCAN_DIRS = ["app", "components", "lib", "public"];
+const SCAN_DIRS = ["app", "components", "lib", "public", "config"];
 const SCAN_FILES = ["middleware.ts"];
-const ALLOW = new Set(["lib/config.ts"]);
+// C2: config/licensing.ts is the licensing source of truth; lib/config.ts derives from it.
+const ALLOW = new Set(["lib/config.ts", "config/licensing.ts"]);
 const EXT = new Set([".ts", ".tsx", ".js", ".mjs", ".md", ".txt", ".json"]);
 
 const RULES = [
@@ -53,7 +54,7 @@ for (const f of files) {
 }
 
 if (hits.length) {
-  console.error(`check:identity failed — ${hits.length} hardcoded identity fact(s) outside lib/config.ts:\n` + hits.join("\n"));
+  console.error(`check:identity failed — ${hits.length} hardcoded identity fact(s) outside lib/config.ts and config/licensing.ts:\n` + hits.join("\n"));
   process.exit(1);
 }
-console.log(`check:identity passed — ${files.length} files scanned, no hardcoded MLO names or NMLS numbers outside lib/config.ts.`);
+console.log(`check:identity passed — ${files.length} files scanned, no hardcoded MLO names or NMLS numbers outside lib/config.ts and config/licensing.ts.`);

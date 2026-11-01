@@ -50,6 +50,9 @@ const PUBLIC_PATHS = [
   "/disclosures",
   "/privacy",
   "/terms",
+  // C2: licensing and the Texas complaint notice are legally required.
+  "/licensing",
+  "/licensing/texas",
 ];
 
 const PUBLIC_PREFIXES = [

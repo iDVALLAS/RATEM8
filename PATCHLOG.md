@@ -112,3 +112,97 @@ headshot and confirmed LoanM8, LLC replaces Shapiro Home Loans (that's C2).
 - C2: `config/licensing.ts`, the licensing footer, `/licensing` and
   `/licensing/texas` (the owner supplied the 7 TAC §56.200(c) notice
   PDF), the Equal Housing logo, and LoanM8, LLC.
+
+## C2 — Licensing footer, /licensing, the Texas notice (2026-11-01)
+
+**Owner:** "go C2". The owner confirmed LoanM8, LLC replaces Shapiro Home
+Loans, and supplied the current SML complaint notice for mortgage companies
+(PDF, 7 TAC §56.200(c)).
+
+### Changes
+- **`config/licensing.ts` (new), exactly as the brief's L1 block:**
+  - `PLATFORM`, `SPONSOR` (with every state license), `MLOS`, `STATE_MLO`.
+  - Additions: `DEFAULT_MLO`, `SPONSOR_DISPLAY_NAME`, and
+    `TX_COMPLAINT_NOTICE` (the PDF's text, verbatim).
+- **`lib/config.ts` now derives from it:**
+  - The platform is LoanM8, LLC. `entityNmls` is removed: LoanM8, LLC holds
+    no license.
+  - One sponsor record replaces "Home Trust Loans" and "Home Financial (AZ
+    1037722)". The AZ number is now the brief's 1003167.
+  - MLO names, NMLS numbers and photos come from `MLOS`.
+  - MLO licenses: CA-DFPI 1844143 in California, the NMLS ID elsewhere.
+  - `stateAssignments` comes from `STATE_MLO` (Oregon → Ryder, the rest →
+    the default MLO).
+  - State entity licenses and regulator names come from `SPONSOR.stateLicenses`.
+  - CA and TX required disclosures are filled. The coming-soon sponsor line
+    also comes from here.
+- **Footer (every page):** the owner's four paragraphs, word for word, from
+  `lib/content/licensing.ts`:
+  1. The trade-name line. The matched-MLO line that used to follow it is
+     deleted.
+  2. The originating company with the NMLS Consumer Access link, and every
+     state license.
+  3. The loan officers.
+  4. Equal Housing Opportunity and not-a-commitment.
+
+  Also:
+  - Links to Licensing, Texas Consumer Complaint Notice and Full
+    disclosures. The AI note stays.
+  - The per-state "entity license / MLO license / regulator" lines (which
+    showed placeholders) are gone; paragraph 2 replaces them.
+  - The Equal Housing Opportunity logo (`components/legal/EqualHousingLogo.tsx`,
+    house with the equal sign) replaces the "Equal Housing Lender" icon.
+    "Lender" becomes "Opportunity" in the footer and on `/disclosures`.
+  - © LoanM8, LLC.
+- **`/licensing` (new):** the originating company (NMLS with the lookup
+  link, address, phone), every state license with its regulator, the loan
+  officers with NMLS, states and lookup links, and the state notices.
+- **`/licensing/texas` (new):** the complaint notice verbatim, with its
+  citation and the SML link.
+- Both licensing pages are public in stealth (middleware) and listed in
+  the sitemap and llms.txt (`lib/site.ts`).
+- **Every place that used the entity NMLS now points at the sponsor:**
+  `/disclosures`, the state pages' license block, `/ai`, and the JSON-LD
+  (the sponsor as `parentOrganization` with its NMLS).
+- **Chat card:** "Adcom Group Inc dba Home Trust Financial · NMLS #1761573".
+- **`npm run check:licensing` (new):**
+  - Runs in `npm run verify` and inside every `next build` (`next.config.ts`).
+  - Fails while `config/licensing.ts` has TBD, VERIFY or XXXX.
+  - Proven: putting TBD in the AZ number failed `next build` with the line
+    named.
+- `check:identity` and `check:copy` now scan `config/`, and identity allows
+  `config/licensing.ts`.
+- **Tests:** `lib/licensing-config.test.ts` (11 new) checks:
+  - The footer text matches the owner's.
+  - Every license is under the one sponsor.
+  - Oregon routing goes to Ryder.
+  - State records carry the sponsor's licenses.
+  - The headshot exists.
+  - The marker check works.
+
+  The routing tests now expect the new sponsor name.
+
+### Verified
+- `npm run verify` passes: lint, copy, identity, licensing, 141 tests,
+  build and bundle.
+- **Browser (production build, stealth on, anonymous visitor):**
+  - `/`, `/chat`, `/licensing`, `/licensing/texas` and `/disclosures` each
+    return 200 at 1280 and 390, with one h1 and no horizontal scroll.
+  - The footer's text matches the brief exactly.
+  - The EHO logo carries its label.
+- `qa/fonts`: 0 findings. `qa/overflow`: clean.
+
+### Known issues and owner items
+- **Arizona MLO license:** shown as the NMLS ID. Arizona issues its own
+  loan originator number; send it to add it.
+- Still placeholders:
+  - Regulator URLs (5 states; regulator names show without links)
+  - WA, OR and AZ required disclosures
+  - Sponsorship effective dates (not rendered anywhere)
+- `ryder-fasse.webp` is listed per the brief but not supplied. The avatar
+  falls back to initials if the file doesn't load.
+- The footer lists both loan officers for every visitor (the brief's C2
+  text). L2's per-state version comes later.
+
+### Next
+C3: the production M8 system prompt.

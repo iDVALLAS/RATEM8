@@ -12,7 +12,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOT = new URL("..", import.meta.url).pathname;
-const SCAN_DIRS = ["app", "components", "lib", "public"];
+const SCAN_DIRS = ["app", "components", "lib", "public", "config"];
 const SCAN_FILES = ["middleware.ts"];
 const EXT = new Set([".ts", ".tsx", ".js", ".mjs", ".css", ".md", ".txt", ".json", ".svg"]);
 

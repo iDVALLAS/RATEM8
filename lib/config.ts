@@ -8,12 +8,12 @@
  * Bracketed values ("[LIKE THIS]") are placeholders that MUST be filled
  * before launch. See PLACEHOLDERS.md for the full list with file paths.
  *
- * Values that were already present in the repo (lib/licensing.ts, entered
- * by the site owner in earlier patches) are carried over and marked
- * `// carried over — VERIFY`. They were not invented for this build, but
- * every one of them still needs verification on nmlsconsumeraccess.org
- * before the stealth gate lifts.
+ * C2: every licensing fact (platform, sponsor, sponsor state licenses,
+ * MLO names and NMLS numbers, which MLO each state routes to) now comes
+ * from config/licensing.ts. This file derives its records from there.
  */
+
+import { PLATFORM, SPONSOR, SPONSOR_DISPLAY_NAME, MLOS, STATE_MLO, DEFAULT_MLO, TX_COMPLAINT_NOTICE, type SponsorStateCode } from "@/config/licensing";
 
 /**
  * MLO_ROUTING (v17): "true" → on, "false" → off. Unset → on for Vercel
@@ -113,25 +113,55 @@ export type Mlo = {
   licenses: MloLicense[];
 };
 
-const SPONSOR_HOME_TRUST: Sponsor = {
-  name: "Home Trust Loans",
+/**
+ * C2: the one sponsoring company (config/licensing.ts SPONSOR). Every MLO
+ * license on this site is under it, so every state is an `assign` state.
+ */
+const SPONSOR_RECORD: Sponsor = {
+  name: SPONSOR_DISPLAY_NAME,
   idLabel: "NMLS",
-  idNumber: "1761573", // carried over — VERIFY on nmlsconsumeraccess.org
+  idNumber: SPONSOR.nmls,
 };
+
+/** The sponsor shown with the LoanM8 name on the coming-soon page (Texas team-name rule). */
+export const COMING_SOON_SPONSOR = { dba: SPONSOR.dba, nmls: SPONSOR.nmls } as const;
 
 /**
- * Hotfix (owner 2026-10-30): the sponsor shown with the LoanM8 name on the
- * coming-soon page, so the public page carries the sponsoring company's
- * name and NMLS ID (Texas team-name rule). The full licensing rework (L1+)
- * replaces this with SPONSOR.
+ * An MLO's license identifier in a state: the state-issued number when
+ * config/licensing.ts lists one (CA-DFPI), otherwise the NMLS ID.
  */
-export const COMING_SOON_SPONSOR = { dba: "Home Trust Financial", nmls: "1761573" } as const;
+function mloLicenseIn(key: keyof typeof MLOS, state: StateCode): string {
+  const m = MLOS[key];
+  const own = "stateLicenses" in m ? (m.stateLicenses as Partial<Record<StateCode, string>>)[state] : undefined;
+  return own ?? `NMLS ID ${m.nmls}`;
+}
 
-const SPONSOR_HOME_FINANCIAL_AZ: Sponsor = {
-  name: "Home Financial",
-  idLabel: "AZ License",
-  idNumber: "1037722", // carried over — VERIFY on nmlsconsumeraccess.org
-};
+/** The MLO key each state routes to (STATE_MLO, else DEFAULT_MLO). */
+function mloKeyFor(state: StateCode): keyof typeof MLOS {
+  return STATE_MLO[state] ?? DEFAULT_MLO;
+}
+
+const MLO_IDS: Record<keyof typeof MLOS, string> = { jason: "mlo-001", ryder: "mlo-002" };
+
+/** The states each MLO serves, from the routing map: everything else is the default MLO's. */
+const SERVED: StateCode[] = ["WA", "OR", "AZ", "CA", "TX"];
+function licensesFor(key: keyof typeof MLOS): MloLicense[] {
+  return SERVED.filter((st) => mloKeyFor(st) === key).map((st) => ({
+    state: st,
+    license: mloLicenseIn(key, st),
+    sponsor: SPONSOR_RECORD,
+    sponsorSince: key === "ryder" && st === "OR" ? "2021-08-06" : "[SPONSOR EFFECTIVE DATE]",
+  }));
+}
+
+/** First name for copy templates ({first}); the full name stays in config/licensing.ts. */
+const firstOf = (name: string) => name.split(/\s+/)[0]!;
+
+/** Sponsor state-license facts as the state records show them. */
+function sponsorLicense(code: SponsorStateCode) {
+  const l = SPONSOR.stateLicenses[code];
+  return { entityLicense: `${l.type} #${l.id}`, regulatorName: l.regulator };
+}
 
 export const CONFIG = {
   brandName: "LoanM8",
@@ -141,9 +171,12 @@ export const CONFIG = {
   tagline: "Loan intelligence. Free for the people.",
 
   /** Legal operating entity. */
-  entityLegalName: "Shapiro Home Loans LLC", // carried over — VERIFY
-  entityTradeName: "LoanM8 Loan Intelligence", // carried over — VERIFY trade-name registration per state
-  entityNmls: "[ENTITY NMLS #]",
+  /** C2: the platform. It holds no NMLS license; loans are originated under the sponsor's. */
+  entityLegalName: PLATFORM.legalName,
+  entityTradeName: PLATFORM.tradeName,
+  /** C2: the originating company (config/licensing.ts SPONSOR). */
+  sponsor: SPONSOR,
+  sponsorDisplayName: SPONSOR_DISPLAY_NAME,
 
   /**
    * The platform operator's MLO (LoanM8 is owned by this loan officer).
@@ -152,47 +185,38 @@ export const CONFIG = {
    */
   principalMlo: {
     id: "mlo-001",
-    name: "Jason Shapiro", // carried over — VERIFY
-    firstName: "Jason", // carried over
-    nmls: "1844143", // carried over — VERIFY on nmlsconsumeraccess.org
+    name: MLOS.jason.name,
+    firstName: firstOf(MLOS.jason.name),
+    nmls: MLOS.jason.nmls,
     title: "Mortgage Loan Originator",
     bioShort: "[BIO — two or three plain sentences. No years-in-business or volume claims unless verifiable.]",
     nmlsConsumerAccessUrl:
-      "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/1844143", // carried over — VERIFY
+      `https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/${MLOS.jason.nmls}`,
     // C1 (owner-supplied headshot, 2026-11-01): 512×512, transparent corners.
-    photo: "/team/jason-shapiro.webp",
+    photo: MLOS.jason.photo,
     calendly: env("NEXT_PUBLIC_CALENDLY_BORROWER") ?? "",
     applicationUrl: env("APPLICATION_URL_MLO_001") ?? "[APPLICATION URL — POS / 1003 link]",
-    licenses: [
-      { state: "WA", license: "[WA MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
-      { state: "AZ", license: "[AZ MLO LICENSE #]", sponsor: SPONSOR_HOME_FINANCIAL_AZ, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
-      { state: "CA", license: "[CA MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
-      { state: "TX", license: "[TX MLO LICENSE #]", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "[SPONSOR EFFECTIVE DATE]" },
-    ],
+    licenses: licensesFor("jason"),
   } satisfies Mlo,
 
   /** Additional MLOs. Add records here as MLOs onboard (v15: Ryder Fasse, Oregon). */
   team: [
     {
       id: "mlo-002",
-      name: "Ryder Fasse", // owner-supplied 2026-10-01 — VERIFY
-      firstName: "Ryder",
-      nmls: "119822", // owner-supplied — VERIFY on nmlsconsumeraccess.org
+      name: MLOS.ryder.name,
+      firstName: firstOf(MLOS.ryder.name),
+      nmls: MLOS.ryder.nmls,
       title: "Mortgage Loan Originator",
       bioShort: "[BIO — two or three plain sentences. No years-in-business or volume claims unless verifiable.]",
-      nmlsConsumerAccessUrl: "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/119822", // VERIFY
-      photo: "[PHOTO]",
+      nmlsConsumerAccessUrl: `https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/${MLOS.ryder.nmls}`,
+      // Listed before the file exists: MloAvatar falls back to initials until it does.
+      photo: MLOS.ryder.photo,
       calendly: env("NEXT_PUBLIC_CALENDLY_RYDER") ?? "",
       applicationUrl: env("APPLICATION_URL_MLO_002") ?? "[APPLICATION URL — POS / 1003 link]",
-      licenses: [
-        // Owner 2026-10-01: Oregon only on this site (his NMLS record also
-        // lists WA and AZ licenses; the owner is the site's WA loan officer).
-        // NMLS Consumer Access (owner screenshot 2026-10-01): Oregon MLO
-        // license, "Lic/Reg #: None" (Oregon uses the NMLS ID), Approved,
-        // renewed through 2026; authorized to represent NMLS 1761573 since
-        // 08/06/2021.
-        { state: "OR", license: "NMLS ID 119822", sponsor: SPONSOR_HOME_TRUST, sponsorSince: "2021-08-06" },
-      ],
+      // Owner 2026-10-01: Oregon only on this site. NMLS Consumer Access
+      // (owner screenshot 2026-10-01): Oregon MLO license under his NMLS ID,
+      // authorized to represent the sponsor since 08/06/2021.
+      licenses: licensesFor("ryder"),
     },
   ] as Mlo[],
 
@@ -206,13 +230,8 @@ export const CONFIG = {
    */
   routing: {
     operatorMloId: "mlo-001",
-    stateAssignments: {
-      WA: "mlo-001",
-      OR: "mlo-002",
-      AZ: "mlo-001",
-      CA: "mlo-001",
-      TX: "mlo-001",
-    } as Partial<Record<StateCode, string>>,
+    /** C2: from config/licensing.ts STATE_MLO (Oregon → Ryder, everything else → the default MLO). */
+    stateAssignments: Object.fromEntries(SERVED.map((st) => [st, MLO_IDS[mloKeyFor(st)]])) as Partial<Record<StateCode, string>>,
     routingModeOverride: {} as Partial<Record<StateCode, "assign" | "choose">>,
     /**
      * v29 (owner 2026-10-14): when no state can be resolved (no property
@@ -261,8 +280,8 @@ export const CONFIG = {
       code: "WA",
       name: "Washington",
       serviceArea: "Washington",
-      entityLicense: "[WA ENTITY LICENSE #]",
-      regulatorName: "[WA regulator name — e.g. Washington State Department of Financial Institutions]",
+      // C2: the sponsor's WA license and regulator (config/licensing.ts).
+      ...sponsorLicense("WA"),
       regulatorUrl: "[WA regulator URL]",
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
       twoPartyConsent: true,
@@ -272,8 +291,8 @@ export const CONFIG = {
       code: "OR",
       name: "Oregon",
       serviceArea: "Oregon",
-      entityLicense: "[OR ENTITY LICENSE #]",
-      regulatorName: "[OR regulator name — e.g. Oregon Division of Financial Regulation]",
+      // C2: the sponsor's OR license and regulator (config/licensing.ts).
+      ...sponsorLicense("OR"),
       regulatorUrl: "[OR regulator URL]",
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
       // Recording consent: counsel to confirm for phone/online chat (ORS 165.540).
@@ -284,8 +303,8 @@ export const CONFIG = {
       code: "AZ",
       name: "Arizona",
       serviceArea: "Arizona",
-      entityLicense: "[AZ ENTITY LICENSE #]",
-      regulatorName: "[AZ regulator name — e.g. Arizona Department of Insurance and Financial Institutions]",
+      // C2: the sponsor's AZ license and regulator (config/licensing.ts).
+      ...sponsorLicense("AZ"),
       regulatorUrl: "[AZ regulator URL]",
       requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel]",
       twoPartyConsent: false,
@@ -295,10 +314,11 @@ export const CONFIG = {
       code: "CA",
       name: "California",
       serviceArea: "California",
-      entityLicense: "[CA ENTITY LICENSE #]",
-      regulatorName: "[CA regulator name — e.g. California Department of Financial Protection and Innovation]",
+      // C2: the sponsor's CA license and regulator (config/licensing.ts).
+      ...sponsorLicense("CA"),
       regulatorUrl: "[CA regulator URL]",
-      requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel: CA licensing language]",
+      // C2: the CA licensing language from the owner's footer text.
+      requiredDisclosure: `Licensed by the ${SPONSOR.stateLicenses.CA.regulator} under the California Financing Law, License #${SPONSOR.stateLicenses.CA.id}.`,
       twoPartyConsent: true,
     },
     {
@@ -306,10 +326,11 @@ export const CONFIG = {
       code: "TX",
       name: "Texas",
       serviceArea: "Texas",
-      entityLicense: "[TX ENTITY LICENSE #]",
-      regulatorName: "[TX regulator name — e.g. Texas Department of Savings and Mortgage Lending]",
+      // C2: the sponsor's TX license and regulator (config/licensing.ts).
+      ...sponsorLicense("TX"),
       regulatorUrl: "[TX regulator URL]",
-      requiredDisclosure: "[STATE-SPECIFIC DISCLOSURE — confirm with counsel: TX recovery-fund / complaint notice]",
+      // C2: the current SML complaint notice for mortgage companies (7 TAC §56.200(c)).
+      requiredDisclosure: TX_COMPLAINT_NOTICE.text,
       twoPartyConsent: false,
     },
   ] as StateBase[],

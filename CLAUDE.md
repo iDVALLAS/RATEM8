@@ -9,8 +9,11 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
 ## 1. Project summary
 
 - **LoanM8** (formerly RateM8) is a consumer AI mortgage rate-shopping
-  platform. Every loan is closed by one licensed loan originator (facts
-  in `lib/config.ts`, never typed into components).
+  platform. LoanM8 Loan Intelligence is a trade name of LoanM8, LLC (the
+  platform). Every loan is originated by the sponsor, Adcom Group Inc dba
+  Home Trust Financial.
+  - Licensing facts live in `config/licensing.ts` (C2); everything else in
+    `lib/config.ts`, which derives from it. Never typed into components.
 - **M8** is the assistant. It is Claude-powered: `app/api/m8-chat` and
   `app/api/second-look` call `@anthropic-ai/sdk`.
   - Since C1 the live chat at `/chat` is **public** (even in stealth). It
@@ -115,13 +118,16 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, 130 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 141 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
    `npm run check:identity` fails the build on MLO names (full or first),
    NMLS numbers or NMLS-labelled digit runs anywhere outside
-   `lib/config.ts`. Copy never names a loan officer directly: it carries a
+   `lib/config.ts` and `config/licensing.ts`.
+   - `npm run check:licensing`, also run by every `next build` from
+     `next.config.ts`, fails while `config/licensing.ts` holds TBD,
+     VERIFY or XXXX. Copy never names a loan officer directly: it carries a
    generic string plus a `…Named` template (`{first}` / `{name}`) rendered
    through `MloText` (see §4c).
 6. **Copy lives in `lib/copy.ts`** (UI strings) and `lib/content/*`
@@ -566,14 +572,14 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 
 | Area | Files |
 | --- | --- |
-| Config and facts | `lib/config.ts`, `lib/licensing.ts`, `lib/states.ts`, `lib/site.ts`, `lib/copy.ts`, `lib/content/*` |
+| Config and facts | `config/licensing.ts` (licensing, C2), `lib/content/licensing.ts` (footer and `/licensing` text), `lib/config.ts`, `lib/licensing.ts`, `lib/states.ts`, `lib/site.ts`, `lib/copy.ts`, `lib/content/*` |
 | Theme and global CSS | `lib/theme.ts`, `app/globals.css`, `app/layout.tsx` |
 | Orb | `components/Orb.tsx`, `components/TermField.tsx` |
 | Hero | `components/home/Hero.tsx` (includes `FingerprintMark`), `components/home/HeroOrb.tsx`, `components/home/OrbMonogram.tsx`, `public/brand/m8-monogram.svg`, `components/home/ActionGrid.tsx`, `components/home/TrustStrip.tsx`, `components/home/home.css` |
 | Motion primitives | `lib/useSceneTimeline.ts`, `components/motion/Scene.tsx`, `Reveal.tsx`, `SlideHeadline.tsx`, `Stage.tsx`, `SheetStack.tsx`, `StepList.tsx`, `FloatCard.tsx`, `Bento.tsx`, `SceneLabel.tsx`, `ReplayButton.tsx`, `Underline.tsx` (dead), `stage.css` |
 | Home bands | `components/MarketingHomePage.tsx`, `components/home/StatesStrip.tsx`, `Principles.tsx`, `PrinciplesScene.tsx`, `HowItWorks.tsx`, `HowItWorksSteps.tsx`, `SecondLookTeaser.tsx`, `SecondLookScene.tsx`, `AgentsBand.tsx`, `MloBand.tsx`, `About.tsx` |
 | Other animated pages | `components/join/*`, `components/agents/*`, `components/second-look/*`, `components/chat/*`, `components/brief/*` |
-| Nav and footer | `components/Nav.tsx`, `components/PartnerMenu.tsx`, `components/Footer.tsx`, `components/ThemeToggle.tsx`, `components/Wordmark.tsx` |
+| Nav and footer | `components/Nav.tsx`, `components/PartnerMenu.tsx`, `components/Footer.tsx` (C2 licensing text), `components/legal/EqualHousingLogo.tsx`, `app/licensing/*`, `components/ThemeToggle.tsx`, `components/Wordmark.tsx` |
 | Loan officers and routing | `lib/config.ts` (registry, `CONFIG.routing`), `lib/routing.ts`, `lib/route-context.ts`, `lib/mlo-match.ts`, `lib/us-states.ts`, `middleware.ts`, `app/api/route-choice/route.ts`, `components/mlo/*`, `components/LocationBeacon.tsx`, `components/home/AboutCards.tsx` |
 | Investors | `app/investors/page.tsx` (`copy.investors`, `CONFIG.investorContactHref`) |
 | Agent surface | `app/api/agent/*`, `lib/agent-api.ts`, `app/ai/*`, `app/llms.txt/*`, `AGENTS.md` |

@@ -38,9 +38,11 @@ export const ROUTES: SiteRoute[] = [
   { path: "/principles", title: "The eight principles", description: "The eight rules every LoanM8 loan is closed against, verbatim and versioned.", changeFrequency: "yearly", priority: 0.8, llms: true, markdown: "/principles.md" },
   { path: "/loan-estimate", title: "Loan Estimate guide", description: "An annotated, plain-English guide to every section of the standard Loan Estimate form (fictional numbers).", changeFrequency: "monthly", priority: 0.8, llms: true },
   { path: "/sample-brief", title: "Sample Rate Strategy Brief", description: "What the written brief a borrower keeps looks like. Clearly labeled sample with fictional figures.", changeFrequency: "monthly", priority: 0.7, llms: true },
-  { path: "/chat", title: "M8 Chat", description: "The M8 chat interface. AI disclosure and recording consent first. Scripted demo until live chat passes compliance review.", changeFrequency: "monthly", priority: 0.7, llms: true },
+  { path: "/chat", title: "M8 Chat", description: "Live chat with M8, an AI assistant built for mortgages. AI disclosure first; a licensed loan officer verifies every recommendation. M8 never quotes a rate it wasn't given.", changeFrequency: "monthly", priority: 0.7, llms: true },
   { path: "/ai", title: "For AI assistants", description: "Plain-language answers to what LoanM8 is and is not, where it is licensed, what M8 can and cannot do, and how to hand a borrower off.", changeFrequency: "monthly", priority: 0.9, llms: true, markdown: "/ai.md" },
-  { path: "/disclosures", title: "Licenses & disclosures", description: "NMLS, per-state licenses, Equal Housing Lender, AI disclosure, regulator links.", changeFrequency: "monthly", priority: 0.6, llms: true },
+  { path: "/disclosures", title: "Licenses & disclosures", description: "NMLS, per-state licenses, Equal Housing Opportunity, AI disclosure, regulator links.", changeFrequency: "monthly", priority: 0.6, llms: true },
+  { path: "/licensing", title: "Licensing", description: "The originating company's NMLS and every state license, our loan officers and their NMLS numbers, and state notices.", changeFrequency: "monthly", priority: 0.6, llms: true },
+  { path: "/licensing/texas", title: "Texas Consumer Complaint Notice", description: "The Texas Department of Savings and Mortgage Lending complaint notice for mortgage companies (7 TAC §56.200(c)).", changeFrequency: "yearly", priority: 0.4 },
   { path: "/privacy", title: "Privacy", description: "What LoanM8 collects, uses, shares (never sold), and how to export or delete it.", changeFrequency: "monthly", priority: 0.5, llms: true },
   { path: "/terms", title: "Terms", description: "Terms of use.", changeFrequency: "yearly", priority: 0.3 },
   ...STATES.map((s) => ({
