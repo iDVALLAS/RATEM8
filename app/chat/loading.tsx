@@ -5,7 +5,7 @@ import { copy } from "@/lib/copy";
 export default function Loading() {
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 py-16">
-      <SkeletonSurface label={copy.uiStates.loadingDemo} cards={2} />
+      <SkeletonSurface label={copy.uiStates.loadingChat} cards={2} />
     </div>
   );
 }

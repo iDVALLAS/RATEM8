@@ -1,50 +1,43 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { M8_MODEL, M8_MAX_TOKENS } from "@/lib/m8";
 import { buildM8SystemPrompt, m8RoutingFacts } from "@/lib/prompts/m8-system";
 import { decodeRoute, ROUTE_HEADER } from "@/lib/routing";
-import { exampleSummaryText } from "@/lib/pricing/summary";
 
 import { CONFIG } from "@/lib/config";
 
-/** The M8 prompt plus, when example pricing is on, the computed example figures (server-only). */
+/**
+ * The M8 prompt plus the visitor's routing facts (server-only). C1: the
+ * example pricing summary is no longer appended. The public chat never
+ * quotes example rates; rates come only from the pricing tool (C4).
+ */
 async function systemPrompt(): Promise<string> {
   // v15: with MLO_ROUTING on, the visitor's route (resolved in middleware)
   // names the matched MLO only, and tells M8 about the mover case.
   const routing = CONFIG.pricing.mloRouting ? m8RoutingFacts(decodeRoute((await headers()).get(ROUTE_HEADER))) : { overrides: {}, section: "" };
   const parts = [buildM8SystemPrompt(routing.overrides)];
   if (routing.section) parts.push(routing.section);
-  if (CONFIG.pricing.demoExamples) parts.push(exampleSummaryText());
   return parts.join("\n\n");
 }
 
 /**
- * POST /api/m8-chat — the tester-only live M8 endpoint.
+ * POST /api/m8-chat — the live M8 endpoint behind the public /chat (C1).
  *
  * Streams a response from the Claude API back to the browser as
- * Server-Sent Events. The only client is components/M8LiveChat.tsx,
- * rendered on /demo behind the tester password. The public /chat
- * route never calls this while CONFIG.featureFlags.chatLiveAi is false.
+ * Server-Sent Events. The only client is components/M8LiveChat.tsx.
  *
- * SYSTEM PROMPT: lib/prompts/m8-system.ts (DRAFT — requires compliance
- * counsel review before any deployment). Built from lib/config.ts facts
- * by systemPrompt(); nothing is hardcoded here.
+ * SYSTEM PROMPT: lib/prompts/m8-system.ts, built from lib/config.ts facts
+ * by systemPrompt(); nothing is hardcoded here. C3 replaces it with the
+ * production prompt.
  *
- * RECORDING / CONSENT NOTE:
- *  - The UI shows the AI disclosure and the recording notice
- *    (copy.chat.gate.body) above the input before any message is sent.
- *  - This route does NOT yet persist transcripts. It logs only a
- *    timestamp, IP, and message count to the server console for dev
- *    visibility. Before any public launch: (a) counsel confirms the
- *    retention period in copy.chat.gate.recording, (b) transcripts are
- *    stored with that retention and a transcript-on-request path,
- *    (c) two-party consent states (CONFIG.states[].twoPartyConsent) get
- *    an explicit consent record before the first message.
+ * GATES: open to everyone since C1 (owner 2026-11-01). The kill switch is
+ * M8_LIVE_CHAT="false". Fails closed when ANTHROPIC_API_KEY is unset.
+ * C4 adds rate limits, the turn cap, the output guard, PII redaction,
+ * moderation and transcript storage (3-year retention).
  *
- * GATE: the request must carry the same demo auth cookie that
- * app/demo/page.tsx validates (SHA-256 of "loanm8:" + DEMO_PASSWORD).
- * middleware.ts leaves /api/* public, so the route checks it itself.
- * Fails closed when DEMO_PASSWORD or ANTHROPIC_API_KEY is unset.
+ * RECORDING: the UI shows the AI disclosure and the recording notice
+ * (copy.chat.gate.body) above the input. This route does not store
+ * transcripts yet (C4); it logs a timestamp and message counts only.
  *
  * REQUEST:  { messages: [{ role: "user" | "assistant", content }] }
  *           The client sends the full history each time; the model is stateless.
@@ -63,25 +56,6 @@ type ChatMessage = {
 type RequestBody = {
   messages?: ChatMessage[];
 };
-
-// --------- Gate (mirrors app/demo/page.tsx; keep the two in sync) ---------
-
-async function hashPassword(pw: string): Promise<string> {
-  if (!pw) return "";
-  const data = new TextEncoder().encode("loanm8:" + pw);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function isTesterAuthed(): Promise<boolean> {
-  const expected = await hashPassword(process.env.DEMO_PASSWORD || "");
-  if (!expected) return false;
-  const cookieStore = await cookies();
-  const authCookie = cookieStore.get("loanm8_demo_auth");
-  return !!authCookie && authCookie.value === expected;
-}
 
 // --------- Validation helpers ---------
 
@@ -116,14 +90,9 @@ function json(status: number, body: Record<string, unknown>): Response {
 // --------- Route handler ---------
 
 export async function POST(req: Request) {
-  // v21: live chat is behind its own flag (M8_LIVE_CHAT), off by default.
-  if (!CONFIG.featureFlags.demoLiveChat) {
-    return json(404, { ok: false, error: "Live M8 is off." });
-  }
-
-  // Tester gate first. Same cookie the /demo page validates.
-  if (!(await isTesterAuthed())) {
-    return json(401, { ok: false, error: "Tester access required." });
+  // Kill switch: M8_LIVE_CHAT="false" turns the live chat off.
+  if (!CONFIG.featureFlags.liveChat) {
+    return json(503, { ok: false, error: `M8 is offline right now. Email ${CONFIG.contactEmail}.` });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -150,11 +119,9 @@ export async function POST(req: Request) {
     return json(400, { ok: false, error: "Message list is invalid. Try refreshing." });
   }
 
-  // Dev-visibility log only. See RECORDING / CONSENT NOTE above.
-  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+  // Counts only: never the text, never the IP (C1, now that it's public).
   console.log("[m8-chat] request", {
     timestamp: new Date().toISOString(),
-    ip,
     messageCount: messages.length,
     lastMessageLength: messages[messages.length - 1].content.length,
   });

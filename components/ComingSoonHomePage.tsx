@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { copy } from "@/lib/copy";
 import Footer from "@/components/Footer";
 import { LAUNCH_STATES_LONG } from "@/lib/states";
 import { COMING_SOON_SPONSOR } from "@/lib/config";
@@ -32,7 +33,7 @@ export default function ComingSoonHomePage() {
               className="font-mono text-[10px] tracking-[0.18em] uppercase transition-colors"
               style={{ color: "var(--color-m8-green)" }}
             >
-              <ArrowText text="Preview the demo →" />
+              <ArrowText text={copy.comingSoonHome.tester} />
             </Link>
           </div>
         </header>
@@ -73,22 +74,23 @@ export default function ComingSoonHomePage() {
           </p>
 
           <div className="mt-12 flex flex-col items-center gap-4">
+            {/* C1: the live M8 chat is public; this is the homepage chat entry point. */}
             <Link
-              href="/demo"
+              href="/chat"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-base transition-all"
               style={{
                 background: "var(--color-m8-green)",
                 color: "var(--color-m8-forest)",
               }}
             >
-              Preview the M8 demo
+              {copy.comingSoonHome.chat}
               <span aria-hidden="true" className="cta-arrow">→</span>
             </Link>
             <p
               className="font-mono text-[10px] tracking-[0.15em] uppercase"
               style={{ color: "var(--muted)" }}
             >
-              By invitation · Password required
+              {copy.comingSoonHome.chatNote}
             </p>
           </div>
         </section>

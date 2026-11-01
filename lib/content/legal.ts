@@ -80,8 +80,8 @@ export const privacyContent = {
       },
       {
         label: "Chat and voice",
-        status: flags.chatLiveAi || flags.voice ? "currently on" : "not live",
-        body: "Chat is a scripted demo today and stores nothing. Voice is off. When live chat opens, transcripts may be recorded for compliance review; see Recording below.",
+        status: flags.liveChat || flags.voice ? "currently on" : "not live",
+        body: "Chat is live. What you type is sent to our AI provider to write M8's replies. The conversation is kept in your browser until you choose Start over; we don't store chat transcripts on our servers yet. Voice is off. Once transcripts are stored for compliance review, this section will say so; see Recording below.",
       },
       {
         label: "Email",

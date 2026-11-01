@@ -33,6 +33,9 @@ import { mloRoutingOn } from "@/lib/config";
 const PUBLIC_PATHS = [
   "/",
   "/demo",
+  // C1 (owner 2026-11-01): the live M8 chat is public even in stealth.
+  // Everything else it links to stays gated until launch.
+  "/chat",
   "/robots.txt",
   "/sitemap.xml",
   "/favicon.ico",
@@ -58,6 +61,8 @@ const PUBLIC_PREFIXES = [
   "/fonts/",
   "/audio/",
   "/images/",
+  // C1: loan officer headshots shown on the public chat.
+  "/team/",
 ];
 
 /**

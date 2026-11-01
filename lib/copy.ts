@@ -187,8 +187,6 @@ export const copy = {
     ],
   },
 
-  // v21: the restored scripted demo (/chat, /demo). Its script lives in
-  // lib/demoChat.ts; these are the strings added around it.
   // v24: the phone-only bottom bar on borrower pages (StickyCtaBar).
   stickyCta: {
     label: "Next step",
@@ -197,17 +195,12 @@ export const copy = {
   // v24: designed loading and empty states (no spinners).
   uiStates: {
     loadingPricing: "Loading example pricing",
-    loadingDemo: "Loading the M8 demo",
+    loadingChat: "Loading M8",
     loadingPage: "Loading",
     pricingEmpty: "No pricing to show for this scenario right now.",
     pricingEmptyBody: "Example pricing is dated and switched on per scenario. A licensed loan officer can price your actual situation.",
     chartEmpty: "Nothing to chart yet.",
     chartEmptyBody: "Enter values above and the chart draws itself.",
-  },
-
-  demoChat: {
-    bookCall: "Book a call with a licensed loan officer",
-    notEnoughLenders: "Fewer than three lenders were eligible for this scenario, so no option set is shown.",
   },
 
   // v19 (Round 3, Item 3a): why LoanM8 costs less. A cost-structure
@@ -709,16 +702,66 @@ export const copy = {
   chat: {
     title: "M8 Chat",
     /**
-     * Live M8 opening line (tester preview). v15: the loan officer part
+     * Live M8 opening line (public since C1). v15: the loan officer part
      * swaps with MloContext; a name always travels with its NMLS number.
      */
     liveOpening: {
-      lead: `G'day. ${AI_DISCLOSURE} I'm M8, in a preview build. I can explain how a mortgage works and write up what we discuss. I can't quote a rate here`,
+      lead: `G'day. ${AI_DISCLOSURE} I'm M8. I can explain how a mortgage works and help you get your numbers organized. I won't quote a rate here`,
       generic: ", and a licensed loan officer verifies every deal.",
       named: ", and {name}, a licensed loan officer for {state} (NMLS #{nmls}), verifies every deal.",
       unlicensed: ", and we don't have a licensed loan officer in {state} yet, so I can explain things but can't hand you off there.",
       moved: " Licensing follows the property, so you're matched for {state}, not {ip}.",
       close: " What are you trying to do?",
+    },
+    /** C1: the public live chat at /chat (components/M8LiveChat.tsx). */
+    live: {
+      /** Empty-state prompt chips (owner's list, C1). */
+      chips: [
+        "What can I afford?",
+        "Should I refinance?",
+        "Explain points vs. no points",
+        "Second Look: review my Loan Estimate",
+        "What happens after I apply?",
+      ],
+      chipsLabel: "Try asking",
+      /** Persistent strip under the input (owner's wording, C1). */
+      strip: "M8 is an AI assistant, not a loan officer. A licensed loan officer verifies every recommendation. Not a commitment to lend.",
+      inputPlaceholder: "Ask M8 anything about mortgages…",
+      inputBusy: "M8 is typing…",
+      inputLabel: "Your question for M8",
+      send: "Send to M8",
+      startOver: "Start over",
+      typing: "typing",
+      you: "You",
+      error: "Try sending again, or email {email}.",
+      offline: "M8 is offline right now. Email {email}.",
+      /** The pinned loan officer card. */
+      card: {
+        eyebrow: "Your loan officer",
+        generic: "A licensed loan officer",
+        genericNote: "Tell us where the property is and we'll match you with a licensed loan officer.",
+        unlicensed: "We don't have a licensed loan officer in {state} yet.",
+        nmls: "NMLS #{nmls}",
+        sponsor: "{sponsor} · {label} {id}",
+        talk: "Talk to a loan officer",
+        talkNamed: "Talk to {first}",
+      },
+      /** The "Talk to …" handoff panel (posts to /api/chat-question). */
+      handoff: {
+        title: "Talk to a licensed loan officer",
+        titleNamed: "Talk to {first}",
+        book: "Book a call",
+        or: "or send a question",
+        question: "Your question",
+        email: "Your email (so they can reply)",
+        submit: "Send",
+        sending: "Sending…",
+        sent: "Sent. A licensed loan officer will reply by email.",
+        sentNamed: "Sent to {first}. They'll reply by email.",
+        error: "That didn't send. Email {email} instead.",
+        close: "Close",
+        note: "Never include a Social Security number, date of birth or account number.",
+      },
     },
     gate: {
       eyebrow: "// before we start",
@@ -867,6 +910,13 @@ export const copy = {
     heading: "That page isn't here.",
     body: "The link may be old, or the page hasn't shipped yet.",
     cta: "Back to the homepage",
+  },
+
+  /** C1: the stealth homepage (ComingSoonHomePage). */
+  comingSoonHome: {
+    chat: "Chat with M8",
+    chatNote: "An AI assistant · A licensed loan officer verifies every recommendation",
+    tester: "Tester access →",
   },
 
   comingSoon: {

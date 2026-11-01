@@ -7,28 +7,24 @@ import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import { usStateName } from "@/lib/us-states";
 import { useMloContext, useNamedMlo } from "@/components/mlo/MloContext";
+import MloChatCard from "@/components/chat/MloChatCard";
 
 /**
- * M8LiveChat — the live M8 conversation UI. TESTER PREVIEW ONLY.
+ * M8LiveChat — the live M8 conversation, the public chat at /chat (C1).
  *
- * Rendered on /demo behind the tester password (the "Live M8 (preview)"
- * tab of ChatExperienceWithToggle). Streams responses from /api/m8-chat
- * token-by-token. The public /chat route never renders this while
- * CONFIG.featureFlags.chatLiveAi is false.
+ * Streams responses from /api/m8-chat token-by-token.
  *
- * Behavior:
- *  - Empty state: M8's opening line, which starts with the AI disclosure
- *  - The AI disclosure + recording line (copy.chat.gate.body) sits above
- *    the input at all times
- *  - User types + hits enter -> message appears, streaming reply follows
- *  - Conversation persists in the tester's localStorage between reloads
- *  - "Start over" clears the conversation
- *  - If the API errors, the message is shown in place; retry available
+ * Layout, top to bottom:
+ *  - MloChatCard: the matched loan officer (photo, name, NMLS, sponsor),
+ *    the location line, and "Talk to …"
+ *  - the thread: M8's opening line (it starts with the AI disclosure),
+ *    then the empty-state prompt chips until the first message
+ *  - the AI disclosure + recording line (copy.chat.gate.body)
+ *  - the input
+ *  - the persistent strip (copy.chat.live.strip)
  *
- * Still to do before any public use: transcript persistence with the
- * counsel-confirmed retention, a transcript-on-request path, and an
- * explicit consent record for two-party states. See the RECORDING /
- * CONSENT NOTE in app/api/m8-chat/route.ts.
+ * The conversation stays in this browser's localStorage between reloads;
+ * "Start over" clears it. Nothing is stored server-side yet (C4).
  */
 
 /** M8's opening line; the loan officer part follows MloContext (v15). */
@@ -44,8 +40,15 @@ function useOpening(): string {
   return `${o.lead}${mid}${moved}${o.close}`;
 }
 
-/** Where testers go when the model is unavailable. From config, never typed here. */
+/** Where borrowers go when the model is unavailable. From config, never typed here. */
 const CONTACT = CONFIG.contactEmail;
+const t = copy.chat.live;
+
+/** The route's JSON error message, or a plain fallback (never raw JSON). */
+async function errorText(resp: Response): Promise<string> {
+  const body = (await resp.json().catch(() => null)) as { error?: string } | null;
+  return body?.error ?? t.offline.replace("{email}", CONTACT);
+}
 
 export default function M8LiveChat() {
   const opening = useOpening();
@@ -117,8 +120,7 @@ export default function M8LiveChat() {
         });
 
         if (!resp.ok) {
-          const errText = await resp.text().catch(() => "");
-          throw new Error(errText || `HTTP ${resp.status}`);
+          throw new Error(await errorText(resp));
         }
         if (!resp.body) {
           throw new Error("No response body");
@@ -171,8 +173,7 @@ export default function M8LiveChat() {
         }
         setStreamingText("");
       } catch (err) {
-        console.error("[M8LiveChat] send error", err);
-        const msg =
+                const msg =
           err instanceof Error ? err.message : "Something went wrong.";
         setError(msg);
         // Roll back the user message so they can retry cleanly?
@@ -209,31 +210,7 @@ export default function M8LiveChat() {
   // ─── Render ────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
-      {/* Preview banner */}
-      <div
-        className="px-4 py-2 border-b flex items-center justify-between"
-        style={{
-          borderColor: "var(--rule)",
-          background:
-            "color-mix(in srgb, var(--color-m8-green) 8%, transparent)",
-        }}
-      >
-        <span
-          className="font-mono text-[10px] tracking-[0.15em] uppercase"
-          style={{ color: "var(--color-m8-green)" }}
-        >
-          ● Live M8 · Preview build · Not yet quoting rates
-        </span>
-        {messages.length > 0 && (
-          <button
-            onClick={startOver}
-            className="font-mono text-[10px] tracking-[0.15em] uppercase hover:underline"
-            style={{ color: "var(--muted)" }}
-          >
-            Start over
-          </button>
-        )}
-      </div>
+      <MloChatCard />
 
       {/* Message thread */}
       <div ref={scrollRef} className="chat-center flex-1 overflow-y-auto">
@@ -259,6 +236,16 @@ export default function M8LiveChat() {
           </div>
         )}
 
+        {messages.length === 0 && !streaming && (
+          <div className="m8-chips" role="group" aria-label={t.chipsLabel}>
+            {t.chips.map((c) => (
+              <button key={c} type="button" className="m8-chip" onClick={() => send(c)}>
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+
         {messages.map((msg, i) => (
           <div
             key={i}
@@ -277,7 +264,7 @@ export default function M8LiveChat() {
                   className="font-medium"
                   style={{ color: "var(--fg)" }}
                 >
-                  {msg.role === "user" ? "You" : "M8"}
+                  {msg.role === "user" ? t.you : "M8"}
                 </span>
               </div>
               <p
@@ -302,7 +289,7 @@ export default function M8LiveChat() {
                 >
                   M8
                 </span>
-                <span className="msg-meta--label ml-2">TYPING</span>
+                <span className="msg-meta--label ml-2">{t.typing}</span>
               </div>
               <p
                 className="text-[15px] leading-relaxed whitespace-pre-wrap"
@@ -327,7 +314,8 @@ export default function M8LiveChat() {
                  background: "color-mix(in srgb, #E2746E 8%, transparent)",
                  color: "#E2746E",
                }}>
-            {error}. Try sending again, or email {CONTACT}.
+            {/* Server messages already say where to go; others get the contact line. */}
+            {/email/i.test(error) ? error : `${error.replace(/\.$/, "")}. ${t.error.replace("{email}", CONTACT)}`}
           </div>
         )}
       </div>
@@ -367,16 +355,16 @@ export default function M8LiveChat() {
             onKeyDown={handleKey}
             disabled={streaming}
             placeholder={
-              streaming ? "M8 is typing…" : "Ask M8 anything about mortgages…"
+              streaming ? t.inputBusy : t.inputPlaceholder
             }
             className="flex-1 bg-transparent outline-none text-[15px] placeholder:text-[var(--muted)] disabled:opacity-60"
-            aria-label="Your question for M8"
+            aria-label={t.inputLabel}
           />
 
           <button
             onClick={() => send(input)}
             disabled={!input.trim() || streaming}
-            aria-label="Send to M8"
+            aria-label={t.send}
             className="grid place-items-center w-10 h-10 rounded-lg disabled:opacity-40 transition-opacity"
             style={{
               background: "var(--color-m8-deep)",
@@ -391,6 +379,14 @@ export default function M8LiveChat() {
               </svg>
             )}
           </button>
+        </div>
+        <div className="m8-strip">
+          <p>{t.strip}</p>
+          {messages.length > 0 && (
+            <button type="button" onClick={startOver} className="m8-strip__reset">
+              {t.startOver}
+            </button>
+          )}
         </div>
       </div>
     </div>

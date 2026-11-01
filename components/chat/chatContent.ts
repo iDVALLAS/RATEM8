@@ -35,9 +35,4 @@ export const chatContent = {
     flagNote: "Voice is off by feature flag. Every control here is disabled.",
   },
 
-  /** /demo tester wrapper. */
-  demo: {
-    tabs: { scripted: "Scripted demo", live: "Live M8 (preview)" },
-    testerNote: "Tester preview · password-gated · not public",
-  },
 } as const;

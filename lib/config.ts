@@ -159,7 +159,8 @@ export const CONFIG = {
     bioShort: "[BIO — two or three plain sentences. No years-in-business or volume claims unless verifiable.]",
     nmlsConsumerAccessUrl:
       "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/1844143", // carried over — VERIFY
-    photo: "[PHOTO]",
+    // C1 (owner-supplied headshot, 2026-11-01): 512×512, transparent corners.
+    photo: "/team/jason-shapiro.webp",
     calendly: env("NEXT_PUBLIC_CALENDLY_BORROWER") ?? "",
     applicationUrl: env("APPLICATION_URL_MLO_001") ?? "[APPLICATION URL — POS / 1003 link]",
     licenses: [
@@ -236,30 +237,6 @@ export const CONFIG = {
 
   /** Public license lookup (for generic "verify a license" links). */
   nmlsConsumerAccessHome: "https://www.nmlsconsumeraccess.org/",
-
-  /**
-   * v21: the restored v7 scripted demo (/chat, /demo; lib/demoChat.ts).
-   * The loan officer card's bio line is carried over verbatim from that
-   * demo, keyed by MLO id so it only renders for the MLO it describes.
-   * carried over — VERIFY: "17 years" and "Avg close: 18 days" are claims
-   * that must be accurate before the stealth gate lifts.
-   */
-  demo: {
-    loBio: {
-      "mlo-001": "17 years originating · Avg close: 18 days · Available now · in office",
-    } as Record<string, string>,
-    /** Pronoun the original demo copy used for this MLO (subject, verb "has", "will"). Unlisted MLOs get "they". */
-    /**
-     * v26: true shows the original demo's lender names and logos. If a
-     * lender objects, set false: the demo reverts to "Lender 1 / 2 / 3"
-     * with numbered tiles (owner 2026-10-11: "if we have an issue with
-     * showing them we will revert to numbering them").
-     */
-    namedLenders: true as boolean,
-    loPronoun: {
-      "mlo-001": { subject: "He", has: "has", will: "He'll" },
-    } as Record<string, { subject: string; has: string; will: string }>,
-  },
 
   /**
    * Lender counts (v21, owner 2026-10-10). Copy never states a fixed panel
@@ -358,12 +335,12 @@ export const CONFIG = {
     /** /api/agent/* endpoints. */
     agentApi: true,
     /**
-     * v21: the "Live M8 (preview)" tab on password-gated /demo and the
-     * /api/m8-chat route behind it. OFF unless M8_LIVE_CHAT is exactly
-     * "true" (and ANTHROPIC_API_KEY is set, which stays unset until counsel
-     * signs off the draft prompt).
+     * C1 (owner 2026-11-01, counsel approved): the live M8 chat is the
+     * public chat at /chat, open to everyone. M8_LIVE_CHAT="false" is the
+     * kill switch (no redeploy of code needed, only of the env). It also
+     * needs ANTHROPIC_API_KEY; without it /api/m8-chat fails closed (503).
      */
-    demoLiveChat: env("M8_LIVE_CHAT") === "true",
+    liveChat: env("M8_LIVE_CHAT") !== "false",
   },
 
   /**

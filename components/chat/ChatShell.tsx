@@ -55,8 +55,13 @@ export default function ChatShell({ prep = false }: { prep?: boolean }) {
     <div className="mx-auto max-w-3xl px-4 sm:px-6 m8chat-page">
       <header className="m8chat-head">
         <h1 className="m8chat-head__title">{c.title}</h1>
-        <SampleBadge text={c.demoBadge} />
-        <p className="m8chat-head__note">{c.demoNote}</p>
+        {/* C1: the scripted demo labels show only in demo mode, never on the prep flow. */}
+        {mode === "demo" ? (
+          <>
+            <SampleBadge text={c.demoBadge} />
+            <p className="m8chat-head__note">{c.demoNote}</p>
+          </>
+        ) : null}
       </header>
 
       <section className="m8chat-stage" aria-label="M8">

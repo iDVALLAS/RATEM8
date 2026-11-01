@@ -2610,3 +2610,144 @@ a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(
   color: var(--fg-soft);
 }
 .example-badge::before { content: ""; width: 7px; height: 7px; border-radius: 9999px; border: 1px solid var(--accent); }
+
+/* ─── C1: the public live chat (/chat, M8LiveChat) ───────────────────────
+ * A centred column the height of the viewport under the nav; the footer
+ * (licensing) follows below. The thread scrolls, the card and input stay. */
+.live-chat-main { display: flex; flex-direction: column; }
+.live-chat-frame {
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  /* The nav is 95px on desktop (with the location line) and about 110px
+   * on phones (header plus the location pill), so the input and the
+   * disclosure strip sit inside the first screen. */
+  height: calc(100svh - 96px);
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+}
+.live-chat-frame .chat-center { padding: 20px 24px 32px; }
+.live-chat-frame .chat-input { padding: 14px 24px 10px; }
+@media (max-width: 640px) {
+  .live-chat-frame { height: calc(100svh - 110px); min-height: 480px; }
+  .live-chat-frame .chat-center { padding: 16px 16px 24px; }
+  .live-chat-frame .chat-input { padding: 12px 16px 8px; }
+}
+
+/* Loan officer avatar: the photo, or initials in M8 Green (never a broken image). */
+.mlo-avatar { flex-shrink: 0; object-fit: cover; display: block; }
+.mlo-avatar--initials {
+  display: grid;
+  place-items: center;
+  background: var(--color-m8-green);
+  color: var(--color-m8-forest);
+  font-family: var(--font-jetbrains);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+/* The pinned loan officer card. */
+.mlo-chat-card {
+  border-bottom: 1px solid var(--rule);
+  padding: 12px 24px 10px;
+  background: var(--bg);
+}
+@media (max-width: 640px) { .mlo-chat-card { padding: 10px 16px 8px; } }
+.mlo-chat-card__row { display: flex; align-items: center; gap: 12px; }
+.mlo-chat-card__dot {
+  width: 36px; height: 36px; border-radius: 9999px; flex-shrink: 0;
+  border: 1px dashed var(--rule-strong);
+}
+.mlo-chat-card__who { flex: 1; min-width: 0; }
+.mlo-chat-card__who .mono-label { margin-bottom: 2px; }
+.mlo-chat-card__name { font-size: 15px; font-weight: 500; color: var(--fg); line-height: 1.3; }
+.mlo-chat-card__nmls { font-family: var(--font-jetbrains); font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0.04em; margin-left: 4px; white-space: nowrap; }
+.mlo-chat-card__sponsor { font-size: 12px; color: var(--fg-soft); line-height: 1.35; overflow-wrap: anywhere; }
+.mlo-chat-card__talk {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 200ms ease;
+}
+.mlo-chat-card__talk:hover, .mlo-chat-card__talk[aria-expanded="true"] { background: var(--accent-soft); }
+.mlo-chat-card__panel {
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  background: var(--bg-sunken);
+}
+.mlo-chat-card__panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mlo-chat-card__panel-title { font-weight: 500; color: var(--fg); }
+.mlo-chat-card__close { width: 36px; height: 36px; font-size: 20px; color: var(--muted); border-radius: 8px; }
+.mlo-chat-card__close:hover { color: var(--fg); }
+.mlo-chat-card__form { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.mlo-chat-card__form textarea,
+.mlo-chat-card__form input {
+  width: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+.mlo-chat-card__form textarea:focus, .mlo-chat-card__form input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mlo-chat-card__note { font-size: 12px; color: var(--muted); }
+.mlo-chat-card__submit {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: var(--color-m8-deep);
+  color: var(--color-m8-paper);
+  font-weight: 500;
+}
+.mlo-chat-card__submit:disabled { opacity: 0.5; }
+.mlo-chat-card__sent { margin-top: 8px; color: var(--accent); font-size: 14px; }
+.mlo-chat-card__error { color: #E2746E; font-size: 13px; }
+
+/* Empty-state prompt chips. */
+.m8-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 8px 50px; }
+@media (max-width: 640px) { .m8-chips { padding-left: 0; } }
+.m8-chip {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--rule-strong);
+  color: var(--fg-soft);
+  font-size: 14px;
+  text-align: left;
+  transition: border-color 200ms ease, color 200ms ease;
+}
+.m8-chip:hover, .m8-chip:focus-visible { border-color: var(--accent); color: var(--fg); }
+
+/* The persistent disclosure strip under the input. */
+.m8-strip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.m8-strip__reset {
+  flex-shrink: 0;
+  font-family: var(--font-jetbrains);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.m8-strip__reset:hover { color: var(--fg); text-decoration: underline; }
+/* JetBrains Mono ships 400/500 only; no synthesized bold on the live chat avatars. */
+.live-chat-frame .msg-avatar { font-weight: 500; }
