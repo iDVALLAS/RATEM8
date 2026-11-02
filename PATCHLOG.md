@@ -206,3 +206,77 @@ Loans, and supplied the current SML complaint notice for mortgage companies
 
 ### Next
 C3: the production M8 system prompt.
+
+## C3 — Production M8 system prompt (2026-11-02)
+
+**Owner:** "go C3".
+
+### Changes
+- **`lib/prompts/m8-system.ts`** is rewritten around `M8_SYSTEM_PROMPT`:
+  the brief's prompt, word for word. A test reads the brief file and
+  compares them. The old draft prompt, its DRAFT markers, the
+  roster/section machinery and the prep-fields section are gone.
+  - The brief said `lib/m8.ts`. The prompt stays in `lib/prompts/`
+    because `lib/m8.ts` is imported by the chat UI (a browser bundle), and
+    the brief requires the prompt to be server-only.
+- **`m8PromptVars(route)`** fills the six values per request:
+  - `{{MLO_NAME}}` / `{{MLO_NMLS}}`: the matched loan officer, named only
+    under the existing naming rule (Oregon → Ryder, everyone else → the
+    default MLO). Values come from `config/licensing.ts` via `lib/config.ts`.
+  - `{{SPONSOR}}` / `{{SPONSOR_NMLS}}`: Adcom Group Inc dba Home Trust
+    Financial, 1761573.
+  - `{{STATE}}`: the routed state. The two special cases carry their
+    facts inside this value:
+    - Washington by default: "location couldn't be detected… ask where the
+      property is".
+    - A property in another state from the connection: "licensing follows
+      the property".
+  - `{{PRICING_STATUS}}`: "unavailable… don't quote any rate, APR, points,
+    or rate-based payment" while `liveRatesEnabled` is false. Once the
+    pricing tool exists it says rates come through `get_pricing`.
+  - **Not in the brief:** with no nameable loan officer, the "licensed loan
+    officer is {{MLO_NAME}}, NMLS #{{MLO_NMLS}}" sentence is replaced:
+    - Unlicensed state: "There is no licensed loan officer for Nevada yet…
+      don't offer to hand off".
+    - Routing off: "will be matched with a licensed loan officer".
+
+    Otherwise the prompt would read "NMLS #" with no number.
+  - `buildM8SystemPrompt()` throws if any `{{TOKEN}}` is left unfilled.
+- **`app/api/m8-chat/route.ts`** decodes the visitor's route header and
+  sends the filled prompt. Nothing else is appended.
+- **`lib/m8.ts`** no longer imports the prompt (it did before, through
+  `getM8SystemPrompt`, which nothing used).
+- **`check:bundle`** now also fails if the prompt's text appears in any
+  browser file.
+
+### Verified
+- `npm run verify` passes: lint, copy, identity, licensing, 147 tests,
+  build, and bundle (no prompt text in browser files).
+- **New tests** (`lib/prompts/m8-system.test.ts`; routing and prep tests
+  updated):
+  - The prompt is the brief's, word for word.
+  - All six values are filled for an Oregon visitor.
+  - Pricing is unavailable, so M8 quotes nothing.
+  - No one is named when routing is off or the state is unlicensed.
+  - The owner's hard rules are present.
+  - The default-state and mover cases.
+  - `lib/m8.ts` doesn't import the prompt.
+- **Route smoke test** (local production build, dummy key, Oregon visitor):
+  the prompt built and the request reached the AI API, which rejected the
+  dummy key (401). The borrower saw "M8 hit a snag mid-response. Try
+  again." Nothing broke before the model call.
+
+### Known issues
+- No real model run yet: that needs `ANTHROPIC_API_KEY` in Preview. Once
+  it's set, try the red-team questions on the preview (C4 automates 40+).
+- There is no `get_pricing` tool until C4, and the prompt already treats
+  pricing as unavailable.
+- The model name and max tokens are still constants in `lib/m8.ts`. C4
+  moves the model to an env var and sets max output to 800, per the brief.
+- The Second Look prompt (`lib/prompts/second-look.ts`) is unchanged and
+  still marked DRAFT. It's out of C3's scope.
+
+### Next
+C4: hardening. The tools (`get_pricing` as "unavailable", `request_handoff`),
+the output guard, PII redaction, rate limits, the turn cap, moderation,
+transcript storage, the privacy line, and the red-team suite.

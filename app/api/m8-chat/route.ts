@@ -1,23 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { headers } from "next/headers";
 import { M8_MODEL, M8_MAX_TOKENS } from "@/lib/m8";
-import { buildM8SystemPrompt, m8RoutingFacts } from "@/lib/prompts/m8-system";
+import { buildM8SystemPrompt, m8PromptVars } from "@/lib/prompts/m8-system";
 import { decodeRoute, ROUTE_HEADER } from "@/lib/routing";
-
 import { CONFIG } from "@/lib/config";
 
 /**
- * The M8 prompt plus the visitor's routing facts (server-only). C1: the
- * example pricing summary is no longer appended. The public chat never
- * quotes example rates; rates come only from the pricing tool (C4).
+ * The production M8 prompt (C3) with this visitor's values filled: their
+ * matched loan officer, the sponsor, their state, and the pricing status.
+ * Server-only. Rates come only from the pricing tool (C4), never from here.
  */
 async function systemPrompt(): Promise<string> {
-  // v15: with MLO_ROUTING on, the visitor's route (resolved in middleware)
-  // names the matched MLO only, and tells M8 about the mover case.
-  const routing = CONFIG.pricing.mloRouting ? m8RoutingFacts(decodeRoute((await headers()).get(ROUTE_HEADER))) : { overrides: {}, section: "" };
-  const parts = [buildM8SystemPrompt(routing.overrides)];
-  if (routing.section) parts.push(routing.section);
-  return parts.join("\n\n");
+  const route = CONFIG.pricing.mloRouting ? decodeRoute((await headers()).get(ROUTE_HEADER)) : null;
+  return buildM8SystemPrompt(m8PromptVars(route));
 }
 
 /**
@@ -26,9 +21,8 @@ async function systemPrompt(): Promise<string> {
  * Streams a response from the Claude API back to the browser as
  * Server-Sent Events. The only client is components/M8LiveChat.tsx.
  *
- * SYSTEM PROMPT: lib/prompts/m8-system.ts, built from lib/config.ts facts
- * by systemPrompt(); nothing is hardcoded here. C3 replaces it with the
- * production prompt.
+ * SYSTEM PROMPT: lib/prompts/m8-system.ts (C3, the owner's production
+ * prompt), filled per request by systemPrompt(); nothing is hardcoded here.
  *
  * GATES: open to everyone since C1 (owner 2026-11-01). The kill switch is
  * M8_LIVE_CHAT="false". Fails closed when ANTHROPIC_API_KEY is unset.

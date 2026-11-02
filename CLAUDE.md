@@ -118,7 +118,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 141 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 147 vitest tests, production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -429,10 +429,11 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 - **Admin:** `/mlo/setup`, `/mlo/pricing`; HTTP Basic auth in
   `middleware.ts` (`MLO_ADMIN_USER` / `MLO_ADMIN_PASSWORD`, 404 when unset)
   plus `lib/mlo/auth.ts` inside every server action.
-- **M8:** may cite example figures only as dated examples; the summary is
-  appended server-side in `app/api/m8-chat/route.ts`, never in `lib/m8.ts`
-  (a client component imports that file). Since v19, M8 may never compare
-  any rate with a survey, index or benchmark.
+- **M8:** since C1 no example pricing reaches the prompt. Since C3 the
+  prompt allows rates only from a `get_pricing` tool result (C4). While
+  `liveRatesEnabled` is false, `{{PRICING_STATUS}}` says pricing is
+  unavailable, so M8 quotes nothing. The prompt never goes in `lib/m8.ts`
+  (a client component imports that file).
 - **Savings copy (v19, live):** `copy.savings`.
   - "Less overhead. Lower costs." band at the bottom of the How it works
     sheet.
@@ -541,9 +542,19 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   - `CONFIG.demo.namedLenders = false` reverts the demo to "Lender 1/2/3".
   - The demo's option rows follow the card width (`@container ratecard`,
     600px).
-- **M8:** `m8RoutingFacts()` in `lib/prompts/m8-system.ts` names only the
-  matched MLO and tells M8 about the mover case. The live opening line
-  swaps the same way.
+- **M8 prompt (C3):** `lib/prompts/m8-system.ts` holds the owner's
+  production prompt, verbatim from the brief (a test compares it to
+  `LoanM8_Launch_Live_M8_Chat.md`).
+  - Server-only: only `/api/m8-chat` imports it, and `check:bundle` fails
+    if its text reaches a browser file.
+  - `m8PromptVars(route)` fills `{{MLO_NAME}}`, `{{MLO_NMLS}}`,
+    `{{SPONSOR}}`, `{{SPONSOR_NMLS}}`, `{{STATE}}` and `{{PRICING_STATUS}}`
+    per request.
+  - It names only a nameable match. The default-state and mover cases
+    ride in `{{STATE}}`.
+  - With no nameable MLO (unlicensed state, routing off), the "licensed
+    loan officer is …" sentence is replaced by an honest one.
+  - The live opening line swaps the same way.
 - `/disclosures` lists every MLO with their NMLS number and licensed
   states (the register).
 
