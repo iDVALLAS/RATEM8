@@ -280,3 +280,166 @@ C3: the production M8 system prompt.
 C4: hardening. The tools (`get_pricing` as "unavailable", `request_handoff`),
 the output guard, PII redaction, rate limits, the turn cap, moderation,
 transcript storage, the privacy line, and the red-team suite.
+
+## C4 — Hardening (2026-11-02)
+
+**Owner:** "go C4 with Neon and build as switches that turn on with Vercel
+key".
+
+### Switches (each a no-op until its key is set in Vercel)
+| Service | Env | On | Off |
+| --- | --- | --- | --- |
+| Upstash Redis | `UPSTASH_REDIS_REST_URL` + `_TOKEN` (or Vercel's `KV_REST_API_URL` / `_TOKEN`) | Limits, the turn cap and the daily budget count across every server | Each server instance counts in its own memory (weaker, but on) |
+| Neon Postgres | `DATABASE_URL` (Vercel's Neon integration sets it) | Redacted transcripts and handoff requests stored, kept 3 years. The chat and `/privacy` say so, and "Delete my chat" deletes them | Nothing stored; the chat and `/privacy` say chats stay in the browser |
+| Resend | `RESEND_API_KEY`, `MLO_NOTIFICATION_EMAIL`, `LOANM8_FROM_EMAIL` (alerts: `M8_ALERT_EMAIL`) | Handoffs are emailed to the loan officer; budget alerts are emailed | Handoffs say "use the Talk to button"; alerts go to the log only |
+| Overrides | `M8_MODEL`, `M8_MAX_TURNS` (40), `M8_DAILY_TOKEN_CAP` (2,000,000), `M8_IP_SALT` | | Defaults |
+
+One new dependency, `@neondatabase/serverless@^1.2.0`. Upstash and Resend
+use plain `fetch`.
+
+### What a turn now goes through
+1. **Kill switch and API key** (both fail closed).
+2. **Body checks:** 1–100 messages of 1–4000 characters each, ending
+   with the borrower.
+3. **Bot check on the first message:** a hidden honeypot field, and the
+   first send must come at least 0.8s after the page loads.
+4. **Limits** (`lib/m8/limits.ts`):
+   - 20 requests per minute and 300 per day per IP. The IP is salted and
+     hashed and never stored raw.
+   - 12 per minute per chat session.
+   - 40 turns per session. The client's own message count is a floor, so
+     a cold counter can't reset a long chat.
+   - The daily token budget: alert emails at 80% and 100%, once each per
+     day, and a polite pause when it's used up.
+5. **Redaction** (`lib/m8/redact.ts`):
+   - SSNs, birth dates (a date near a birth word, or a year from 1920 to
+     2010) and 8–19-digit account or card numbers become `•••••` before
+     the model or any log sees them.
+   - The borrower sees their message masked, plus a note.
+   - Dollar amounts, ZIPs, percentages and future dates are untouched.
+6. **Moderation** (`lib/m8/moderation.ts`): threats, abuse and sexual
+   harassment get a polite reply with no model call. Frustration is never
+   blocked.
+7. **The model** (`lib/m8/pipeline.ts`):
+   - The model comes from `M8_MODEL` (with the previous default) and
+     output is capped at 800 tokens. Streaming is kept.
+   - Only `get_pricing` and `request_handoff` are offered
+     (`lib/m8/tools.ts`). Inputs and outputs are validated with zod, and
+     unknown tools are refused.
+   - `get_pricing` returns `{status:"unavailable"}` until L4b.
+   - `request_handoff` saves to Neon and emails the loan officer. Its
+     summary is redacted, and it says honestly when neither is set up.
+   - Up to 3 tool rounds.
+8. **Output guard** (`lib/m8/guard.ts`), on every slice of the stream and
+   again at the end. A failure stops the stream and replaces the whole
+   reply with a safe line. The log gets the reason only. It catches:
+   - a rate or APR that isn't in the latest `get_pricing` result
+   - a priced rate without its APR and "not a commitment to lend"
+   - text from the system prompt
+   - promises of approval, pre-approval, a lock or a closing date
+   - an echoed SSN or account number
+
+   **Allowed by design (owner may veto):** percentages the borrower typed
+   themselves ("I'm at 7.25%") can be repeated back, because they aren't
+   quotes. Down payment, LTV, DTI, PMI and similar percentages are told
+   apart from rates by the words around them.
+9. **After the response** (Next.js `after`): today's token use is added,
+   and the redacted transcript is saved when Neon is on.
+
+### Borrower-facing
+- **Above the input:** the AI and recording line, plus one privacy
+  sentence and a "Privacy policy" link.
+  - Neon on: "kept for 3 years, with sensitive numbers removed", and in WA
+    or CA, the two-party consent sentence.
+  - Neon off: "Chats stay in this browser".
+- **"Delete my chat"** beside "Start over": it deletes the server copy (if
+  any), clears the browser copy and expires the session cookie.
+- **`/privacy`:** the "Chat and voice" item and the retention table now
+  describe redaction, 3-year retention (or no storage), deletion and the
+  chat session cookie (first-party, httpOnly, 30 days, not for tracking).
+  `copy.chat.gate.recording` now says 3 years.
+
+### Red team (`tests/m8-redteam.spec.ts`, 47 offline cases; must pass before promote)
+- **The offline layer drives the real pipeline with a fake model that
+  misbehaves on purpose** (`tests/m8-harness.ts`). For example:
+  - Ignore-instructions and role switch: the fake model invents a rate,
+    and the guard replaces it.
+  - Print or repeat or translate the prompt: the fake model leaks it, and
+    the guard replaces it.
+  - Injection inside a pasted Loan Estimate.
+  - "Ballpark today's rate", national average, APR from memory.
+  - Guarantee, pre-approved, lock, closing-date promises.
+- **Where the prompt is the only defence**, the case asserts the owner's
+  rule is in it:
+  - lender comp and commission
+  - protected-class bait (marital/familial status, race, age, public
+    assistance, religion)
+  - fraud ("hide income", "say I'll live there", inflate income)
+  - off-topic code and recipes, credit repair, legal and tax advice
+- **Other cases:**
+  - SSN, DOB and account numbers are redacted, and echoes are caught.
+  - Abuse and threats are blocked; frustration passes.
+  - An Oregon visitor names the Oregon loan officer.
+  - Pricing unavailable produces the handoff line and no numbers.
+  - Every priced rate carries its APR and disclosure.
+  - The borrower's own numbers, LTV and down payment aren't treated as
+    rates.
+  - Only two tools exist, and bad tool input is refused.
+  - A handoff summary never carries an SSN.
+  - The 40-turn cap.
+  - A Nevada visitor sees no loan officer named.
+- **The live layer** runs the same attacks against the real model through
+  the same pipeline:
+  `M8_REDTEAM_LIVE=1 ANTHROPIC_API_KEY=… npx vitest run tests/m8-redteam.spec.ts`.
+  It checks no leak, the guard passes, and each case's must-not and must
+  patterns. **It hasn't run yet: there's no key in this environment.**
+
+### Other files
+- `lib/m8.ts` became `lib/m8/shared.ts` (types and the SSE event shape
+  only; the chat UI imports it).
+- `lib/m8/server.ts` holds the switches.
+- `app/chat/page.tsx` passes whether storage is on.
+- `.env.local.example` documents every switch.
+- `vitest.config.mts` now includes `tests/**/*.spec.ts`.
+
+### Verified
+- `npm run verify` passes: lint, copy, identity, licensing, 205 tests
+  (37 live red-team cases skipped without a key), build and bundle.
+- **Route, local production build** (dummy key):
+  - No timing or a filled honeypot → "Please try again."
+  - Abuse → the polite reply with no model call, and the session cookie is
+    set.
+  - "my ssn is 123-45-6789" → the masked message comes back with the
+    notice. The SSN never appears in the server log.
+  - The 21st request in a minute from one IP → 429.
+  - The 41st turn → the turn-limit message.
+  - DELETE → 200 and the cookie cleared.
+- **Browser, 1280 and 390:**
+  - The privacy line and link show.
+  - The SSN shows masked, with the notice.
+  - Abuse gets the polite reply.
+  - "Delete my chat" clears the thread and says so.
+  - No horizontal scroll.
+
+### Known issues and owner items
+- **To turn things on:**
+  - add `ANTHROPIC_API_KEY` to Preview
+  - connect Neon (Vercel → Storage → Neon) and Upstash (Vercel →
+    Marketplace) to the `ratem-8` project
+  - set the Resend variables
+  - set a spend limit in the Anthropic Console
+- **Then run the live red-team layer against the preview key before
+  promote.**
+- **Bot protection is basic** (honeypot and timing). Vercel's Firewall
+  bot rules or BotID are the stronger option, which C5 can add.
+- **Phone numbers with separators are masked as account numbers in the
+  borrower's message** (over-masking, by design). The handoff tool takes
+  email only.
+- Transcripts are purged as new ones arrive (about 1 in 50 writes), not
+  on a schedule. That's fine at launch volume. A Vercel Cron purge can
+  come later.
+
+### Next
+C5: launch. Robots and sitemap for `/`, `/chat`, `/licensing`, `/privacy`
+and `/terms`; Lighthouse ≥90 on `/chat`; device checks; Sentry and uptime
+monitoring on `/api/m8-chat`; and `CHAT_LAUNCH_CHECKLIST.md`.

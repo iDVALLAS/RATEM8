@@ -9,6 +9,7 @@
  * pre-launch placeholders listed in PLACEHOLDERS.md.
  */
 
+import { RETENTION as CHAT_RETENTION, storageOn } from "@/lib/m8/store";
 import { CONFIG, STATES, stateByCode, AI_DISCLOSURE, CALC_DISCLAIMER, type StateCode } from "@/lib/config";
 import { copy } from "@/lib/copy";
 
@@ -81,7 +82,10 @@ export const privacyContent = {
       {
         label: "Chat and voice",
         status: flags.liveChat || flags.voice ? "currently on" : "not live",
-        body: "Chat is live. What you type is sent to our AI provider to write M8's replies. The conversation is kept in your browser until you choose Start over; we don't store chat transcripts on our servers yet. Voice is off. Once transcripts are stored for compliance review, this section will say so; see Recording below.",
+        // C4: says whether transcripts are stored, from the server's configuration.
+        body: storageOn()
+          ? `Chat is live. What you type is sent to our AI provider to write M8's replies. Before anything is sent or stored, we remove what looks like a Social Security number, date of birth or account number. We keep the conversation, with those removed, for ${CHAT_RETENTION} for compliance review, then delete it; "Delete my chat" under the chat deletes it at once. A first-party cookie holds a random chat session ID (30 days) so we can limit misuse and find your chat to delete it; it isn't used for tracking or advertising. Voice is off. See Recording below.`
+          : "Chat is live. What you type is sent to our AI provider to write M8's replies. Before anything is sent, we remove what looks like a Social Security number, date of birth or account number. The conversation is kept in your browser until you choose Start over or Delete my chat; we don't store chat transcripts on our servers. A first-party cookie holds a random chat session ID (30 days) so we can limit misuse; it isn't used for tracking or advertising. Voice is off.",
       },
       {
         label: "Email",
@@ -126,7 +130,7 @@ export const privacyContent = {
       { label: "Analytics", value: "Aggregate only; held by Vercel under its retention policy." },
       { label: "Booking details", value: "Held by Calendly under its policy; our copy kept for the life of the relationship." },
       { label: "Second Look uploads", value: CONFIG.secondLookRetention },
-      { label: "Chat transcripts", value: CONFIG.secondLookRetention },
+      { label: "Chat transcripts", value: storageOn() ? `${CHAT_RETENTION}, with sensitive numbers removed; delete any time with "Delete my chat"` : "Not stored on our servers" },
       { label: "Email", value: "[RETENTION — confirm with counsel]" },
     ],
     counselNote: "Set each retention period. Mortgage record-keeping rules may set minimums.",

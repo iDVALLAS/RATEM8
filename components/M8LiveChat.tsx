@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { M8Message } from "@/lib/m8";
-import { M8_SESSION_KEY } from "@/lib/m8";
+import Link from "next/link";
+import type { M8Event, M8Message } from "@/lib/m8/shared";
+import { M8_SESSION_KEY } from "@/lib/m8/shared";
 import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import { usStateName } from "@/lib/us-states";
@@ -19,12 +20,20 @@ import MloChatCard from "@/components/chat/MloChatCard";
  *    the location line, and "Talk to …"
  *  - the thread: M8's opening line (it starts with the AI disclosure),
  *    then the empty-state prompt chips until the first message
- *  - the AI disclosure + recording line (copy.chat.gate.body)
- *  - the input
- *  - the persistent strip (copy.chat.live.strip)
+ *  - the AI disclosure + recording line (copy.chat.gate.body), the privacy
+ *    line (stored for 3 years or not stored, from the server) with the
+ *    two-party consent note in WA and CA, and the privacy policy link
+ *  - the input (plus a hidden honeypot for the first-message bot check)
+ *  - the persistent strip (copy.chat.live.strip), "Start over" and
+ *    "Delete my chat"
  *
- * The conversation stays in this browser's localStorage between reloads;
- * "Start over" clears it. Nothing is stored server-side yet (C4).
+ * C4 stream events (lib/m8/shared.ts): `text` appends, `replace` swaps the
+ * whole reply (the output guard), `userText` replaces the borrower's last
+ * message with its redacted form, and `notice` shows a note.
+ *
+ * The conversation also stays in this browser's localStorage between
+ * reloads; "Start over" clears it, "Delete my chat" clears it and the
+ * server copy.
  */
 
 /** M8's opening line; the loan officer part follows MloContext (v15). */
@@ -50,8 +59,16 @@ async function errorText(resp: Response): Promise<string> {
   return body?.error ?? t.offline.replace("{email}", CONTACT);
 }
 
-export default function M8LiveChat() {
+/** When the page loaded, for the first-message bot check (a person can't send instantly). */
+const loadedAt = typeof performance !== "undefined" ? performance.now() : 0;
+
+export default function M8LiveChat({ storageOn, retention }: { storageOn: boolean; retention: string }) {
   const opening = useOpening();
+  const ctx = useMloContext();
+  const twoPartyState = CONFIG.states.find((s) => s.code === ctx.stateCode && s.twoPartyConsent)?.name ?? null;
+  const [notice, setNotice] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
+  const [deleteState, setDeleteState] = useState<"idle" | "deleting" | "deleted" | "failed">("idle");
   const [messages, setMessages] = useState<M8Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -97,6 +114,8 @@ export default function M8LiveChat() {
       if (!text.trim() || streaming) return;
 
       setError(null);
+      setNotice(null);
+      setDeleteState("idle");
       setStreamingText("");
 
       const nextMessages: M8Message[] = [
@@ -115,7 +134,7 @@ export default function M8LiveChat() {
         const resp = await fetch("/api/m8-chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: nextMessages }),
+          body: JSON.stringify({ messages: nextMessages, hp: honeypot, t: Math.round(performance.now() - loadedAt) }),
           signal: controller.signal,
         });
 
@@ -144,12 +163,19 @@ export default function M8LiveChat() {
             const payload = event.slice(6).trim();
             if (payload === "[DONE]") continue;
             try {
-              const parsed = JSON.parse(payload) as {
-                text?: string;
-                error?: string;
-              };
+              const parsed = JSON.parse(payload) as M8Event;
               if (parsed.error) {
                 throw new Error(parsed.error);
+              }
+              if (parsed.userText !== undefined) {
+                // Show the borrower's message as it was kept: sensitive numbers removed.
+                const masked = parsed.userText;
+                setMessages((m) => m.map((x, i) => (i === m.length - 1 && x.role === "user" ? { ...x, content: masked } : x)));
+              }
+              if (parsed.notice) setNotice(parsed.notice);
+              if (parsed.replace !== undefined) {
+                accumulated = parsed.replace;
+                setStreamingText(accumulated);
               }
               if (parsed.text) {
                 accumulated += parsed.text;
@@ -184,7 +210,7 @@ export default function M8LiveChat() {
         abortRef.current = null;
       }
     },
-    [messages, streaming]
+    [messages, streaming, honeypot]
   );
 
   const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -199,11 +225,25 @@ export default function M8LiveChat() {
     setMessages([]);
     setStreamingText("");
     setError(null);
+    setNotice(null);
     setInput("");
     try {
       window.localStorage.removeItem(M8_SESSION_KEY);
     } catch {
       // ignore
+    }
+  };
+
+  /** "Delete my chat": the server copy (when stored) and this browser's copy. */
+  const deleteChat = async () => {
+    setDeleteState("deleting");
+    try {
+      const res = await fetch("/api/m8-chat", { method: "DELETE" });
+      if (!res.ok) throw new Error("delete failed");
+      startOver();
+      setDeleteState("deleted");
+    } catch {
+      setDeleteState("failed");
     }
   };
 
@@ -307,6 +347,18 @@ export default function M8LiveChat() {
           </div>
         )}
 
+        {notice && (
+          <p className="m8-notice" role="status">
+            {notice}
+          </p>
+        )}
+
+        {deleteState === "deleted" && (
+          <p className="m8-notice" role="status">
+            {t.deleted}
+          </p>
+        )}
+
         {error && (
           <div className="mt-4 rounded-md border px-4 py-3 text-sm"
                style={{
@@ -325,7 +377,12 @@ export default function M8LiveChat() {
         className="px-4 pt-3 text-xs leading-relaxed"
         style={{ color: "var(--muted)" }}
       >
-        {copy.chat.gate.body}
+        {copy.chat.gate.body} {storageOn ? t.privacyStored.replace("{retention}", retention) : t.privacyNotStored}
+        {/* Two-party consent (WA, CA): only when chats are actually stored. */}
+        {storageOn && twoPartyState ? ` ${t.twoParty.replace("{state}", twoPartyState)}` : ""}{" "}
+        <Link href="/privacy" className="underline hover:no-underline">
+          {t.privacyLink}
+        </Link>
       </p>
 
       {/* Input bar */}
@@ -380,14 +437,35 @@ export default function M8LiveChat() {
             )}
           </button>
         </div>
+        {/* Honeypot: hidden from people and assistive tech; bots that fill every field give themselves away. */}
+        <input
+          type="text"
+          name="website"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="m8-hp"
+        />
         <div className="m8-strip">
           <p>{t.strip}</p>
-          {messages.length > 0 && (
-            <button type="button" onClick={startOver} className="m8-strip__reset">
-              {t.startOver}
+          <span className="m8-strip__actions">
+            {messages.length > 0 && (
+              <button type="button" onClick={startOver} className="m8-strip__reset">
+                {t.startOver}
+              </button>
+            )}
+            <button type="button" onClick={deleteChat} className="m8-strip__reset" disabled={deleteState === "deleting"}>
+              {deleteState === "deleting" ? t.deleting : t.deleteChat}
             </button>
-          )}
+          </span>
         </div>
+        {deleteState === "failed" && (
+          <p className="m8-strip" role="alert">
+            {t.deleteFailed.replace("{email}", CONTACT)}
+          </p>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import M8LiveChat from "@/components/M8LiveChat";
 import PageShell from "@/components/PageShell";
 import ChatShell from "@/components/chat/ChatShell";
 import { copy } from "@/lib/copy";
+import { RETENTION, storageOn } from "@/lib/m8/store";
 
 export const metadata = {
   title: "M8 Chat — LoanM8",
@@ -36,7 +37,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
     <PageShell mainClassName="live-chat-main">
       <h1 className="sr-only">{copy.chat.title}</h1>
       <div className="live-chat-frame">
-        <M8LiveChat />
+        <M8LiveChat storageOn={storageOn()} retention={RETENTION} />
       </div>
     </PageShell>
   );

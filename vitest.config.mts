@@ -7,7 +7,7 @@ export default defineConfig({
     alias: { "@": new URL(".", import.meta.url).pathname },
   },
   test: {
-    include: ["lib/**/*.test.ts", "app/**/*.test.ts", "components/**/*.test.tsx"],
+    include: ["lib/**/*.test.ts", "app/**/*.test.ts", "components/**/*.test.tsx", "tests/**/*.spec.ts"],
     environment: "node",
   },
 });

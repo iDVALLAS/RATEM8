@@ -2751,3 +2751,21 @@ a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(
 .m8-strip__reset:hover { color: var(--fg); text-decoration: underline; }
 /* JetBrains Mono ships 400/500 only; no synthesized bold on the live chat avatars. */
 .live-chat-frame .msg-avatar { font-weight: 500; }
+
+/* C4: notices in the thread, the honeypot, and the strip's actions. */
+.m8-notice {
+  margin: 8px 0 0 50px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--rule-strong);
+  background: var(--bg-sunken);
+  color: var(--fg-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+@media (max-width: 640px) { .m8-notice { margin-left: 0; } }
+.m8-hp { position: absolute; left: -10000px; width: 1px; height: 1px; opacity: 0; }
+.m8-strip__actions { display: flex; gap: 14px; flex-shrink: 0; }
+@media (max-width: 640px) {
+  .m8-strip { flex-direction: column; gap: 6px; }
+}

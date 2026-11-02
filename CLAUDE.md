@@ -18,6 +18,30 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
   `app/api/second-look` call `@anthropic-ai/sdk`.
   - Since C1 the live chat at `/chat` is **public** (even in stealth). It
     needs `ANTHROPIC_API_KEY`; `M8_LIVE_CHAT="false"` is its kill switch.
+  - **C4 hardening** (`lib/m8/*`, `app/api/m8-chat/route.ts`):
+    - SSN, date-of-birth and account-number redaction before the model and
+      any log.
+    - Abuse blocked with no model call.
+    - Only two tools: `get_pricing` (unavailable until L4b) and
+      `request_handoff`, both zod-validated.
+    - An output guard: no rate outside a pricing result, a rate needs its
+      APR and the not-a-commitment line, and no prompt leaks, promises or
+      echoed numbers.
+    - Limits: 20 requests per minute and 300 per day per hashed IP, 12 per
+      minute per session, 40 turns per session, and a daily token budget
+      with email alerts.
+    - Bot check on the first message (honeypot and timing).
+    - Redacted transcripts kept 3 years, and "Delete my chat".
+  - **Every service is a switch that turns on with its Vercel key and is a
+    no-op without it:**
+    - Upstash Redis (`UPSTASH_REDIS_REST_URL`/`TOKEN` or `KV_REST_API_*`):
+      the limits. Without it, each instance counts in its own memory.
+    - Neon (`DATABASE_URL`): transcripts and handoffs. Without it nothing
+      is stored, and the chat and `/privacy` say so.
+    - Resend: handoffs and alerts.
+  - Red team: `tests/m8-redteam.spec.ts` (47 offline cases always; the
+    live layer with `M8_REDTEAM_LIVE=1` and a key) must pass before
+    promote.
   - Second Look still needs `SECOND_LOOK_LIVE`.
   - The owner reported counsel approval of everything on 2026-10-31.
   - **Launch series:** C1–C5 (`LoanM8_Launch_Live_M8_Chat.md`), then
@@ -118,7 +142,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 147 vitest tests, production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 205 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -596,7 +620,7 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 | Agent surface | `app/api/agent/*`, `lib/agent-api.ts`, `app/ai/*`, `app/llms.txt/*`, `AGENTS.md` |
 | Compliance docs | `COMPLIANCE.md`, `ATTORNEY_REVIEW_LIST.md`, `PLACEHOLDERS.md`, `docs/BUILD_CONTRACT.md`, `docs/SITE_BRIEF.md`, `docs/TYPOGRAPHY_GUIDE.md` |
 | Verification | `scripts/check-copy.mjs`, `scripts/qa/*.mjs`, `lib/*.test.ts`, `lib/second-look/*.test.ts` |
-| Live chat and design system | `components/M8LiveChat.tsx`, `components/chat/MloChatCard.tsx`, `components/mlo/MloAvatar.tsx`, `app/api/m8-chat/route.ts`, `app/api/chat-question/route.ts`, `components/ExamplePricingLabel.tsx`, `lib/lenders.ts`, `components/LenderMark.tsx`, `components/StateChip.tsx`, `lib/state-colors.ts`, `components/ui/*`, `lib/contrast.ts`, `app/design/*`, `lib/content/design.ts` |
+| Live chat and design system | `lib/m8/*` (shared types, server switches, redact, moderation, guard, tools, limits, kv, store, alerts, pipeline), `tests/m8-redteam.spec.ts`, `tests/m8-harness.ts`, `components/M8LiveChat.tsx`, `components/chat/MloChatCard.tsx`, `components/mlo/MloAvatar.tsx`, `app/api/m8-chat/route.ts`, `app/api/chat-question/route.ts`, `components/ExamplePricingLabel.tsx`, `lib/lenders.ts`, `components/LenderMark.tsx`, `components/StateChip.tsx`, `lib/state-colors.ts`, `components/ui/*`, `lib/contrast.ts`, `app/design/*`, `lib/content/design.ts` |
 | Pricing | `lib/pricing/*` (types, apr, build, antiSteering, anonymize, canonical, display, lenders, tenants, playbook, store, publish, summary, benchmark, providers/mock, providers/manual), `fixtures/pricing/examples.v1.json`, `components/pricing/*` (incl. `RateVsAverage.tsx`), `lib/content/rate-vs-average.ts`, `app/rates/page.tsx` |
 | MLO admin | `app/mlo/*` (setup, pricing, actions, MloChrome, mlo.css), `lib/mlo/auth.ts`, `lib/mlo/flash.ts`, `lib/content/mlo.ts` |
 | Patch log | `LoanM8_Project_Handoff_README.md` |
@@ -605,7 +629,9 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 
 No dependency was added in v12 through v24. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
-`zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`.
+`zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`,
+`@neondatabase/serverless ^1.2.0` (C4, owner-approved Neon). Upstash and
+Resend are called over HTTP with `fetch`, so they need no library.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,
 `typescript ^5`, `eslint ^9.17`, `eslint-config-next ^15.1`,
 `vitest ^5.0.2`, `@types/*`. There is **no** animation library

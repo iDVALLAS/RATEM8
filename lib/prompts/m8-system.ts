@@ -5,7 +5,7 @@
 // owner on 2026-10-31.
 //
 // SERVER-ONLY. Only app/api/m8-chat/route.ts imports this file. It must
-// never be imported by a client component or by lib/m8.ts (which the chat
+// never be imported by a client component or by lib/m8/shared.ts (which the chat
 // UI imports). `npm run check:bundle` fails if the prompt's text reaches a
 // browser file.
 //

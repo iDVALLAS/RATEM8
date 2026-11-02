@@ -735,6 +735,29 @@ export const copy = {
       you: "You",
       error: "Try sending again, or email {email}.",
       offline: "M8 is offline right now. Email {email}.",
+      /** C4: replies the output guard puts in place of a blocked one. {name} = the loan officer or "a licensed loan officer". */
+      guard: {
+        rate: "I can't quote a rate right now. {name} can send you live pricing.",
+        promise: "Only your licensed loan officer can approve a loan, lock a rate or set a closing date. {name} can walk you through it.",
+        promptLeak: "I can't share that. I'm here to help with your home loan. What are you working on?",
+        sensitive: "For your security I won't repeat account or Social Security numbers here. {name}'s secure application handles those.",
+      },
+      /** C4: abusive or harassing input gets this, with no model call. */
+      moderation: "I'm here to help with home loans, and I'll keep things respectful. If something's gone wrong, tell me what you need, or use the Talk to button to reach a licensed loan officer.",
+      redactedNotice: "We removed what looked like a Social Security number, date of birth or account number before M8 saw it. Never share those here; your loan officer's secure application handles them.",
+      rateLimited: "You're sending messages faster than M8 can keep up. Give it a minute and try again.",
+      turnLimit: "This chat has reached its limit. Start over for a fresh chat, or use the Talk to button to reach a licensed loan officer.",
+      dailyCap: "M8 is taking a break for today. Use the Talk to button to reach a licensed loan officer, or come back tomorrow.",
+      botBlocked: "Please try again.",
+      /** C4: the one-line privacy notice above the input. */
+      privacyStored: "Chats are kept for {retention}, with sensitive numbers removed, for compliance review.",
+      privacyNotStored: "Chats stay in this browser; we don't store them on our servers yet.",
+      twoParty: "In {state}, continuing means you consent to this chat being recorded.",
+      privacyLink: "Privacy policy",
+      deleteChat: "Delete my chat",
+      deleting: "Deleting…",
+      deleted: "Your chat was deleted.",
+      deleteFailed: "That didn't delete. Email {email} and we'll remove it.",
       /** The pinned loan officer card. */
       card: {
         eyebrow: "Your loan officer",
@@ -766,7 +789,7 @@ export const copy = {
     gate: {
       eyebrow: "// before we start",
       body: "I'm M8, an AI, not a person. A licensed loan officer verifies every deal. This chat may be recorded for compliance; ask for a transcript any time. It is not a credit pull.",
-      recording: "Recording and transcript: conversations may be stored for compliance review. You can request a transcript or deletion at any time. Retention period: [RETENTION — confirm with counsel].",
+      recording: "Recording and transcript: conversations may be stored for compliance review. You can request a transcript or deletion at any time. Retention period: 3 years.",
       twoParty: "If you are in a two-party consent state, continuing means you consent to the recording described above.",
       cta: "Continue",
       back: "Not now",

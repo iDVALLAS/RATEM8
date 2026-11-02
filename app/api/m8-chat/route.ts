@@ -1,180 +1,199 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { headers } from "next/headers";
-import { M8_MODEL, M8_MAX_TOKENS } from "@/lib/m8";
+import { cookies, headers } from "next/headers";
+import { after } from "next/server";
 import { buildM8SystemPrompt, m8PromptVars } from "@/lib/prompts/m8-system";
 import { decodeRoute, ROUTE_HEADER } from "@/lib/routing";
+import { nameableMlo, type MloContextValue } from "@/lib/mlo-match";
 import { CONFIG } from "@/lib/config";
+import { copy } from "@/lib/copy";
+import { M8_MAX_TOKENS, m8Model } from "@/lib/m8/server";
+import { prepareTurn, runM8Turn } from "@/lib/m8/pipeline";
+import { checkRateLimit, countTurn, hashIp, recordUsage, underDailyBudget } from "@/lib/m8/limits";
+import { deleteSession, saveTranscript } from "@/lib/m8/store";
+import type { M8Event, M8Message } from "@/lib/m8/shared";
 
 /**
- * The production M8 prompt (C3) with this visitor's values filled: their
- * matched loan officer, the sponsor, their state, and the pricing status.
- * Server-only. Rates come only from the pricing tool (C4), never from here.
- */
-async function systemPrompt(): Promise<string> {
-  const route = CONFIG.pricing.mloRouting ? decodeRoute((await headers()).get(ROUTE_HEADER)) : null;
-  return buildM8SystemPrompt(m8PromptVars(route));
-}
-
-/**
- * POST /api/m8-chat — the live M8 endpoint behind the public /chat (C1).
+ * /api/m8-chat — the live M8 endpoint behind the public /chat (C1, hardened in C4).
  *
- * Streams a response from the Claude API back to the browser as
- * Server-Sent Events. The only client is components/M8LiveChat.tsx.
+ * POST: one turn, streamed back as Server-Sent Events (lib/m8/shared.ts M8Event).
+ *  1. Kill switch (M8_LIVE_CHAT="false") and the API key; both fail closed.
+ *  2. Body checks: 1–100 messages, each 1–4000 characters, ending with the
+ *     borrower; the honeypot is empty; the first message isn't instant.
+ *  3. Limits (lib/m8/limits.ts): per-IP (hashed) and per-session rates,
+ *     40 turns per session, the daily token budget.
+ *  4. lib/m8/pipeline.ts: redact SSN/DOB/account numbers, block abuse, stream
+ *     the model with only get_pricing and request_handoff, and guard every
+ *     slice of the reply.
+ *  5. After the response: save the redacted transcript (Neon, 3 years) and
+ *     add the tokens to today's budget.
  *
- * SYSTEM PROMPT: lib/prompts/m8-system.ts (C3, the owner's production
- * prompt), filled per request by systemPrompt(); nothing is hardcoded here.
+ * DELETE: "Delete my chat". Removes this session's transcript and handoffs.
  *
- * GATES: open to everyone since C1 (owner 2026-11-01). The kill switch is
- * M8_LIVE_CHAT="false". Fails closed when ANTHROPIC_API_KEY is unset.
- * C4 adds rate limits, the turn cap, the output guard, PII redaction,
- * moderation and transcript storage (3-year retention).
- *
- * RECORDING: the UI shows the AI disclosure and the recording notice
- * (copy.chat.gate.body) above the input. This route does not store
- * transcripts yet (C4); it logs a timestamp and message counts only.
- *
- * REQUEST:  { messages: [{ role: "user" | "assistant", content }] }
- *           The client sends the full history each time; the model is stateless.
- * RESPONSE: SSE. `data: {"text": "..."}` chunks, `data: [DONE]` at the end,
- *           `data: {"error": "..."}` on failure.
- *
- * HYGIENE: rejects empty lists, >100 messages, messages >4000 chars,
- * and lists that do not end with a user turn.
+ * SYSTEM PROMPT: lib/prompts/m8-system.ts (C3), filled per request; never
+ * sent to the browser. Logs carry counts and reasons only, never text or IPs.
  */
 
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
+const SESSION_COOKIE = "lm8_chat_sid";
+const NOTICE_VERSION = "c4-2026-11-02";
+const FIRST_MESSAGE_MIN_MS = 800;
 
-type RequestBody = {
-  messages?: ChatMessage[];
-};
+type Body = { messages?: unknown; hp?: unknown; t?: unknown };
 
-// --------- Validation helpers ---------
-
-function isValidMessage(m: unknown): m is ChatMessage {
+function isValidMessage(m: unknown): m is M8Message {
   if (!m || typeof m !== "object") return false;
   const msg = m as Record<string, unknown>;
-  return (
-    (msg.role === "user" || msg.role === "assistant") &&
-    typeof msg.content === "string" &&
-    msg.content.length > 0 &&
-    msg.content.length <= 4000
-  );
+  return (msg.role === "user" || msg.role === "assistant") && typeof msg.content === "string" && msg.content.length > 0 && msg.content.length <= 4000;
 }
 
-function validateMessages(input: unknown): ChatMessage[] | null {
-  if (!Array.isArray(input)) return null;
-  if (input.length === 0 || input.length > 100) return null;
+function validateMessages(input: unknown): M8Message[] | null {
+  if (!Array.isArray(input) || input.length === 0 || input.length > 100) return null;
   if (!input.every(isValidMessage)) return null;
-  // Must end with a user message (otherwise there's nothing to answer)
-  const last = input[input.length - 1];
-  if (last.role !== "user") return null;
-  return input as ChatMessage[];
+  return input[input.length - 1].role === "user" ? (input as M8Message[]) : null;
 }
 
-function json(status: number, body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+function json(status: number, body: Record<string, unknown>, cookie?: string): Response {
+  const h = new Headers({ "Content-Type": "application/json" });
+  if (cookie) h.append("Set-Cookie", cookie);
+  return new Response(JSON.stringify(body), { status, headers: h });
 }
 
-// --------- Route handler ---------
+function sessionCookie(sid: string, secure: boolean): string {
+  return `${SESSION_COOKIE}=${sid}; Path=/; Max-Age=${30 * 86_400}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
+}
+
+async function visitorRoute(): Promise<MloContextValue | null> {
+  return CONFIG.pricing.mloRouting ? decodeRoute((await headers()).get(ROUTE_HEADER)) : null;
+}
 
 export async function POST(req: Request) {
-  // Kill switch: M8_LIVE_CHAT="false" turns the live chat off.
   if (!CONFIG.featureFlags.liveChat) {
-    return json(503, { ok: false, error: `M8 is offline right now. Email ${CONFIG.contactEmail}.` });
+    return json(503, { ok: false, error: copy.chat.live.offline.replace("{email}", CONFIG.contactEmail) });
   }
-
   const apiKey = process.env.ANTHROPIC_API_KEY;
-
-  // Fail closed. If the key isn't set, don't accidentally run.
   if (!apiKey) {
     console.error("[m8-chat] ANTHROPIC_API_KEY not set");
-    return json(503, {
-      ok: false,
-      error: `M8 is temporarily unavailable. Email ${CONFIG.contactEmail}.`,
-    });
+    return json(503, { ok: false, error: `M8 is temporarily unavailable. Email ${CONFIG.contactEmail}.` });
   }
 
-  // Parse and validate body
-  let body: RequestBody;
+  let body: Body;
   try {
-    body = (await req.json()) as RequestBody;
+    body = (await req.json()) as Body;
   } catch {
     return json(400, { ok: false, error: "Bad request" });
   }
-
   const messages = validateMessages(body.messages);
-  if (!messages) {
-    return json(400, { ok: false, error: "Message list is invalid. Try refreshing." });
+  if (!messages) return json(400, { ok: false, error: "Message list is invalid. Try refreshing." });
+
+  // Session: a random id in a first-party, httpOnly cookie (rate limits, turn cap, transcript, delete).
+  const jar = await cookies();
+  const existing = jar.get(SESSION_COOKIE)?.value;
+  const sid = existing && /^[0-9a-f-]{36}$/.test(existing) ? existing : crypto.randomUUID();
+  const secure = new URL(req.url).protocol === "https:";
+  const setCookie = existing === sid ? undefined : sessionCookie(sid, secure);
+
+  // Bot protection on the first message: a filled honeypot, or a send faster than a person can.
+  const firstMessage = messages.filter((m) => m.role === "user").length === 1;
+  if ((typeof body.hp === "string" && body.hp.length > 0) || (firstMessage && !(typeof body.t === "number" && body.t >= FIRST_MESSAGE_MIN_MS))) {
+    console.warn("[m8-chat] blocked: bot check");
+    return json(400, { ok: false, error: copy.chat.live.botBlocked }, setCookie);
   }
 
-  // Counts only: never the text, never the IP (C1, now that it's public).
-  console.log("[m8-chat] request", {
-    timestamp: new Date().toISOString(),
-    messageCount: messages.length,
-    lastMessageLength: messages[messages.length - 1].content.length,
-  });
+  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+  const ipHash = await hashIp(ip);
+  if (!(await checkRateLimit(ipHash, sid)).ok) {
+    console.warn("[m8-chat] blocked: rate limit");
+    return json(429, { ok: false, error: copy.chat.live.rateLimited }, setCookie);
+  }
+  if (!(await underDailyBudget())) {
+    console.warn("[m8-chat] blocked: daily budget");
+    return json(503, { ok: false, error: copy.chat.live.dailyCap }, setCookie);
+  }
 
-  // --------- Stream from the Claude API ---------
+  const turn = prepareTurn(messages);
+  const turns = await countTurn(sid, turn.userTurns);
+  if (!turns.ok) {
+    console.warn("[m8-chat] blocked: turn cap");
+    return json(429, { ok: false, error: copy.chat.live.turnLimit }, setCookie);
+  }
 
-  const client = new Anthropic({ apiKey });
-  const system = await systemPrompt();
+  const route = await visitorRoute();
+  const vars = m8PromptVars(route);
+  const mlo = route ? nameableMlo(route) : null;
+  const stateCode = route?.stateCode ?? null;
+  const twoParty = !!CONFIG.states.find((s) => s.code === stateCode)?.twoPartyConsent;
+  console.log("[m8-chat] request", { messageCount: messages.length, userTurns: turn.userTurns, redacted: turn.redacted.length > 0 });
 
   const encoder = new TextEncoder();
+  const respHeaders = new Headers({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  if (setCookie) respHeaders.append("Set-Cookie", setCookie);
+
+  // After the response: the budget and the transcript. `after` must be
+  // registered during the request, so it waits on the stream's outcome.
+  let finish: (r: { reply: string; tokens: number }) => void = () => {};
+  const finished = new Promise<{ reply: string; tokens: number }>((resolve) => (finish = resolve));
+  after(async () => {
+    const { reply, tokens } = await finished;
+    await recordUsage(tokens);
+    if (reply) {
+      await saveTranscript(sid, [...turn.messages, { role: "assistant", content: reply }], {
+        state: stateCode,
+        mloId: mlo?.id ?? null,
+        noticeVersion: NOTICE_VERSION,
+        twoPartyState: twoParty,
+      });
+    }
+  });
+
   const stream = new ReadableStream({
     async start(controller) {
+      const emit = (e: M8Event) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`));
+      let reply = "";
+      let tokens = 0;
       try {
-        const claudeStream = client.messages.stream({
-          model: M8_MODEL,
-          max_tokens: M8_MAX_TOKENS,
-          system,
-          messages,
-        });
-
-        // Forward each text delta to the client as an SSE event
-        claudeStream.on("text", (text: string) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-        });
-
-        // Signal completion
-        claudeStream.on("finalMessage", () => {
-          controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
-          controller.close();
-        });
-
-        claudeStream.on("error", (err: unknown) => {
-          console.error("[m8-chat] stream error", err);
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: "M8 hit a snag mid-response. Try again." })}\n\n`)
-          );
-          controller.close();
-        });
-
-        // Await the underlying promise so errors propagate cleanly
-        await claudeStream.finalMessage();
+        if (turn.redacted.length) emit({ userText: turn.lastUserText, notice: copy.chat.live.redactedNotice });
+        if (turn.abusive) {
+          console.warn("[m8-chat] moderation: abusive input");
+          reply = copy.chat.live.moderation;
+          emit({ text: reply });
+        } else {
+          const result = await runM8Turn({
+            client: new Anthropic({ apiKey }),
+            model: m8Model(),
+            maxTokens: M8_MAX_TOKENS,
+            system: buildM8SystemPrompt(vars),
+            turn,
+            tools: { sessionId: sid, mloId: mlo?.id ?? null, mloName: mlo?.name ?? null, state: route?.stateName ?? null },
+            mloName: vars.mloName,
+            emit,
+          });
+          reply = result.reply;
+          tokens = result.tokens;
+        }
+        controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
       } catch (err) {
-        console.error("[m8-chat] handler error", err);
-        controller.enqueue(
-          encoder.encode(
-            `data: ${JSON.stringify({ error: "M8 couldn't reach the model. Try again in a moment." })}\n\n`
-          )
-        );
+        console.error("[m8-chat] model error", err instanceof Error ? err.message : "unknown");
+        emit({ error: "M8 couldn't reach the model. Try again in a moment." });
+      } finally {
         controller.close();
+        finish({ reply, tokens });
       }
     },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no", // prevent nginx/proxies from buffering
-    },
-  });
+  return new Response(stream, { headers: respHeaders });
+}
+
+/** "Delete my chat": deletes this session's stored transcript and handoff requests. */
+export async function DELETE() {
+  const jar = await cookies();
+  const sid = jar.get(SESSION_COOKIE)?.value;
+  if (sid && /^[0-9a-f-]{36}$/.test(sid)) await deleteSession(sid);
+  console.log("[m8-chat] delete requested");
+  // Expire the cookie so the next chat starts a new session.
+  return json(200, { ok: true }, `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`);
 }

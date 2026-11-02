@@ -55,7 +55,7 @@ describe("M8 production prompt (C3)", () => {
 });
 
 describe("the prompt stays on the server (C3)", () => {
-  it("lib/m8.ts (imported by the chat UI) does not import it", () => {
-    expect(readFileSync(join(process.cwd(), "lib", "m8.ts"), "utf8")).not.toMatch(/from ["'][^"']*prompts\/m8-system/);
+  it("lib/m8/shared.ts (imported by the chat UI) does not import it", () => {
+    expect(readFileSync(join(process.cwd(), "lib", "m8", "shared.ts"), "utf8")).not.toMatch(/from ["'][^"']*prompts\/m8-system/);
   });
 });
