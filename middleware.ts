@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { CHOICE_COOKIE, PROPERTY_COOKIE, ROUTE_HEADER, encodeRoute, resolveRoute } from "@/lib/routing";
 import { mloRoutingOn } from "@/lib/config";
+import { isStealthPublic } from "@/lib/public-paths";
 
 /**
  * LoanM8 stealth-launch middleware — v9.1 (cookie-aware version).
@@ -29,44 +30,6 @@ import { mloRoutingOn } from "@/lib/config";
  *  - If demo cookie is present, let the request through to ANY page
  *  - Anonymous behavior is identical to v9
  */
-
-const PUBLIC_PATHS = [
-  "/",
-  "/demo",
-  // C1 (owner 2026-11-01): the live M8 chat is public even in stealth.
-  // Everything else it links to stays gated until launch.
-  "/chat",
-  "/robots.txt",
-  "/sitemap.xml",
-  "/favicon.ico",
-  "/favicon.png",
-  // AI-agent readiness + legally required pages. These stay reachable
-  // even in stealth: crawlers, assistants, and regulators need them.
-  "/llms.txt",
-  "/ai",
-  "/ai.md",
-  "/principles.md",
-  "/calculators/methodology.md",
-  "/disclosures",
-  "/privacy",
-  "/terms",
-  // C2: licensing and the Texas complaint notice are legally required.
-  "/licensing",
-  "/licensing/texas",
-];
-
-const PUBLIC_PREFIXES = [
-  "/demo/",
-  "/api/",
-  "/api/agent/",
-  "/states/",
-  "/_next/",
-  "/fonts/",
-  "/audio/",
-  "/images/",
-  // C1: loan officer headshots shown on the public chat.
-  "/team/",
-];
 
 /**
  * v15 (Patch B): state-based MLO routing, resolved here once per request
@@ -96,9 +59,9 @@ function passThrough(request: NextRequest): NextResponse {
   return NextResponse.next({ request: { headers: routedHeaders(request) } });
 }
 
+/** C5: one list (lib/public-paths.ts) shared with robots.txt and sitemap.xml. */
 function isPublic(pathname: string): boolean {
-  if (PUBLIC_PATHS.includes(pathname)) return true;
-  return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return isStealthPublic(pathname);
 }
 
 /** Length-independent string comparison (edge runtime has no timingSafeEqual). */

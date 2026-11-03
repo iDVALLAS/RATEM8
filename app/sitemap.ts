@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
 import type { MetadataRoute } from "next";
 import { ROUTES, absoluteUrl } from "@/lib/site";
+import { STEALTH_PUBLIC_PAGES, stealthOn } from "@/lib/public-paths";
 
 /**
  * sitemap.xml — every route in the registry (lib/site.ts) plus the
@@ -42,8 +44,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ];
 
+  // C5: in stealth, list only what anonymous visitors can actually reach.
+  const reachable = (url: string) => {
+    if (!stealthOn()) return true;
+    const path = new URL(url).pathname;
+    return (STEALTH_PUBLIC_PAGES as readonly string[]).includes(path) || path.startsWith("/states/");
+  };
   const seen = new Set<string>();
   return [...registry, ...tools].filter((e) => {
+    if (!reachable(e.url)) return false;
     if (seen.has(e.url)) return false;
     seen.add(e.url);
     return true;

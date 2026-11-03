@@ -11,6 +11,7 @@ import { prepareTurn, runM8Turn } from "@/lib/m8/pipeline";
 import { checkRateLimit, countTurn, hashIp, recordUsage, underDailyBudget } from "@/lib/m8/limits";
 import { deleteSession, saveTranscript } from "@/lib/m8/store";
 import type { M8Event, M8Message } from "@/lib/m8/shared";
+import { report } from "@/lib/monitoring";
 
 /**
  * /api/m8-chat — the live M8 endpoint behind the public /chat (C1, hardened in C4).
@@ -134,10 +135,14 @@ export async function POST(req: Request) {
 
   // After the response: the budget and the transcript. `after` must be
   // registered during the request, so it waits on the stream's outcome.
-  let finish: (r: { reply: string; tokens: number }) => void = () => {};
-  const finished = new Promise<{ reply: string; tokens: number }>((resolve) => (finish = resolve));
+  type Outcome = { reply: string; tokens: number; guard: string | null; error: unknown };
+  let finish: (r: Outcome) => void = () => {};
+  const finished = new Promise<Outcome>((resolve) => (finish = resolve));
   after(async () => {
-    const { reply, tokens } = await finished;
+    const { reply, tokens, guard, error } = await finished;
+    // C5: Sentry (when SENTRY_DSN is set). Reasons and error names only, never text.
+    if (error) await report("error", error, { route: "m8-chat", stage: "model" });
+    if (guard) await report("warning", new Error(`guard replaced a reply: ${guard}`), { route: "m8-chat", guard });
     await recordUsage(tokens);
     if (reply) {
       await saveTranscript(sid, [...turn.messages, { role: "assistant", content: reply }], {
@@ -154,6 +159,8 @@ export async function POST(req: Request) {
       const emit = (e: M8Event) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`));
       let reply = "";
       let tokens = 0;
+      let guard: string | null = null;
+      let error: unknown = null;
       try {
         if (turn.redacted.length) emit({ userText: turn.lastUserText, notice: copy.chat.live.redactedNotice });
         if (turn.abusive) {
@@ -173,14 +180,16 @@ export async function POST(req: Request) {
           });
           reply = result.reply;
           tokens = result.tokens;
+          guard = result.guard;
         }
         controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
       } catch (err) {
+        error = err;
         console.error("[m8-chat] model error", err instanceof Error ? err.message : "unknown");
         emit({ error: "M8 couldn't reach the model. Try again in a moment." });
       } finally {
         controller.close();
-        finish({ reply, tokens });
+        finish({ reply, tokens, guard, error });
       }
     },
   });

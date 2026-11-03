@@ -5,11 +5,13 @@
  * only. Alerts never contain chat text.
  */
 import { alertEmail, emailConfig } from "./server";
+import { report } from "@/lib/monitoring";
 
 export async function sendAlert(subject: string, body: string): Promise<void> {
   const cfg = emailConfig();
   const to = alertEmail();
   console.error(`[m8-alert] ${subject}`);
+  await report("warning", new Error(subject), { route: "m8-chat", stage: "budget" });
   if (!cfg || !to) return;
   try {
     await fetch("https://api.resend.com/emails", {

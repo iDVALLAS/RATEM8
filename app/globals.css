@@ -2769,3 +2769,10 @@ a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(
 @media (max-width: 640px) {
   .m8-strip { flex-direction: column; gap: 6px; }
 }
+
+/* C5: links inside the footer's licensing text are underlined, not colour-only (AA, link-in-text-block). */
+.footer-licensing a { text-decoration: underline; text-underline-offset: 2px; }
+/* C5: iOS Safari zooms into inputs under 16px; keep phone inputs at 16px. */
+@media (max-width: 640px) {
+  .mlo-chat-card__form textarea, .mlo-chat-card__form input { font-size: 16px; }
+}

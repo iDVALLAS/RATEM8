@@ -414,7 +414,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
             placeholder={
               streaming ? t.inputBusy : t.inputPlaceholder
             }
-            className="flex-1 bg-transparent outline-none text-[15px] placeholder:text-[var(--muted)] disabled:opacity-60"
+            className="flex-1 bg-transparent outline-none text-[16px] sm:text-[15px] placeholder:text-[var(--muted)] disabled:opacity-60"
             aria-label={t.inputLabel}
           />
 

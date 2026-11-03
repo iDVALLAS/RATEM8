@@ -5,6 +5,10 @@ import { checkLicensing } from "./scripts/check-licensing.mjs";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // C5: put <title> and the meta description in <head> for every visitor,
+  // not streamed into the body for dynamic pages like /chat (crawlers and
+  // Lighthouse read <head>).
+  htmlLimitedBots: /.*/,
   // /mlo/pricing uploads the source screenshot or PDF (max 5 MB) with each
   // manual snapshot. Server actions default to a 1 MB body.
   experimental: { serverActions: { bodySizeLimit: "6mb" } },

@@ -17,6 +17,7 @@
 import { neon } from "@neondatabase/serverless";
 import { databaseUrl } from "./server";
 import type { M8Message } from "./shared";
+import { report } from "@/lib/monitoring";
 
 export const RETENTION = "3 years";
 
@@ -84,8 +85,9 @@ export async function saveTranscript(sessionId: string, messages: M8Message[], m
     // Retention: purge expired rows now and then (about 1 write in 50).
     if (Math.random() < 0.02) await purgeExpired(sql);
     return true;
-  } catch {
+  } catch (e) {
     console.error("[m8-store] transcript save failed");
+    await report("error", e, { route: "m8-chat", stage: "store" });
     return false;
   }
 }
@@ -103,8 +105,9 @@ export async function deleteSession(sessionId: string): Promise<boolean> {
     await sql.query(`DELETE FROM m8_transcripts WHERE session_id = $1`, [sessionId]);
     await sql.query(`DELETE FROM m8_handoffs WHERE session_id = $1`, [sessionId]);
     return true;
-  } catch {
+  } catch (e) {
     console.error("[m8-store] delete failed");
+    await report("error", e, { route: "m8-chat", stage: "store" });
     return false;
   }
 }
@@ -121,8 +124,9 @@ export async function saveHandoff(h: HandoffRecord): Promise<boolean> {
       [h.sessionId, h.mloId, h.state, h.reason, h.summary, h.email],
     );
     return true;
-  } catch {
+  } catch (e) {
     console.error("[m8-store] handoff save failed");
+    await report("error", e, { route: "m8-chat", stage: "store" });
     return false;
   }
 }

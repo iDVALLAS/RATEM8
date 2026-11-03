@@ -135,6 +135,8 @@ export function Nav() {
         ref={sheetRef}
         className={`nav-sheet ${open ? "nav-sheet--open" : ""}`}
         aria-hidden={!open}
+        // C5: inert while closed, so its links can't take focus behind aria-hidden.
+        inert={!open}
         style={navH ? { top: navH } : undefined}
         onClick={(e) => {
           // Any link closes the menu, including same-page links (/#about),
