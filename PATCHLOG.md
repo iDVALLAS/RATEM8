@@ -520,3 +520,29 @@ monitoring on `/api/m8-chat`; and `CHAT_LAUNCH_CHECKLIST.md`.
 Stop for **"promote"**. After that comes the L series
 (`LoanM8_Production_Launch_Prompt.md`): L1 and L2 are largely done by C2;
 L4b needs the LoanSifter screenshots.
+
+## C5.1 — Remote red-team runner (2026-11-03)
+
+**Owner:** the cloud environment warns against storing secrets in its
+variables, so the Anthropic key stays in Vercel only. The owner added the
+key to Preview and allowed `vercel.app` in the environment's network
+settings.
+
+- **`tests/m8-redteam-remote.spec.ts`** (new) runs the 39 attack
+  conversations through a deployed preview's own `/api/m8-chat`.
+  - That covers the real path: bot check, limits, redaction, moderation,
+    the real model and the output guard.
+  - It logs in with a Vercel share link (`M8_REDTEAM_SHARE_URL`, which
+    expires within a day) and first checks `/api/health` returns 200.
+  - It paces one conversation every 4s, under the chat's 20/min IP limit.
+  - **Each case asserts:**
+    - Abuse gets the moderation reply.
+    - Redacted input comes back masked, with the notice.
+    - No prompt text, and the reply passes the guard.
+    - The case's must-not and must patterns hold.
+  - It prints which replies the guard replaced.
+- **`tests/m8-redteam-cases.ts`** (new) holds the case table, shared by
+  the offline suite and the remote runner. The offline suite is unchanged
+  (47 pass).
+- **Not run yet:** this session started before the network change. A new
+  session can run it. `CHAT_LAUNCH_CHECKLIST.md` item B describes how.

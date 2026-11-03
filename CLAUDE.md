@@ -39,9 +39,16 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     - Neon (`DATABASE_URL`): transcripts and handoffs. Without it nothing
       is stored, and the chat and `/privacy` say so.
     - Resend: handoffs and alerts.
-  - Red team: `tests/m8-redteam.spec.ts` (47 offline cases always; the
-    live layer with `M8_REDTEAM_LIVE=1` and a key) must pass before
-    promote.
+  - Red team: `tests/m8-redteam.spec.ts` (47 offline cases always) and
+    the remote runner `tests/m8-redteam-remote.spec.ts`, which must pass
+    before promote.
+    - The remote runner sends the cases in `tests/m8-redteam-cases.ts`
+      to a deployed preview's chat.
+    - It needs `M8_REDTEAM_SHARE_URL`, a Vercel share link from
+      `get_access_to_vercel_url`, and `vercel.app` allowed in the
+      environment.
+    - The Anthropic key stays in Vercel; don't put it in the cloud
+      environment.
   - **C5 monitoring and indexing:**
     - `/api/health` is the uptime target (503 when the chat can't answer;
       `?deep=1` with `HEALTH_CHECK_TOKEN` checks the key and model).
