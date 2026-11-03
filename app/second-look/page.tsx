@@ -20,7 +20,7 @@ import { CONFIG } from "@/lib/config";
  */
 
 export const metadata: Metadata = {
-  title: "Second Look — LoanM8",
+  title: "Second Look",
   description: copy.secondLook.sub,
 };
 

@@ -4,7 +4,7 @@ import DemoPasswordGate from "@/components/DemoPasswordGate";
 import { CONFIG } from "@/lib/config";
 
 export const metadata = {
-  title: "Tester access — LoanM8",
+  title: "Tester access",
   description: "Tester access to the pre-launch site. By invitation only.",
   robots: { index: false, follow: false },
 };

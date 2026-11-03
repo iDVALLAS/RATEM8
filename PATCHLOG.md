@@ -443,3 +443,80 @@ use plain `fetch`.
 C5: launch. Robots and sitemap for `/`, `/chat`, `/licensing`, `/privacy`
 and `/terms`; Lighthouse ≥90 on `/chat`; device checks; Sentry and uptime
 monitoring on `/api/m8-chat`; and `CHAT_LAUNCH_CHECKLIST.md`.
+
+## C5 — Launch prep for the live chat (2026-11-03)
+
+**Owner:** "go C5". It stops here for "promote".
+
+### Changes
+- **One public-pages list** (`lib/public-paths.ts`): `middleware.ts`,
+  `app/robots.ts` and `app/sitemap.ts` all use it, so they can't disagree.
+  - In stealth, robots allows `/`, `/chat`, `/licensing`,
+    `/licensing/texas`, `/disclosures`, `/privacy`, `/terms`, `/ai`,
+    `/states/`, `/llms.txt` and `/team/`, and disallows the rest.
+  - The sitemap lists only reachable pages; when live, it lists
+    everything.
+  - `/chat` is indexable, with a canonical URL.
+- **`/api/health`** (new), the uptime target:
+  - 200 when the chat is on and has its key, 503 otherwise.
+  - `?deep=1` with `HEALTH_CHECK_TOKEN` also looks the model up (no
+    tokens used) and lists which switches are on, as true/false only.
+- **Sentry** (`lib/monitoring.ts`), on with `SENTRY_DSN`:
+  - Sends events to Sentry's envelope endpoint with `fetch`. No SDK and
+    no new dependency.
+  - Reports chat model errors, guard replacements (as warnings, with the
+    reason), storage failures and budget alerts.
+  - Messages are scrubbed of URLs (connection strings), emails, keys and
+    long numbers. Never chat text.
+  - 2-second timeout; it never throws.
+- **Lighthouse fixes:**
+  - Metadata goes in `<head>` for every visitor (`htmlLimitedBots`), so
+    the meta description audit passes on dynamic pages.
+  - The closed mobile menu is `inert`.
+  - Links in the footer's licensing text are underlined.
+- **iOS:** phone inputs are 16px, so Safari doesn't zoom on focus (the
+  chat input and the "Talk to" form).
+- **Page titles** no longer double the "— LoanM8" suffix.
+- **`CHAT_LAUNCH_CHECKLIST.md`** (new): what ships, preview checks,
+  owner actions before promote, promote steps and known limits.
+- **`.env.local.example`:** `SENTRY_DSN` and `HEALTH_CHECK_TOKEN`.
+- **Tests:** `lib/launch.test.ts` (10 new): DSN parsing, the no-op without
+  a DSN, the envelope, scrubbing, the public-pages list, robots and the
+  sitemap in both modes, and the health responses.
+
+### Verified
+- `npm run verify` passes (215 tests; 37 live red-team cases skipped
+  without a key).
+- **Lighthouse, mobile, local production build (warm):**
+
+  | Page | Performance | Accessibility | Best practices | SEO |
+  | --- | --- | --- | --- | --- |
+  | `/chat` | 97 | 100 | 96 | 100 |
+  | `/licensing` | 98 | 100 | 96 | 100 |
+  | `/privacy` | 94 | 100 | 96 | 100 |
+
+  - Best practices is 96 only because of a local-only console error: the
+    stealth redirect of the analytics script, which Vercel serves itself.
+  - The first cold run of `/chat` scored 55 (2s of simulated blocking
+    time). It didn't reproduce warm, or with real CPU throttling (99).
+- **Emulated devices** (iPhone 13, iPhone SE, Pixel 7, Galaxy S9+,
+  desktop): no horizontal scroll, the input and strip are on the first
+  screen, a chip sends, and no page errors. Real Safari can't run here;
+  that's an owner check.
+- **Preview** (via Vercel): see the checklist's section 2. `/chat`,
+  robots, sitemap, gating and `/api/health` all checked. Health is 503
+  until the preview has its key, which is correct.
+
+### Owner items before promote
+`CHAT_LAUNCH_CHECKLIST.md` section 3:
+- the API key in Preview
+- **the live red-team run**
+- real iPhone and Android checks
+- Upstash, Neon, Resend, Sentry, the health token and an uptime monitor
+- the Anthropic spend limit
+- the contact email
+
+### Next
+Stop for **"promote"**. After that comes the L series
+(`LoanM8_Production_Launch_Prompt.md`): L1 and L2 are largely done by C2;
+L4b needs the LoanSifter screenshots.

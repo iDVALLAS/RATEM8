@@ -42,6 +42,14 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
   - Red team: `tests/m8-redteam.spec.ts` (47 offline cases always; the
     live layer with `M8_REDTEAM_LIVE=1` and a key) must pass before
     promote.
+  - **C5 monitoring and indexing:**
+    - `/api/health` is the uptime target (503 when the chat can't answer;
+      `?deep=1` with `HEALTH_CHECK_TOKEN` checks the key and model).
+    - Sentry is on with `SENTRY_DSN` (`lib/monitoring.ts`, over plain
+      HTTP with no SDK; reasons and scrubbed messages only).
+    - `lib/public-paths.ts` is the single list of stealth-public pages
+      that middleware, robots.txt and sitemap.xml all use.
+    - The launch checklist is `CHAT_LAUNCH_CHECKLIST.md`.
   - Second Look still needs `SECOND_LOOK_LIVE`.
   - The owner reported counsel approval of everything on 2026-10-31.
   - **Launch series:** C1–C5 (`LoanM8_Launch_Live_M8_Chat.md`), then
@@ -58,10 +66,12 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
   `MLO_ROUTING` on, two functional first-party cookies hold the
   borrower's stated property state and chosen loan officer (§4c).
 - **Stealth:** while `NEXT_PUBLIC_STEALTH_MODE` is anything but
-  `"false"`, anonymous visitors get the coming-soon page. Legally and
-  machine-required routes stay public (`/ai`, `/llms.txt`,
-  `/disclosures`, `/privacy`, `/terms`, `/states/*`, `/api/agent/*`,
-  robots, sitemap). See `middleware.ts`.
+  `"false"`, anonymous visitors get the coming-soon page.
+  - Public anyway: `/chat`, `/licensing`, `/licensing/texas`, `/ai`,
+    `/llms.txt`, `/disclosures`, `/privacy`, `/terms`, `/states/*`,
+    `/api/*`, robots and sitemap.
+  - The single list is `lib/public-paths.ts` (C5), used by
+    `middleware.ts`, robots and the sitemap.
 
 ## 2. Brand rules
 
@@ -142,7 +152,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 205 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 215 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

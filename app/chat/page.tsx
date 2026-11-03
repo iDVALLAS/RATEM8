@@ -5,7 +5,7 @@ import { copy } from "@/lib/copy";
 import { RETENTION, storageOn } from "@/lib/m8/store";
 
 export const metadata = {
-  title: "M8 Chat — LoanM8",
+  title: "M8 Chat",
   description:
     "Ask M8, an AI built for mortgages, how a loan works, what you can afford or what your Loan Estimate means. A licensed loan officer verifies every recommendation.",
   alternates: { canonical: "/chat" },

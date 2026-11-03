@@ -14,7 +14,7 @@ import { licensing as lic } from "@/lib/content/licensing";
 const t = lic.texas;
 
 export const metadata: Metadata = {
-  title: `${t.title} — LoanM8`,
+  title: t.title,
   description: t.description,
 };
 

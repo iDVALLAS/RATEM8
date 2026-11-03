@@ -16,7 +16,7 @@ import { licensing as lic, LICENSE_ORDER } from "@/lib/content/licensing";
 const t = lic.page;
 
 export const metadata: Metadata = {
-  title: `${t.title} — LoanM8`,
+  title: t.title,
   description: t.description,
 };
 
