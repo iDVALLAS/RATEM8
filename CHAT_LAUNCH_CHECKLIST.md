@@ -51,8 +51,8 @@ for. Nothing goes to production until the owner says **"promote"**.
 
 | # | Action | Where | Status |
 | --- | --- | --- | --- |
-| A | Add `ANTHROPIC_API_KEY` to **Preview** (it's in Production only), then redeploy the preview | Vercel → ratem-8 → Environments → Preview → Environment Variables | 👤 |
-| B | **Run the live red team against the deployed preview** (`tests/m8-redteam-remote.spec.ts`). The key stays in Vercel: the attacks go through the preview's own chat. Needs A done and the environment's Allowed domains to include `vercel.app` (done 2026-11-03). In a new session: "run the remote red team against the latest preview" (it gets a share link from the Vercel connection and runs `M8_REDTEAM_SHARE_URL=… npx vitest run tests/m8-redteam-remote.spec.ts`) | Session | ⏳ |
+| A | Add `ANTHROPIC_API_KEY` to **Preview** (it's in Production only), then redeploy the preview | Vercel → ratem-8 → Environments → Preview → Environment Variables | ✅ `/api/health` 200 on the `492cf3f` preview (2026-11-03) |
+| B | **Run the live red team against the deployed preview** (`tests/m8-redteam-remote.spec.ts`). The key stays in Vercel: the attacks go through the preview's own chat. Needs A done and the environment's Allowed domains to include `vercel.app` (done 2026-11-03). In a new session: "run the remote red team against the latest preview" (it gets a share link from the Vercel connection and runs `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt M8_REDTEAM_SHARE_URL=… npx vitest run tests/m8-redteam-remote.spec.ts`) | Session | ✅ 2026-11-03: 40/40 passed against the `492cf3f` preview; the guard replaced 1 reply (R13). See PATCHLOG C5.2 |
 | C | Talk to M8 on the preview from a real **iPhone (Safari)**, a real **Android phone (Chrome)** and a desktop: send a chip, type a question, tap "Talk to …", "Delete my chat" | Your phones | 👤 |
 | D | Connect **Upstash Redis** to `ratem-8` (Production and Preview) | Vercel → Marketplace → Upstash | 👤 |
 | E | Connect **Neon** to `ratem-8` (sets `DATABASE_URL`) | Vercel → Storage → Neon | 👤 |
