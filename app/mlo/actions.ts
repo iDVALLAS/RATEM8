@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/mlo/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
 import { NICHES, type Niche, type PlaybookEntry } from "@/lib/pricing/playbook";
 import { publishSnapshot, saveSettings } from "@/lib/pricing/publish";
+import { DEFAULT_COMP_RULE } from "@/lib/pricing/compRule";
 import { NO_RISKY_FEATURES, type QuoteInput } from "@/lib/pricing/types";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -29,7 +30,14 @@ export async function saveSettingsAction(fd: FormData): Promise<void> {
     niches: fd.getAll(`pb.${k}.niches`).map(String).filter((n): n is Niche => (NICHES as readonly string[]).includes(n)),
     note: str(fd, `pb.${k}.note`),
   }));
-  const res = await saveSettings({ tenantId, activeLenderKeys: active, playbook, actor });
+  // C8: the rate rule (percent and dollars; blanks keep the default).
+  const target = str(fd, "comp.targetPct");
+  const orig = str(fd, "comp.originationFee").replace(/[$,]/g, "");
+  const comp = {
+    targetPct: target === "" ? DEFAULT_COMP_RULE.targetPct : Number(target),
+    originationFee: orig === "" ? DEFAULT_COMP_RULE.originationFee : Number(orig),
+  };
+  const res = await saveSettings({ tenantId, activeLenderKeys: active, playbook, actor, comp });
   const flash = res.ok
     ? { ok: true, lines: [`Saved version ${res.settings.version}.`, ...res.warnings] }
     : { ok: false, lines: res.errors };

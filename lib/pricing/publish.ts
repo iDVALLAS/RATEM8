@@ -14,6 +14,7 @@ import { emptyEntry, screenNote, type PlaybookEntry } from "./playbook";
 import { pricingScenarios } from "./daily";
 import { getStore, type TenantSettings } from "./store";
 import { tenantById } from "./tenants";
+import { checkRule, DEFAULT_COMP_RULE, type CompRule } from "./compRule";
 import type { QuoteInput } from "./types";
 
 export const MIN_ACTIVE_LENDERS = 3;
@@ -87,6 +88,8 @@ export type SettingsRequest = {
   tenantId: string;
   activeLenderKeys: string[];
   playbook: PlaybookEntry[];
+  /** C8: the rate rule. Omitted keeps the previous one (or the default). */
+  comp?: CompRule;
   actor: string;
   now?: Date;
 };
@@ -107,6 +110,7 @@ export async function saveSettings(req: SettingsRequest): Promise<SettingsResult
     const s = screenNote(e.note);
     if (!s.ok) errors.push(...s.reasons.map((r) => `${lenderByKey(e.lenderKey)?.name ?? e.lenderKey}: ${r}`));
   }
+  if (req.comp) errors.push(...checkRule(req.comp));
   if (errors.length) return { ok: false, errors };
   const warnings: string[] = [];
   const publishableCount = keys.filter(publishable).length;
@@ -114,7 +118,9 @@ export async function saveSettings(req: SettingsRequest): Promise<SettingsResult
     warnings.push(`Only ${publishableCount} active lender(s) can be shown to consumers. Keep at least ${MIN_ACTIVE_LENDERS} so the three-option comparison is possible.`);
   }
   const playbook = keys.map((k) => req.playbook.find((p) => p.lenderKey === k) ?? emptyEntry(k));
-  const settings = await store.putSettings({ tenantId: req.tenantId, activeLenderKeys: keys, playbook, updatedBy: req.actor, updatedAt: (req.now ?? new Date()).toISOString() });
+  const prev = await store.latestSettings(req.tenantId);
+  const comp = req.comp ?? prev?.comp ?? DEFAULT_COMP_RULE;
+  const settings = await store.putSettings({ tenantId: req.tenantId, activeLenderKeys: keys, playbook, comp, updatedBy: req.actor, updatedAt: (req.now ?? new Date()).toISOString() });
   return { ok: true, settings, warnings };
 }
 

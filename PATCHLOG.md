@@ -740,3 +740,40 @@ surfaces and wording are the card above and `{{PRICING_STATUS}}`.
 ### Next
 L4b robot (needs the ARIVE results screen and MFA type), or the
 LoanSifter API, either writing snapshots into the same store.
+
+## C8 — The loan officer's rate rule (2026-11-05)
+
+**Owner:** pricing comes from LoanSifter/ARIVE grids, one per lender
+product, and the owner picks the line by hand: "1.7% goes into the rate
+and sometimes I split that up where I charge the borrower 3k or 4k …
+in this scenario I would give them 7.125% and charge 3K under
+origination." Confirmed: target 1.7%, $3,000 origination, lowest rate
+whose rebate covers the rest.
+
+### Changes
+- `lib/pricing/compRule.ts` (pure): `pickRate()` turns one product's rate
+  grid into the quote the borrower sees; `quotesFromGrids()` does every
+  product and keeps one line per lender (its lowest rate).
+  - NDC: origination = the flat fee (capped at the target); needed rebate
+    = target − origination ÷ loan; the lowest rate whose price − 100
+    reaches it. Borrower pays no points; the rebate is never shown as a
+    borrower cost.
+  - Wholesale, lender-paid: no origination; the lowest rate with price at
+    or above 100. **Default pending the owner's confirmation.**
+- `/mlo/setup` "Rate rule": target % and origination $, saved with the
+  lender settings (`TenantSettings.comp`, default 1.7% / $3,000, validated
+  0–5% and $0–$20,000; an omitted rule keeps the last one).
+- Not wired to a source yet: the LoanSifter Broker Pricing API (owner is
+  asking Optimal Blue) or the robot will supply the grids. Manual entry
+  at `/mlo/pricing` is unchanged.
+
+### Verified
+- The owner's Kind Lending NDC grid ($520,000, 11/4/2026) gives 7.125%
+  with $3,000 origination ($9,027 total, 1.74%); a strict 2% gives 7.25%;
+  no origination gives 7.375%; the $3,000 is in the APR and in "points and
+  origination". `npm run verify` passes.
+
+### Open
+- Owner: confirm the wholesale rule, whether the origination stays flat at
+  every loan size, and counsel's view on disclosing NDC compensation.
+- Owner: LoanSifter API access and the search-data opt-out.
