@@ -9,6 +9,9 @@ import { copy } from "@/lib/copy";
 import { usStateName } from "@/lib/us-states";
 import { useMloContext, useNamedMlo } from "@/components/mlo/MloContext";
 import MloChatCard from "@/components/chat/MloChatCard";
+import MloAvatar from "@/components/mlo/MloAvatar";
+import RichText from "@/components/chat/RichText";
+import { fillMlo } from "@/lib/mlo-match";
 
 /**
  * M8LiveChat — the live M8 conversation, the public chat at /chat (C1).
@@ -18,8 +21,11 @@ import MloChatCard from "@/components/chat/MloChatCard";
  * Layout, top to bottom:
  *  - MloChatCard: the matched loan officer (photo, name, NMLS, sponsor),
  *    the location line, and "Talk to …"
- *  - the thread: M8's opening line (it starts with the AI disclosure),
- *    then the empty-state prompt chips until the first message
+ *  - the thread: M8's opening line (C6: the owner's greeting; every M8
+ *    message carries an "AI" tag), then the empty-state prompt chips until
+ *    the first message. M8's replies render **bold** and lists (RichText).
+ *  - C6: once the borrower asks about pricing, a bar above the input says
+ *    the loan officer can price it and opens the card's "Talk to" panel
  *  - the AI disclosure + recording line (copy.chat.gate.body), the privacy
  *    line (stored for 3 years or not stored, from the server) with the
  *    two-party consent note in WA and CA, and the privacy policy link
@@ -36,17 +42,52 @@ import MloChatCard from "@/components/chat/MloChatCard";
  * server copy.
  */
 
-/** M8's opening line; the loan officer part follows MloContext (v15). */
+/** M8's opening line (C6). Unlicensed states and movers still get their sentence. */
 function useOpening(): string {
   const ctx = useMloContext();
   const mlo = useNamedMlo();
   const o = copy.chat.liveOpening;
   const st = ctx.stateName ?? "";
-  let mid = o.generic;
-  if (mlo) mid = o.named.replace("{name}", mlo.name).replace("{state}", st).replace("{nmls}", mlo.nmls);
-  else if (ctx.status === "unlicensed") mid = o.unlicensed.replace("{state}", st);
+  const mid = !mlo && ctx.status === "unlicensed" ? o.unlicensed.replace("{state}", st) : "";
   const moved = mlo && ctx.moved && ctx.ipState ? o.moved.replace("{state}", st).replace("{ip}", usStateName(ctx.ipState) ?? ctx.ipState) : "";
   return `${o.lead}${mid}${moved}${o.close}`;
+}
+
+/** C6: words that mean the borrower is after pricing; the bar appears after the first one. */
+const PRICING_INTENT = /\b(?:rates?|quotes?|pricing|price[sd]?|apr|lock|refi\w*|refinanc\w*|purchas\w*|buying|afford\w*|payments?|pre-?approv\w*)\b/i;
+
+/** M8's name, with the "AI" tag that makes every message its own AI disclosure. */
+function M8Name({ typing }: { typing?: boolean }) {
+  return (
+    <div className="msg-meta">
+      <span className="font-medium" style={{ color: "var(--fg)" }}>
+        M8
+      </span>
+      <span className="m8-ai-tag">{copy.chat.live.aiTag}</span>
+      {typing ? <span className="msg-meta--label ml-2">{copy.chat.live.typing}</span> : null}
+    </div>
+  );
+}
+
+/** C6 (style C): "{first} can price this for you", opening the card's panel. */
+function PriceBar({ onTalk }: { onTalk: () => void }) {
+  const ctx = useMloContext();
+  const mlo = useNamedMlo();
+  const b = copy.chat.live.priceBar;
+  const card = copy.chat.live.card;
+  if (ctx.status === "unlicensed") return null;
+  return (
+    <div className="m8-pricebar" role="region" aria-label={mlo ? fillMlo(b.titleNamed, mlo) : b.title}>
+      {mlo ? <MloAvatar mlo={mlo} size={30} /> : <span className="mlo-chat-card__dot" aria-hidden="true" />}
+      <p className="m8-pricebar__text">
+        <strong>{mlo ? fillMlo(b.titleNamed, mlo) : b.title}</strong>
+        <span>{b.body}</span>
+      </p>
+      <button type="button" className="m8-pricebar__btn" onClick={onTalk}>
+        {mlo ? fillMlo(card.talkNamed, mlo) : card.talk}
+      </button>
+    </div>
+  );
 }
 
 /** Where borrowers go when the model is unavailable. From config, never typed here. */
@@ -74,6 +115,8 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
+  const [talkOpen, setTalkOpen] = useState(false);
+  const wantsPricing = messages.some((m) => m.role === "user" && PRICING_INTENT.test(m.content));
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -250,7 +293,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
   // ─── Render ────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
-      <MloChatCard />
+      <MloChatCard open={talkOpen} onOpenChange={setTalkOpen} />
 
       {/* Message thread */}
       <div ref={scrollRef} className="chat-center flex-1 overflow-y-auto">
@@ -258,14 +301,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
           <div className="msg-bubble-m8">
             <div className="msg-avatar msg-avatar--m8">M8</div>
             <div className="flex-1 min-w-0">
-              <div className="msg-meta">
-                <span
-                  className="font-medium"
-                  style={{ color: "var(--fg)" }}
-                >
-                  M8
-                </span>
-              </div>
+              <M8Name />
               <p
                 className="text-[15px] leading-relaxed"
                 style={{ color: "var(--fg)" }}
@@ -299,20 +335,24 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
               {msg.role === "user" ? "YOU" : "M8"}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="msg-meta">
-                <span
-                  className="font-medium"
-                  style={{ color: "var(--fg)" }}
-                >
-                  {msg.role === "user" ? t.you : "M8"}
-                </span>
-              </div>
-              <p
-                className="text-[15px] leading-relaxed whitespace-pre-wrap"
-                style={{ color: "var(--fg)" }}
-              >
-                {msg.content}
-              </p>
+              {msg.role === "user" ? (
+                <div className="msg-meta">
+                  <span className="font-medium" style={{ color: "var(--fg)" }}>
+                    {t.you}
+                  </span>
+                </div>
+              ) : (
+                <M8Name />
+              )}
+              {msg.role === "user" ? (
+                <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--fg)" }}>
+                  {msg.content}
+                </p>
+              ) : (
+                <div className="text-[15px] leading-relaxed" style={{ color: "var(--fg)" }}>
+                  <RichText text={msg.content} />
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -322,27 +362,18 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
           <div className="msg-bubble-m8">
             <div className="msg-avatar msg-avatar--m8">M8</div>
             <div className="flex-1 min-w-0">
-              <div className="msg-meta">
-                <span
-                  className="font-medium"
-                  style={{ color: "var(--fg)" }}
-                >
-                  M8
-                </span>
-                <span className="msg-meta--label ml-2">{t.typing}</span>
-              </div>
-              <p
-                className="text-[15px] leading-relaxed whitespace-pre-wrap"
-                style={{ color: "var(--fg)" }}
-              >
+              <M8Name typing />
+              <div className="text-[15px] leading-relaxed" style={{ color: "var(--fg)" }}>
                 {/* v24: skeleton lines until the first words arrive (no spinner). */}
-                {streamingText || (
+                {streamingText ? (
+                  <RichText text={streamingText} />
+                ) : (
                   <span className="flex flex-col gap-2 pt-1" aria-hidden="true">
                     <span className="skeleton" style={{ width: "72%", height: 10 }} />
                     <span className="skeleton" style={{ width: "48%", height: 10 }} />
                   </span>
                 )}
-              </p>
+              </div>
             </div>
           </div>
         )}
@@ -371,6 +402,8 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
           </div>
         )}
       </div>
+
+      {wantsPricing ? <PriceBar onTalk={() => setTalkOpen(true)} /> : null}
 
       {/* AI disclosure + recording line — always visible above the input */}
       <p

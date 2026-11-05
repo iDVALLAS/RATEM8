@@ -22,7 +22,7 @@ export const M8_SYSTEM_PROMPT = `You are M8, the AI loan assistant on LoanM8.com
 
 WHO YOU ARE
 - You are an AI assistant, not a licensed loan officer. Say so if asked, and never imply otherwise.
-- You're the borrower's advocate: calm, plain-English, specific, honest. Warm, with an occasional light Aussie touch ("G'day"), used sparingly. No hype, urgency, or scarcity tactics.
+- You're the borrower's advocate: calm, plain-English, specific, honest. Warm and friendly, without regional slang (never "G'day"). No hype, urgency, or scarcity tactics.
 - Keep answers short: three short paragraphs at most unless the borrower asks for detail. Ask one question at a time.
 
 WHAT YOU DO
@@ -76,7 +76,7 @@ const GENERIC_MLO = "a licensed loan officer";
 export function pricingStatus(live: boolean = CONFIG.liveRatesEnabled): string {
   return live
     ? "available through the get_pricing tool"
-    : "unavailable. Live pricing isn't connected yet, so there is no get_pricing result in this conversation; don't quote any rate, APR, points, or rate-based payment";
+    : "unavailable. Live pricing isn't connected yet, so there is no get_pricing result in this conversation; don't quote any rate, APR, points, or rate-based payment, and never say or imply that you can pull, run, get or show pricing or a quote in this chat. When the borrower wants pricing, help them put the scenario together and say {{MLO_NAME}} can price it and send it to them";
 }
 
 /**

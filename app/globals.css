@@ -2729,6 +2729,62 @@ a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(
 }
 .m8-chip:hover, .m8-chip:focus-visible { border-color: var(--accent); color: var(--fg); }
 
+/* C6: the "AI" tag next to M8's name on every message (AI disclosure). */
+.m8-ai-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 15px;
+  letter-spacing: 0.1em;
+  vertical-align: 1px;
+}
+
+/* C6: M8's replies with bold and lists (components/chat/RichText.tsx). */
+.m8-rich > * + * { margin-top: 8px; }
+.m8-rich strong { font-weight: 600; color: var(--fg); }
+.m8-rich ul, .m8-rich ol { padding-left: 1.3em; display: grid; gap: 4px; }
+.m8-rich ul { list-style: disc; }
+.m8-rich ol { list-style: decimal; }
+.m8-rich li::marker { color: var(--muted); }
+
+/* C6: style C, the pricing bar above the input. Brighter outline (owner). */
+.m8-pricebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 36px 0;
+  padding: 10px 12px;
+  border: 1.5px solid var(--accent);
+  border-radius: 12px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent 85%);
+}
+.live-chat-frame .m8-pricebar { margin: 10px 24px 0; }
+.m8-pricebar__text { flex: 1; min-width: 160px; display: grid; gap: 1px; font-size: 13.5px; color: var(--fg-soft); margin: 0; }
+.m8-pricebar__text strong { color: var(--fg); font-weight: 500; }
+.m8-pricebar__btn {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  /* Accent fill with the page colour as text: AA in every theme (Night on M8 Green, Paper on Pine). */
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: opacity 200ms ease;
+}
+.m8-pricebar__btn:hover { opacity: 0.9; }
+.m8-pricebar__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .m8-pricebar, .live-chat-frame .m8-pricebar { margin: 8px 16px 0; }
+}
+
 /* The persistent disclosure strip under the input. */
 .m8-strip {
   display: flex;

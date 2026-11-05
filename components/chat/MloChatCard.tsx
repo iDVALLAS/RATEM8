@@ -21,12 +21,21 @@ import MloAvatar from "@/components/mlo/MloAvatar";
  * question form that posts to /api/chat-question (no SSN/DOB/account
  * numbers; the route refuses them). C4 turns this into the request_handoff
  * tool's contact request.
+ *
+ * C6: `open` / `onOpenChange` let the chat's pricing bar open the same
+ * panel. Without them the card keeps its own state.
  */
-export default function MloChatCard() {
+export default function MloChatCard({ open: openProp, onOpenChange }: { open?: boolean; onOpenChange?: (open: boolean) => void } = {}) {
   const ctx = useMloContext();
   const mlo = useNamedMlo();
   const t = copy.chat.live.card;
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (v: boolean | ((prev: boolean) => boolean)) => {
+    const next = typeof v === "function" ? v(open) : v;
+    if (onOpenChange) onOpenChange(next);
+    else setOpenState(next);
+  };
   const panelId = useId();
   const sponsor = mlo ? ctx.license?.sponsor : null;
 

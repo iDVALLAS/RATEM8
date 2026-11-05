@@ -12,6 +12,7 @@
  */
 import type Anthropic from "@anthropic-ai/sdk";
 import { copy } from "@/lib/copy";
+import { CONFIG } from "@/lib/config";
 import { redactChatInput, type RedactionKind } from "./redact";
 import { isAbusive } from "./moderation";
 import { guardReply, userPercentages, type GuardReason } from "./guard";
@@ -43,7 +44,7 @@ export function prepareTurn(messages: M8Message[]): PreparedTurn {
 /** The reply that replaces a guarded one. `name` is the loan officer (or a generic phrase). */
 export function fallbackFor(reason: GuardReason, name: string): string {
   const g = copy.chat.live.guard;
-  const t = reason === "prompt-leak" ? g.promptLeak : reason === "promise" ? g.promise : reason === "sensitive-echo" ? g.sensitive : g.rate;
+  const t = reason === "prompt-leak" ? g.promptLeak : reason === "promise" ? g.promise : reason === "sensitive-echo" ? g.sensitive : reason === "pricing-promise" ? g.pricingPromise : g.rate;
   const filled = t.replaceAll("{name}", name);
   return filled.charAt(0).toUpperCase() + filled.slice(1);
 }
@@ -91,7 +92,7 @@ export async function runM8Turn(opts: {
     stream.on("text", (t: string) => {
       if (blocked) return;
       roundText += t;
-      const check = guardReply(reply + sep + roundText, allowed, turn.userStated, true);
+      const check = guardReply(reply + sep + roundText, allowed, turn.userStated, true, CONFIG.liveRatesEnabled);
       if (!check.ok) {
         blocked = check.reason;
         stream.abort();
@@ -123,7 +124,7 @@ export async function runM8Turn(opts: {
   }
 
   // Final check on the whole reply (rates need their APR and disclosure once complete).
-  const check = guardReply(reply, pricedRates(pricing), turn.userStated);
+  const check = guardReply(reply, pricedRates(pricing), turn.userStated, false, CONFIG.liveRatesEnabled);
   if (!check.ok) return fail(check.reason);
   return { reply, guard: null, tokens };
 }

@@ -3,7 +3,7 @@
  *
  * Voice: populist, technically grounded, calm, honest, specific.
  *        Never corporate, never pressuring, never effusive.
- *        Occasional Aussie warmth in microcopy ("G'day") used sparingly.
+ *        No regional slang: M8 no longer says "G'day" (owner, 2026-11-05).
  *
  * RULES (see COMPLIANCE.md):
  *  - No rates, no lender counts, no earnings claims, no urgency, no
@@ -702,16 +702,18 @@ export const copy = {
   chat: {
     title: "M8 Chat",
     /**
-     * Live M8 opening line (public since C1). v15: the loan officer part
-     * swaps with MloContext; a name always travels with its NMLS number.
+     * Live M8 opening line (public since C1). C6 (owner, 2026-11-05): the
+     * owner's greeting. The AI disclosure is the line above the input and
+     * the "AI" tag on every M8 message, both on screen before anyone types
+     * (COMPLIANCE.md §5); the loan officer card names the matched MLO with
+     * their NMLS number, so the greeting no longer repeats it. Unlicensed
+     * states and movers still get their sentence.
      */
     liveOpening: {
-      lead: `G'day. ${AI_DISCLOSURE} I'm M8. I can explain how a mortgage works and help you get your numbers organized. I won't quote a rate here`,
-      generic: ", and a licensed loan officer verifies every deal.",
-      named: ", and {name}, a licensed loan officer for {state} (NMLS #{nmls}), verifies every deal.",
-      unlicensed: ", and we don't have a licensed loan officer in {state} yet, so I can explain things but can't hand you off there.",
+      lead: "Hello, I'm M8. I can assist with anything loan related.",
+      unlicensed: " We don't have a licensed loan officer in {state} yet, so I can explain things but can't hand you off there.",
       moved: " Licensing follows the property, so you're matched for {state}, not {ip}.",
-      close: " What are you trying to do?",
+      close: " What can I help you with today?",
     },
     /** C1: the public live chat at /chat (components/M8LiveChat.tsx). */
     live: {
@@ -741,6 +743,20 @@ export const copy = {
         promise: "Only your licensed loan officer can approve a loan, lock a rate or set a closing date. {name} can walk you through it.",
         promptLeak: "I can't share that. I'm here to help with your home loan. What are you working on?",
         sensitive: "For your security I won't repeat account or Social Security numbers here. {name}'s secure application handles those.",
+        /** C6: M8 claimed it could pull pricing while live pricing is off. */
+        pricingPromise: "Live pricing isn't connected to this chat yet, so I can't price your scenario here. I can keep putting it together, and {name} can price it and send it to you.",
+      },
+      /** C6: the "AI" tag next to M8's name on every message (AI disclosure). */
+      aiTag: "AI",
+      /**
+       * C6: the bar above the input once the borrower asks about pricing
+       * (style C, owner 2026-11-05). It opens the same "Talk to" panel as
+       * the card. No availability dot: there's no availability data yet.
+       */
+      priceBar: {
+        title: "A licensed loan officer can price this for you.",
+        titleNamed: "{first} can price this for you.",
+        body: "Live pricing isn't in this chat yet.",
       },
       /** C4: abusive or harassing input gets this, with no model call. */
       moderation: "I'm here to help with home loans, and I'll keep things respectful. If something's gone wrong, tell me what you need, or use the Talk to button to reach a licensed loan officer.",
@@ -800,7 +816,7 @@ export const copy = {
     devToggle: "orb state",
     states: ["idle", "listening", "thinking", "speaking"] as const,
     script: [
-      { from: "m8", text: `G'day. ${AI_DISCLOSURE} I can explain how a mortgage works and write up your options. What are you trying to do?` },
+      { from: "m8", text: `Hello. ${AI_DISCLOSURE} I can explain how a mortgage works and write up your options. What are you trying to do?` },
       { from: "user", text: "Buying our first place. Under contract, and the lender sent a Loan Estimate I don't really understand." },
       { from: "m8", text: "Good place to start. The Loan Estimate is three pages: the loan terms, the closing costs, and the comparisons. Which part is confusing?" },
       { from: "user", text: "Page 2. There's a list of fees and I can't tell which ones are real." },

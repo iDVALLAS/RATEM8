@@ -602,3 +602,70 @@ no code changed; this entry and checklist item B are the only edits.
 ### Next
 Checklist item B is done. The remaining owner items before "promote"
 are C–L in `CHAT_LAUNCH_CHECKLIST.md` section 3.
+
+## C6 — Chat greeting, honest pricing, formatting, pricing bar (2026-11-05)
+
+**Owner:** after reviewing the preview chat (two screenshots) and the
+mockup: new greeting, no "G'day", fix "I can pull live pricing right
+here", show formatting instead of raw `**`, and the "bring me in" bar in
+style C "with a little brighter outline". Approved as step 1.
+
+### Changes
+- **Greeting** (`copy.chat.liveOpening`): "Hello, I'm M8. I can assist
+  with anything loan related. What can I help you with today?" The "won't
+  quote a rate" and "{name} … verifies every deal" sentences are gone; the
+  loan officer card above already names the MLO with their NMLS number.
+  The unlicensed-state and mover sentences stay.
+- **AI disclosure:** every M8 message now carries an "AI" tag next to its
+  name. With the line above the input ("I'm M8, an AI, not a person…"),
+  both on screen before anyone types, this meets COMPLIANCE.md §5. Counsel
+  approved the old greeting on 2026-10-31; tell them it changed.
+- **No "G'day":** the prompt's tone line now says "Warm and friendly,
+  without regional slang (never "G'day")". The brief
+  (`LoanM8_Launch_Live_M8_Chat.md`) carries the same line plus a dated
+  amendment note, so the word-for-word test still holds. The scripted
+  chat-shell line and the copy header comment changed too.
+- **Honest about pricing** (the owner's second screenshot, where M8 said
+  "Once I have those, I can pull live pricing right here"):
+  - `{{PRICING_STATUS}}` while pricing is off now also says never to say
+    or imply M8 can pull, run, get or show pricing or a quote in the chat,
+    and to help build the scenario so the loan officer can price it.
+  - The output guard has a new reason, `pricing-promise`: "I"/"we" plus
+    can/will and pull/run/get/show… pricing/quote/rates, "let me run
+    pricing", "pull live pricing". Negations and the loan officer
+    ("Jason can price it") pass. Off once `liveRatesEnabled` is true.
+    Fallback: `copy.chat.live.guard.pricingPromise`.
+  - Red-team cases R48 (rate quote request), R49 (the screenshot's
+    scenario) and R50 (no G'day), offline and remote.
+- **Formatting** (`components/chat/RichText.tsx`): bold, numbered and
+  bullet lists, headings and line breaks, as React text only (no HTML).
+  An unclosed `**` is hidden while a reply streams.
+- **Pricing bar, style C** (`PriceBar` in `components/M8LiveChat.tsx`):
+  after the borrower's first message about rates, quotes, pricing,
+  buying, refinancing, affordability or payments, a bar above the input
+  says "{first} can price this for you. Live pricing isn't in this chat
+  yet." with "Talk to {first}", which opens the card's existing panel
+  (`MloChatCard` now takes `open`/`onOpenChange`). 1.5px accent outline
+  (brighter, per the owner) and the accent as the button fill (AA in
+  every theme). Hidden in unlicensed states. No "available" dot: there's
+  no availability data yet. The 3-way chat itself is a later patch.
+
+### Verified
+- `npm run verify` passes: 224 tests (9 new: RichText, greeting, three
+  red-team cases), build, `check:copy`, `check:identity`,
+  `check:licensing`, `check:bundle`.
+- Local production build, `/chat` with the screenshot conversation
+  loaded, desktop 1280 and phone 390, Night and Paper: no horizontal
+  scroll, no raw `**`, the bar shows and opens the "Talk to" panel, AI tag
+  on every M8 message. Only console error: the Vercel Analytics script,
+  which exists only on Vercel.
+
+### Decisions
+- **"Freddie minus .25" not built.** Nothing in the repo ever quoted a
+  rate from the Freddie Mac survey, M8 is barred from benchmark
+  comparisons (v19), and quoting a survey average to make the later quote
+  look better needs counsel first. See the C6 discussion in the session.
+
+### Next
+Re-run the remote red team on this preview (R48–R50 are new), then the
+scenario alert to the loan officer (needs Resend and new privacy wording).
