@@ -758,6 +758,30 @@ export const copy = {
         titleNamed: "{first} can price this for you.",
         body: "Live pricing isn't in this chat yet.",
       },
+      /**
+       * C7: the dated example card under an M8 reply (components/chat/ExamplePricingCard.tsx).
+       * Never the word "live": these are the loan officer's daily snapshots.
+       */
+      example: {
+        eyebrow: "Today's priced example · not your quote",
+        priced: "Priced {date} at {time} PT in the brokerage's pricing engine by a licensed loan officer. Lenders are shown by letter.",
+        pricedNamed: "Priced {date} at {time} PT in the brokerage's pricing engine by {first}. Lenders are shown by letter.",
+        rate: "Rate",
+        apr: "APR",
+        payment: "Principal and interest",
+        mi: "Mortgage insurance",
+        perMonth: "/mo",
+        points: "{pct}% points ({amount})",
+        credit: "{pct}% lender credit ({amount})",
+        noPoints: "No points",
+        fees: "Origination {orig} · lender fees {fees}",
+        lock: "{days}-day lock",
+        risky: "Includes a risky feature",
+        compared: "{n} eligible lenders compared.",
+        assumptions: "What this example assumes",
+        footer: "A dated example for a standard scenario close to yours, not a quote, an offer or a commitment to lend. Prices change during the day, and your own rate depends on your full scenario.",
+        footerNamed: "A dated example for a standard scenario close to yours, not a quote, an offer or a commitment to lend. Prices change during the day. {first} can price your actual scenario.",
+      },
       /** C4: abusive or harassing input gets this, with no model call. */
       moderation: "I'm here to help with home loans, and I'll keep things respectful. If something's gone wrong, tell me what you need, or use the Talk to button to reach a licensed loan officer.",
       redactedNotice: "We removed what looked like a Social Security number, date of birth or account number before M8 saw it. Never share those here; your loan officer's secure application handles them.",

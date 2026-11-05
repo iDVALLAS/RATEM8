@@ -174,9 +174,10 @@ export async function POST(req: Request) {
             maxTokens: M8_MAX_TOKENS,
             system: buildM8SystemPrompt(vars),
             turn,
-            tools: { sessionId: sid, mloId: mlo?.id ?? null, mloName: mlo?.name ?? null, state: route?.stateName ?? null },
+            tools: { sessionId: sid, mloId: mlo?.id ?? null, mloName: mlo?.name ?? null, state: route?.stateName ?? null, examplesOn: CONFIG.pricing.manual },
             mloName: vars.mloName,
             emit,
+            pricingAvailable: CONFIG.liveRatesEnabled || CONFIG.pricing.manual,
           });
           reply = result.reply;
           tokens = result.tokens;

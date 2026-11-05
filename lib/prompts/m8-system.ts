@@ -73,10 +73,13 @@ const GENERIC_MLO = "a licensed loan officer";
  * Pricing status for {{PRICING_STATUS}}. Until a pricing tool exists (C4
  * get_pricing, L4b), there is never a tool result, so M8 quotes nothing.
  */
-export function pricingStatus(live: boolean = CONFIG.liveRatesEnabled): string {
-  return live
-    ? "available through the get_pricing tool"
-    : "unavailable. Live pricing isn't connected yet, so there is no get_pricing result in this conversation; don't quote any rate, APR, points, or rate-based payment, and never say or imply that you can pull, run, get or show pricing or a quote in this chat. When the borrower wants pricing, help them put the scenario together and say {{MLO_NAME}} can price it and send it to them";
+export function pricingStatus(live: boolean = CONFIG.liveRatesEnabled, examples: boolean = CONFIG.pricing.manual): string {
+  if (live) return "available through the get_pricing tool";
+  // C7: dated examples of the loan officer's daily scenarios (PRICING_MANUAL).
+  if (examples) {
+    return "dated examples only. Live pricing for the borrower's own scenario isn't connected, but {{MLO_NAME}} prices a few standard scenarios each day, and get_pricing returns today's snapshot when the borrower's scenario is close to one. Once you have the details it needs, call get_pricing. When it returns a dated_example, say clearly that it's today's priced example for a scenario like theirs, not their quote; give the date and time it was priced; show each option's rate with its APR; mention the key assumptions; and say it isn't a commitment to lend and that {{MLO_NAME}} can price their actual scenario. When it returns unavailable, don't quote any rate, APR, points, or rate-based payment, and offer to have {{MLO_NAME}} price their scenario and send it to them. Never describe these examples as live pricing";
+  }
+  return "unavailable. Live pricing isn't connected yet, so there is no get_pricing result in this conversation; don't quote any rate, APR, points, or rate-based payment, and never say or imply that you can pull, run, get or show pricing or a quote in this chat. When the borrower wants pricing, help them put the scenario together and say {{MLO_NAME}} can price it and send it to them";
 }
 
 /**
@@ -86,9 +89,9 @@ export function pricingStatus(live: boolean = CONFIG.liveRatesEnabled): string {
  * default because location couldn't be detected, or a property in another
  * state than the connection), as facts, not instructions to the borrower.
  */
-export function m8PromptVars(route: MloContextValue | null, live: boolean = CONFIG.liveRatesEnabled): M8PromptVars {
+export function m8PromptVars(route: MloContextValue | null, live: boolean = CONFIG.liveRatesEnabled, examples: boolean = CONFIG.pricing.manual): M8PromptVars {
   const sponsor = { name: CONFIG.sponsorDisplayName, nmls: CONFIG.sponsor.nmls };
-  const base = { sponsor: sponsor.name, sponsorNmls: sponsor.nmls, pricingStatus: pricingStatus(live) };
+  const base = { sponsor: sponsor.name, sponsorNmls: sponsor.nmls, pricingStatus: pricingStatus(live, examples) };
   const unknown = "an unknown state (ask where the property is if it matters; licensing follows the property)";
   if (!route) {
     return { ...base, mloName: GENERIC_MLO, mloNmls: null, noMloSentence: "The borrower will be matched with a licensed loan officer for the property's state.", state: unknown };

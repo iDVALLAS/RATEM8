@@ -6,7 +6,7 @@ import { mloContent } from "@/lib/content/mlo";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { LENDERS, offers, publishable } from "@/lib/pricing/lenders";
 import { isFresh } from "@/lib/pricing/providers/manual";
-import { exampleScenarios } from "@/lib/pricing/providers/mock";
+import { pricingScenarios } from "@/lib/pricing/daily";
 import { SOURCE_TYPES } from "@/lib/pricing/publish";
 import { getStore } from "@/lib/pricing/store";
 import { listTenants } from "@/lib/pricing/tenants";
@@ -25,7 +25,7 @@ export default async function MloPricing({ searchParams }: Props) {
   const { t, s, f } = await searchParams;
   const tenants = listTenants();
   const tenant = tenants.find((x) => x.id === t) ?? tenants[0];
-  const scenarios = exampleScenarios().filter((x) => tenant.states.includes(x.state));
+  const scenarios = pricingScenarios().filter((x) => tenant.states.includes(x.state));
   const scenario = scenarios.find((x) => x.id === s) ?? scenarios[0];
   const store = getStore();
   const settings = await store.latestSettings(tenant.id);
@@ -58,7 +58,11 @@ export default async function MloPricing({ searchParams }: Props) {
             <input type="hidden" name="tenantId" value={tenant.id} />
             <input type="hidden" name="scenarioId" value={scenario.id} />
             <h2>{scenario.title} · {scenario.location}</h2>
-            <ul className="mlo-note">{scenario.assumptions.slice(0, 4).map((a) => <li key={a}>{a}</li>)}</ul>
+            <ul className="mlo-note">{scenario.assumptions.map((a) => <li key={a}>{a}</li>)}</ul>
+            {scenario.mi?.kind === "pmi" ? (
+              <label className="mlo-field mt-3">{c.pmi}<input name="pmi" inputMode="decimal" placeholder="182" required /></label>
+            ) : null}
+            {scenario.mi?.kind === "fha" ? <p className="mlo-note mt-2">{c.fha}</p> : null}
             {lenders.length < 3 ? <p className="mlo-flash mlo-flash--err">Fewer than three active lenders can be shown to consumers. Set go-to lenders on the Setup page.</p> : null}
             {Array.from({ length: ROWS }, (_, i) => (
               <div key={i} className="mlo-row">

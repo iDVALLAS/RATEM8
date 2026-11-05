@@ -2785,6 +2785,34 @@ a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(
   .m8-pricebar, .live-chat-frame .m8-pricebar { margin: 8px 16px 0; }
 }
 
+/* C7: today's priced example under an M8 reply (components/chat/ExamplePricingCard.tsx). */
+.m8-example {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  background: var(--bg-sunken);
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.m8-example__eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--label-accent, var(--accent)); margin: 0; }
+.m8-example__title { font-weight: 500; color: var(--fg); margin: 0; }
+.m8-example__priced { color: var(--muted); font-size: 12.5px; margin: 0; }
+.m8-example__options { display: grid; gap: 8px; margin: 4px 0 0; padding: 0; list-style: none; }
+.m8-example__option { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; }
+.m8-example__head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.m8-example__label { font-weight: 500; color: var(--fg); }
+.m8-example__lender { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.m8-example__rates { display: flex; gap: 18px; flex-wrap: wrap; color: var(--fg-soft); font-variant-numeric: tabular-nums; }
+.m8-example__rates b { font-size: 18px; font-weight: 500; color: var(--fg); }
+.m8-example__line { margin: 0; color: var(--fg-soft); font-variant-numeric: tabular-nums; }
+.m8-example__line--muted { color: var(--muted); font-size: 12.5px; }
+.m8-example__risky { margin: 0; font-size: 12px; color: var(--fg); }
+.m8-example__assumptions summary { cursor: pointer; color: var(--fg-soft); font-size: 13px; }
+.m8-example__assumptions ul { margin: 6px 0 0; padding-left: 1.2em; list-style: disc; color: var(--muted); font-size: 12.5px; display: grid; gap: 2px; }
+.m8-example__footer { margin: 0; color: var(--muted); font-size: 12px; }
+
 /* The persistent disclosure strip under the input. */
 .m8-strip {
   display: flex;

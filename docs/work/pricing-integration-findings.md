@@ -202,6 +202,11 @@ features:
   date belongs to which document is unclear. U
 - Display of ARIVE-sourced pricing on a broker's own consumer site,
   redistribution, retention: no specific clause found. U
+- **Owner update, 2026-11-05:** the owner reports that LoanM8 is a
+  paying ARIVE client and has ARIVE's **written OK** for automated access
+  (the L4b pricing robot). Keep a copy of that written approval with the
+  company records; this repo holds no copy. The sponsoring brokerage's
+  account (Adcom Group) is the one used.
 
 ### 2g. Cost and lender coverage
 

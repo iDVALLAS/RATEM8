@@ -669,3 +669,74 @@ style C "with a little brighter outline". Approved as step 1.
 ### Next
 Re-run the remote red team on this preview (R48–R50 are new), then the
 scenario alert to the loan officer (needs Resend and new privacy wording).
+
+## C7 — Daily priced scenarios as dated examples in the chat (2026-11-05)
+
+**Owner:** "build in the few scenarios that i price out … non-specific
+lenders for right now", with the four default scenarios, Neon not yet
+connected. Also: the owner prices in ARIVE and LoanSifter, is a paying
+ARIVE client and has ARIVE's written OK for automation (recorded in
+`docs/work/pricing-integration-findings.md` §2f; keep the letter with
+company records). The ARIVE robot (L4b) and a LoanSifter API path come
+later and fill the same store.
+
+### Changes
+- **Four daily scenarios** (`lib/pricing/daily.ts`), all Woodinville, WA,
+  ZIP 98072, 30-year fixed, primary single-family:
+  - purchase 20% down, $520,000 on $650,000, 740–759
+  - purchase 5% down, $475,000 on $500,000, 740–759, monthly PMI
+  - FHA purchase 3.5% down, $434,250 base on $450,000, 680–699
+  - rate-and-term refinance 70% LTV, $560,000 on $800,000, 760+
+  Each has a `match` band (purpose, program, LTV, loan amount, credit
+  floor). Edit the list to change what is priced.
+- **Mortgage insurance in the APR** (`lib/pricing/mi.ts`, `apr.ts`,
+  `build.ts`): MI is a finance charge, so it is now in the payment stream.
+  - PMI: the monthly amount entered with each snapshot, until the
+    scheduled balance reaches 78% of the original value (HPA), never past
+    the midpoint. A PMI scenario refuses a snapshot without it.
+  - FHA: 1.75% upfront premium financed and counted as a prepaid finance
+    charge; 0.55% annual premium recalculated yearly on the scheduled
+    balance, for life above 90% LTV (HUD ML 2023-05; `FHA_MIP`).
+  - Scenarios without MI compute exactly as before.
+- **Neon store** (`NeonStore` in `lib/pricing/store.ts`): on whenever
+  `DATABASE_URL`/`POSTGRES_URL` is set (the chat's database). Insert-only
+  snapshots and settings, base64 source screenshots, audit table. Without
+  it, Vercel stays read-only with a message saying to connect Neon.
+- **`/mlo/pricing`**: the daily scenarios first (then the old examples),
+  full assumptions, a "Monthly PMI $" field on PMI scenarios, an FHA note.
+- **M8** (`lib/m8/tools.ts`, prompt `{{PRICING_STATUS}}`): with
+  `PRICING_MANUAL=true`, `get_pricing` matches the borrower's scenario to a
+  daily scenario (same state by ZIP, purpose, program, LTV and loan bands,
+  credit at or above the scenario's floor) and returns its fresh snapshot
+  as `kind: "dated_example"`: the three anti-steering options, lenders by
+  letter, rate, APR, P&I and MI. No match, stale, or fewer than three
+  eligible lenders → unavailable, and M8 offers the loan officer.
+  - Weaker credit than the example never matches (the example would look
+    better than their pricing); better credit does.
+  - The guard lets the example's rates and APRs through, still requiring
+    the APR and "commitment to lend". "I can show you pricing" is allowed
+    only when examples or live pricing are on.
+- **Chat card** (`components/chat/ExamplePricingCard.tsx`): sent only after
+  the reply passes the guard. "Today's priced example · not your quote",
+  scenario, price date and time (PT), the three options with rate, APR,
+  P&I, MI, points or credit, fees, lock, risky badge, eligible count,
+  assumptions, and the not-a-quote line. The browser's copy of a card is
+  display-only: the server strips it before the model and the transcript.
+
+### Verified
+- `npm run verify` passes (12 new tests in `lib/pricing/daily.test.ts`:
+  scenarios, matching, PMI and FHA APR, the PMI requirement, the tool
+  result and card, three-lender minimum, the guard path, the Neon store).
+- Local production run with `PRICING_MANUAL=true` and sample numbers (not
+  real pricing): `/mlo/setup` saved, `/mlo/pricing` published two
+  snapshots (the PMI one with $182/mo), and `/chat` rendered the card on
+  desktop, phone and Paper with no overflow or page errors.
+
+### Owner steps
+Checklist items E (Neon) and E2 (`PRICING_MANUAL=true`, admin login, the
+daily routine). Counsel: the chat now shows dated example rates; the
+surfaces and wording are the card above and `{{PRICING_STATUS}}`.
+
+### Next
+L4b robot (needs the ARIVE results screen and MFA type), or the
+LoanSifter API, either writing snapshots into the same store.

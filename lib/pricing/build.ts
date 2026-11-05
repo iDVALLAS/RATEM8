@@ -9,6 +9,7 @@ import { computeApr, paymentSchedule } from "./apr";
 import { assignLetters } from "./anonymize";
 import { selectAntiSteering } from "./antiSteering";
 import { canonicalJson, sha256Hex } from "./canonical";
+import { miSchedule, noteAmount, upfrontMi } from "./mi";
 import type { LenderQuote, PricingRun, QuoteInput, RunInputs } from "./types";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -35,6 +36,9 @@ export function validateInputs(inputs: RunInputs): string[] {
       if (q.originationFee < 0 || q.lenderFees < 0) errs.push(`${q.lenderKey}: fees cannot be negative`);
       if (!(q.lockDays >= 0 && q.lockDays <= 360)) errs.push(`${q.lenderKey}: lock days out of range`);
       if (q.interestOnlyMonths < 0 || q.interestOnlyMonths >= s.termMonths) errs.push(`${q.lenderKey}: interest-only months out of range`);
+      // C7: a PMI scenario needs the monthly PMI, or the APR would leave out a finance charge.
+      if (s.mi?.kind === "pmi" && !((q.monthlyPmi ?? 0) > 0)) errs.push(`${q.lenderKey}: enter the monthly PMI for this scenario`);
+      if (q.monthlyPmi !== undefined && !(q.monthlyPmi >= 0 && q.monthlyPmi < 5000)) errs.push(`${q.lenderKey}: monthly PMI out of range`);
     } else if (!q.ineligibleReason || !q.ineligibleReason.trim()) {
       errs.push(`${q.lenderKey}: ineligible results need a reason`);
     }
@@ -48,29 +52,34 @@ export function buildPricingRun(inputs: RunInputs): { run: PricingRun; mapping: 
   const { scenario } = inputs;
   const letters = assignLetters(inputs.runId, inputs.quotes.map((q) => q.lenderKey));
 
+  // C7: FHA notes include the financed upfront MIP, which is also a prepaid finance charge.
+  const loan = noteAmount(scenario);
+  const ufmip = upfrontMi(scenario);
   const quotes: LenderQuote[] = inputs.quotes.map((q) => {
     const lender = letters.get(q.lenderKey)!;
-    const pointsDollars = round2((q.pointsPct / 100) * scenario.loanAmount);
+    const pointsDollars = round2((q.pointsPct / 100) * loan);
     const pointsAndOrigination = round2(Math.max(0, pointsDollars) + q.originationFee);
-    const prepaid = round2(Math.max(0, pointsDollars + q.originationFee + q.lenderFees));
+    const prepaid = round2(Math.max(0, pointsDollars + q.originationFee + q.lenderFees) + ufmip);
     const risky = hasRisky(q);
     if (!q.eligible || q.noteRate === null) {
       return {
         lender, productLabel: q.productLabel, eligible: false, ineligibleReason: q.ineligibleReason ?? "Not eligible",
         noteRate: null, apr: null, pointsPct: q.pointsPct, pointsDollars, originationFee: q.originationFee, lenderFees: q.lenderFees,
-        pointsAndOriginationDollars: pointsAndOrigination, prepaidFinanceCharges: prepaid, monthlyPayment: null, monthlyPaymentAfterIO: null,
+        pointsAndOriginationDollars: pointsAndOrigination, prepaidFinanceCharges: prepaid, monthlyPayment: null, monthlyPaymentAfterIO: null, monthlyMi: null,
         lockDays: q.lockDays, interestOnlyMonths: q.interestOnlyMonths, features: q.features, hasRiskyFeature: risky,
       };
     }
-    const sched = paymentSchedule(scenario.loanAmount, q.noteRate, scenario.termMonths, q.interestOnlyMonths);
+    const sched = paymentSchedule(loan, q.noteRate, scenario.termMonths, q.interestOnlyMonths);
+    const mi = miSchedule(scenario, q.noteRate, q.monthlyPmi ?? 0, q.interestOnlyMonths);
     return {
       lender, productLabel: q.productLabel, eligible: true, ineligibleReason: null,
       noteRate: q.noteRate,
-      apr: computeApr(scenario.loanAmount, q.noteRate, scenario.termMonths, prepaid, q.interestOnlyMonths),
+      apr: computeApr(loan, q.noteRate, scenario.termMonths, prepaid, q.interestOnlyMonths, mi),
       pointsPct: q.pointsPct, pointsDollars, originationFee: q.originationFee, lenderFees: q.lenderFees,
       pointsAndOriginationDollars: pointsAndOrigination, prepaidFinanceCharges: prepaid,
       monthlyPayment: round2(sched[0]),
       monthlyPaymentAfterIO: q.interestOnlyMonths > 0 ? round2(sched[sched.length - 1]) : null,
+      monthlyMi: scenario.mi ? round2(mi[0]) : null,
       lockDays: q.lockDays, interestOnlyMonths: q.interestOnlyMonths, features: q.features, hasRiskyFeature: risky,
     };
   });

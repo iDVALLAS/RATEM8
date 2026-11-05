@@ -30,8 +30,10 @@ export const mloContent = {
   pricing: {
     heading: "Pricing snapshots",
     intro: "Enter today's results for one scenario exactly as they appear in the pricing engine, attach the screenshot or PDF they came from, and publish. APR, payments and the three options are computed for you.",
-    flagOff: "PRICING_MANUAL is off, so published snapshots are stored but /rates keeps showing example pricing.",
-    flagOn: "PRICING_MANUAL is on. A fresh snapshot replaces the example on /rates for this scenario.",
+    flagOff: "PRICING_MANUAL is off, so published snapshots are stored but M8 and /rates keep showing no daily pricing.",
+    flagOn: "PRICING_MANUAL is on. A fresh snapshot of a daily scenario is what M8 shows a borrower whose scenario is close to it, as a dated example.",
+    pmi: "Monthly PMI $ (borrower-paid, from the MI quote; used for every lender row)",
+    fha: "FHA: the 1.75% upfront premium is financed and the 0.55% annual premium is included in the APR automatically.",
     stale: "Snapshots older than {h} hours are never shown.",
     scenario: "Scenario",
     source: "Source screenshot or PDF (required, kept private)",

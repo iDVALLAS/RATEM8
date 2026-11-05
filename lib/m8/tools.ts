@@ -5,7 +5,10 @@
  *
  *  - get_pricing: returns {status:"unavailable"} until live pricing exists
  *    (the L4b pricing robot). When it does, its quotes are the only rates
- *    the output guard lets through.
+ *    the output guard lets through. C7: with PRICING_MANUAL on, a borrower
+ *    scenario close to one of the daily scenarios (lib/pricing/daily.ts)
+ *    gets that day's fresh snapshot as a dated example (kind
+ *    "dated_example"): the three options, lenders by letter.
  *  - request_handoff: a contact request for the borrower's assigned loan
  *    officer. Saved in Neon when it's configured and emailed through Resend
  *    when that's configured; if neither is, it says so and M8 points the
@@ -18,6 +21,11 @@ import { redactChatInput } from "./redact";
 import { saveHandoff } from "./store";
 import { emailConfig } from "./server";
 import { pctKey } from "./guard";
+import { matchDaily } from "@/lib/pricing/daily";
+import { manualProvider } from "@/lib/pricing/providers/manual";
+import { tenantForState } from "@/lib/pricing/tenants";
+import type { LenderQuote, PricingRun } from "@/lib/pricing/types";
+import type { PricingCard, PricingCardOption } from "./shared";
 
 export const TOOL_NAMES = ["get_pricing", "request_handoff"] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
@@ -42,11 +50,24 @@ const Quote = z.object({
   lenderFees: z.number().nonnegative(),
   lockDays: z.number().int(),
   lender: z.string().regex(/^Lender [A-Z]{1,2}$/), // anonymized (Mode A)
+  /** C7: principal and interest, and the first month's mortgage insurance when there is any. */
+  monthlyPrincipalAndInterest: z.number().nonnegative().optional(),
+  monthlyMortgageInsurance: z.number().nonnegative().nullable().optional(),
+  hasRiskyFeature: z.boolean().optional(),
 });
 
 const PricingOutput = z.discriminatedUnion("status", [
   z.object({ status: z.literal("unavailable"), message: z.string() }),
-  z.object({ status: z.literal("ok"), pricedAt: z.string(), assumptions: z.record(z.string(), z.string()), quotes: z.array(Quote).min(1) }),
+  z.object({
+    status: z.literal("ok"),
+    /** C7: "dated_example" = today's snapshot of a standard scenario like theirs, never their own quote. */
+    kind: z.enum(["live", "dated_example"]).optional(),
+    scenario: z.string().optional(),
+    pricedAt: z.string(),
+    assumptions: z.record(z.string(), z.string()),
+    quotes: z.array(Quote).min(1),
+    instructions: z.string().optional(),
+  }),
 ]);
 export type PricingResult = z.infer<typeof PricingOutput>;
 
@@ -96,8 +117,15 @@ export const M8_TOOLS: Anthropic.Messages.Tool[] = [
   },
 ];
 
-export type ToolContext = { sessionId: string; mloId: string | null; mloName: string | null; state: string | null };
-export type ToolRun = { content: string; isError: boolean; pricing?: PricingResult };
+export type ToolContext = {
+  sessionId: string;
+  mloId: string | null;
+  mloName: string | null;
+  state: string | null;
+  /** C7: PRICING_MANUAL is on, so get_pricing may return a dated example. */
+  examplesOn?: boolean;
+};
+export type ToolRun = { content: string; isError: boolean; pricing?: PricingResult; card?: PricingCard };
 
 /** The rates and APRs in a pricing result, as guard keys. */
 export function pricedRates(result: PricingResult | undefined): Set<string> {
@@ -110,9 +138,81 @@ function err(message: string): ToolRun {
   return { content: JSON.stringify({ error: message }), isError: true };
 }
 
-async function getPricing(input: unknown): Promise<ToolRun> {
+const OPTION_KEYS = [
+  ["lowest_rate", "lowestRate"],
+  ["lowest_rate_no_risky_features", "lowestRateWithoutRiskyFeatures"],
+  ["lowest_points_and_fees", "lowestPointsAndOrigination"],
+] as const;
+
+/** The three options of a run, for the tool result and the chat card. Null below three eligible lenders. */
+export function exampleFromRun(run: PricingRun): { quotes: z.infer<typeof Quote>[]; card: PricingCard } | null {
+  if (!run.selection.meetsCreditorCount) return null;
+  const quotes: z.infer<typeof Quote>[] = [];
+  const options: PricingCardOption[] = [];
+  for (const [option, key] of OPTION_KEYS) {
+    const pick = run.selection[key];
+    const q: LenderQuote | undefined = pick ? run.quotes.find((x) => x.lender === pick.lender) : undefined;
+    if (!q || q.noteRate === null || q.apr === null || q.monthlyPayment === null) continue;
+    quotes.push({
+      option, rate: q.noteRate, apr: q.apr, points: q.pointsPct, lenderFees: q.lenderFees, lockDays: q.lockDays, lender: q.lender,
+      monthlyPrincipalAndInterest: q.monthlyPayment, monthlyMortgageInsurance: q.monthlyMi, hasRiskyFeature: q.hasRiskyFeature,
+    });
+    options.push({
+      option, lender: q.lender, rate: q.noteRate, apr: q.apr, pointsPct: q.pointsPct, pointsDollars: q.pointsDollars,
+      originationFee: q.originationFee, lenderFees: q.lenderFees, lockDays: q.lockDays, payment: q.monthlyPayment,
+      mortgageInsurance: q.monthlyMi, risky: q.hasRiskyFeature,
+    });
+  }
+  if (!quotes.length) return null;
+  const s = run.scenario;
+  return {
+    quotes,
+    card: {
+      title: s.title,
+      location: s.location,
+      pricedAt: run.pricedAt,
+      assumptions: s.assumptions,
+      eligibleCount: run.selection.eligibleCreditors,
+      options,
+    },
+  };
+}
+
+async function datedExample(input: z.infer<typeof PricingInput>): Promise<ToolRun | null> {
+  const scenario = matchDaily(input);
+  if (!scenario) return null;
+  const tenant = tenantForState(scenario.state);
+  if (!tenant) return null;
+  const run = await manualProvider.priceScenario(tenant.id, scenario).catch(() => null);
+  if (!run) return null;
+  const ex = exampleFromRun(run);
+  if (!ex) return null;
+  const s = run.scenario;
+  const result = PricingOutput.parse({
+    status: "ok",
+    kind: "dated_example",
+    scenario: `${s.title} · ${s.location}`,
+    pricedAt: run.pricedAt,
+    assumptions: Object.fromEntries(s.assumptions.map((a, i) => [String(i + 1), a])),
+    quotes: ex.quotes,
+    instructions:
+      "This is today's priced example for a standard scenario close to the borrower's, not their quote. Say that plainly, give the date and time it was priced (Pacific time), show each option's rate next to its APR, mention the key assumptions, and say it isn't a commitment to lend. The chat also shows these figures as a card. Their own pricing comes from their loan officer.",
+  });
+  return { content: JSON.stringify(result), isError: false, pricing: result, card: ex.card };
+}
+
+async function getPricing(input: unknown, ctx?: ToolContext): Promise<ToolRun> {
   const parsed = PricingInput.safeParse(input);
   if (!parsed.success) return err("Invalid scenario. Ask the borrower for the missing details, one at a time.");
+  if (!CONFIG.liveRatesEnabled && ctx?.examplesOn) {
+    const example = await datedExample(parsed.data);
+    if (example) return example;
+    const none = PricingOutput.parse({
+      status: "unavailable",
+      message: "No dated example matches this scenario today, and live pricing isn't connected. Offer to have the loan officer price their scenario and send it.",
+    });
+    return { content: JSON.stringify(none), isError: false, pricing: none };
+  }
   // Live pricing (L4b) isn't connected: no rates exist to return.
   const result = PricingOutput.parse(
     CONFIG.liveRatesEnabled
@@ -160,7 +260,7 @@ async function requestHandoff(input: unknown, ctx: ToolContext): Promise<ToolRun
 
 /** Runs one tool call. Unknown tools are refused (only the two above are allowed). */
 export async function runTool(name: string, input: unknown, ctx: ToolContext): Promise<ToolRun> {
-  if (name === "get_pricing") return getPricing(input);
+  if (name === "get_pricing") return getPricing(input, ctx);
   if (name === "request_handoff") return requestHandoff(input, ctx);
   return err(`Unknown tool ${name}.`);
 }

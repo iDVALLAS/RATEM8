@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import type { M8Event, M8Message } from "@/lib/m8/shared";
+import type { M8Event, M8Message, PricingCard } from "@/lib/m8/shared";
 import { M8_SESSION_KEY } from "@/lib/m8/shared";
 import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
@@ -11,6 +11,7 @@ import { useMloContext, useNamedMlo } from "@/components/mlo/MloContext";
 import MloChatCard from "@/components/chat/MloChatCard";
 import MloAvatar from "@/components/mlo/MloAvatar";
 import RichText from "@/components/chat/RichText";
+import ExamplePricingCard from "@/components/chat/ExamplePricingCard";
 import { fillMlo } from "@/lib/mlo-match";
 
 /**
@@ -173,6 +174,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
       abortRef.current = controller;
 
       let accumulated = "";
+      let card: PricingCard | undefined;
       try {
         const resp = await fetch("/api/m8-chat", {
           method: "POST",
@@ -216,6 +218,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
                 setMessages((m) => m.map((x, i) => (i === m.length - 1 && x.role === "user" ? { ...x, content: masked } : x)));
               }
               if (parsed.notice) setNotice(parsed.notice);
+              if (parsed.pricing) card = parsed.pricing;
               if (parsed.replace !== undefined) {
                 accumulated = parsed.replace;
                 setStreamingText(accumulated);
@@ -237,7 +240,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
         if (accumulated) {
           setMessages((m) => [
             ...m,
-            { role: "assistant", content: accumulated },
+            card ? { role: "assistant", content: accumulated, pricing: card } : { role: "assistant", content: accumulated },
           ]);
         }
         setStreamingText("");
@@ -351,6 +354,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
               ) : (
                 <div className="text-[15px] leading-relaxed" style={{ color: "var(--fg)" }}>
                   <RichText text={msg.content} />
+                  {msg.pricing ? <ExamplePricingCard card={msg.pricing} /> : null}
                 </div>
               )}
             </div>

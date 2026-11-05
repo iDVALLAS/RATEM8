@@ -17,7 +17,7 @@ import { redactChatInput, type RedactionKind } from "./redact";
 import { isAbusive } from "./moderation";
 import { guardReply, userPercentages, type GuardReason } from "./guard";
 import { M8_TOOLS, pricedRates, runTool, type PricingResult, type ToolContext } from "./tools";
-import type { M8Event, M8Message } from "./shared";
+import type { M8Event, M8Message, PricingCard } from "./shared";
 
 export type PreparedTurn = {
   messages: M8Message[];
@@ -30,11 +30,12 @@ export type PreparedTurn = {
 
 export function prepareTurn(messages: M8Message[]): PreparedTurn {
   const kinds = new Set<RedactionKind>();
-  const out = messages.map((m) => {
-    if (m.role !== "user") return m;
+  // Only role and content go on: C7's display-only `pricing` card (sent back by the browser) is dropped.
+  const out: M8Message[] = messages.map((m) => {
+    if (m.role !== "user") return { role: m.role, content: m.content };
     const r = redactChatInput(m.content);
     r.kinds.forEach((k) => kinds.add(k));
-    return { ...m, content: r.text };
+    return { role: m.role, content: r.text };
   });
   const users = out.filter((m) => m.role === "user").map((m) => m.content);
   const lastUserText = users[users.length - 1] ?? "";
@@ -49,7 +50,7 @@ export function fallbackFor(reason: GuardReason, name: string): string {
   return filled.charAt(0).toUpperCase() + filled.slice(1);
 }
 
-export type TurnResult = { reply: string; guard: GuardReason | null; tokens: number };
+export type TurnResult = { reply: string; guard: GuardReason | null; tokens: number; pricing?: PricingCard };
 
 const MAX_TOOL_ROUNDS = 3;
 
@@ -63,7 +64,14 @@ export async function runM8Turn(opts: {
   /** The loan officer's name for fallback text, or a generic phrase. */
   mloName: string;
   emit: (e: M8Event) => void;
+  /**
+   * C7: M8 may offer pricing (live, or dated examples with PRICING_MANUAL).
+   * Defaults to CONFIG.liveRatesEnabled; off, the guard blocks "I can pull pricing".
+   */
+  pricingAvailable?: boolean;
 }): Promise<TurnResult> {
+  const offerOk = opts.pricingAvailable ?? CONFIG.liveRatesEnabled;
+  let card: PricingCard | undefined;
   const { client, turn, emit } = opts;
   const api: Anthropic.Messages.MessageParam[] = turn.messages.map((m) => ({ role: m.role, content: m.content }));
   let reply = "";
@@ -92,7 +100,7 @@ export async function runM8Turn(opts: {
     stream.on("text", (t: string) => {
       if (blocked) return;
       roundText += t;
-      const check = guardReply(reply + sep + roundText, allowed, turn.userStated, true, CONFIG.liveRatesEnabled);
+      const check = guardReply(reply + sep + roundText, allowed, turn.userStated, true, offerOk);
       if (!check.ok) {
         blocked = check.reason;
         stream.abort();
@@ -118,13 +126,16 @@ export async function runM8Turn(opts: {
     for (const call of calls) {
       const run = await runTool(call.name, call.input, opts.tools);
       if (run.pricing) pricing = run.pricing;
+      if (run.card) card = run.card;
       results.push({ type: "tool_result", tool_use_id: call.id, content: run.content, is_error: run.isError });
     }
     api.push({ role: "user", content: results });
   }
 
   // Final check on the whole reply (rates need their APR and disclosure once complete).
-  const check = guardReply(reply, pricedRates(pricing), turn.userStated, false, CONFIG.liveRatesEnabled);
+  const check = guardReply(reply, pricedRates(pricing), turn.userStated, false, offerOk);
   if (!check.ok) return fail(check.reason);
-  return { reply, guard: null, tokens };
+  // C7: the dated example card goes out only with a reply that passed the guard.
+  if (card) emit({ pricing: card });
+  return { reply, guard: null, tokens, pricing: card };
 }

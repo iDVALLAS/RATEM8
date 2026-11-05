@@ -11,7 +11,7 @@
 import { buildPricingRun } from "./build";
 import { lenderByKey, offers, publishable, LENDERS } from "./lenders";
 import { emptyEntry, screenNote, type PlaybookEntry } from "./playbook";
-import { exampleScenarios } from "./providers/mock";
+import { pricingScenarios } from "./daily";
 import { getStore, type TenantSettings } from "./store";
 import { tenantById } from "./tenants";
 import type { QuoteInput } from "./types";
@@ -37,7 +37,7 @@ export async function publishSnapshot(req: PublishRequest): Promise<PublishResul
   if (!store.writable) return { ok: false, errors: [store.reason ?? "Snapshot storage is read-only."] };
   const tenant = tenantById(req.tenantId);
   if (!tenant) return { ok: false, errors: ["Unknown brokerage tenant."] };
-  const scenario = exampleScenarios().find((s) => s.id === req.scenarioId);
+  const scenario = pricingScenarios().find((s) => s.id === req.scenarioId);
   if (!scenario) return { ok: false, errors: ["Unknown scenario."] };
   if (!tenant.states.includes(scenario.state)) return { ok: false, errors: [`This brokerage does not price ${scenario.state} scenarios.`] };
 

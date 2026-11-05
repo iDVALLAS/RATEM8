@@ -42,6 +42,10 @@ export async function publishSnapshotAction(fd: FormData): Promise<void> {
   const scenarioId = str(fd, "scenarioId");
   const quotes: QuoteInput[] = [];
   const parseErrors: string[] = [];
+  // C7: one monthly PMI for the snapshot (PMI scenarios); it applies to every lender row.
+  const pmiRaw = str(fd, "pmi");
+  const monthlyPmi = pmiRaw === "" ? undefined : Number(pmiRaw.replace(/[$,]/g, ""));
+  if (monthlyPmi !== undefined && !Number.isFinite(monthlyPmi)) parseErrors.push("Monthly PMI is not a number.");
   for (let i = 0; i < 12; i++) {
     const lenderKey = str(fd, `r${i}.lender`);
     if (!lenderKey) continue;
@@ -67,6 +71,7 @@ export async function publishSnapshotAction(fd: FormData): Promise<void> {
         demandFeature: fd.get(`r${i}.f.demand`) === "on",
         sharedEquityOrAppreciation: fd.get(`r${i}.f.shared`) === "on",
       },
+      ...(eligible && monthlyPmi !== undefined ? { monthlyPmi } : {}),
     };
     for (const [k, v] of Object.entries({ rate: q.noteRate, points: q.pointsPct, origination: q.originationFee, fees: q.lenderFees, lock: q.lockDays })) {
       if (v !== null && Number.isNaN(v)) parseErrors.push(`Row ${i + 1}: ${k} is not a number.`);
