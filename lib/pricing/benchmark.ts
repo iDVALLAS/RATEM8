@@ -19,6 +19,7 @@
  *    shown side by side with a neutral heading, never as "below".
  */
 import type { BandedScenario, LenderQuote, PricingRun } from "./types";
+import { quoteForPick } from "./antiSteering";
 
 export type BenchmarkOption = "lowestRate" | "lowestRateWithoutRiskyFeatures" | "lowestPointsAndOrigination";
 
@@ -98,7 +99,7 @@ export function compareToBenchmark(run: PricingRun, option: BenchmarkOption, inp
   if (!ISO_DATE.test(exampleAsOf) || daysApart(exampleAsOf, benchmark.weekOf) > MAX_DAYS_APART) return null;
 
   const pick = run.selection[option];
-  const quote = pick ? run.quotes.find((q) => q.lender === pick.lender && q.eligible) : undefined;
+  const quote = quoteForPick(run.quotes, pick);
   if (!quote || quote.noteRate === null || quote.hasRiskyFeature) return null;
 
   const examplePointsAndOriginationPct = r3((quote.pointsAndOriginationDollars / run.scenario.loanAmount) * 100);

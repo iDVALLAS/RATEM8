@@ -1,30 +1,31 @@
 /**
- * lib/pricing/compRule.ts — which rate the loan officer would quote (C8).
+ * lib/pricing/compRule.ts — the loan officer's rule for turning rate grids
+ * into the options a borrower sees (C8).
  *
- * A pricing engine (LoanSifter, ARIVE) returns a whole rate grid for each
- * lender product: every rate with its price. The borrower is shown one
- * line per product, picked by the loan officer's own rule, the same way
- * the loan officer picks it by hand.
+ * A pricing engine (LoanSifter, ARIVE) returns a rate grid for each lender
+ * product: every rate with its price. These are borrower-paid grids: the
+ * loan officer's compensation is NOT built in (owner, 2026-11-05).
  *
- * Owner rule, 2026-11-05 (non-delegated correspondent, "NDC"):
- *  - Target total compensation: CompRule.targetPct of the loan (1.7%).
- *  - Part of it is a flat origination fee the borrower pays (CompRule.originationFee, $3,000).
- *  - The rest must come from the lender's rebate, so take the LOWEST rate
- *    whose rebate (price − 100) is at least targetPct − originationFee / loan.
- *  Owner's worked example, Kind Lending NDC, $520,000 purchase, 20% down:
- *  target $8,840, minus $3,000 → rebate of at least 1.123% → 7.125%
- *  (pays 1.159%, $6,027). Borrower sees 7.125%, $3,000 origination, no
- *  points. The rebate is the lender's payment for the loan, not a charge
- *  to the borrower, so it is never shown as a borrower cost.
+ * Owner rule: the compensation is the same on every option, a target share
+ * of the loan (CompRule.targetPct, 1.7%). At each rate the lender's rebate
+ * (price − 100) pays part of it and the borrower pays the rest as points:
  *
- * Wholesale, lender-paid compensation (an engine "LO Comp" column): the
- * lender already pays the loan officer, so no origination is charged on
- * top. Default, pending owner confirmation: the lowest rate where the
- * borrower pays no points (price at or above 100).
+ *     borrower points ($) = target ($) − rebate ($)
  *
- * One line per lender: when a lender has several products (FNMA and FHLMC,
- * two programs), only its lowest resulting rate is kept, so one lender
- * can't fill all three options.
+ * When the rebate is larger than the target, the difference goes back to
+ * the borrower as a lender credit (negative points), so the compensation
+ * never changes with the rate the borrower picks.
+ *
+ * Owner's worked example, $520,000 purchase, 20% down, target $8,840:
+ *  - Kind Lending 6.875%: rebate $1,643 → the borrower pays $7,197 in points.
+ *  - Rocket 7.375%: rebate $9,090 → no points, a $250 credit.
+ *
+ * Two lines per lender go into the run, and the anti-steering selection
+ * (antiSteering.ts) picks across lenders from them:
+ *  - its lowest rate whose points stay within CompRule.maxPointsPct of the loan
+ *  - its lowest rate where the borrower pays no points
+ * The owner's "middle" option (some points, a lower rate) is set aside until
+ * the owner explains how it is chosen.
  *
  * Pure: no network, no store. A provider fetches the grids; this decides.
  */
@@ -41,58 +42,56 @@ export type GridRow = {
 export type LenderProduct = {
   lenderKey: string;
   productLabel: string;
-  /** "ndc" = non-delegated correspondent; "wholesale" = lender-paid compensation. */
-  channel: "ndc" | "wholesale";
   lenderFees: number;
   lockDays: number;
   grid: GridRow[];
 };
 
 export type CompRule = {
-  /** Target total compensation, percent of the loan (owner: 1.7). */
+  /** The loan officer's compensation on every option, percent of the loan (owner: 1.7). */
   targetPct: number;
-  /** Flat borrower-paid origination fee in dollars on NDC loans (owner: 3000). */
-  originationFee: number;
+  /** Most points the borrower may pay on the lowest-rate option, percent of the loan. */
+  maxPointsPct: number;
 };
 
-export const DEFAULT_COMP_RULE: CompRule = { targetPct: 1.7, originationFee: 3000 };
+export const DEFAULT_COMP_RULE: CompRule = { targetPct: 1.7, maxPointsPct: 1.5 };
 
-const EPS = 1e-9;
-
-/** The rebate (positive) or discount (negative), percent of the loan, at a price. */
-export const rebatePct = (price: number) => price - 100;
+/** Reads a saved rule, filling anything missing (an older save) from the default. */
+export function normalizeRule(r: Partial<CompRule> | null | undefined): CompRule {
+  return {
+    targetPct: typeof r?.targetPct === "number" ? r.targetPct : DEFAULT_COMP_RULE.targetPct,
+    maxPointsPct: typeof r?.maxPointsPct === "number" ? r.maxPointsPct : DEFAULT_COMP_RULE.maxPointsPct,
+  };
+}
 
 /** Validates a rule; returns problems in plain words. */
 export function checkRule(r: CompRule): string[] {
   const errs: string[] = [];
   if (!(r.targetPct >= 0 && r.targetPct <= 5)) errs.push("Target compensation must be between 0% and 5% of the loan.");
-  if (!(r.originationFee >= 0 && r.originationFee <= 20000)) errs.push("Origination fee must be between $0 and $20,000.");
+  if (!(r.maxPointsPct >= 0 && r.maxPointsPct <= 3)) errs.push("The points cap must be between 0% and 3% of the loan.");
   return errs;
 }
 
-/** The quote for one product under the rule, or null when no rate on its grid works. */
-export function pickRate(p: LenderProduct, loanAmount: number, rule: CompRule): QuoteInput | null {
-  const grid = [...p.grid].filter((g) => g.rate > 0 && Number.isFinite(g.price)).sort((a, b) => a.rate - b.rate);
-  if (!grid.length || !(loanAmount > 0)) return null;
-  let row: GridRow | undefined;
-  let originationFee = 0;
-  if (p.channel === "ndc") {
-    const orig = Math.min(rule.originationFee, (rule.targetPct / 100) * loanAmount);
-    const needed = rule.targetPct - (orig / loanAmount) * 100;
-    row = grid.find((g) => rebatePct(g.price) >= needed - EPS);
-    originationFee = orig;
-  } else {
-    row = grid.find((g) => rebatePct(g.price) >= -EPS);
-  }
-  if (!row) return null;
+export type GridLine = { rate: number; price: number; pointsDollars: number };
+
+/** Every grid line with what the borrower would pay in points (negative = credit). */
+export function linesFor(p: LenderProduct, loanAmount: number, rule: CompRule): GridLine[] {
+  const target = (rule.targetPct / 100) * loanAmount;
+  return p.grid
+    .filter((g) => g.rate > 0 && Number.isFinite(g.price))
+    .map((g) => ({ rate: g.rate, price: g.price, pointsDollars: Math.round((target - ((g.price - 100) / 100) * loanAmount) * 100) / 100 }))
+    .sort((a, b) => a.rate - b.rate);
+}
+
+function toQuote(p: LenderProduct, line: GridLine, loanAmount: number): QuoteInput {
   return {
     lenderKey: p.lenderKey,
-    productLabel: p.productLabel,
+    // The rate in the label keeps two lines from the same product distinct.
+    productLabel: `${p.productLabel} · ${line.rate.toFixed(3)}%`,
     eligible: true,
-    noteRate: row.rate,
-    // The borrower pays no discount points under either rule; the rebate is never a borrower credit here.
-    pointsPct: 0,
-    originationFee: Math.round(originationFee * 100) / 100,
+    noteRate: line.rate,
+    pointsPct: (line.pointsDollars / loanAmount) * 100,
+    originationFee: 0,
     lenderFees: p.lenderFees,
     lockDays: p.lockDays,
     interestOnlyMonths: 0,
@@ -100,15 +99,41 @@ export function pickRate(p: LenderProduct, loanAmount: number, rule: CompRule): 
   };
 }
 
-/** One quote per lender: each product through the rule, then the lowest rate per lender. */
+/** A lender's lowest rate within the points cap. */
+export function lowestRateLine(p: LenderProduct, loanAmount: number, rule: CompRule): GridLine | null {
+  const cap = (rule.maxPointsPct / 100) * loanAmount + 1e-6;
+  return linesFor(p, loanAmount, rule).find((l) => l.pointsDollars <= cap) ?? null;
+}
+
+/** A lender's lowest rate where the borrower pays no points. */
+export function noPointsLine(p: LenderProduct, loanAmount: number, rule: CompRule): GridLine | null {
+  return linesFor(p, loanAmount, rule).find((l) => l.pointsDollars <= 1e-6) ?? null;
+}
+
+/**
+ * The quotes for a run: per lender, the best lowest-rate line and the best
+ * no-points line across its products (lowest rate; on a tie, the fewest
+ * points). Lenders with neither are left out.
+ */
 export function quotesFromGrids(products: LenderProduct[], loanAmount: number, rule: CompRule = DEFAULT_COMP_RULE): QuoteInput[] {
-  const best = new Map<string, QuoteInput>();
+  const better = (a: { line: GridLine }, b?: { line: GridLine }) =>
+    !b || a.line.rate < b.line.rate || (a.line.rate === b.line.rate && a.line.pointsDollars < b.line.pointsDollars);
+  const low = new Map<string, { p: LenderProduct; line: GridLine }>();
+  const free = new Map<string, { p: LenderProduct; line: GridLine }>();
   for (const p of products) {
-    const q = pickRate(p, loanAmount, rule);
-    if (!q) continue;
-    const prev = best.get(q.lenderKey);
-    const cost = (x: QuoteInput) => x.originationFee + x.lenderFees;
-    if (!prev || q.noteRate! < prev.noteRate! || (q.noteRate === prev.noteRate && cost(q) < cost(prev))) best.set(q.lenderKey, q);
+    const l = lowestRateLine(p, loanAmount, rule);
+    if (l && better({ line: l }, low.get(p.lenderKey))) low.set(p.lenderKey, { p, line: l });
+    const f = noPointsLine(p, loanAmount, rule);
+    if (f && better({ line: f }, free.get(p.lenderKey))) free.set(p.lenderKey, { p, line: f });
   }
-  return [...best.values()].sort((a, b) => a.noteRate! - b.noteRate! || a.lenderKey.localeCompare(b.lenderKey));
+  const out: QuoteInput[] = [];
+  const seen = new Set<string>();
+  for (const { p, line } of [...low.values(), ...free.values()]) {
+    const q = toQuote(p, line, loanAmount);
+    const key = `${q.lenderKey}|${q.productLabel}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(q);
+  }
+  return out.sort((a, b) => a.noteRate! - b.noteRate! || a.lenderKey.localeCompare(b.lenderKey));
 }

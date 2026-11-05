@@ -30,12 +30,12 @@ export async function saveSettingsAction(fd: FormData): Promise<void> {
     niches: fd.getAll(`pb.${k}.niches`).map(String).filter((n): n is Niche => (NICHES as readonly string[]).includes(n)),
     note: str(fd, `pb.${k}.note`),
   }));
-  // C8: the rate rule (percent and dollars; blanks keep the default).
-  const target = str(fd, "comp.targetPct");
-  const orig = str(fd, "comp.originationFee").replace(/[$,]/g, "");
+  // C8: the rate rule (percent of the loan; blanks keep the default).
+  const target = str(fd, "comp.targetPct").replace("%", "");
+  const cap = str(fd, "comp.maxPointsPct").replace("%", "");
   const comp = {
     targetPct: target === "" ? DEFAULT_COMP_RULE.targetPct : Number(target),
-    originationFee: orig === "" ? DEFAULT_COMP_RULE.originationFee : Number(orig),
+    maxPointsPct: cap === "" ? DEFAULT_COMP_RULE.maxPointsPct : Number(cap),
   };
   const res = await saveSettings({ tenantId, activeLenderKeys: active, playbook, actor, comp });
   const flash = res.ok

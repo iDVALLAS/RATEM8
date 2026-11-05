@@ -25,6 +25,7 @@ import { matchDaily } from "@/lib/pricing/daily";
 import { manualProvider } from "@/lib/pricing/providers/manual";
 import { tenantForState } from "@/lib/pricing/tenants";
 import type { LenderQuote, PricingRun } from "@/lib/pricing/types";
+import { quoteForPick } from "@/lib/pricing/antiSteering";
 import type { PricingCard, PricingCardOption } from "./shared";
 
 export const TOOL_NAMES = ["get_pricing", "request_handoff"] as const;
@@ -151,7 +152,7 @@ export function exampleFromRun(run: PricingRun): { quotes: z.infer<typeof Quote>
   const options: PricingCardOption[] = [];
   for (const [option, key] of OPTION_KEYS) {
     const pick = run.selection[key];
-    const q: LenderQuote | undefined = pick ? run.quotes.find((x) => x.lender === pick.lender) : undefined;
+    const q: LenderQuote | undefined = quoteForPick(run.quotes, pick);
     if (!q || q.noteRate === null || q.apr === null || q.monthlyPayment === null) continue;
     quotes.push({
       option, rate: q.noteRate, apr: q.apr, points: q.pointsPct, lenderFees: q.lenderFees, lockDays: q.lockDays, lender: q.lender,

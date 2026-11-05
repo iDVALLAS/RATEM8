@@ -127,6 +127,8 @@ export type LenderQuote = {
 
 export type SelectionPick = {
   lender: string;
+  /** C8: which of the lender's lines (a lender can have several, e.g. lowest rate and no points). */
+  productLabel: string;
   rationale: string;
 };
 

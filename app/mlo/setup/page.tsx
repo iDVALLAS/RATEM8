@@ -9,7 +9,7 @@ import { LENDERS, publishable } from "@/lib/pricing/lenders";
 import { NICHES, emptyEntry, NOTE_MAX } from "@/lib/pricing/playbook";
 import { exampleScenarios } from "@/lib/pricing/providers/mock";
 import { getStore } from "@/lib/pricing/store";
-import { DEFAULT_COMP_RULE } from "@/lib/pricing/compRule";
+import { normalizeRule } from "@/lib/pricing/compRule";
 import { listTenants } from "@/lib/pricing/tenants";
 import { saveSettingsAction } from "../actions";
 import { FlashBox, MloNav, TenantPicker } from "../MloChrome";
@@ -35,7 +35,7 @@ export default async function MloSetup({ searchParams }: Props) {
   const store = getStore();
   const settings = await store.latestSettings(tenant.id);
   const active = new Set(settings?.activeLenderKeys ?? []);
-  const comp = settings?.comp ?? DEFAULT_COMP_RULE;
+  const comp = normalizeRule(settings?.comp);
   const scenario = exampleScenarios().find((s) => tenant.states.includes(s.state));
   const preview = scenario ? await resolveDisplay(scenario.id) : null;
 
@@ -134,7 +134,7 @@ export default async function MloSetup({ searchParams }: Props) {
             <p className="mlo-note">{c.compNote}</p>
             <div className="mlo-row">
               <label className="mlo-field">{c.compTarget}<input name="comp.targetPct" inputMode="decimal" defaultValue={String(comp.targetPct)} /></label>
-              <label className="mlo-field">{c.compOrig}<input name="comp.originationFee" inputMode="decimal" defaultValue={String(comp.originationFee)} /></label>
+              <label className="mlo-field">{c.compCap}<input name="comp.maxPointsPct" inputMode="decimal" defaultValue={String(comp.maxPointsPct)} /></label>
             </div>
             <p className="mlo-note mt-2">{c.compExample}</p>
             <button type="submit" className="mlo-btn" disabled={!store.writable}>{c.save}</button>

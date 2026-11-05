@@ -777,3 +777,37 @@ whose rebate covers the rest.
 - Owner: confirm the wholesale rule, whether the origination stays flat at
   every loan size, and counsel's view on disclosing NDC compensation.
 - Owner: LoanSifter API access and the search-data opt-out.
+
+## C8.1 — Rate rule: fixed compensation, two options per lender (2026-11-05)
+
+**Owner:** the grids are borrower-paid pricing (no LO comp built in, for
+wholesale too). "Remove the $3000 rule until I can train you on how I look
+at these." Confirmed: "your compensation is the same on every option …
+whatever the rebate doesn't cover, the borrower pays in points; if the
+rebate covers more, the extra goes back to the borrower as a credit … in
+most cases what you said is true." The owner also says no compensation
+disclosure is needed on the non-delegated correspondent channel
+(warehouse line); recorded as the owner's decision.
+
+### Changes
+- `lib/pricing/compRule.ts` rewritten. `CompRule` is now
+  `{ targetPct: 1.7, maxPointsPct: 1.5 }` (the $3,000 origination is gone;
+  `normalizeRule()` reads older saves). At every grid line: borrower points
+  = target $ − rebate $ (negative = lender credit), so compensation never
+  changes with the rate. Per lender, two lines go into the run: the lowest
+  rate within the points cap, and the lowest rate with no points. The
+  anti-steering selection picks across lenders. The "middle" option waits
+  for the owner's training.
+- **Fix:** `SelectionPick` now names the line (`productLabel`), and
+  `quoteForPick()` (antiSteering.ts) is used by the chat card, `/rates`,
+  the benchmark and the example summary. Before, a pick named only the
+  lender, which would show the wrong line once a lender has two.
+- `/mlo/setup` "Rate rule": compensation % and the points cap %, with the
+  worked example.
+
+### Verified
+- Owner's grids ($520,000, 20% down): Kind 6.875% → $7,196.80 in points
+  (1.38%, inside the 1.5% cap; 6.75% would be 1.84%); Rocket 7.375% → no
+  points and a $249.60 credit; the run's lowest-rate option is Kind 6.875%
+  and its lowest points-and-fees option is 7.375% with $0. Points are in
+  the APR. `npm run verify` passes.

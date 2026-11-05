@@ -2,6 +2,7 @@ import { CONFIG, NOT_A_COMMITMENT } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import type { DisplayRun } from "@/lib/pricing/display";
 import type { LenderQuote, SelectionPick } from "@/lib/pricing/types";
+import { quoteForPick } from "@/lib/pricing/antiSteering";
 import "./pricing.css";
 
 /**
@@ -40,7 +41,7 @@ function pointsText(q: LenderQuote): string {
 
 function Card({ title, pick, quotes, hue }: { title: string; pick: SelectionPick | null; quotes: LenderQuote[]; hue: 1 | 2 | 3 }) {
   if (!pick) return null;
-  const q = quotes.find((x) => x.lender === pick.lender && x.eligible);
+  const q = quoteForPick(quotes, pick);
   if (!q) return null;
   // v23: tinted edge + wash. Lenders are anonymized here, so the tint is
   // the card's position (data hue 1–3), never a lender's brand colour, and

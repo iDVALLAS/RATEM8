@@ -14,7 +14,7 @@ import { emptyEntry, screenNote, type PlaybookEntry } from "./playbook";
 import { pricingScenarios } from "./daily";
 import { getStore, type TenantSettings } from "./store";
 import { tenantById } from "./tenants";
-import { checkRule, DEFAULT_COMP_RULE, type CompRule } from "./compRule";
+import { checkRule, normalizeRule, type CompRule } from "./compRule";
 import type { QuoteInput } from "./types";
 
 export const MIN_ACTIVE_LENDERS = 3;
@@ -119,7 +119,7 @@ export async function saveSettings(req: SettingsRequest): Promise<SettingsResult
   }
   const playbook = keys.map((k) => req.playbook.find((p) => p.lenderKey === k) ?? emptyEntry(k));
   const prev = await store.latestSettings(req.tenantId);
-  const comp = req.comp ?? prev?.comp ?? DEFAULT_COMP_RULE;
+  const comp = req.comp ?? normalizeRule(prev?.comp);
   const settings = await store.putSettings({ tenantId: req.tenantId, activeLenderKeys: keys, playbook, comp, updatedBy: req.actor, updatedAt: (req.now ?? new Date()).toISOString() });
   return { ok: true, settings, warnings };
 }
