@@ -811,3 +811,55 @@ disclosure is needed on the non-delegated correspondent channel
   points and a $249.60 credit; the run's lowest-rate option is Kind 6.875%
   and its lowest points-and-fees option is 7.375% with $0. Points are in
   the APR. `npm run verify` passes.
+
+## C9 — Send to LoanM8: import LoanSifter results (2026-11-06)
+
+Owner: "I got the okay for you to run when I'm logged into LoanSifter for
+now until I get the API … let's get that going ASAP so you can pull
+pricing in." Built from the owner's pasted results page (53 eligible
+products for the 20%-down daily scenario, three rate grids open).
+
+### Changes
+- `lib/pricing/loansifterBookmarklet.ts`: the "Send to LoanM8" bookmarklet.
+  It runs in the loan officer's own logged-in tab on a LoanSifter results
+  page, opens every rate grid one at a time (gives up after three clicks
+  that open nothing), reads investor, product, lock, lender fees, LO comp
+  and each grid's rate and price, and shows the result with a Copy button.
+  It never touches the password or login code and makes no network call
+  (a test checks the source).
+- `lib/pricing/loansifter.ts`: validates a capture (zod), maps investor
+  names to panel lenders across channels (Non-Delegated, Wholesale,
+  Mini-Correspondent), matches the capture to a daily scenario, and builds
+  borrower-paid grids.
+  - **Wholesale prices are shown net of lender-paid LO comp.** Evidence:
+    NexBank 6.750% Wholesale 97.670 with 2.250% comp, Non-Delegated
+    99.920 = 97.670 + 2.250. The import adds the comp back, then the
+    owner's rule (1.7%) applies the same way to every channel.
+  - Skips, with reasons: lenders not on the panel, not a go-to lender,
+    terms restricted or not reviewed (PRMG, Rocket Pro), non-conforming
+    products (jumbo, portfolio, alternative AUS), and products whose grid
+    wasn't opened.
+- `importLoanSifter()` (publish.ts): refuses captures older than 6 hours,
+  needs PMI for the 5%-down scenario and at least three lenders inside the
+  rule, prices the snapshot at the capture time, and stores the capture
+  itself as the private source record (`application/json`).
+- `/mlo/pricing`: "Import from LoanSifter" box with the bookmarklet, a
+  paste field and PMI.
+
+### Verified
+- Bookmarklet run in Chromium on the owner's captured page: 53 products,
+  summary $520,000 / $650,000 / 80% / 30 days; Kind, Rocket and UWM grids
+  read; wholesale comp and fees read.
+- From that capture at 1.7%: Kind Non-Delegated lowest rate in the cap
+  6.875% ($6,016 points), no points at 7.375%; UWM (98.130 + 1.5) the same
+  two rates. Import end to end on the memory store; Rocket and PRMG are
+  skipped with reasons; a 7-hour-old capture is refused.
+  `npm run verify` passes.
+
+### Known issues / owner decisions
+- The click that opens a grid is inferred from the page. If grids don't
+  open on the live page, the button says so.
+- Lenders the owner uses but not on the panel (NexBank, ResiCentral,
+  Mutual of Omaha, HomeBridge, JMAC, theLender, Plaza, HomeXpress) are
+  skipped until the owner decides whether to add them.
+- Non-Delegated rows show no lender fees in LoanSifter; they import as $0.

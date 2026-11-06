@@ -46,5 +46,19 @@ export const mloContent = {
     recent: "Recent snapshots",
     none: "No snapshots yet for this scenario.",
     columns: ["Pulled", "Shown?", "Inputs hash", "Source", "By"],
+    // Send to LoanM8 (LoanSifter, until its API is available)
+    importHeading: "Import from LoanSifter",
+    importSteps: [
+      "One time: drag the Send to LoanM8 button below to your bookmarks bar (or copy the code into a new bookmark's URL).",
+      "In LoanSifter, open a saved daily scenario and run it.",
+      "On the results page, click the Send to LoanM8 bookmark. It opens every rate grid (about a minute), then shows a Copy button.",
+      "Press Copy, paste below, and import. LoanM8 finds the scenario, applies your rate rule and publishes.",
+    ],
+    importSafety: "The button only reads the results page in your own browser tab. It never sees your password or login code, and it sends nothing until you paste here. Wholesale prices are converted to borrower-paid by adding back the LO comp LoanSifter subtracted.",
+    bookmarklet: "Send to LoanM8",
+    bookmarkletCode: "Bookmark code (if dragging doesn't work)",
+    capture: "Paste what the button copied",
+    importPmi: "Monthly PMI $ (only for the 5% down scenario)",
+    import: "Import and publish",
   },
 } as const;

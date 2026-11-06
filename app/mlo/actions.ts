@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/mlo/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
 import { NICHES, type Niche, type PlaybookEntry } from "@/lib/pricing/playbook";
-import { publishSnapshot, saveSettings } from "@/lib/pricing/publish";
+import { importLoanSifter, publishSnapshot, saveSettings } from "@/lib/pricing/publish";
 import { DEFAULT_COMP_RULE } from "@/lib/pricing/compRule";
 import { NO_RISKY_FEATURES, type QuoteInput } from "@/lib/pricing/types";
 
@@ -96,4 +96,26 @@ export async function publishSnapshotAction(fd: FormData): Promise<void> {
     : await publishSnapshot({ tenantId, scenarioId, quotes, source, actor });
   const flash = res.ok ? { ok: true, lines: [`Published. Inputs hash ${res.inputsHash.slice(0, 12)}.`] } : { ok: false, lines: res.errors };
   redirect(`/mlo/pricing?t=${encodeURIComponent(tenantId)}&s=${encodeURIComponent(scenarioId)}&f=${encodeFlash(flash)}`);
+}
+
+/** Import from LoanSifter: the text the Send to LoanM8 button copied. */
+export async function importLoanSifterAction(fd: FormData): Promise<void> {
+  const actor = await requireAdmin();
+  const tenantId = str(fd, "tenantId");
+  const pmiRaw = str(fd, "pmi").replace(/[$,]/g, "");
+  const monthlyPmi = pmiRaw === "" ? undefined : Number(pmiRaw);
+  const res = await importLoanSifter({ tenantId, captureText: String(fd.get("capture") ?? ""), monthlyPmi, actor });
+  // Group skipped products by reason so the summary stays short.
+  const byReason = new Map<string, Set<string>>();
+  for (const s of res.skipped ?? []) {
+    const names = byReason.get(s.reason) ?? new Set<string>();
+    names.add(s.investor);
+    byReason.set(s.reason, names);
+  }
+  const skippedLines = [...byReason].map(([reason, names]) => `Skipped (${reason}): ${[...names].join(", ")}.`);
+  const flash = res.ok
+    ? { ok: true, lines: [`Published from LoanSifter: ${res.lenders.length} lenders. Inputs hash ${res.inputsHash.slice(0, 12)}.`, ...skippedLines] }
+    : { ok: false, lines: [...res.errors, ...skippedLines] };
+  const s = res.scenarioId ? `&s=${encodeURIComponent(res.scenarioId)}` : "";
+  redirect(`/mlo/pricing?t=${encodeURIComponent(tenantId)}${s}&f=${encodeFlash(flash)}`);
 }

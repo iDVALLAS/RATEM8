@@ -35,7 +35,7 @@ export type TenantSettings = {
   version: number;
   activeLenderKeys: string[];
   playbook: PlaybookEntry[];
-  /** C8: the loan officer's rate rule (lib/pricing/compRule.ts). Absent means the default (1.7%, $3,000). */
+  /** C8: the loan officer's rate rule (lib/pricing/compRule.ts). Absent means the default (1.7%, 1.5% points cap). */
   comp?: CompRule;
   updatedBy: string;
   updatedAt: string;
