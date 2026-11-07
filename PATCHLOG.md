@@ -1076,3 +1076,4 @@ high balance conforming and jumbo loan amounts."
   because there the county decides high balance or jumbo.
 - Tests: no town or ZIP in any example; Spokane and Olympia ZIPs match; an
   FHA loan of $545,000 (above the floor) doesn't. `npm run verify` passes.
+- Owner confirmed both 2026 limits.

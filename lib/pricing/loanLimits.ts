@@ -11,7 +11,8 @@
  * borrower is shown one only when their loan is below it too.
  *
  * 2026 figures. Conforming baseline: FHFA, announced November 2025. FHA
- * floor: HUD, 65% of the conforming baseline. Check both every January.
+ * floor: HUD, 65% of the conforming baseline. Confirmed by the owner
+ * 2026-11-07. Check both every January.
  */
 export const LOAN_LIMITS = {
   year: 2026,
