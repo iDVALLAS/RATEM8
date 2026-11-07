@@ -26,7 +26,7 @@
  * The bookmarklet body, as plain JavaScript text (not compiled by the bundler,
  * so what the loan officer bookmarks is exactly this).
  */
-const BODY = `function sendToLoanM8() {
+const BODY = String.raw`function sendToLoanM8() {
   var VERSION = 1;
   var doc = document;
   var txt = function (el) {
