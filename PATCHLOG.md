@@ -1077,3 +1077,22 @@ high balance conforming and jumbo loan amounts."
 - Tests: no town or ZIP in any example; Spokane and Olympia ZIPs match; an
   FHA loan of $545,000 (above the floor) doesn't. `npm run verify` passes.
 - Owner confirmed both 2026 limits.
+
+## C12 — Temporary buydown calculator (2026-11-07)
+
+Owner: "add a temporary buydown calculator to the calculators section."
+- `lib/calc.ts` `temporaryBuydown()`: 3-2-1, 2-1, 1-1 and 1-0. Each
+  bought-down year's payment is principal and interest at the reduced rate
+  on the full loan amount and term; the buydown cost is the sum of the
+  monthly differences from the note-rate payment (12 per year). Rates never
+  go below 0%. Assumptions block like the other calculators.
+- `/calculators/temporary-buydown` (`components/calc/TemporaryBuydownCalc.tsx`):
+  loan amount, note rate (user-entered), structure buttons; buydown cost in
+  dollars and percent of the loan, payment by year with monthly and yearly
+  savings, the full-rate payment after, show-your-work, assumptions, FAQ
+  (who pays, qualifying at the note rate, vs. points, selling early).
+- Calculators index, site registry/sitemap and methodology.md list it
+  ("Five calculators"). The agent API still offers the original four.
+- Verified: $400,000 at 7%: note payment $2,661.21; 2-1 = $2,147.29 then
+  $2,398.20, cost $9,323; 3-2-1 cost $18,342 (4.59%). Desktop and 390px
+  render without overflow or errors. `npm run verify` passes.

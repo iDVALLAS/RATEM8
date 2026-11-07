@@ -387,3 +387,70 @@ export function clampNumber(n: unknown, min: number, max: number, fallback: numb
   const v = typeof n === "number" && Number.isFinite(n) ? n : fallback;
   return Math.min(max, Math.max(min, v));
 }
+
+/* ─── Temporary buydown ─────────────────────────────────────── */
+
+/** Rate reductions by year: 3-2-1 = 3 points below the note rate in year 1, 2 in year 2, 1 in year 3. */
+export const BUYDOWN_STRUCTURES = {
+  "3-2-1": [3, 2, 1],
+  "2-1": [2, 1],
+  "1-1": [1, 1],
+  "1-0": [1],
+} as const;
+export type BuydownStructure = keyof typeof BUYDOWN_STRUCTURES;
+
+export type TemporaryBuydownInput = {
+  loanAmount: number;
+  /** The note rate: what the loan carries after the buydown ends. User-entered. */
+  noteRate: number;
+  structure: BuydownStructure;
+  termMonths?: number;
+};
+
+export type BuydownYear = { year: number; rate: number; payment: number; monthlySavings: number; yearSavings: number };
+
+export type TemporaryBuydownResult = {
+  notePayment: number;
+  years: BuydownYear[];
+  /** The buydown subsidy deposited at closing: every month's difference, added up. */
+  cost: number;
+  /** cost as a percent of the loan amount. */
+  costPct: number;
+  /** The first year at the full note rate. */
+  fullRateFromYear: number;
+  assumptions: Assumption[];
+};
+
+/**
+ * Temporary buydown (owner request, 2026-11-07). In each bought-down year
+ * the payment is principal and interest at the reduced rate on the full
+ * loan amount and term (the usual way the subsidy is figured); the
+ * difference from the note-rate payment, times 12, is that year's cost.
+ * After the last bought-down year the payment is the note-rate payment.
+ */
+export function temporaryBuydown(input: TemporaryBuydownInput): TemporaryBuydownResult {
+  const term = input.termMonths ?? 360;
+  const notePayment = monthlyPI(input.loanAmount, input.noteRate, term);
+  const years = BUYDOWN_STRUCTURES[input.structure].map((step, i) => {
+    const rate = Math.max(0, input.noteRate - step);
+    const payment = monthlyPI(input.loanAmount, rate, term);
+    const monthlySavings = notePayment - payment;
+    return { year: i + 1, rate, payment, monthlySavings, yearSavings: monthlySavings * 12 };
+  });
+  const cost = years.reduce((s, y) => s + y.yearSavings, 0);
+  return {
+    notePayment,
+    years,
+    cost,
+    costPct: input.loanAmount > 0 ? (cost / input.loanAmount) * 100 : 0,
+    fullRateFromYear: years.length + 1,
+    assumptions: [
+      { key: "term", label: "Loan term", value: `${term} months` },
+      { key: "method", label: "Reduced payment", value: "Principal & interest at the reduced rate on the full loan amount and term", note: "The usual way the buydown subsidy is figured. The loan itself still carries the note rate." },
+      { key: "cost", label: "Buydown cost", value: "Sum of the monthly differences", note: "Deposited at closing, usually paid by the seller, builder or lender. Seller-paid funds count toward the program's limit on seller contributions." },
+      { key: "qualifying", label: "Qualifying", value: "Usually at the full note rate", note: "Lenders generally qualify you on the full payment, not the year-one payment." },
+      { key: "basis", label: "Payment basis", value: "Principal & interest only", note: "Taxes, insurance and mortgage insurance are not affected and are left out." },
+      { key: "rates", label: "Rates", value: "User-entered", note: "The calculators never supply a rate." },
+    ],
+  };
+}

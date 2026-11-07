@@ -676,13 +676,14 @@ export const copy = {
   calculators: {
     eyebrow: "// calculators",
     heading: "Run the numbers yourself.",
-    sub: "Four calculators, deterministic math, nothing collected. You enter the rate. We never display one.",
+    sub: "Five calculators, deterministic math, nothing collected. You enter the rate. We never display one.",
     noRates: "No rates displayed. Enter your own.",
     items: [
       { slug: "points-breakeven", title: "Points break-even", body: "Should you pay points? Monthly savings, break-even month, and a chart." },
       { slug: "refinance-breakeven", title: "Refinance break-even", body: "Months until closing costs earn back, and the total interest delta." },
       { slug: "rent-vs-buy", title: "Rent vs. buy", body: "Total cost of each path over your horizon, with every assumption on the table." },
       { slug: "affordability", title: "Affordability", body: "An indicative payment range from income, debts, and down payment. Not the bank's maximum." },
+      { slug: "temporary-buydown", title: "Temporary buydown", body: "3-2-1, 2-1, 1-1 or 1-0: each year's payment and what the buydown costs." },
     ],
     moreTools: "More tools",
     moreToolsSub: "Twelve additional calculators, same rules.",
