@@ -1130,3 +1130,21 @@ box on the LoanM8 receive tab. Two boxes for one number was the mistake.
   no PMI box. A test imports the owner's capture re-pointed at $475,000 /
   $500,000: it publishes the 5% down scenario with $232 on every lender,
   and refuses with a pointer to Setup once cleared. `npm run verify` passes.
+
+## C13 — /rates shows today's priced examples, hidden when none (2026-11-07)
+
+Owner: "build it and show me the example and make it so it's hidden if
+it's not available."
+- `lib/pricing/display.ts` `availableScenarios()`: with PRICING_MANUAL on,
+  the daily scenarios that have a fresh snapshot (same 24-hour rule as the
+  chat); with it off, the sample examples as before. `resolveDisplay` now
+  finds daily scenarios too.
+- `/rates`: "Today's priced examples." — a tab per available daily
+  scenario, each in the anti-steering three-card layout with every result,
+  the dated label and the assumptions. No available scenario → a real 404
+  (checked in generateMetadata and the page; the route's loading skeleton
+  was removed because streaming it had already sent 200). The page stays
+  noindex and stealth-gated (it is not in lib/public-paths.ts).
+- Verified locally with snapshots published through the fake LoanSifter:
+  200 with both tabs, desktop and 390px without overflow or errors; with
+  no snapshots, 404. `npm run verify` passes.

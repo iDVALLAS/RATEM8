@@ -6,6 +6,11 @@
  * 2. Otherwise CONFIG.pricing.demoExamples on → the example run.
  * 3. Otherwise nothing.
  *
+ * C13 (owner 2026-11-07: "make it so it's hidden if it's not available"):
+ * with PRICING_MANUAL on, /rates lists only the daily scenarios that have a
+ * fresh snapshot, and is hidden (404) when none does. The sample examples
+ * show only while PRICING_MANUAL is off.
+ *
  * Returns public data only: the run (anonymized) and, for snapshots, the
  * loan officer's notes already mapped to lender letters. Real lender
  * names never leave the server.
@@ -13,6 +18,7 @@
 import { CONFIG } from "@/lib/config";
 import { manualProvider } from "./providers/manual";
 import { exampleScenarios, mockProvider } from "./providers/mock";
+import { dailyScenarios, pricingScenarios } from "./daily";
 import { summarize } from "./playbook";
 import { getStore } from "./store";
 import { tenantForState } from "./tenants";
@@ -30,8 +36,22 @@ export function displayScenarios(): BandedScenario[] {
   return exampleScenarios();
 }
 
+/** The scenarios /rates can show right now; empty means the page is hidden. */
+export async function availableScenarios(): Promise<BandedScenario[]> {
+  if (CONFIG.pricing.manual) {
+    const fresh: BandedScenario[] = [];
+    for (const s of dailyScenarios()) {
+      const tenant = tenantForState(s.state);
+      const run = tenant ? await manualProvider.priceScenario(tenant.id, s).catch(() => null) : null;
+      if (run) fresh.push(s);
+    }
+    return fresh;
+  }
+  return CONFIG.pricing.demoExamples ? displayScenarios() : [];
+}
+
 export async function resolveDisplay(scenarioId: string): Promise<DisplayRun | null> {
-  const scenario = displayScenarios().find((s) => s.id === scenarioId);
+  const scenario = pricingScenarios().find((s) => s.id === scenarioId);
   if (!scenario) return null;
 
   if (CONFIG.pricing.manual) {
