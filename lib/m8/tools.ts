@@ -131,7 +131,8 @@ export type ToolRun = { content: string; isError: boolean; pricing?: PricingResu
 /** The rates and APRs in a pricing result, as guard keys. */
 export function pricedRates(result: PricingResult | undefined): Set<string> {
   const s = new Set<string>();
-  if (result?.status === "ok") for (const q of result.quotes) s.add(pctKey(q.rate)).add(pctKey(q.apr));
+  // Points as a percent too (a credit is negative; it's written without the sign).
+  if (result?.status === "ok") for (const q of result.quotes) s.add(pctKey(q.rate)).add(pctKey(q.apr)).add(pctKey(Math.abs(q.points)));
   return s;
 }
 
@@ -197,7 +198,7 @@ async function datedExample(input: z.infer<typeof PricingInput>): Promise<ToolRu
     assumptions: Object.fromEntries(s.assumptions.map((a, i) => [String(i + 1), a])),
     quotes: ex.quotes,
     instructions:
-      "This is today's priced example for a standard scenario close to the borrower's, not their quote. Say that plainly, give the date and time it was priced (Pacific time), show each option's rate next to its APR, mention the key assumptions, and say it isn't a commitment to lend. The chat also shows these figures as a card. Their own pricing comes from their loan officer.",
+      "This is today's priced example for a standard scenario close to the borrower's, not their quote. Write each rate, APR and points figure exactly as given here (no other percentages). Say that plainly, give the date and time it was priced (Pacific time), show each option's rate next to its APR, mention the key assumptions, and say it isn't a commitment to lend. The chat also shows these figures as a card. Their own pricing comes from their loan officer.",
   });
   return { content: JSON.stringify(result), isError: false, pricing: result, card: ex.card };
 }

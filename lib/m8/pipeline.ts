@@ -78,10 +78,11 @@ export async function runM8Turn(opts: {
   let tokens = 0;
   let pricing: PricingResult | undefined;
 
-  const fail = (reason: GuardReason): TurnResult => {
+  const fail = (reason: GuardReason, value?: string): TurnResult => {
     const text = fallbackFor(reason, opts.mloName);
     emit({ replace: text });
-    console.warn(`[m8-chat] guard replaced a reply: ${reason}`);
+    // The blocked percentage (a number only) says which figure tripped the guard.
+    console.warn(`[m8-chat] guard replaced a reply: ${reason}${value ? ` (${value})` : ""}`);
     return { reply: text, guard: reason, tokens };
   };
 
@@ -95,6 +96,7 @@ export async function runM8Turn(opts: {
       tools: round < MAX_TOOL_ROUNDS ? M8_TOOLS : undefined,
     });
     let blocked: GuardReason | null = null;
+    let blockedValue: string | undefined;
     const sep = reply && !reply.endsWith("\n") ? "\n\n" : "";
     let roundText = "";
     stream.on("text", (t: string) => {
@@ -103,6 +105,7 @@ export async function runM8Turn(opts: {
       const check = guardReply(reply + sep + roundText, allowed, turn.userStated, true, offerOk);
       if (!check.ok) {
         blocked = check.reason;
+        blockedValue = check.value;
         stream.abort();
         return;
       }
@@ -112,10 +115,10 @@ export async function runM8Turn(opts: {
     try {
       final = await stream.finalMessage();
     } catch (e) {
-      if (blocked) return fail(blocked);
+      if (blocked) return fail(blocked, blockedValue);
       throw e;
     }
-    if (blocked) return fail(blocked);
+    if (blocked) return fail(blocked, blockedValue);
     tokens += (final.usage?.input_tokens ?? 0) + (final.usage?.output_tokens ?? 0);
     if (roundText) reply += sep + roundText;
 
@@ -134,7 +137,7 @@ export async function runM8Turn(opts: {
 
   // Final check on the whole reply (rates need their APR and disclosure once complete).
   const check = guardReply(reply, pricedRates(pricing), turn.userStated, false, offerOk);
-  if (!check.ok) return fail(check.reason);
+  if (!check.ok) return fail(check.reason, check.value);
   // C7: the dated example card goes out only with a reply that passed the guard.
   if (card) emit({ pricing: card });
   return { reply, guard: null, tokens, pricing: card };

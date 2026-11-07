@@ -889,3 +889,32 @@ lender names were damaged the same way).
   /mlo/pricing once this is deployed; the old bookmark keeps the old code.
 - `PRICING_MANUAL` is off on Production (the page says so); set it to
   `true` for Production so M8 can show published snapshots.
+
+## C9.2 — Guard accepts a dated example's rounded figures (2026-11-07)
+
+First live import published (3 lenders, inputs hash 89322126f4ae). Asked
+"buying a $650k house in Woodinville with 20% down, 750 credit", M8 got
+the dated example but its reply was replaced: the production log shows
+`guard replaced a reply: unquoted-rate`. The guard only accepted the exact
+three-decimal figures, so an APR written 7.05% (priced 7.052%), or a
+points percentage, read as an invented rate.
+
+### Changes
+- `lib/m8/guard.ts`: a percentage matches a priced figure exactly, or when
+  written with two decimals and equal to the priced figure rounded to two.
+  One decimal or none never matches ("7%" is not 6.875%). An unquoted-rate
+  block now carries the blocked percentage.
+- `lib/m8/tools.ts`: points (as a percent, a credit without its sign) count
+  as priced figures; the tool result tells M8 to write each rate, APR and
+  points figure exactly as given.
+- `lib/m8/pipeline.ts`: the guard log line names the blocked percentage
+  (a number only), so the next block can be diagnosed from the log.
+- `lib/m8/m8.test.ts`: rounded APR and points pass; an unpriced rate and a
+  one-decimal rate are still blocked (2 of these fail on the old guard).
+
+### Verified
+- `npm run verify` passes (252 tests, 47 offline red-team cases unchanged).
+
+### Next
+- After deploy, ask the same question in the chat: the dated example card
+  should show. If the guard still blocks, the log now says which number.

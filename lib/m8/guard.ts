@@ -16,7 +16,8 @@
  */
 
 export type GuardReason = "unquoted-rate" | "rate-without-apr" | "sensitive-echo" | "prompt-leak" | "promise" | "pricing-promise";
-export type GuardResult = { ok: true } | { ok: false; reason: GuardReason };
+/** `value` names the percentage an unquoted-rate block was about (a number only, safe to log). */
+export type GuardResult = { ok: true } | { ok: false; reason: GuardReason; value?: string };
 
 const PERCENT = /(\d{1,2}(?:\.\d{1,3})?)\s?(?:%|percent\b)/gi;
 const RATE_WORDS = /\b(?:rates?|apr|interest|coupon|fixed|arm|priced|pricing|quotes?|lenders? (?:is|are) (?:at|offering))\b/gi;
@@ -66,8 +67,8 @@ function nearestDistance(text: string, re: RegExp, at: number): number {
  * payment, LTV, DTI…), or when it's a decimal between 2% and 12% with no
  * non-rate word near it.
  */
-export function findRateMentions(text: string): { value: number; raw: string; index: number }[] {
-  const out: { value: number; raw: string; index: number }[] = [];
+export function findRateMentions(text: string): { value: number; raw: string; index: number; decimals: number }[] {
+  const out: { value: number; raw: string; index: number; decimals: number }[] = [];
   PERCENT.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = PERCENT.exec(text)) !== null) {
@@ -79,7 +80,7 @@ export function findRateMentions(text: string): { value: number; raw: string; in
     const other = nearestDistance(window, OTHER_WORDS, at);
     // With no context either way, a decimal percentage between 2 and 12 reads as a rate ("you can get 5.99%").
     const rateShaped = /\.\d+$/.test(m[1]) && value >= 2 && value <= 12;
-    if ((rate < Infinity && rate < other) || (rateShaped && other === Infinity)) out.push({ value, raw: m[0], index: m.index });
+    if ((rate < Infinity && rate < other) || (rateShaped && other === Infinity)) out.push({ value, raw: m[0], index: m.index, decimals: (m[1].split(".")[1] ?? "").length });
   }
   return out;
 }
@@ -96,7 +97,20 @@ export function userPercentages(userTexts: string[]): Set<string> {
 }
 
 /**
- * @param pricedRates rates and APRs from the latest get_pricing result
+ * Is this mention one of the priced figures? Exact (6.5 = 6.500), or the
+ * figure rounded to two decimals the usual way (APR 7.152% written 7.15%).
+ * One decimal or none never matches a priced figure that has more
+ * ("7%" is not 6.875%).
+ */
+function isPriced(x: { value: number; decimals: number }, priced: Set<string>): boolean {
+  if (priced.has(pctKey(x.value))) return true;
+  if (x.decimals !== 2) return false;
+  for (const p of priced) if (Number(p).toFixed(2) === x.value.toFixed(2)) return true;
+  return false;
+}
+
+/**
+ * @param pricedRates rates, APRs and points from the latest get_pricing result
  * @param userStated percentages the borrower typed (see userPercentages)
  * @param partial true while the reply is still streaming
  * @param pricingLive true once live pricing exists (CONFIG.liveRatesEnabled); until then M8 may not offer to price
@@ -109,9 +123,8 @@ export function guardReply(text: string, pricedRates: Set<string>, userStated: S
   const rates = findRateMentions(text);
   let quoted = false;
   for (const x of rates) {
-    const k = pctKey(x.value);
-    if (pricedRates.has(k)) quoted = true;
-    else if (!userStated.has(k)) return { ok: false, reason: "unquoted-rate" };
+    if (isPriced(x, pricedRates)) quoted = true;
+    else if (!userStated.has(pctKey(x.value))) return { ok: false, reason: "unquoted-rate", value: x.raw };
   }
   // Mid-stream (partial) the APR and disclosure may still be coming; checked when the reply ends.
   if (quoted && !partial && (!/\bAPR\b/.test(text) || !/commitment to lend/i.test(text))) return { ok: false, reason: "rate-without-apr" };
