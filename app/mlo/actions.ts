@@ -40,7 +40,10 @@ export async function saveSettingsAction(fd: FormData): Promise<void> {
     targetPct: target === "" ? DEFAULT_COMP_RULE.targetPct : Number(target),
     maxPointsPct: cap === "" ? DEFAULT_COMP_RULE.maxPointsPct : Number(cap),
   };
-  const res = await saveSettings({ tenantId, activeLenderKeys: active, playbook, actor, comp });
+  // C11.4: the 5% down scenario's monthly PMI (blank clears it).
+  const pmiRaw = str(fd, "pmi").replace(/[$,\s]/g, "");
+  const monthlyPmi = pmiRaw === "" ? null : Number(pmiRaw);
+  const res = await saveSettings({ tenantId, activeLenderKeys: active, playbook, actor, comp, monthlyPmi: monthlyPmi === null || Number.isFinite(monthlyPmi) ? monthlyPmi : NaN });
   const flash = res.ok
     ? { ok: true, lines: [`Saved version ${res.settings.version}.`, ...res.warnings] }
     : { ok: false, lines: res.errors };
@@ -105,9 +108,8 @@ export async function publishSnapshotAction(fd: FormData): Promise<void> {
 export async function importLoanSifterAction(fd: FormData): Promise<void> {
   const actor = await requireAdmin();
   const tenantId = str(fd, "tenantId");
-  const pmiRaw = str(fd, "pmi").replace(/[$,]/g, "");
-  const monthlyPmi = pmiRaw === "" ? undefined : Number(pmiRaw);
-  const res = await importLoanSifter({ tenantId, captureText: String(fd.get("capture") ?? ""), monthlyPmi, actor });
+  // C11.4: PMI comes from Setup.
+  const res = await importLoanSifter({ tenantId, captureText: String(fd.get("capture") ?? ""), actor });
   const skippedLines = summarizeSkipped(res.skipped ?? []);
   const flash = res.ok
     ? { ok: true, lines: [`Published from LoanSifter: ${res.lenders.length} lenders. Inputs hash ${res.inputsHash.slice(0, 12)}.`, ...skippedLines] }
@@ -120,13 +122,11 @@ export async function importLoanSifterAction(fd: FormData): Promise<void> {
  * C11: the receive page (/mlo/pricing/receive) imports each capture the
  * Send to LoanM8 button hands it, and shows the result without a reload.
  */
-export async function importCaptureAction(captureText: string, pmi: string): Promise<{ ok: boolean; lines: string[]; scenario: string | null }> {
+export async function importCaptureAction(captureText: string): Promise<{ ok: boolean; lines: string[]; scenario: string | null }> {
   const actor = await requireAdmin();
   // Every daily scenario is in Washington; its sponsoring brokerage owns the snapshot.
   const tenantId = tenantForState("WA")?.id ?? listTenants()[0]?.id ?? "";
-  const pmiRaw = pmi.replace(/[$,\s]/g, "");
-  const monthlyPmi = pmiRaw === "" ? undefined : Number(pmiRaw);
-  const res = await importLoanSifter({ tenantId, captureText, monthlyPmi: Number.isFinite(monthlyPmi) ? monthlyPmi : undefined, actor });
+  const res = await importLoanSifter({ tenantId, captureText, actor }); // C11.4: PMI from Setup
   const scenario = res.scenarioId ? (pricingScenarios().find((s) => s.id === res.scenarioId)?.title ?? res.scenarioId) : null;
   const skipped = summarizeSkipped(res.skipped ?? []);
   return res.ok

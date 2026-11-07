@@ -69,7 +69,7 @@ export default async function MloPricing({ searchParams }: Props) {
           <label className="mlo-field mt-3" style={{ display: "block" }}>{c.capture}
             <textarea name="capture" rows={4} required style={{ width: "100%", fontFamily: "monospace", fontSize: 12 }} />
           </label>
-          <label className="mlo-field mt-3">{c.importPmi}<input name="pmi" inputMode="decimal" placeholder="182" /></label>
+          <p className="mlo-note mt-2">{settings?.monthlyPmi ? c.importPmiSet.replace("{pmi}", String(settings.monthlyPmi)) : c.importPmiMissing}</p>
           <button type="submit" className="mlo-btn" disabled={!store.writable}>{c.import}</button>
         </form>
 
@@ -88,7 +88,7 @@ export default async function MloPricing({ searchParams }: Props) {
             <h2>{scenario.title} · {scenario.location}</h2>
             <ul className="mlo-note">{scenario.assumptions.map((a) => <li key={a}>{a}</li>)}</ul>
             {scenario.mi?.kind === "pmi" ? (
-              <label className="mlo-field mt-3">{c.pmi}<input name="pmi" inputMode="decimal" placeholder="182" required /></label>
+              <label className="mlo-field mt-3">{c.pmi}<input name="pmi" inputMode="decimal" placeholder="232" defaultValue={settings?.monthlyPmi ? String(settings.monthlyPmi) : ""} required /></label>
             ) : null}
             {scenario.mi?.kind === "fha" ? <p className="mlo-note mt-2">{c.fha}</p> : null}
             {lenders.length < 3 ? <p className="mlo-flash mlo-flash--err">Fewer than three active lenders can be shown to consumers. Set go-to lenders on the Setup page.</p> : null}

@@ -1113,3 +1113,20 @@ wasn't listening, and each waited 2 minutes.
 - Verified on the fake LoanSifter: the LoanM8 tab moved to /rates right
   after Price and send; both scenarios still published, no page errors.
   `npm run verify` passes.
+
+## C11.4 — PMI saved once on Setup (2026-11-07)
+
+Owner's run: the 5% down scenario didn't publish ("This scenario has
+mortgage insurance"). The owner had typed $232 into the PMI box on
+/mlo/pricing, which only the paste-in import used; the run read a separate
+box on the LoanM8 receive tab. Two boxes for one number was the mistake.
+- `TenantSettings.monthlyPmi`: saved with the lenders and rate rule on
+  /mlo/setup ("Mortgage insurance"), so every run and every computer uses
+  it. Blank clears it; $1–$5,000 allowed.
+- `importLoanSifter`: an entered PMI wins, else the saved one; the error
+  now points to Setup. Both other boxes are gone; /mlo/pricing shows the
+  saved figure (or that none is saved), and the manual form defaults to it.
+- Verified: saved $232 on Setup; /mlo/pricing shows it; the receive tab has
+  no PMI box. A test imports the owner's capture re-pointed at $475,000 /
+  $500,000: it publishes the 5% down scenario with $232 on every lender,
+  and refuses with a pointer to Setup once cleared. `npm run verify` passes.

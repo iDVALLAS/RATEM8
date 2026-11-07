@@ -7,7 +7,6 @@ import { isLoanSifterOrigin } from "@/lib/pricing/loansifterOrigin";
 type Result = { ok: boolean; lines: string[]; scenario: string | null };
 type Row = { id: string; name: string; state: "publishing" | "done" | "failed"; result?: Result };
 
-const PMI_KEY = "loanm8.mlo.pmi";
 
 /**
  * Receives captures from the Send to LoanM8 button (C11).
@@ -20,28 +19,16 @@ export default function ReceiveClient({
   importCapture,
 }: {
   extraOrigins: string[];
-  importCapture: (captureText: string, pmi: string) => Promise<Result>;
+  importCapture: (captureText: string) => Promise<Result>;
 }) {
   const c = mloContent.receive;
   const [rows, setRows] = useState<Row[]>([]);
   const [refused, setRefused] = useState<string | null>(null);
-  const [pmi, setPmi] = useState("");
-  const pmiRef = useRef("");
   const queue = useRef<Promise<void>>(Promise.resolve());
   // Each capture id is published once; a repeat (the button re-sending after a
   // slow answer) gets the same answer, not a second snapshot.
   const seen = useRef(new Map<string, Result | null>());
   const busy = useRef(0);
-
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem(PMI_KEY) ?? "";
-      setPmi(v);
-      pmiRef.current = v;
-    } catch {
-      /* storage blocked: the field just starts empty */
-    }
-  }, []);
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
@@ -65,7 +52,7 @@ export default function ReceiveClient({
       queue.current = queue.current.then(async () => {
         let result: Result;
         try {
-          result = await importCapture(JSON.stringify(d.capture), pmiRef.current);
+          result = await importCapture(JSON.stringify(d.capture));
         } catch {
           result = { ok: false, lines: [c.failed], scenario: null };
         }
@@ -93,24 +80,10 @@ export default function ReceiveClient({
     };
   }, [extraOrigins, importCapture, c.failed, c.unnamed]);
 
-  const savePmi = (v: string) => {
-    setPmi(v);
-    pmiRef.current = v;
-    try {
-      localStorage.setItem(PMI_KEY, v);
-    } catch {
-      /* not remembered; still used for this session */
-    }
-  };
-
   return (
     <section className="mlo-section">
       <p className="mlo-flash" role="status">{c.keepOpen}</p>
       <p className="mlo-note mt-3">{c.intro}</p>
-      <label className="mlo-field mt-3">
-        {c.pmi}
-        <input inputMode="decimal" placeholder="182" value={pmi} onChange={(e) => savePmi(e.target.value)} />
-      </label>
       {refused ? (
         <p className="mlo-flash mlo-flash--err" role="alert">
           {c.refused.replace("{origin}", refused)}

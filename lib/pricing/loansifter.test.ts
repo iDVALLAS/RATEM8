@@ -213,3 +213,35 @@ describe("C11: skipped summary", () => {
     ]);
   });
 });
+
+describe("C11.4: the 5% down scenario's PMI is saved once on Setup", () => {
+  it("is kept across saves, can be cleared, and is used by every import", async () => {
+    const { MemoryStore, setStoreForTests, getStore } = await import("./store");
+    const { importLoanSifter, saveSettings } = await import("./publish");
+    const { tenantForState } = await import("./tenants");
+    setStoreForTests(new MemoryStore());
+    const wa = tenantForState("WA")!.id;
+    const lenders = ["uwm", "kind", "freedom", "remn"];
+    expect((await saveSettings({ tenantId: wa, activeLenderKeys: lenders, playbook: [], actor: "t", monthlyPmi: 232 })).ok).toBe(true);
+    const again = await saveSettings({ tenantId: wa, activeLenderKeys: lenders, playbook: [], actor: "t" });
+    expect(again.ok && again.settings.monthlyPmi).toBe(232);
+    expect((await saveSettings({ tenantId: wa, activeLenderKeys: lenders, playbook: [], actor: "t", monthlyPmi: -5 })).ok).toBe(false);
+
+    // The owner's capture, re-pointed at the 5% down scenario ($475,000 on $500,000).
+    const c = JSON.parse(TEXT) as LoanSifterCapture;
+    const kindGrid = c.products.find((p) => p.investor.startsWith("Kind") && p.grid.length)!.grid;
+    for (const p of c.products) if (!p.grid.length && /^(Freedom|REMN)/.test(p.investor)) p.grid = kindGrid.map((g) => ({ ...g, price: g.price - 2, lenderFees: p.lenderFees }));
+    const five = JSON.stringify({ ...c, summary: { ...c.summary, totalLoanAmount: 475000, propertyValue: 500000, ltv: 95 } });
+    const now = new Date(Date.parse(c.capturedAt) + 60_000);
+    const ok = await importLoanSifter({ tenantId: wa, captureText: five, actor: "t", now });
+    expect(ok.ok && ok.scenarioId).toBe("wa-daily-purchase-95");
+    const snap = (await getStore().listSnapshots(wa, "wa-daily-purchase-95"))[0];
+    expect(snap.inputs.quotes.every((q) => q.monthlyPmi === 232)).toBe(true);
+
+    await saveSettings({ tenantId: wa, activeLenderKeys: lenders, playbook: [], actor: "t", monthlyPmi: null });
+    const missing = await importLoanSifter({ tenantId: wa, captureText: five, actor: "t", now });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.errors.join(" ")).toMatch(/Setup page/);
+    setStoreForTests(null);
+  });
+});
