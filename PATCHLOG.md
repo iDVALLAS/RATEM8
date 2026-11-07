@@ -1092,7 +1092,8 @@ Owner: "add a temporary buydown calculator to the calculators section."
   savings, the full-rate payment after, show-your-work, assumptions, FAQ
   (who pays, qualifying at the note rate, vs. points, selling early).
 - Calculators index, site registry/sitemap and methodology.md list it
-  ("Five calculators"). The agent API still offers the original four.
+  (count removed from that page's copy: "Deterministic math, nothing
+  collected…"). The agent API still offers the original four.
 - Verified: $400,000 at 7%: note payment $2,661.21; 2-1 = $2,147.29 then
   $2,398.20, cost $9,323; 3-2-1 cost $18,342 (4.59%). Desktop and 390px
   render without overflow or errors. `npm run verify` passes.

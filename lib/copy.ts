@@ -676,7 +676,7 @@ export const copy = {
   calculators: {
     eyebrow: "// calculators",
     heading: "Run the numbers yourself.",
-    sub: "Five calculators, deterministic math, nothing collected. You enter the rate. We never display one.",
+    sub: "Deterministic math, nothing collected. You enter the rate. We never display one.",
     noRates: "No rates displayed. Enter your own.",
     items: [
       { slug: "points-breakeven", title: "Points break-even", body: "Should you pay points? Monthly savings, break-even month, and a chart." },

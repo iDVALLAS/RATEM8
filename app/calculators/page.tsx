@@ -10,7 +10,7 @@ import "@/components/calc/calc.css";
 
 export const metadata: Metadata = {
   title: "Calculators",
-  description: "Five deterministic mortgage calculators: points break-even, refinance break-even, rent vs. buy, affordability, and temporary buydown. You enter the rate. The calculators never supply one.",
+  description: "Deterministic mortgage calculators: points break-even, refinance break-even, rent vs. buy, affordability, and temporary buydown. You enter the rate. The calculators never supply one.",
   alternates: { canonical: "/calculators" },
 };
 
@@ -62,7 +62,7 @@ export default function CalculatorsIndex() {
         <div className="max-w-3xl flex flex-col gap-6">
           <CalcDisclaimer />
           <p className="calc-note">
-            Formulas and assumptions for all five are published in plain text at{" "}
+            Formulas and assumptions for these calculators are published in plain text at{" "}
             <a href="/calculators/methodology.md" className="underline underline-offset-4" style={{ color: "var(--accent)" }}>
               /calculators/methodology.md
             </a>
