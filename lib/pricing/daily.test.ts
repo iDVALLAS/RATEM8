@@ -140,7 +140,7 @@ describe("M8's get_pricing returns today's snapshot as a dated example (C7)", ()
     for (const q of out.quotes) expect(q.lender).toMatch(/^Lender [A-Z]$/);
     expect(run.content).not.toMatch(/\buwm\b|pennymac|kind lending|loan store|"kind":"(?!dated_example)/i);
     expect(run.card?.options).toHaveLength(3);
-    expect(run.card?.assumptions[0]).toContain("98072");
+    expect(run.card?.assumptions[0]).toBe("Purchase of a home in Washington."); // C11.2: no town or ZIP
   });
 
   it("says no example when the borrower's scenario isn't close, or the flag is off", async () => {
@@ -212,5 +212,26 @@ describe("the chat turn with a dated example (C7)", () => {
       { role: "user", content: "and?" },
     ]);
     expect(turn.messages.every((m) => Object.keys(m).sort().join() === "content,role")).toBe(true);
+  });
+});
+
+describe("C11.2: ZIP only matters through loan limits", () => {
+  it("examples name no town or ZIP and sit under the all-county limit", async () => {
+    const { countyProofLimit } = await import("./loanLimits");
+    for (const s of DAILY_SCENARIOS) {
+      expect(s.location).toBe("Washington");
+      expect(s.assumptions.join(" ")).not.toMatch(/Woodinville|Bellevue|ZIP|\b98\d{3}\b/);
+      expect(s.loanAmount).toBeLessThanOrEqual(countyProofLimit(s.match.loanType));
+      expect(s.match.loanMax <= countyProofLimit(s.match.loanType) || s.match.loanType === "fha").toBe(true);
+    }
+  });
+
+  it("any Washington ZIP matches; a loan above the all-county limit doesn't", () => {
+    expect(matchDaily(borrower({ zip: "99201" }))?.id).toBe("wa-daily-purchase-80"); // Spokane
+    expect(matchDaily(borrower({ zip: "98501" }))?.id).toBe("wa-daily-purchase-80"); // Olympia
+    // FHA band runs to $600,000, but above the $541,287 floor the county decides: no example.
+    const fha = { loanType: "fha", creditBand: "680-699" };
+    expect(matchDaily(borrower({ ...fha, loanAmount: 434250, propertyValue: 450000 }))?.id).toBe("wa-daily-fha-965");
+    expect(matchDaily(borrower({ ...fha, loanAmount: 545000, propertyValue: 564767 }))).toBeNull();
   });
 });

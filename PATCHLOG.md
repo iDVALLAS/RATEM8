@@ -1057,3 +1057,23 @@ receive page now accepts captures from that exact origin (other
 optimalblue.com sites are still refused), alongside loansifter.com and
 `LOANSIFTER_ORIGINS`. Tested; `npm run verify` passes. No Vercel setting
 is needed.
+
+## C11.2 — Examples aren't tied to a town or ZIP (2026-11-07)
+
+Owner: "don't make scenarios … specific to zip codes. The only bearing a
+zip code has on pricing is if we are crossing thresholds for conforming or
+high balance conforming and jumbo loan amounts."
+- `lib/pricing/daily.ts`: every daily example shows "Washington"; the
+  Woodinville/Bellevue names and ZIPs are gone from titles and assumptions
+  (the ZIP stays only as the LoanSifter pricing input). Conventional
+  examples say the loan is under the conforming limit in every county; the
+  FHA one says the base loan is under the FHA limit in every county.
+- `lib/pricing/loanLimits.ts`: 2026 one-unit conforming baseline $832,750
+  (FHFA) and FHA floor $541,287 (HUD, 65% of the baseline). Check every
+  January.
+- Matching: any ZIP in the scenario's state matches (it only places the
+  borrower in a state). A loan above the all-county limit gets no example,
+  because there the county decides high balance or jumbo.
+- Tests: no town or ZIP in any example; Spokane and Olympia ZIPs match; an
+  FHA loan of $545,000 (above the floor) doesn't. `npm run verify` passes.
+- Owner confirmed both 2026 limits.
