@@ -14,7 +14,7 @@ import { CALC_DISCLAIMER } from "@/lib/config";
 
 export const CALC_LAST_UPDATED = "2026-09-29";
 
-export type CalcSlug = "points-breakeven" | "refinance-breakeven" | "rent-vs-buy" | "affordability";
+export type CalcSlug = "points-breakeven" | "refinance-breakeven" | "rent-vs-buy" | "affordability" | "temporary-buydown";
 
 export type FaqItem = { q: string; a: string };
 
@@ -203,9 +203,53 @@ export const CALC_CONTENT: Record<CalcSlug, CalcContent> = {
       },
     ],
   },
+  // Owner request, 2026-11-07.
+  "temporary-buydown": {
+    slug: "temporary-buydown",
+    title: "Temporary buydown",
+    lede: "A temporary buydown lowers your payment for the first one to three years, then it steps up to the full rate. Someone (usually the seller, builder or lender) pays for those lower years upfront. This shows each year's payment and what the buydown costs.",
+    metaTitle: "Temporary buydown calculator (2-1, 3-2-1, 1-1, 1-0)",
+    metaDescription: "Enter your loan amount and note rate, pick 3-2-1, 2-1, 1-1 or 1-0. See the payment each year, the monthly savings, and the buydown cost in dollars and percent of the loan.",
+    formulas: [
+      SHARED_PI,
+      "rate(year k) = noteRate − reduction(k), where 3-2-1 = 3, 2, 1 points; 2-1 = 2, 1; 1-1 = 1, 1; 1-0 = 1",
+      "monthlySavings(k) = payment(noteRate) − payment(rate(year k))",
+      "buydownCost = Σ monthlySavings(k) × 12",
+    ],
+    formulaNotes: [
+      "Each reduced payment is principal and interest at the reduced rate on the full loan amount and 360-month term. That is the usual way the subsidy is figured; the loan itself carries the note rate the whole time.",
+      "Taxes, insurance and mortgage insurance don't change with a buydown, so they are left out. A rate never goes below 0%.",
+    ],
+    faq: [
+      {
+        q: "What is a temporary buydown?",
+        a: "Money set aside at closing that pays part of your mortgage payment for the first years. In a 2-1 buydown, year one's payment is figured at 2 points below your note rate and year two's at 1 point below. From year three you pay the full note-rate payment.",
+      },
+      {
+        q: "Who pays for it?",
+        a: "Usually the seller, the builder or the lender, as a closing credit. Seller and builder money counts toward the loan program's limit on what the seller can contribute. You can pay for it yourself, but then it's your own cash.",
+      },
+      {
+        q: "Do I qualify on the lower payment?",
+        a: "Generally no. Lenders usually qualify you on the full note-rate payment, so a buydown helps your budget in the early years but doesn't raise how much you can borrow.",
+      },
+      {
+        q: "Temporary buydown or discount points?",
+        a: "Points lower the rate for the life of the loan; a temporary buydown only lowers the first years' payments. For the same money, points help longer if you keep the loan, and a temporary buydown gives bigger relief early. The points break-even calculator covers the permanent side.",
+      },
+      {
+        q: "What if I sell or refinance during the buydown years?",
+        a: "What happens to unused buydown money depends on the buydown agreement and the loan program's rules. Ask your loan officer before counting on it.",
+      },
+      {
+        q: "Does LoanM8 show me what rate I would get?",
+        a: "No. This page displays no rates. You type the note rate from your own quote or Loan Estimate and the math runs on that.",
+      },
+    ],
+  },
 };
 
-export const CALC_SLUGS: CalcSlug[] = ["points-breakeven", "refinance-breakeven", "rent-vs-buy", "affordability"];
+export const CALC_SLUGS: CalcSlug[] = ["points-breakeven", "refinance-breakeven", "rent-vs-buy", "affordability", "temporary-buydown"];
 
 /** Static assumption lines for the methodology document (mirrors lib/calc.ts). */
 const METHOD_ASSUMPTIONS: Record<CalcSlug, string[]> = {
@@ -231,6 +275,14 @@ const METHOD_ASSUMPTIONS: Record<CalcSlug, string[]> = {
     "The renter's alternative return compounds yearly on the down payment plus buying costs.",
     "Income-tax effects are ignored. Mortgage insurance is ignored.",
     "Loan term: 360 months unless overridden.",
+    "Rates: user-entered.",
+  ],
+  "temporary-buydown": [
+    "Loan term: 360 months unless overridden.",
+    "Reduced payments: principal and interest at the reduced rate on the full loan amount and term.",
+    "Cost: the sum of the monthly differences from the note-rate payment, deposited at closing.",
+    "Qualifying: usually at the full note rate; not modeled.",
+    "Basis: principal and interest only.",
     "Rates: user-entered.",
   ],
   affordability: [

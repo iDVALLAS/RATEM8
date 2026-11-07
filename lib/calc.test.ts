@@ -8,6 +8,7 @@ import {
   affordability,
   pointsVsCredit,
   clampNumber,
+  temporaryBuydown,
 } from "./calc";
 
 describe("monthlyPI", () => {
@@ -180,5 +181,33 @@ describe("clampNumber", () => {
     expect(clampNumber(5, 0, 3, 1)).toBe(3);
     expect(clampNumber("x", 0, 3, 1)).toBe(1);
     expect(clampNumber(NaN, 0, 3, 2)).toBe(2);
+  });
+});
+
+describe("temporaryBuydown", () => {
+  it("2-1 on $400,000 at 7%: year 1 at 5%, year 2 at 6%, cost is the sum of the differences", () => {
+    const r = temporaryBuydown({ loanAmount: 400_000, noteRate: 7, structure: "2-1" });
+    expect(r.notePayment).toBeCloseTo(2661.21, 1);
+    expect(r.years.map((y) => y.rate)).toEqual([5, 6]);
+    expect(r.years[0].payment).toBeCloseTo(2147.29, 1);
+    expect(r.years[1].payment).toBeCloseTo(2398.2, 1);
+    const expected = (2661.21 - 2147.29) * 12 + (2661.21 - 2398.2) * 12;
+    expect(r.cost).toBeCloseTo(expected, -1);
+    expect(r.costPct).toBeCloseTo((r.cost / 400_000) * 100, 6);
+    expect(r.fullRateFromYear).toBe(3);
+  });
+
+  it("3-2-1 has three years; 1-0 has one; a rate never goes below zero", () => {
+    expect(temporaryBuydown({ loanAmount: 300_000, noteRate: 6.5, structure: "3-2-1" }).years.map((y) => y.rate)).toEqual([3.5, 4.5, 5.5]);
+    expect(temporaryBuydown({ loanAmount: 300_000, noteRate: 6.5, structure: "1-0" }).years).toHaveLength(1);
+    const low = temporaryBuydown({ loanAmount: 100_000, noteRate: 2, structure: "3-2-1" });
+    expect(low.years[0].rate).toBe(0);
+    expect(low.cost).toBeGreaterThan(0);
+  });
+
+  it("1-1 costs exactly two years at 1 point below", () => {
+    const r = temporaryBuydown({ loanAmount: 500_000, noteRate: 6, structure: "1-1" });
+    expect(r.years[0].yearSavings).toBeCloseTo(r.years[1].yearSavings, 6);
+    expect(r.cost).toBeCloseTo(r.years[0].yearSavings * 2, 6);
   });
 });

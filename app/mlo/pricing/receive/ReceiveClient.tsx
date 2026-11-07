@@ -28,6 +28,10 @@ export default function ReceiveClient({
   const [pmi, setPmi] = useState("");
   const pmiRef = useRef("");
   const queue = useRef<Promise<void>>(Promise.resolve());
+  // Each capture id is published once; a repeat (the button re-sending after a
+  // slow answer) gets the same answer, not a second snapshot.
+  const seen = useRef(new Map<string, Result | null>());
+  const busy = useRef(0);
 
   useEffect(() => {
     try {
@@ -50,6 +54,13 @@ export default function ReceiveClient({
       const id = String(d.id ?? Math.random());
       const name = String(d.name ?? "").slice(0, 200) || c.unnamed;
       const reply = (msg: object) => (e.source as Window | null)?.postMessage({ kind: "loanm8", ...msg }, e.origin);
+      if (seen.current.has(id)) {
+        const done = seen.current.get(id);
+        if (done) reply({ type: "result", id, ok: done.ok, lines: done.lines, scenario: done.scenario });
+        return; // still publishing: it answers when done
+      }
+      seen.current.set(id, null);
+      busy.current++;
       setRows((r) => [...r, { id, name, state: "publishing" }]);
       queue.current = queue.current.then(async () => {
         let result: Result;
@@ -58,11 +69,18 @@ export default function ReceiveClient({
         } catch {
           result = { ok: false, lines: [c.failed], scenario: null };
         }
+        seen.current.set(id, result);
+        busy.current--;
         setRows((r) => r.map((x) => (x.id === id ? { ...x, state: result.ok ? "done" : "failed", result } : x)));
         reply({ type: "result", id, ok: result.ok, lines: result.lines, scenario: result.scenario });
       });
     };
     window.addEventListener("message", onMessage);
+    // Leaving while a scenario is publishing would lose it: ask first.
+    const onLeave = (ev: BeforeUnloadEvent) => {
+      if (busy.current > 0) ev.preventDefault();
+    };
+    window.addEventListener("beforeunload", onLeave);
     // Tell the LoanSifter tab we're ready (a few times, in case it was still loading).
     let n = 0;
     const hello = () => (window.opener as Window | null)?.postMessage({ kind: "loanm8", type: "ready" }, "*");
@@ -70,6 +88,7 @@ export default function ReceiveClient({
     const t = window.setInterval(() => (++n > 10 ? window.clearInterval(t) : hello()), 1000);
     return () => {
       window.removeEventListener("message", onMessage);
+      window.removeEventListener("beforeunload", onLeave);
       window.clearInterval(t);
     };
   }, [extraOrigins, importCapture, c.failed, c.unnamed]);
@@ -86,7 +105,8 @@ export default function ReceiveClient({
 
   return (
     <section className="mlo-section">
-      <p className="mlo-note">{c.intro}</p>
+      <p className="mlo-flash" role="status">{c.keepOpen}</p>
+      <p className="mlo-note mt-3">{c.intro}</p>
       <label className="mlo-field mt-3">
         {c.pmi}
         <input inputMode="decimal" placeholder="182" value={pmi} onChange={(e) => savePmi(e.target.value)} />

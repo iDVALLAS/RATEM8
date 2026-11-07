@@ -3,8 +3,6 @@ import PageShell from "@/components/PageShell";
 import { mloContent } from "@/lib/content/mlo";
 import { extraLoanSifterOrigins } from "@/lib/pricing/loansifterOrigin";
 import { importCaptureAction } from "../../actions";
-import { MloNav } from "../../MloChrome";
-import { tenantForState } from "@/lib/pricing/tenants";
 import ReceiveClient from "./ReceiveClient";
 import "../../mlo.css";
 
@@ -14,7 +12,8 @@ export const metadata: Metadata = { title: "Receiving from LoanSifter", robots: 
 /**
  * /mlo/pricing/receive — opened by the Send to LoanM8 button (C11). Behind
  * the same admin login as the rest of /mlo. It accepts captures only from
- * LoanSifter pages and publishes each one with importLoanSifter.
+ * LoanSifter pages and publishes each one with importLoanSifter. No menu
+ * links (C11.3): clicking away from this tab mid-run lost the captures.
  */
 export default function ReceivePage() {
   const c = mloContent.receive;
@@ -23,7 +22,6 @@ export default function ReceivePage() {
       <div className="mlo-wrap">
         <p className="eyebrow">{mloContent.title}</p>
         <h1 className="tagline text-4xl">{c.heading}</h1>
-        <MloNav current="pricing" tenantId={tenantForState("WA")?.id ?? ""} />
         <ReceiveClient extraOrigins={extraLoanSifterOrigins(process.env.LOANSIFTER_ORIGINS)} importCapture={importCaptureAction} />
       </div>
     </PageShell>

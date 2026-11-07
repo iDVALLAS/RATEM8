@@ -107,16 +107,31 @@ const BODY = String.raw`function sendToLoanM8() {
     if (e.data.type === "ready") ready = true;
     if (e.data.type === "result") answers[e.data.id] = e.data;
   });
+  // If the LoanM8 tab left the receive page (a click in it, a reload), bring it
+  // back and send again; the receive page answers a repeated id only once.
+  var RECEIVE = ORIGIN + "/mlo/pricing/receive";
   var sendCapture = async function (name, capture, mark) {
     if (!target || target.closed) return false;
     mark("waiting for the LoanM8 tab (log in there if it asks)…");
     if (!(await waitFor(function () { return ready; }, 120000))) return false;
     var id = String(Date.now()) + Math.random().toString(36).slice(2, 6);
-    target.postMessage({ kind: "loansifter-capture", id: id, name: name, capture: capture }, ORIGIN);
-    mark("publishing…");
-    var a = await waitFor(function () { return answers[id]; }, 120000);
-    if (!a) { mark("sent, but LoanM8 didn't answer. Check the LoanM8 tab.", true); return true; }
-    mark((a.ok ? "published. " : "not published. ") + (a.lines || []).join(" "), !a.ok);
+    for (var attempt = 0; attempt < 2; attempt++) {
+      if (attempt === 1) {
+        if (target.closed) break;
+        mark("no answer yet; bringing the LoanM8 tab back to the receiving page…");
+        ready = false;
+        try { target.location.href = RECEIVE; } catch (e) {}
+        if (!(await waitFor(function () { return ready; }, 60000))) break;
+      }
+      target.postMessage({ kind: "loansifter-capture", id: id, name: name, capture: capture }, ORIGIN);
+      mark("publishing…");
+      var a = await waitFor(function () { return answers[id]; }, attempt === 0 ? 30000 : 60000);
+      if (a) {
+        mark((a.ok ? "published. " : "not published. ") + (a.lines || []).join(" "), !a.ok);
+        return true;
+      }
+    }
+    mark("LoanM8 didn't answer. Leave the LoanM8 tab on its receiving page and run the button again.", true);
     return true;
   };
   var copyBox = function (captures) {
