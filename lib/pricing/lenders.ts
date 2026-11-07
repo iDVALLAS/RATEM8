@@ -53,7 +53,7 @@ export const LENDERS: readonly LenderRecord[] = [
   { key: "uwm", name: "UWM", manual: true, products: ["first_mortgage"], termsReviewed: true, restrictsConsumerDisplay: false, displayConsent: false },
   { key: "rocket-pro", name: "Rocket Pro TPO", manual: true, products: ["first_mortgage"], termsReviewed: false, restrictsConsumerDisplay: false, displayConsent: false },
   { key: "kind", name: "Kind Lending", manual: true, products: ["first_mortgage"], termsReviewed: true, restrictsConsumerDisplay: false, displayConsent: false },
-  { key: "the-loan-store", name: "The Loan Store", manual: true, products: ["first_mortgage"], termsReviewed: true, restrictsConsumerDisplay: false, displayConsent: false },
+  { key: "the-loan-store", name: "Averra (The Loan Store)", manual: true, products: ["first_mortgage"], termsReviewed: true, restrictsConsumerDisplay: false, displayConsent: false },
   { key: "prmg", name: "PRMG", manual: true, products: ["first_mortgage"], termsReviewed: true, restrictsConsumerDisplay: true, displayConsent: false },
   { key: "pennymac", name: "Pennymac TPO", manual: true, products: ["first_mortgage"], termsReviewed: true, restrictsConsumerDisplay: false, displayConsent: false },
   { key: "freedom", name: "Freedom Mortgage", manual: true, products: ["first_mortgage"], termsReviewed: true, restrictsConsumerDisplay: false, displayConsent: false },

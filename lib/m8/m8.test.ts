@@ -93,3 +93,21 @@ describe("switches (C4)", () => {
     expect(maxTurns()).toBe(40);
   });
 });
+
+describe("guard and a dated example's figures (C9.2)", () => {
+  // From a published snapshot: rate 6.875, APR 7.052, points 1.157; rate 7.375, APR 7.401, a 0.036% credit.
+  const priced = new Set(["6.875", "7.052", "1.157", "7.375", "7.401", "0.036"].map((n) => Number(n).toFixed(3)));
+  const tail = " Priced 11/6/2026 at 3:15 PM. This isn't a commitment to lend.";
+
+  it("allows priced rates, APRs and points, exact or rounded to two decimals", () => {
+    expect(guardReply("Lender A: 6.875% rate, 7.052% APR, 1.157% in points." + tail, priced)).toEqual({ ok: true });
+    expect(guardReply("Lender A: 6.875% rate (APR 7.05%), about 1.16% in points." + tail, priced)).toEqual({ ok: true });
+    expect(guardReply("Lender B: 7.375% rate with a 7.40% APR and no points." + tail, priced)).toEqual({ ok: true });
+  });
+
+  it("still blocks a rate that isn't in the result, and names it", () => {
+    expect(guardReply("Lender A: 6.75% rate, APR 6.80%." + tail, priced)).toEqual({ ok: false, reason: "unquoted-rate", value: "6.75%" });
+    // One decimal or none is not a priced figure: "7%" is not 6.875%.
+    expect(guardReply("Rates are around 7% today, APR 7.1%." + tail, priced)).toMatchObject({ ok: false, reason: "unquoted-rate" });
+  });
+});

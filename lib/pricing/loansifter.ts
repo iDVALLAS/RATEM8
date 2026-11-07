@@ -60,7 +60,8 @@ const INVESTORS: [RegExp, string][] = [
   [/\bunited wholesale\b|\buwm\b/, "uwm"],
   [/\brocket\b/, "rocket-pro"],
   [/\bkind lending\b/, "kind"],
-  [/\bthe loan store\b|\bloan store\b/, "the-loan-store"],
+  // Owner 2026-11-07: LoanSifter lists The Loan Store as "Averra".
+  [/\bthe loan store\b|\bloan store\b|\baverra\b/, "the-loan-store"],
   [/\bprmg\b|\bparamount residential\b/, "prmg"],
   [/\bpennymac\b/, "pennymac"],
   [/\bfreedom mortgage\b/, "freedom"],
@@ -74,6 +75,8 @@ const CHANNEL = /\s+(non-delegated|delegated|wholesale|mini-correspondent|corres
 
 /** Products that don't belong in a conforming daily scenario. */
 const OFF_SCENARIO = /\b(jumbo|portfolio|non-?qm|alternative|bank statement|dscr|interest only|arm)\b/i;
+/** Non-QM scenario: fully amortizing 30-year fixed on bank statements only. */
+const OFF_NON_QM = /\b(interest only|io|arm|dscr|investor|40 ?(?:yr|year))\b/i;
 
 export function investorKey(investor: string): string | null {
   const base = investor.trim().replace(CHANNEL, "").toLowerCase();
@@ -108,9 +111,11 @@ export function scenarioMismatch(c: LoanSifterCapture, s: BandedScenario): strin
   if (Math.abs(amt - s.loanAmount) > 1 && Math.abs(amt - noteAmount(s)) > 1) out.push(`loan amount $${amt.toLocaleString("en-US")} (scenario: $${s.loanAmount.toLocaleString("en-US")})`);
   if (Math.abs((c.summary.propertyValue ?? 0) - s.propertyValue) > 1) out.push(`value $${(c.summary.propertyValue ?? 0).toLocaleString("en-US")} (scenario: $${s.propertyValue.toLocaleString("en-US")})`);
   const purpose = c.summary.loanPurpose.toLowerCase();
-  if ((s.purpose === "purchase") !== purpose.includes("purchase")) out.push(`purpose ${c.summary.loanPurpose}`);
+  const kind = purpose.includes("purchase") ? "purchase" : /cash/.test(purpose) ? "cash_out_refi" : "rate_term_refi";
+  if (kind !== s.purpose) out.push(`purpose ${c.summary.loanPurpose}`);
   const program = s.program ?? "conventional";
-  if (!c.summary.loanType.toLowerCase().includes(program === "fha" ? "fha" : "conventional")) out.push(`loan type ${c.summary.loanType}`);
+  // Non-QM searches are told apart by amount and value; LoanSifter's loan type label for them varies.
+  if (program !== "non_qm" && !c.summary.loanType.toLowerCase().includes(program === "fha" ? "fha" : "conventional")) out.push(`loan type ${c.summary.loanType}`);
   return out;
 }
 
@@ -126,7 +131,7 @@ export type Skipped = { investor: string; product: string; reason: string };
  * which lender keys may be used (active, showable, first mortgage) and gives
  * the reason when not.
  */
-export function productsFromCapture(c: LoanSifterCapture, allow: (key: string) => string | null): { products: LenderProduct[]; skipped: Skipped[]; withoutGrid: number } {
+export function productsFromCapture(c: LoanSifterCapture, allow: (key: string) => string | null, program: BandedScenario["program"] = "conventional"): { products: LenderProduct[]; skipped: Skipped[]; withoutGrid: number } {
   const products: LenderProduct[] = [];
   const skipped: Skipped[] = [];
   let withoutGrid = 0;
@@ -136,7 +141,9 @@ export function productsFromCapture(c: LoanSifterCapture, allow: (key: string) =
     if (!key) { skip("not on your lender panel"); continue; }
     const blocked = allow(key);
     if (blocked) { skip(blocked); continue; }
-    if (OFF_SCENARIO.test(p.product)) { skip("not a conforming product for this scenario"); continue; }
+    if (program === "non_qm") {
+      if (OFF_NON_QM.test(p.product)) { skip("not a fully amortizing bank-statement product"); continue; }
+    } else if (OFF_SCENARIO.test(p.product)) { skip("not a conforming product for this scenario"); continue; }
     const comp = p.compPct && p.compPct > 0 ? p.compPct : 0;
     // One headline rate can't show the lowest rate inside the cap, so a
     // product counts only with its whole grid.

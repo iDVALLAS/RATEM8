@@ -24,6 +24,27 @@ describe("LoanSifter capture (Send to LoanM8)", () => {
     expect(parseCapture(JSON.stringify({ kind: "loansifter-capture", v: 1 })).ok).toBe(false);
   });
 
+  it("C10: tells the new scenarios apart by purpose and amount", () => {
+    const c = capture();
+    const at = (summary: Partial<LoanSifterCapture["summary"]>) => matchScenario({ ...c, summary: { ...c.summary, ...summary } }, DAILY_SCENARIOS)?.id;
+    expect(at({ loanPurpose: "Cash-Out Refinance", totalLoanAmount: 640000, propertyValue: 800000 })).toBe("wa-daily-cashout-80");
+    expect(at({ loanPurpose: "Refinance", totalLoanAmount: 640000, propertyValue: 800000 })).toBeUndefined();
+    expect(at({ loanType: "Non-QM", totalLoanAmount: 560000, propertyValue: 700000 })).toBe("wa-daily-nonqm-purchase-80");
+    expect(at({ loanType: "Conventional", totalLoanAmount: 560000, propertyValue: 700000 })).toBe("wa-daily-nonqm-purchase-80");
+  });
+
+  it("C10: the non-QM scenario keeps bank-statement products and drops interest-only and DSCR", () => {
+    const c = capture();
+    const grid = [{ rate: 7.5, price: 99, lenderFees: 1000 }];
+    const p = (product: string) => ({ ...c.products[0], investor: "United Wholesale Mortgage, LLC", product, grid });
+    const nq = { ...c, products: [p("Bank Statement 12 Mo 30 Yr Fixed"), p("Bank Statement 30 Yr Fixed Interest Only"), p("DSCR 30 Yr Fixed")] };
+    const { products, skipped } = productsFromCapture(nq, all, "non_qm");
+    expect(products.map((x) => x.productLabel)).toEqual(["Bank Statement 12 Mo 30 Yr Fixed"]);
+    expect(skipped).toHaveLength(2);
+    // The same products are all off-scenario for a conforming scenario.
+    expect(productsFromCapture(nq, all).products).toHaveLength(0);
+  });
+
   it("maps investor names to panel lenders, whatever the channel", () => {
     expect(investorKey("Kind Lending, LLC Non-Delegated")).toBe("kind");
     expect(investorKey("Kind Lending, LLC Wholesale")).toBe("kind");
@@ -31,6 +52,8 @@ describe("LoanSifter capture (Send to LoanM8)", () => {
     expect(investorKey("Rocket Pro Non-Delegated")).toBe("rocket-pro");
     expect(investorKey("Newrez LLC Mini-Correspondent")).toBe("newrez");
     expect(investorKey("REMN Wholesale")).toBe("remn");
+    expect(investorKey("Averra Wholesale")).toBe("the-loan-store");
+    expect(investorKey("Averra Non-Delegated")).toBe("the-loan-store");
     expect(investorKey("PRMG Wholesale")).toBe("prmg");
     expect(investorKey("NexBank Non-Delegated")).toBeNull();
     expect(channelOf("Newrez LLC Mini-Correspondent")).toBe("Mini-Correspondent");

@@ -35,11 +35,11 @@ const PricingInput = z.object({
   purpose: z.enum(["purchase", "rate_term_refinance", "cash_out_refinance"]),
   loanAmount: z.number().positive().max(10_000_000),
   propertyValue: z.number().positive().max(20_000_000),
-  creditBand: z.enum(["760+", "740-759", "720-739", "700-719", "680-699", "660-679", "640-659", "620-639", "below 620"]),
+  creditBand: z.enum(["780+", "760-779", "760+", "740-759", "720-739", "700-719", "680-699", "660-679", "640-659", "620-639", "below 620"]),
   zip: z.string().regex(/^\d{5}$/),
   propertyType: z.enum(["single_family", "condo", "townhome", "2-4_unit", "manufactured"]),
   occupancy: z.enum(["primary", "second_home", "investment"]),
-  loanType: z.enum(["conventional", "fha", "va", "jumbo"]),
+  loanType: z.enum(["conventional", "fha", "va", "jumbo", "non_qm_bank_statement"]),
   lockDays: z.number().int().min(15).max(90).default(30),
 });
 
@@ -92,11 +92,11 @@ export const M8_TOOLS: Anthropic.Messages.Tool[] = [
         purpose: { type: "string", enum: ["purchase", "rate_term_refinance", "cash_out_refinance"] },
         loanAmount: { type: "number" },
         propertyValue: { type: "number" },
-        creditBand: { type: "string", enum: ["760+", "740-759", "720-739", "700-719", "680-699", "660-679", "640-659", "620-639", "below 620"] },
+        creditBand: { type: "string", enum: ["780+", "760-779", "760+", "740-759", "720-739", "700-719", "680-699", "660-679", "640-659", "620-639", "below 620"] },
         zip: { type: "string", description: "5-digit ZIP of the property" },
         propertyType: { type: "string", enum: ["single_family", "condo", "townhome", "2-4_unit", "manufactured"] },
         occupancy: { type: "string", enum: ["primary", "second_home", "investment"] },
-        loanType: { type: "string", enum: ["conventional", "fha", "va", "jumbo"] },
+        loanType: { type: "string", enum: ["conventional", "fha", "va", "jumbo", "non_qm_bank_statement"], description: "non_qm_bank_statement: self-employed borrower qualifying on bank statements instead of tax returns." },
         lockDays: { type: "integer", description: "Lock period in days (default 30)" },
       },
       required: ["purpose", "loanAmount", "propertyValue", "creditBand", "zip", "propertyType", "occupancy", "loanType"],
@@ -131,7 +131,8 @@ export type ToolRun = { content: string; isError: boolean; pricing?: PricingResu
 /** The rates and APRs in a pricing result, as guard keys. */
 export function pricedRates(result: PricingResult | undefined): Set<string> {
   const s = new Set<string>();
-  if (result?.status === "ok") for (const q of result.quotes) s.add(pctKey(q.rate)).add(pctKey(q.apr));
+  // Points as a percent too (a credit is negative; it's written without the sign).
+  if (result?.status === "ok") for (const q of result.quotes) s.add(pctKey(q.rate)).add(pctKey(q.apr)).add(pctKey(Math.abs(q.points)));
   return s;
 }
 
@@ -197,7 +198,7 @@ async function datedExample(input: z.infer<typeof PricingInput>): Promise<ToolRu
     assumptions: Object.fromEntries(s.assumptions.map((a, i) => [String(i + 1), a])),
     quotes: ex.quotes,
     instructions:
-      "This is today's priced example for a standard scenario close to the borrower's, not their quote. Say that plainly, give the date and time it was priced (Pacific time), show each option's rate next to its APR, mention the key assumptions, and say it isn't a commitment to lend. The chat also shows these figures as a card. Their own pricing comes from their loan officer.",
+      "This is today's priced example for a standard scenario close to the borrower's, not their quote. Write each rate, APR and points figure exactly as given here (no other percentages). Say that plainly, give the date and time it was priced (Pacific time), show each option's rate next to its APR, mention the key assumptions, and say it isn't a commitment to lend. The chat also shows these figures as a card. Their own pricing comes from their loan officer.",
   });
   return { content: JSON.stringify(result), isError: false, pricing: result, card: ex.card };
 }

@@ -889,3 +889,92 @@ lender names were damaged the same way).
   /mlo/pricing once this is deployed; the old bookmark keeps the old code.
 - `PRICING_MANUAL` is off on Production (the page says so); set it to
   `true` for Production so M8 can show published snapshots.
+
+## C9.2 — Guard accepts a dated example's rounded figures (2026-11-07)
+
+First live import published (3 lenders, inputs hash 89322126f4ae). Asked
+"buying a $650k house in Woodinville with 20% down, 750 credit", M8 got
+the dated example but its reply was replaced: the production log shows
+`guard replaced a reply: unquoted-rate`. The guard only accepted the exact
+three-decimal figures, so an APR written 7.05% (priced 7.052%), or a
+points percentage, read as an invented rate.
+
+### Changes
+- `lib/m8/guard.ts`: a percentage matches a priced figure exactly, or when
+  written with two decimals and equal to the priced figure rounded to two.
+  One decimal or none never matches ("7%" is not 6.875%). An unquoted-rate
+  block now carries the blocked percentage.
+- `lib/m8/tools.ts`: points (as a percent, a credit without its sign) count
+  as priced figures; the tool result tells M8 to write each rate, APR and
+  points figure exactly as given.
+- `lib/m8/pipeline.ts`: the guard log line names the blocked percentage
+  (a number only), so the next block can be diagnosed from the log.
+- `lib/m8/m8.test.ts`: rounded APR and points pass; an unpriced rate and a
+  one-decimal rate are still blocked (2 of these fail on the old guard).
+
+### Verified
+- `npm run verify` passes (252 tests, 47 offline red-team cases unchanged).
+
+### Next
+- After deploy, ask the same question in the chat: the dated example card
+  should show. If the guard still blocks, the log now says which number.
+
+## C10 — Bellevue cash-out and non-QM purchase scenarios (2026-11-07)
+
+Owner: change the Bellevue refinance to "Bellevue C/O (cash out) refinance
+80% LTV" with 780 credit, and add a non-QM purchase, 20% down, with the
+suggested numbers.
+
+### Changes
+- `lib/pricing/daily.ts`: two daily scenarios.
+  - `wa-daily-cashout-80`: cash-out refinance, Bellevue 98004, $640,000 on
+    $800,000 (80%), credit 780, conventional 30-year fixed. Shown in the chat
+    only to borrowers at 780 or above.
+  - `wa-daily-nonqm-purchase-80`: non-QM purchase, Woodinville 98072,
+    $560,000 on $700,000 (80%), credit 720–739, 30-year fixed, fully
+    amortizing, 12 months of bank statements (self-employed), primary.
+  - The "Bellevue refinance" example is hidden from /mlo/pricing
+    (`HIDDEN_FROM_ADMIN`); it stays defined for the example fixtures.
+- M8's `get_pricing` tool: credit bands "780+" and "760-779" (the old
+  "760+" stays and never matches the 780 example), and loan type
+  `non_qm_bank_statement`.
+- LoanSifter import: purpose now tells purchase, rate-and-term and cash-out
+  apart. A non-QM capture is matched by amount and value (its loan type
+  label varies). It keeps bank-statement products and drops interest-only,
+  ARM, DSCR and 40-year ones; conforming scenarios still drop non-QM.
+
+### Verified
+- Matching tests for both scenarios (780 vs 760–779; non-QM vs
+  conventional at the same amount; investment excluded). Import tests for
+  cash-out vs rate-and-term and the non-QM product filter.
+- /mlo/pricing shows the six daily scenarios, then Tacoma and Phoenix.
+- `npm run verify` passes (255 tests).
+
+### Owner action
+- Save the two searches in LoanSifter with exactly these numbers
+  (cash-out: $800,000 value, $640,000 loan, 780; non-QM: $700,000 price,
+  $560,000 loan, 720–739, 12-month bank statements).
+
+## C10.1 — Averra is The Loan Store (2026-11-07)
+
+Owner: "Averra is The Loan Store." LoanSifter lists The Loan Store as
+Averra, so imports skipped it as "not on your lender panel".
+`lib/pricing/loansifter.ts` now maps Averra (any channel) to
+`the-loan-store`; names and logos elsewhere are unchanged. Tested;
+`npm run verify` passes.
+
+## C10.2 — Show The Loan Store as Averra (2026-11-07)
+
+Owner: "you can have the borrower see Averra as the name and I will upload
+the logo later."
+- `lib/lenders.ts`: display name "Averra", monogram "AR" (Aven has "AV"),
+  logo off until the owner supplies the Averra file (the Loan Store logo
+  and its brand colour are no longer used). Set `logoFile` and
+  `logoApproved: true` once `public/lenders/averra.png` is uploaded.
+- `lib/pricing/lenders.ts`: admin name "Averra (The Loan Store)"; the key
+  stays `the-loan-store`, so saved settings and snapshots are unchanged.
+- `scripts/check-client-bundle.mjs`: "Averra" joins the lender names that
+  must never reach a browser file.
+- Borrowers see pricing lenders by letter, so the name shows only where
+  lender marks render (today the /design style guide). `npm run verify`
+  passes.

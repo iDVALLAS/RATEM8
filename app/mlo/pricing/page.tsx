@@ -6,7 +6,7 @@ import { mloContent } from "@/lib/content/mlo";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { LENDERS, offers, publishable } from "@/lib/pricing/lenders";
 import { isFresh } from "@/lib/pricing/providers/manual";
-import { pricingScenarios } from "@/lib/pricing/daily";
+import { HIDDEN_FROM_ADMIN, pricingScenarios } from "@/lib/pricing/daily";
 import { SOURCE_TYPES } from "@/lib/pricing/publish";
 import { getStore } from "@/lib/pricing/store";
 import { listTenants } from "@/lib/pricing/tenants";
@@ -26,7 +26,7 @@ export default async function MloPricing({ searchParams }: Props) {
   const { t, s, f } = await searchParams;
   const tenants = listTenants();
   const tenant = tenants.find((x) => x.id === t) ?? tenants[0];
-  const scenarios = pricingScenarios().filter((x) => tenant.states.includes(x.state));
+  const scenarios = pricingScenarios().filter((x) => tenant.states.includes(x.state) && !HIDDEN_FROM_ADMIN.has(x.id));
   const scenario = scenarios.find((x) => x.id === s) ?? scenarios[0];
   const store = getStore();
   const settings = await store.latestSettings(tenant.id);
