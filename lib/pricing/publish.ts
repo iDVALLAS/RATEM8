@@ -130,11 +130,13 @@ export async function importLoanSifter(req: ImportRequest): Promise<ImportResult
   const ageH = (now.getTime() - at.getTime()) / 3_600_000;
   if (ageH > CAPTURE_MAX_AGE_HOURS) return { ok: false, scenarioId: scenario.id, errors: [`These prices are from a LoanSifter search ${Math.floor(ageH)} hours old. Reprice the scenario in LoanSifter and run the button again.`] };
   if (ageH < -0.1) return { ok: false, scenarioId: scenario.id, errors: ["This capture's time is in the future. Check the computer's clock and run it again."] };
-  if (scenario.mi?.kind === "pmi" && !(req.monthlyPmi !== undefined && req.monthlyPmi > 0)) {
-    return { ok: false, scenarioId: scenario.id, errors: ["This scenario has mortgage insurance. Enter the monthly PMI from the MI quote."] };
+  const settings = await getStore().latestSettings(tenant.id);
+  // C11.4: an entered PMI wins; otherwise the one saved on Setup.
+  const monthlyPmi = req.monthlyPmi !== undefined && req.monthlyPmi > 0 ? req.monthlyPmi : settings?.monthlyPmi;
+  if (scenario.mi?.kind === "pmi" && !(monthlyPmi !== undefined && monthlyPmi > 0)) {
+    return { ok: false, scenarioId: scenario.id, errors: ["This scenario has mortgage insurance. Enter the monthly PMI on the Setup page (Mortgage insurance) and run it again."] };
   }
 
-  const settings = await getStore().latestSettings(tenant.id);
   const active = new Set(settings?.activeLenderKeys ?? []);
   const allow = (key: string): string | null => {
     const l = lenderByKey(key);
@@ -146,7 +148,7 @@ export async function importLoanSifter(req: ImportRequest): Promise<ImportResult
   };
   const { products, skipped, withoutGrid } = productsFromCapture(c, allow, scenario.program);
   const rule = normalizeRule(settings?.comp);
-  const quotes = quotesFromGrids(products, noteAmount(scenario), rule).map((q) => (scenario.mi?.kind === "pmi" ? { ...q, monthlyPmi: req.monthlyPmi } : q));
+  const quotes = quotesFromGrids(products, noteAmount(scenario), rule).map((q) => (scenario.mi?.kind === "pmi" ? { ...q, monthlyPmi } : q));
   const lenders = Array.from(new Set(quotes.map((q) => q.lenderKey)));
   if (lenders.length < MIN_ACTIVE_LENDERS) {
     return {
@@ -177,6 +179,8 @@ export type SettingsRequest = {
   playbook: PlaybookEntry[];
   /** C8: the rate rule. Omitted keeps the previous one (or the default). */
   comp?: CompRule;
+  /** C11.4: monthly PMI for the 5% down scenario. Omitted keeps the previous one; null clears it. */
+  monthlyPmi?: number | null;
   actor: string;
   now?: Date;
 };
@@ -198,6 +202,7 @@ export async function saveSettings(req: SettingsRequest): Promise<SettingsResult
     if (!s.ok) errors.push(...s.reasons.map((r) => `${lenderByKey(e.lenderKey)?.name ?? e.lenderKey}: ${r}`));
   }
   if (req.comp) errors.push(...checkRule(req.comp));
+  if (typeof req.monthlyPmi === "number" && !(req.monthlyPmi > 0 && req.monthlyPmi < 5000)) errors.push("Monthly PMI must be between $1 and $5,000.");
   if (errors.length) return { ok: false, errors };
   const warnings: string[] = [];
   const publishableCount = keys.filter(publishable).length;
@@ -207,7 +212,8 @@ export async function saveSettings(req: SettingsRequest): Promise<SettingsResult
   const playbook = keys.map((k) => req.playbook.find((p) => p.lenderKey === k) ?? emptyEntry(k));
   const prev = await store.latestSettings(req.tenantId);
   const comp = req.comp ?? normalizeRule(prev?.comp);
-  const settings = await store.putSettings({ tenantId: req.tenantId, activeLenderKeys: keys, playbook, comp, updatedBy: req.actor, updatedAt: (req.now ?? new Date()).toISOString() });
+  const monthlyPmi = req.monthlyPmi === undefined ? prev?.monthlyPmi : (req.monthlyPmi ?? undefined);
+  const settings = await store.putSettings({ tenantId: req.tenantId, activeLenderKeys: keys, playbook, comp, ...(monthlyPmi !== undefined ? { monthlyPmi } : {}), updatedBy: req.actor, updatedAt: (req.now ?? new Date()).toISOString() });
   return { ok: true, settings, warnings };
 }
 

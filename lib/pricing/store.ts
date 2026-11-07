@@ -37,6 +37,8 @@ export type TenantSettings = {
   playbook: PlaybookEntry[];
   /** C8: the loan officer's rate rule (lib/pricing/compRule.ts). Absent means the default (1.7%, 1.5% points cap). */
   comp?: CompRule;
+  /** C11.4: borrower-paid monthly PMI for the PMI daily scenario (5% down), from the MI quote. */
+  monthlyPmi?: number;
   updatedBy: string;
   updatedAt: string;
 };

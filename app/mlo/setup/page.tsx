@@ -137,6 +137,9 @@ export default async function MloSetup({ searchParams }: Props) {
               <label className="mlo-field">{c.compCap}<input name="comp.maxPointsPct" inputMode="decimal" defaultValue={String(comp.maxPointsPct)} /></label>
             </div>
             <p className="mlo-note mt-2">{c.compExample}</p>
+            <h2 className="mt-6">{c.mi}</h2>
+            <p className="mlo-note">{c.miNote}</p>
+            <label className="mlo-field mt-2">{c.miPmi}<input name="pmi" inputMode="decimal" placeholder="232" defaultValue={settings?.monthlyPmi ? String(settings.monthlyPmi) : ""} /></label>
             <button type="submit" className="mlo-btn" disabled={!store.writable}>{c.save}</button>
           </section>
         </form>
