@@ -962,3 +962,19 @@ Averra, so imports skipped it as "not on your lender panel".
 `lib/pricing/loansifter.ts` now maps Averra (any channel) to
 `the-loan-store`; names and logos elsewhere are unchanged. Tested;
 `npm run verify` passes.
+
+## C10.2 — Show The Loan Store as Averra (2026-11-07)
+
+Owner: "you can have the borrower see Averra as the name and I will upload
+the logo later."
+- `lib/lenders.ts`: display name "Averra", monogram "AR" (Aven has "AV"),
+  logo off until the owner supplies the Averra file (the Loan Store logo
+  and its brand colour are no longer used). Set `logoFile` and
+  `logoApproved: true` once `public/lenders/averra.png` is uploaded.
+- `lib/pricing/lenders.ts`: admin name "Averra (The Loan Store)"; the key
+  stays `the-loan-store`, so saved settings and snapshots are unchanged.
+- `scripts/check-client-bundle.mjs`: "Averra" joins the lender names that
+  must never reach a browser file.
+- Borrowers see pricing lenders by letter, so the name shows only where
+  lender marks render (today the /design style guide). `npm run verify`
+  passes.

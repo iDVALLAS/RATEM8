@@ -46,7 +46,8 @@ export const LENDER_BRANDS: readonly LenderBrand[] = [
   { slug: "rocket-pro", name: "Rocket Pro TPO", monogram: "RP", logoApproved: true, logoFile: "rocket-pro.png", brandColor: "#C8202F", tint: 4 },
   // The supplied Kind file is cropped ("ind Lendir"), so Kind stays a monogram until a complete file arrives.
   { slug: "kind", name: "Kind Lending", monogram: "KL", logoApproved: false, logoFile: null, brandColor: "#004B87", tint: 3 },
-  { slug: "the-loan-store", name: "The Loan Store", monogram: "LS", logoApproved: true, logoFile: "the-loan-store.png", brandColor: "#103C60", tint: 2 },
+  // Owner 2026-11-07: shown as Averra (The Loan Store's new name). Monogram tile until the owner uploads the Averra logo.
+  { slug: "the-loan-store", name: "Averra", monogram: "AR", logoApproved: false, logoFile: null, brandColor: null, tint: 2 },
   { slug: "prmg", name: "PRMG", monogram: "PR", logoApproved: true, logoFile: "prmg.png", brandColor: "#003DA6", tint: 5 },
   { slug: "pennymac", name: "Pennymac TPO", monogram: "PM", logoApproved: true, logoFile: "pennymac.png", brandColor: "#F2C400", tint: 6 },
   { slug: "freedom", name: "Freedom Mortgage", monogram: "FM", logoApproved: true, logoFile: "freedom.png", brandColor: "#9F8731", tint: 1 },

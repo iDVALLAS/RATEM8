@@ -20,7 +20,7 @@ if (!existsSync(STATIC)) {
 const FORBIDDEN = [
   "MLO_ADMIN_PASSWORD", "MLO_ADMIN_USER", "PRICING_STORE_DIR",
   "restrictsConsumerDisplay", "displayConsent", "sourceSha256", "lenderKey",
-  "United Wholesale", "The Loan Store", "Pennymac TPO", "Freedom Mortgage", "REMN Wholesale",
+  "United Wholesale", "The Loan Store", "Averra", "Pennymac TPO", "Freedom Mortgage", "REMN Wholesale",
   "Provident Funding", "RISE TPO", "HomeXpress", "Newrez Wholesale", "Kind Lending", "Plaza Home Mortgage",
   // C3: the M8 system prompt is server-only.
   "PRICING RULES (hard rules)", "You are M8, the AI loan assistant",
