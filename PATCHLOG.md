@@ -1097,3 +1097,19 @@ Owner: "add a temporary buydown calculator to the calculators section."
 - Verified: $400,000 at 7%: note payment $2,661.21; 2-1 = $2,147.29 then
   $2,398.20, cost $9,323; 3-2-1 cost $18,342 (4.59%). Desktop and 390px
   render without overflow or errors. `npm run verify` passes.
+
+## C11.3 — Send to LoanM8 survives a click in the LoanM8 tab (2026-11-07)
+
+First live run: every scenario showed "sent, but LoanM8 didn't answer".
+The owner had clicked in the LoanM8 tab, which left the receive page
+(the tab showed "Example rates"), so the captures arrived at a page that
+wasn't listening, and each waited 2 minutes.
+- Bookmarklet: no answer within 30 seconds → it sends the LoanM8 tab back to
+  /mlo/pricing/receive, waits for "ready" and re-sends once (60 seconds).
+  The final failure says to leave the tab on the receiving page.
+- Receive page: no menu links; a "Keep this tab open" notice; a leave
+  warning while a scenario is publishing; a repeated capture id gets the
+  same answer instead of a second snapshot.
+- Verified on the fake LoanSifter: the LoanM8 tab moved to /rates right
+  after Price and send; both scenarios still published, no page errors.
+  `npm run verify` passes.

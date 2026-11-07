@@ -35,6 +35,7 @@ export const mloContent = {
   // C11: the tab the Send to LoanM8 button opens.
   receive: {
     heading: "Receiving from LoanSifter",
+    keepOpen: "Keep this tab open and don't click anything here until the Send to LoanM8 box in LoanSifter says Done. Results appear below as each scenario is published.",
     intro: "Leave this tab open while the Send to LoanM8 button works through your saved scenarios in LoanSifter. Each one is checked and published here as it arrives.",
     pmi: "Monthly PMI $ for the 5% down scenario (remembered on this computer)",
     waiting: "Waiting for LoanSifter…",
