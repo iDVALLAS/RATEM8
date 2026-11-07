@@ -27,8 +27,8 @@ import type { BandedScenario } from "./types";
 export const FHA_MIP = { upfrontPct: 1.75, annualPct: 0.55 } as const;
 
 export type DailyMatch = {
-  purpose: "purchase" | "rate_term_refinance";
-  loanType: "conventional" | "fha";
+  purpose: "purchase" | "rate_term_refinance" | "cash_out_refinance";
+  loanType: "conventional" | "fha" | "non_qm_bank_statement";
   /** LTV band in percent, inclusive. */
   ltvMin: number;
   ltvMax: number;
@@ -148,7 +148,66 @@ export const DAILY_SCENARIOS: DailyScenario[] = [
     ],
     match: { purpose: "rate_term_refinance", loanType: "conventional", ltvMin: 60, ltvMax: 75, loanMin: 300000, loanMax: 700000, creditMin: 760 },
   },
+  // C10 (owner 2026-11-07): replaces the "Bellevue refinance" example in the list.
+  {
+    id: "wa-daily-cashout-80",
+    title: "Cash-out refinance, 80% LTV",
+    state: "WA",
+    location: "Bellevue, WA (King County)",
+    zip: "98004",
+    purpose: "cash_out_refi",
+    occupancy: "primary",
+    propertyType: "single_family",
+    propertyValue: 800000,
+    loanAmount: 640000,
+    ficoBand: "780+",
+    product: "30yr_fixed",
+    termMonths: 360,
+    program: "conventional",
+    assumptions: [
+      "Cash-out refinance in Bellevue, WA (King County), ZIP 98004.",
+      "Loan amount $640,000 on an $800,000 home (80% loan-to-value), including the cash out.",
+      "Credit score 780.",
+      "Conventional 30-year fixed, conforming, full documentation.",
+      "Primary residence, detached single-family home, one borrower.",
+      APR_NOTE.replace("{mi}", ""),
+    ],
+    match: { purpose: "cash_out_refinance", loanType: "conventional", ltvMin: 75.01, ltvMax: 80, loanMin: 300000, loanMax: 700000, creditMin: 780 },
+  },
+  // C10 (owner 2026-11-07): non-QM purchase, 20% down, bank statements.
+  {
+    id: "wa-daily-nonqm-purchase-80",
+    title: "Non-QM purchase, 20% down (bank statements)",
+    state: "WA",
+    location: WA_LOCATION,
+    zip: WA_ZIP,
+    purpose: "purchase",
+    occupancy: "primary",
+    propertyType: "single_family",
+    propertyValue: 700000,
+    loanAmount: 560000,
+    ficoBand: "720–739",
+    product: "30yr_fixed",
+    termMonths: 360,
+    program: "non_qm",
+    assumptions: [
+      "Purchase in Woodinville, WA (King County), ZIP 98072.",
+      "Loan amount $560,000 on a $700,000 home (80% loan-to-value).",
+      "Credit score 720–739.",
+      "Non-QM 30-year fixed, fully amortizing (no interest-only), self-employed borrower qualified on 12 months of bank statements.",
+      "Primary residence, detached single-family home, one borrower.",
+      APR_NOTE.replace("{mi}", ""),
+    ],
+    match: { purpose: "purchase", loanType: "non_qm_bank_statement", ltvMin: 75.01, ltvMax: 80, loanMin: 300000, loanMax: 900000, creditMin: 720 },
+  },
 ];
+
+/**
+ * C10 (owner 2026-11-07): example scenarios no longer offered on /mlo/pricing.
+ * The Bellevue rate-and-term example is replaced by the Bellevue cash-out
+ * daily scenario; it stays defined for the example fixtures and their tests.
+ */
+export const HIDDEN_FROM_ADMIN = new Set(["bellevue-refi"]);
 
 export function dailyScenarios(): DailyScenario[] {
   return DAILY_SCENARIOS;
@@ -175,7 +234,7 @@ export function zipInState(zip: string, state: StateCode): boolean {
 }
 
 const CREDIT_FLOOR: Record<string, number> = {
-  "760+": 760, "740-759": 740, "720-739": 720, "700-719": 700, "680-699": 680,
+  "780+": 780, "760-779": 760, "760+": 760, "740-759": 740, "720-739": 720, "700-719": 700, "680-699": 680,
   "660-679": 660, "640-659": 640, "620-639": 620, "below 620": 0,
 };
 

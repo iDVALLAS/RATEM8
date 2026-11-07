@@ -14,7 +14,7 @@ export type ProviderId = "arive" | "optimal_blue" | "ratesheet" | "manual" | "mo
 /** Where a displayed run came from. Never "live" while PRICING_LIVE is off. */
 export type RunMode = "example" | "snapshot";
 
-export type LoanPurpose = "purchase" | "rate_term_refi";
+export type LoanPurpose = "purchase" | "rate_term_refi" | "cash_out_refi";
 
 /**
  * A scenario described in bands, not as one borrower's file. Banding keeps
@@ -35,8 +35,8 @@ export type BandedScenario = {
   ficoBand: string;
   product: "30yr_fixed" | "15yr_fixed";
   termMonths: number;
-  /** C7: loan program. Absent means conventional. */
-  program?: "conventional" | "fha";
+  /** C7: loan program. Absent means conventional. C10: non_qm (12-month bank statements). */
+  program?: "conventional" | "fha" | "non_qm";
   /** C7: the ZIP the scenario is priced with in the pricing engine. */
   zip?: string;
   /**

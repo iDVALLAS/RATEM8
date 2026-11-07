@@ -918,3 +918,39 @@ points percentage, read as an invented rate.
 ### Next
 - After deploy, ask the same question in the chat: the dated example card
   should show. If the guard still blocks, the log now says which number.
+
+## C10 — Bellevue cash-out and non-QM purchase scenarios (2026-11-07)
+
+Owner: change the Bellevue refinance to "Bellevue C/O (cash out) refinance
+80% LTV" with 780 credit, and add a non-QM purchase, 20% down, with the
+suggested numbers.
+
+### Changes
+- `lib/pricing/daily.ts`: two daily scenarios.
+  - `wa-daily-cashout-80`: cash-out refinance, Bellevue 98004, $640,000 on
+    $800,000 (80%), credit 780, conventional 30-year fixed. Shown in the chat
+    only to borrowers at 780 or above.
+  - `wa-daily-nonqm-purchase-80`: non-QM purchase, Woodinville 98072,
+    $560,000 on $700,000 (80%), credit 720–739, 30-year fixed, fully
+    amortizing, 12 months of bank statements (self-employed), primary.
+  - The "Bellevue refinance" example is hidden from /mlo/pricing
+    (`HIDDEN_FROM_ADMIN`); it stays defined for the example fixtures.
+- M8's `get_pricing` tool: credit bands "780+" and "760-779" (the old
+  "760+" stays and never matches the 780 example), and loan type
+  `non_qm_bank_statement`.
+- LoanSifter import: purpose now tells purchase, rate-and-term and cash-out
+  apart. A non-QM capture is matched by amount and value (its loan type
+  label varies). It keeps bank-statement products and drops interest-only,
+  ARM, DSCR and 40-year ones; conforming scenarios still drop non-QM.
+
+### Verified
+- Matching tests for both scenarios (780 vs 760–779; non-QM vs
+  conventional at the same amount; investment excluded). Import tests for
+  cash-out vs rate-and-term and the non-QM product filter.
+- /mlo/pricing shows the six daily scenarios, then Tacoma and Phoenix.
+- `npm run verify` passes (255 tests).
+
+### Owner action
+- Save the two searches in LoanSifter with exactly these numbers
+  (cash-out: $800,000 value, $640,000 loan, 780; non-QM: $700,000 price,
+  $560,000 loan, 720–739, 12-month bank statements).

@@ -142,7 +142,7 @@ export async function importLoanSifter(req: ImportRequest): Promise<ImportResult
     if (!publishable(key)) return l.termsReviewed ? "its terms restrict showing pricing to consumers" : "its terms haven't been reviewed yet";
     return null;
   };
-  const { products, skipped, withoutGrid } = productsFromCapture(c, allow);
+  const { products, skipped, withoutGrid } = productsFromCapture(c, allow, scenario.program);
   const rule = normalizeRule(settings?.comp);
   const quotes = quotesFromGrids(products, noteAmount(scenario), rule).map((q) => (scenario.mi?.kind === "pmi" ? { ...q, monthlyPmi: req.monthlyPmi } : q));
   const lenders = Array.from(new Set(quotes.map((q) => q.lenderKey)));

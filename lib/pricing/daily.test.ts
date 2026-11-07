@@ -28,8 +28,8 @@ const borrower = (o: Partial<BorrowerScenario> = {}): BorrowerScenario => ({
 afterEach(() => setStoreForTests(null));
 
 describe("daily scenarios (C7)", () => {
-  it("are the owner's four, all Washington, all publishable", () => {
-    expect(DAILY_SCENARIOS.map((s) => s.id)).toEqual(["wa-daily-purchase-80", "wa-daily-purchase-95", "wa-daily-fha-965", "wa-daily-refi-70"]);
+  it("are the owner's six, all Washington, all publishable", () => {
+    expect(DAILY_SCENARIOS.map((s) => s.id)).toEqual(["wa-daily-purchase-80", "wa-daily-purchase-95", "wa-daily-fha-965", "wa-daily-refi-70", "wa-daily-cashout-80", "wa-daily-nonqm-purchase-80"]);
     for (const s of DAILY_SCENARIOS) {
       expect(s.state).toBe("WA");
       expect(zipInState(s.zip!, "WA")).toBe(true);
@@ -37,7 +37,7 @@ describe("daily scenarios (C7)", () => {
       expect(ltv).toBeGreaterThanOrEqual(s.match.ltvMin);
       expect(ltv).toBeLessThanOrEqual(s.match.ltvMax + 1e-9);
     }
-    expect(pricingScenarios().slice(0, 4)).toEqual(DAILY_SCENARIOS);
+    expect(pricingScenarios().slice(0, DAILY_SCENARIOS.length)).toEqual(DAILY_SCENARIOS);
   });
 
   it("match a borrower only to a scenario like theirs", () => {
@@ -57,6 +57,20 @@ describe("daily scenarios (C7)", () => {
     expect(matchDaily(borrower({ propertyType: "condo" }))).toBeNull();
     expect(matchDaily(borrower({ purpose: "cash_out_refinance" }))).toBeNull();
     expect(matchDaily(borrower({ loanType: "va" }))).toBeNull();
+  });
+
+  it("C10: Bellevue cash-out at 780 credit, and the non-QM bank-statement purchase", () => {
+    const cashOut = { purpose: "cash_out_refinance" as const, loanAmount: 640000, propertyValue: 800000, zip: "98004" };
+    expect(matchDaily(borrower({ ...cashOut, creditBand: "780+" }))?.id).toBe("wa-daily-cashout-80");
+    // 760–779 (or the old "760+") is weaker than the 780 example: no example.
+    expect(matchDaily(borrower({ ...cashOut, creditBand: "760-779" }))).toBeNull();
+    expect(matchDaily(borrower({ ...cashOut, creditBand: "760+" }))).toBeNull();
+    const nonQm = { loanType: "non_qm_bank_statement", loanAmount: 560000, propertyValue: 700000 };
+    expect(matchDaily(borrower({ ...nonQm, creditBand: "720-739" }))?.id).toBe("wa-daily-nonqm-purchase-80");
+    expect(matchDaily(borrower({ ...nonQm, creditBand: "700-719" }))).toBeNull();
+    // A conventional borrower never sees the non-QM example, and the reverse.
+    expect(matchDaily(borrower({ loanAmount: 560000, propertyValue: 700000, creditBand: "740-759" }))?.id).toBe("wa-daily-purchase-80");
+    expect(matchDaily(borrower({ ...nonQm, occupancy: "investment" }))).toBeNull();
   });
 });
 
