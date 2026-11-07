@@ -978,3 +978,12 @@ the logo later."
 - Borrowers see pricing lenders by letter, so the name shows only where
   lender marks render (today the /design style guide). `npm run verify`
   passes.
+
+## C10.3 — Daily scenarios assume DTI under 35% (2026-11-07)
+
+Owner: "add under assumptions DTI < 35%." Every daily scenario's
+assumptions now include "Debt-to-income ratio under 35%." (shown on the
+chat's example card and /mlo/pricing). The guard ignores percentages above
+20%, so the line never reads as a rate. Owner action: the saved LoanSifter
+searches should use a DTI under 35% (LoanSifter prices on the DTI entered).
+`npm run verify` passes.

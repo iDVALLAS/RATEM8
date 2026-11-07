@@ -38,6 +38,8 @@ describe("daily scenarios (C7)", () => {
       expect(ltv).toBeLessThanOrEqual(s.match.ltvMax + 1e-9);
     }
     expect(pricingScenarios().slice(0, DAILY_SCENARIOS.length)).toEqual(DAILY_SCENARIOS);
+    // Owner 2026-11-07: every daily scenario assumes DTI under 35%.
+    for (const s of DAILY_SCENARIOS) expect(s.assumptions).toContain("Debt-to-income ratio under 35%.");
   });
 
   it("match a borrower only to a scenario like theirs", () => {
