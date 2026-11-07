@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { channelOf, investorKey, matchScenario, parseCapture, productsFromCapture, type LoanSifterCapture } from "./loansifter";
+import { channelOf, investorKey, summarizeSkipped, matchScenario, parseCapture, productsFromCapture, type LoanSifterCapture } from "./loansifter";
 import { DEFAULT_COMP_RULE, lowestRateLine, noPointsLine } from "./compRule";
 import { DAILY_SCENARIOS } from "./daily";
-import { BOOKMARKLET_SOURCE, bookmarkletUrl } from "./loansifterBookmarklet";
+import { bookmarkletSource, bookmarkletUrl } from "./loansifterBookmarklet";
+import { extraLoanSifterOrigins, isLoanSifterOrigin } from "./loansifterOrigin";
+
+const BOOKMARKLET_SOURCE = bookmarkletSource("https://loanm8.com");
 
 /** The bookmarklet's output on the owner's 2026-11-06 results page (Kind, Rocket and UWM grids open). */
 const TEXT = readFileSync(new URL("../../fixtures/pricing/loansifter-capture.sample.json", import.meta.url), "utf8");
@@ -91,13 +94,20 @@ describe("LoanSifter capture (Send to LoanM8)", () => {
 
   it("the bookmarklet is plain JavaScript that sends nothing over the network", () => {
     expect(() => new Function(BOOKMARKLET_SOURCE)).not.toThrow();
-    expect(bookmarkletUrl().startsWith("javascript:")).toBe(true);
+    expect(bookmarkletUrl("https://loanm8.com").startsWith("javascript:")).toBe(true);
+    // C11: it talks only to the LoanM8 site that served it.
+    expect(BOOKMARKLET_SOURCE).toContain('var ORIGIN = "https://loanm8.com";');
+    expect(BOOKMARKLET_SOURCE).not.toContain("__LOANM8_ORIGIN__");
+    expect(() => bookmarkletSource('https://evil.example/"x')).toThrow();
     // Regression (2026-11-06): in a plain template literal "\s" became "s", so every
     // "s" on the page turned into a space ("Purchase" → "Purcha e").
     expect(BOOKMARKLET_SOURCE).toContain(String.raw`.replace(/\s+/g, " ")`);
     expect(BOOKMARKLET_SOURCE).toContain(String.raw`/[$,%()\s]/g`);
     expect(BOOKMARKLET_SOURCE).not.toMatch(/replace\(\/s\+\//);
-    expect(BOOKMARKLET_SOURCE).not.toMatch(/fetch\(|XMLHttpRequest|sendBeacon|WebSocket|\.src\s*=|password|cookie|localStorage/i);
+    expect(BOOKMARKLET_SOURCE).not.toMatch(/fetch\(|XMLHttpRequest|sendBeacon|WebSocket|\.src\s*=|password|cookie|sessionStorage|indexedDB/i);
+    // C11: it remembers only which saved scenarios were ticked (their ids), in this browser.
+    expect(BOOKMARKLET_SOURCE.match(/localStorage\.setItem\(.*/g)).toEqual(["localStorage.setItem(STORE, JSON.stringify(picked.map(function (p) { return p.id; }))); } catch (e) {}"]);
+    expect(BOOKMARKLET_SOURCE).toContain('var STORE = "loanm8.scenarios";');
   });
 });
 
@@ -152,5 +162,50 @@ describe("importLoanSifter publishes a snapshot from a capture", () => {
     if (res.ok) return;
     expect(res.errors.join(" ")).toMatch(/grid wasn't open/);
     setStoreForTests(null);
+  });
+});
+
+describe("C11: only LoanSifter pages may hand captures to LoanM8", () => {
+  it("accepts loansifter.com and its subdomains over https, and listed extras", () => {
+    expect(isLoanSifterOrigin("https://loansifter.com")).toBe(true);
+    expect(isLoanSifterOrigin("https://app.loansifter.com")).toBe(true);
+    expect(isLoanSifterOrigin("http://app.loansifter.com")).toBe(false);
+    expect(isLoanSifterOrigin("https://loansifter.com.evil.example")).toBe(false);
+    expect(isLoanSifterOrigin("https://evilloansifter.com")).toBe(false);
+    expect(isLoanSifterOrigin("https://pricing.example.com", extraLoanSifterOrigins(" https://pricing.example.com/ , junk"))).toBe(true);
+  });
+
+  it("dates the snapshot by LoanSifter's search time when it has one", async () => {
+    const { MemoryStore, setStoreForTests, getStore } = await import("./store");
+    const { importLoanSifter, saveSettings } = await import("./publish");
+    const { tenantForState } = await import("./tenants");
+    setStoreForTests(new MemoryStore());
+    const wa = tenantForState("WA")!.id;
+    await saveSettings({ tenantId: wa, activeLenderKeys: ["uwm", "kind", "freedom", "remn"], playbook: [], actor: "t" });
+    const c = JSON.parse(TEXT) as LoanSifterCapture;
+    const kindGrid = c.products.find((p) => p.investor.startsWith("Kind") && p.grid.length)!.grid;
+    for (const p of c.products) if (!p.grid.length && /^(Freedom|REMN)/.test(p.investor)) p.grid = kindGrid.map((g) => ({ ...g, price: g.price - 2, lenderFees: p.lenderFees }));
+    const searched = new Date(Date.parse(c.capturedAt) - 5 * 60_000).toISOString();
+    const res = await importLoanSifter({ tenantId: wa, captureText: JSON.stringify({ ...c, searchedAtIso: searched }), actor: "t", now: new Date(Date.parse(c.capturedAt) + 60_000) });
+    expect(res.ok).toBe(true);
+    expect((await getStore().listSnapshots(wa, "wa-daily-purchase-80"))[0].run.pricedAt).toBe(searched);
+    // A search older than 6 hours is refused even if the button ran just now.
+    const old = new Date(Date.parse(c.capturedAt) - 7 * 3_600_000).toISOString();
+    const stale = await importLoanSifter({ tenantId: wa, captureText: JSON.stringify({ ...c, searchedAtIso: old }), actor: "t", now: new Date(Date.parse(c.capturedAt) + 60_000) });
+    expect(stale.ok).toBe(false);
+    setStoreForTests(null);
+  });
+});
+
+describe("C11: skipped summary", () => {
+  it("names the product when only a product was skipped", () => {
+    expect(summarizeSkipped([
+      { investor: "NexBank Wholesale", product: "FNMA 30", reason: "not on your lender panel" },
+      { investor: "NexBank Wholesale", product: "FHLMC 30", reason: "not on your lender panel" },
+      { investor: "United Wholesale Mortgage, LLC", product: "Jumbo Yellow 30 Yr Fixed", reason: "not a conforming product for this scenario" },
+    ])).toEqual([
+      "Skipped (not on your lender panel): NexBank Wholesale.",
+      "Skipped (not a conforming product for this scenario): United Wholesale Mortgage, LLC (Jumbo Yellow 30 Yr Fixed).",
+    ]);
   });
 });

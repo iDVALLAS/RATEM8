@@ -10,6 +10,7 @@ import { HIDDEN_FROM_ADMIN, pricingScenarios } from "@/lib/pricing/daily";
 import { SOURCE_TYPES } from "@/lib/pricing/publish";
 import { getStore } from "@/lib/pricing/store";
 import { listTenants } from "@/lib/pricing/tenants";
+import { headers } from "next/headers";
 import { bookmarkletUrl } from "@/lib/pricing/loansifterBookmarklet";
 import { importLoanSifterAction, publishSnapshotAction } from "../actions";
 import { FlashBox, MloNav, TenantPicker } from "../MloChrome";
@@ -24,6 +25,11 @@ const ROWS = 12;
 export default async function MloPricing({ searchParams }: Props) {
   const c = mloContent.pricing;
   const { t, s, f } = await searchParams;
+  // C11: the bookmark sends to the LoanM8 site that served it (loanm8.com, a preview, or local).
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "loanm8.com";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const bookmark = bookmarkletUrl(`${proto}://${host}`);
   const tenants = listTenants();
   const tenant = tenants.find((x) => x.id === t) ?? tenants[0];
   const scenarios = pricingScenarios().filter((x) => tenant.states.includes(x.state) && !HIDDEN_FROM_ADMIN.has(x.id));
@@ -53,11 +59,11 @@ export default async function MloPricing({ searchParams }: Props) {
           {/* React blocks javascript: hrefs, so the bookmarklet link is plain HTML. */}
           <p
             className="mt-3"
-            dangerouslySetInnerHTML={{ __html: `<a class="mlo-btn" href="${bookmarkletUrl().replace(/"/g, "&quot;")}" onclick="return false">${c.bookmarklet}</a>` }}
+            dangerouslySetInnerHTML={{ __html: `<a class="mlo-btn" href="${bookmark.replace(/"/g, "&quot;")}" onclick="return false">${c.bookmarklet}</a>` }}
           />
           <details className="mlo-note mt-2">
             <summary>{c.bookmarkletCode}</summary>
-            <textarea readOnly rows={3} style={{ width: "100%", fontFamily: "monospace", fontSize: 11 }} defaultValue={bookmarkletUrl()} />
+            <textarea readOnly rows={3} style={{ width: "100%", fontFamily: "monospace", fontSize: 11 }} defaultValue={bookmark} />
           </details>
           <p className="mlo-note mt-2">{c.importSafety}</p>
           <label className="mlo-field mt-3" style={{ display: "block" }}>{c.capture}

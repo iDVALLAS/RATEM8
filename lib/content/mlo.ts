@@ -32,6 +32,17 @@ export const mloContent = {
     attest: "6 · Review and attest",
     attestBlocked: "Blocked: signing needs the v21 attestation spec and real accounts, which do not exist in this repo yet.",
   },
+  // C11: the tab the Send to LoanM8 button opens.
+  receive: {
+    heading: "Receiving from LoanSifter",
+    intro: "Leave this tab open while the Send to LoanM8 button works through your saved scenarios in LoanSifter. Each one is checked and published here as it arrives.",
+    pmi: "Monthly PMI $ for the 5% down scenario (remembered on this computer)",
+    waiting: "Waiting for LoanSifter…",
+    publishing: "publishing…",
+    unnamed: "LoanSifter search",
+    failed: "Couldn't publish (the server didn't answer). Try the button again.",
+    refused: "Ignored a message from {origin}: only LoanSifter pages can send prices here. If that is your LoanSifter address, add it to LOANSIFTER_ORIGINS in Vercel.",
+  },
   pricing: {
     heading: "Pricing snapshots",
     intro: "Enter today's results for one scenario exactly as they appear in the pricing engine, attach the screenshot or PDF they came from, and publish. APR, payments and the three options are computed for you.",
@@ -49,12 +60,12 @@ export const mloContent = {
     // Send to LoanM8 (LoanSifter, until its API is available)
     importHeading: "Import from LoanSifter",
     importSteps: [
-      "One time: drag the Send to LoanM8 button below to your bookmarks bar (or copy the code into a new bookmark's URL).",
-      "In LoanSifter, open a saved daily scenario and run it.",
-      "On the results page, click the Send to LoanM8 bookmark. It opens every rate grid (about a minute), then shows a Copy button.",
-      "Press Copy, paste below, and import. LoanM8 finds the scenario, applies your rate rule and publishes.",
+      "One time: drag the Send to LoanM8 button below to your bookmarks bar. If you dragged an older one, delete it first: the bookmark carries the code.",
+      "In LoanSifter, open Scenarios and click the Send to LoanM8 bookmark. Tick your daily scenarios (remembered next time) and press Price and send.",
+      "It reprices each scenario, opens every rate grid and sends it to a LoanM8 tab, which publishes it. Leave both tabs alone until it says Done (about a minute per scenario).",
+      "On a single search results page the bookmark sends just that search. If your browser blocks the LoanM8 tab, it shows a Copy box instead: paste below.",
     ],
-    importSafety: "The button only reads the results page in your own browser tab. It never sees your password or login code, and it sends nothing until you paste here. Wholesale prices are converted to borrower-paid by adding back the LO comp LoanSifter subtracted.",
+    importSafety: "The button only reads LoanSifter pages in your own browser tab and passes them to your logged-in LoanM8 tab. It never sees your LoanSifter password or login code. Wholesale prices are converted to borrower-paid by adding back the LO comp LoanSifter subtracted.",
     bookmarklet: "Send to LoanM8",
     bookmarkletCode: "Bookmark code (if dragging doesn't work)",
     capture: "Paste what the button copied",

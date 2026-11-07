@@ -1004,3 +1004,48 @@ type but we don't need it twice; it's shortening the chat box."
   the privacy policy). Counsel approved the earlier wording on 2026-10-31;
   this is a placement and wording change to note for them.
 - `npm run verify` passes.
+
+## C11 — One click for all daily scenarios (2026-11-07)
+
+Owner: "One click for all six … let's do this next." Built from the owner's
+pasted LoanSifter Scenarios page (lb-scenario-list: name, scenario id,
+Last Search, "Reprice Scenario", "View All Results").
+
+### Changes
+- `lib/pricing/loansifterBookmarklet.ts` rewritten. On LoanSifter's
+  Scenarios page it shows a checklist of saved scenarios (the ticked ids
+  are remembered in that browser; names starting "M8" are pre-ticked the
+  first time). For each one it clicks Reprice, opens the results (View All
+  Results if repricing stays on the list), opens every rate grid, sends the
+  capture, and goes back (history, then the Scenarios link). On a results
+  page it sends that one search. It talks only to the LoanM8 site that
+  served the bookmark (`bookmarkletUrl(origin)`).
+- Delivery without copy and paste: the button opens `/mlo/pricing/receive`
+  (admin login) in a tab while the click still counts, waits for its
+  "ready", and hands each capture over with `postMessage`. The tab
+  publishes through `importCaptureAction` and answers with the result,
+  which the button lists. If the tab is blocked, a Copy box appears instead.
+- `lib/pricing/loansifterOrigin.ts`: the receive page accepts captures only
+  from https://loansifter.com or a subdomain, plus exact origins in
+  `LOANSIFTER_ORIGINS` (https, or http on localhost for testing), so another
+  site that opened the tab can't publish made-up prices.
+- Pricing time: captures carry LoanSifter's "Search Results" time
+  (`searchedAtIso`); the snapshot is dated by it and a search older than
+  6 hours is refused, even when the button ran just now.
+- Skipped summary names the product for product-level skips
+  (`summarizeSkipped`), so a lender isn't read as skipped when only its
+  jumbo product was.
+- The receive page remembers the monthly PMI for the 5%-down scenario.
+
+### Verified
+- A fake LoanSifter built from the owner's pages (scenarios list, reprice,
+  results, expandable grids), the bookmark as served by /mlo/pricing:
+  two scenarios ticked, both repriced, grids opened, published (4 lenders
+  each), back on the list, no page errors. Single results page and
+  blocked-tab fallback also run. Origin, search-time and skipped-summary
+  tests. `npm run verify` passes.
+
+### Owner action
+- Delete the old bookmark and drag the new one from /mlo/pricing.
+- If LoanSifter's address isn't on loansifter.com, the LoanM8 tab says
+  which address it ignored; add it to `LOANSIFTER_ORIGINS` in Vercel.

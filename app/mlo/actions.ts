@@ -5,6 +5,9 @@ import { requireAdmin } from "@/lib/mlo/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
 import { NICHES, type Niche, type PlaybookEntry } from "@/lib/pricing/playbook";
 import { importLoanSifter, publishSnapshot, saveSettings } from "@/lib/pricing/publish";
+import { listTenants, tenantForState } from "@/lib/pricing/tenants";
+import { summarizeSkipped } from "@/lib/pricing/loansifter";
+import { pricingScenarios } from "@/lib/pricing/daily";
 import { DEFAULT_COMP_RULE } from "@/lib/pricing/compRule";
 import { NO_RISKY_FEATURES, type QuoteInput } from "@/lib/pricing/types";
 
@@ -105,17 +108,28 @@ export async function importLoanSifterAction(fd: FormData): Promise<void> {
   const pmiRaw = str(fd, "pmi").replace(/[$,]/g, "");
   const monthlyPmi = pmiRaw === "" ? undefined : Number(pmiRaw);
   const res = await importLoanSifter({ tenantId, captureText: String(fd.get("capture") ?? ""), monthlyPmi, actor });
-  // Group skipped products by reason so the summary stays short.
-  const byReason = new Map<string, Set<string>>();
-  for (const s of res.skipped ?? []) {
-    const names = byReason.get(s.reason) ?? new Set<string>();
-    names.add(s.investor);
-    byReason.set(s.reason, names);
-  }
-  const skippedLines = [...byReason].map(([reason, names]) => `Skipped (${reason}): ${[...names].join(", ")}.`);
+  const skippedLines = summarizeSkipped(res.skipped ?? []);
   const flash = res.ok
     ? { ok: true, lines: [`Published from LoanSifter: ${res.lenders.length} lenders. Inputs hash ${res.inputsHash.slice(0, 12)}.`, ...skippedLines] }
     : { ok: false, lines: [...res.errors, ...skippedLines] };
   const s = res.scenarioId ? `&s=${encodeURIComponent(res.scenarioId)}` : "";
   redirect(`/mlo/pricing?t=${encodeURIComponent(tenantId)}${s}&f=${encodeFlash(flash)}`);
+}
+
+/**
+ * C11: the receive page (/mlo/pricing/receive) imports each capture the
+ * Send to LoanM8 button hands it, and shows the result without a reload.
+ */
+export async function importCaptureAction(captureText: string, pmi: string): Promise<{ ok: boolean; lines: string[]; scenario: string | null }> {
+  const actor = await requireAdmin();
+  // Every daily scenario is in Washington; its sponsoring brokerage owns the snapshot.
+  const tenantId = tenantForState("WA")?.id ?? listTenants()[0]?.id ?? "";
+  const pmiRaw = pmi.replace(/[$,\s]/g, "");
+  const monthlyPmi = pmiRaw === "" ? undefined : Number(pmiRaw);
+  const res = await importLoanSifter({ tenantId, captureText, monthlyPmi: Number.isFinite(monthlyPmi) ? monthlyPmi : undefined, actor });
+  const scenario = res.scenarioId ? (pricingScenarios().find((s) => s.id === res.scenarioId)?.title ?? res.scenarioId) : null;
+  const skipped = summarizeSkipped(res.skipped ?? []);
+  return res.ok
+    ? { ok: true, scenario, lines: [`Published: ${res.lenders.length} lenders.`, ...skipped] }
+    : { ok: false, scenario, lines: [...res.errors, ...skipped] };
 }
