@@ -14,10 +14,15 @@
  * single-family primary residence, LTV inside the band, loan amount inside
  * the band, and credit at or above the scenario's band (a borrower with
  * weaker credit than the example would see pricing better than theirs).
+ * C11.2: the borrower's ZIP only places them in a state; the town never
+ * matters. The loan must also be at or below the limit that is the same in
+ * every county (conforming baseline, FHA floor), because above it the
+ * county decides high balance or jumbo pricing.
  */
 import type { StateCode } from "@/lib/config";
 import { exampleScenarios } from "./providers/mock";
 import type { BandedScenario } from "./types";
+import { countyProofLimit } from "./loanLimits";
 
 /**
  * FHA mortgage insurance premiums: 1.75% upfront (financed) and 0.55% a
@@ -41,8 +46,14 @@ export type DailyMatch = {
 
 export type DailyScenario = BandedScenario & { match: DailyMatch };
 
+/** Where the example was priced in LoanSifter (a pricing input only; never shown). */
 const WA_ZIP = "98072";
-const WA_LOCATION = "Woodinville, WA (King County)";
+/**
+ * C11.2 (owner 2026-11-07): examples aren't tied to a town or ZIP. A ZIP only
+ * changes pricing through loan limits, and every example is below the limit
+ * that applies in all counties (loanLimits.ts).
+ */
+const WA_LOCATION = "Washington";
 const APR_NOTE = "APR includes discount points, origination and lender fees{mi}; it excludes prepaid interest, escrow and third-party fees.";
 
 export const DAILY_SCENARIOS: DailyScenario[] = [
@@ -62,10 +73,10 @@ export const DAILY_SCENARIOS: DailyScenario[] = [
     termMonths: 360,
     program: "conventional",
     assumptions: [
-      "Purchase in Woodinville, WA (King County), ZIP 98072.",
+      "Purchase of a home in Washington.",
       "Loan amount $520,000 on a $650,000 home (80% loan-to-value).",
       "Credit score 740–759.",
-      "Conventional 30-year fixed, conforming, full documentation.",
+      "Conventional 30-year fixed, full documentation; the loan is under the conforming limit in every county.",
       "Primary residence, detached single-family home, one borrower.",
       "Debt-to-income ratio under 35%.",
       APR_NOTE.replace("{mi}", ""),
@@ -89,10 +100,10 @@ export const DAILY_SCENARIOS: DailyScenario[] = [
     program: "conventional",
     mi: { kind: "pmi" },
     assumptions: [
-      "Purchase in Woodinville, WA (King County), ZIP 98072.",
+      "Purchase of a home in Washington.",
       "Loan amount $475,000 on a $500,000 home (95% loan-to-value).",
       "Credit score 740–759.",
-      "Conventional 30-year fixed, conforming, full documentation, with borrower-paid monthly mortgage insurance.",
+      "Conventional 30-year fixed, full documentation, with borrower-paid monthly mortgage insurance; the loan is under the conforming limit in every county.",
       "Primary residence, detached single-family home, one borrower.",
       "Debt-to-income ratio under 35%.",
       APR_NOTE.replace("{mi}", ", and monthly mortgage insurance until it ends by schedule at 78% of the original value"),
@@ -116,10 +127,10 @@ export const DAILY_SCENARIOS: DailyScenario[] = [
     program: "fha",
     mi: { kind: "fha", upfrontPct: FHA_MIP.upfrontPct, annualPct: FHA_MIP.annualPct },
     assumptions: [
-      "Purchase in Woodinville, WA (King County), ZIP 98072.",
+      "Purchase of a home in Washington.",
       "Base loan $434,250 on a $450,000 home (96.5% loan-to-value), plus the 1.75% upfront FHA mortgage insurance premium financed into the loan.",
       "Credit score 680–699.",
-      "FHA 30-year fixed, full documentation.",
+      "FHA 30-year fixed, full documentation; the base loan is under the FHA limit in every county.",
       "Primary residence, detached single-family home, one borrower.",
       "Debt-to-income ratio under 35%.",
       APR_NOTE.replace("{mi}", ", the upfront FHA premium, and the 0.55% annual FHA premium for the life of the loan"),
@@ -142,22 +153,22 @@ export const DAILY_SCENARIOS: DailyScenario[] = [
     termMonths: 360,
     program: "conventional",
     assumptions: [
-      "Rate-and-term refinance in Woodinville, WA (King County), ZIP 98072.",
+      "Rate-and-term refinance of a home in Washington.",
       "Loan amount $560,000 on an $800,000 home (70% loan-to-value).",
       "Credit score 760 or higher.",
-      "Conventional 30-year fixed, conforming, full documentation, no cash out.",
+      "Conventional 30-year fixed, full documentation, no cash out; the loan is under the conforming limit in every county.",
       "Primary residence, detached single-family home, one borrower.",
       "Debt-to-income ratio under 35%.",
       APR_NOTE.replace("{mi}", ""),
     ],
     match: { purpose: "rate_term_refinance", loanType: "conventional", ltvMin: 60, ltvMax: 75, loanMin: 300000, loanMax: 700000, creditMin: 760 },
   },
-  // C10 (owner 2026-11-07): replaces the "Bellevue refinance" example in the list.
+  // C10 (owner 2026-11-07): replaces the "Bellevue refinance" example in the list (priced with a Bellevue ZIP; shown as Washington since C11.2).
   {
     id: "wa-daily-cashout-80",
     title: "Cash-out refinance, 80% LTV",
     state: "WA",
-    location: "Bellevue, WA (King County)",
+    location: WA_LOCATION,
     zip: "98004",
     purpose: "cash_out_refi",
     occupancy: "primary",
@@ -169,10 +180,10 @@ export const DAILY_SCENARIOS: DailyScenario[] = [
     termMonths: 360,
     program: "conventional",
     assumptions: [
-      "Cash-out refinance in Bellevue, WA (King County), ZIP 98004.",
+      "Cash-out refinance of a home in Washington.",
       "Loan amount $640,000 on an $800,000 home (80% loan-to-value), including the cash out.",
       "Credit score 780.",
-      "Conventional 30-year fixed, conforming, full documentation.",
+      "Conventional 30-year fixed, full documentation; the loan is under the conforming limit in every county.",
       "Primary residence, detached single-family home, one borrower.",
       "Debt-to-income ratio under 35%.",
       APR_NOTE.replace("{mi}", ""),
@@ -196,7 +207,7 @@ export const DAILY_SCENARIOS: DailyScenario[] = [
     termMonths: 360,
     program: "non_qm",
     assumptions: [
-      "Purchase in Woodinville, WA (King County), ZIP 98072.",
+      "Purchase of a home in Washington.",
       "Loan amount $560,000 on a $700,000 home (80% loan-to-value).",
       "Credit score 720–739.",
       "Non-QM 30-year fixed, fully amortizing (no interest-only), self-employed borrower qualified on 12 months of bank statements.",
@@ -269,6 +280,8 @@ export function matchDaily(b: BorrowerScenario, scenarios: DailyScenario[] = dai
     if (!zipInState(b.zip, s.state)) continue;
     if (ltv < m.ltvMin || ltv > m.ltvMax) continue;
     if (b.loanAmount < m.loanMin || b.loanAmount > m.loanMax) continue;
+    // C11.2: above the all-county limit the tier (high balance, jumbo) depends on the county.
+    if (b.loanAmount > countyProofLimit(m.loanType)) continue;
     if (credit < m.creditMin) continue;
     return s;
   }
