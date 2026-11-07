@@ -67,7 +67,7 @@ describe("resolveRoute", () => {
 
     const or = resolveRoute({ ipCountry: "US", ipRegion: "OR" });
     expect(or.mlo?.id).toBe(OREGON);
-    expect(or.license?.sponsor.name).toBe("Home Trust Loans");
+    expect(or.license?.sponsor.name).toBe("Adcom Group Inc dba Home Trust Financial");
   });
 
   it("a CA IP with an OR property routes to the OR MLO and flags the move", () => {
@@ -125,23 +125,24 @@ describe("resolveRoute", () => {
   });
 });
 
-describe("M8 routing facts", () => {
-  it("names only the matched MLO, with NMLS, license and sponsor, and states the mover case plainly", async () => {
-    const { m8RoutingFacts, buildM8SystemPrompt } = await import("./prompts/m8-system");
+describe("M8 prompt values from routing (C3)", () => {
+  it("names only the matched MLO, with NMLS and sponsor, and states the mover case plainly", async () => {
+    const { m8PromptVars, buildM8SystemPrompt } = await import("./prompts/m8-system");
     const v = resolveRoute({ ipCountry: "US", ipRegion: "CA", propertyState: "OR" });
-    const { overrides, section } = m8RoutingFacts(v);
-    const prompt = buildM8SystemPrompt(overrides);
+    const prompt = buildM8SystemPrompt(m8PromptVars(v));
     const m = v.mlo!;
-    expect(prompt).toContain(`${m.name}, ${m.title}, NMLS #${m.nmls}`);
-    expect(prompt).toContain("Home Trust Loans");
-    expect(section).toContain("The property is in Oregon, but their connection suggests California. Licensing follows the property");
+    expect(prompt).toContain(`The borrower's licensed loan officer is ${m.name}, NMLS #${m.nmls}.`);
+    expect(prompt).toContain("Loans are originated by Adcom Group Inc dba Home Trust Financial (NMLS #");
+    expect(prompt).toContain("the property is in Oregon; their connection suggests California. Licensing follows the property");
     const operator = cfg.mlos.find((x) => x.id === OPERATOR)!;
-    expect(prompt + section).not.toContain(operator.name);
+    expect(prompt).not.toContain(operator.name);
   });
 
-  it("tells M8 there is no licensed loan officer in an unlicensed state", async () => {
-    const { m8RoutingFacts } = await import("./prompts/m8-system");
-    expect(m8RoutingFacts(resolveRoute({ ipCountry: "US", ipRegion: "NV" })).section).toContain("There is no licensed loan officer in Nevada yet");
+  it("tells M8 there is no licensed loan officer in an unlicensed state, and names no one", async () => {
+    const { m8PromptVars, buildM8SystemPrompt } = await import("./prompts/m8-system");
+    const prompt = buildM8SystemPrompt(m8PromptVars(resolveRoute({ ipCountry: "US", ipRegion: "NV" })));
+    expect(prompt).toContain("There is no licensed loan officer for Nevada yet");
+    for (const m of cfg.mlos) expect(prompt).not.toContain(m.name);
   });
 });
 
@@ -180,7 +181,7 @@ describe("v29 default state when location can't be resolved", () => {
   });
 
   it("tells M8 the state was defaulted, so it asks where the property is", async () => {
-    const { m8RoutingFacts } = await import("./prompts/m8-system");
-    expect(m8RoutingFacts(resolveRoute({})).section).toMatch(/could not be detected, so the site defaulted to Washington/);
+    const { m8PromptVars } = await import("./prompts/m8-system");
+    expect(m8PromptVars(resolveRoute({})).state).toMatch(/^Washington \(their location couldn't be detected, so this is the site's default; ask where the property is/);
   });
 });

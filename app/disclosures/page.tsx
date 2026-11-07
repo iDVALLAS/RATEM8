@@ -63,7 +63,11 @@ export default function DisclosuresPage() {
           <div>
             <dt>{c.nmls.entityLabel}</dt>
             <dd>
-              {CONFIG.entityTradeName}, a trade name of {CONFIG.entityLegalName} · NMLS #<Fact value={CONFIG.entityNmls} />
+              {CONFIG.entityTradeName} is a trade name of {CONFIG.entityLegalName}. Mortgage loans are originated by {CONFIG.sponsorDisplayName}, NMLS #{CONFIG.sponsor.nmls} (
+              <a href={CONFIG.sponsor.nmlsUrl} target="_blank" rel="noopener noreferrer">
+                NMLS Consumer Access
+              </a>
+              ).
             </dd>
           </div>
           {ALL_MLOS.map((m) => (

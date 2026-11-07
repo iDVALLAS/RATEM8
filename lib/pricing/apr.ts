@@ -5,9 +5,10 @@
  * payments equals the amount financed (loan amount minus prepaid finance
  * charges). Solved by bisection on the monthly rate; deterministic.
  *
- * Simplifications, stated on every price as assumptions: prepaid interest,
- * mortgage insurance and third-party charges are not modelled; fixed-rate
- * loans only; first payment one month after consummation.
+ * Simplifications, stated on every price as assumptions: prepaid interest
+ * and third-party charges are not modelled; fixed-rate loans only; first
+ * payment one month after consummation. C7: mortgage insurance is
+ * modelled when the scenario carries it (`extraMonthly`, lib/pricing/mi.ts).
  */
 
 /** Scheduled monthly payments for a fixed-rate loan, with an optional interest-only start. */
@@ -38,8 +39,8 @@ function presentValue(payments: number[], monthlyRate: number): number {
  * regular transactions). Returns the note rate when there are no prepaid
  * finance charges.
  */
-export function computeApr(loanAmount: number, noteRatePct: number, termMonths: number, prepaidFinanceCharges: number, interestOnlyMonths = 0): number {
-  const payments = paymentSchedule(loanAmount, noteRatePct, termMonths, interestOnlyMonths);
+export function computeApr(loanAmount: number, noteRatePct: number, termMonths: number, prepaidFinanceCharges: number, interestOnlyMonths = 0, extraMonthly: number[] = []): number {
+  const payments = paymentSchedule(loanAmount, noteRatePct, termMonths, interestOnlyMonths).map((p, k) => p + (extraMonthly[k] ?? 0));
   const amountFinanced = loanAmount - Math.max(0, prepaidFinanceCharges);
   if (amountFinanced <= 0) throw new Error("amount financed must be positive");
   let lo = 0;

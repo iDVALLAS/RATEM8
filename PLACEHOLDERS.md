@@ -7,6 +7,32 @@ before this build (entered by the site owner in earlier patches); they were
 not invented here, but each still needs verification on
 nmlsconsumeraccess.org and with counsel.
 
+## C2 update (2026-11-01): what config/licensing.ts now fills
+
+Licensing facts moved to `config/licensing.ts` (the owner's launch brief, L1).
+`lib/config.ts` derives from it. Now filled:
+- The platform is LoanM8, LLC (Shapiro Home Loans is gone). It holds no NMLS
+  license, so `entityNmls` is removed.
+- The sponsor is Adcom Group Inc dba Home Trust Financial, NMLS 1761573, for
+  all five states.
+- Each state's entity license is the sponsor's license, with its regulator name.
+- CA's required disclosure is the CA licensing language. TX's is the 7 TAC
+  §56.200(c) complaint notice.
+- MLO license per state: CA-DFPI 1844143 in California; elsewhere the NMLS ID.
+  **Arizona issues its own loan originator license number. Send it to add it.**
+
+Still open:
+- Regulator URLs (5 states)
+- Required disclosures for WA, OR and AZ
+- Sponsorship effective dates
+- Bios, application URLs, contact email
+- Ryder's photo (`public/team/ryder-fasse.webp`; initials until then)
+
+`npm run check:licensing` (and every `next build`) fails while
+`config/licensing.ts` contains TBD, VERIFY or XXXX.
+
+The table below is the pre-C2 list; rows covered above are done.
+
 ## lib/config.ts (the single source of truth)
 
 | Key | Current value | Fill with |

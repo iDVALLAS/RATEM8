@@ -3,7 +3,7 @@
  *
  * Voice: populist, technically grounded, calm, honest, specific.
  *        Never corporate, never pressuring, never effusive.
- *        Occasional Aussie warmth in microcopy ("G'day") used sparingly.
+ *        No regional slang: M8 no longer says "G'day" (owner, 2026-11-05).
  *
  * RULES (see COMPLIANCE.md):
  *  - No rates, no lender counts, no earnings claims, no urgency, no
@@ -187,8 +187,6 @@ export const copy = {
     ],
   },
 
-  // v21: the restored scripted demo (/chat, /demo). Its script lives in
-  // lib/demoChat.ts; these are the strings added around it.
   // v24: the phone-only bottom bar on borrower pages (StickyCtaBar).
   stickyCta: {
     label: "Next step",
@@ -197,17 +195,12 @@ export const copy = {
   // v24: designed loading and empty states (no spinners).
   uiStates: {
     loadingPricing: "Loading example pricing",
-    loadingDemo: "Loading the M8 demo",
+    loadingChat: "Loading M8",
     loadingPage: "Loading",
     pricingEmpty: "No pricing to show for this scenario right now.",
     pricingEmptyBody: "Example pricing is dated and switched on per scenario. A licensed loan officer can price your actual situation.",
     chartEmpty: "Nothing to chart yet.",
     chartEmptyBody: "Enter values above and the chart draws itself.",
-  },
-
-  demoChat: {
-    bookCall: "Book a call with a licensed loan officer",
-    notEnoughLenders: "Fewer than three lenders were eligible for this scenario, so no option set is shown.",
   },
 
   // v19 (Round 3, Item 3a): why LoanM8 costs less. A cost-structure
@@ -320,7 +313,7 @@ export const copy = {
       },
     ],
     licensedLabel: "// licensed in",
-    equalHousing: "Equal Housing Lender",
+    equalHousing: "Equal Housing Opportunity",
     aiNote: `M8 is an AI, not a person. A licensed loan officer verifies every deal.`,
   },
 
@@ -709,21 +702,134 @@ export const copy = {
   chat: {
     title: "M8 Chat",
     /**
-     * Live M8 opening line (tester preview). v15: the loan officer part
-     * swaps with MloContext; a name always travels with its NMLS number.
+     * Live M8 opening line (public since C1). C6 (owner, 2026-11-05): the
+     * owner's greeting. The AI disclosure is the line above the input and
+     * the "AI" tag on every M8 message, both on screen before anyone types
+     * (COMPLIANCE.md §5); the loan officer card names the matched MLO with
+     * their NMLS number, so the greeting no longer repeats it. Unlicensed
+     * states and movers still get their sentence.
      */
     liveOpening: {
-      lead: `G'day. ${AI_DISCLOSURE} I'm M8, in a preview build. I can explain how a mortgage works and write up what we discuss. I can't quote a rate here`,
-      generic: ", and a licensed loan officer verifies every deal.",
-      named: ", and {name}, a licensed loan officer for {state} (NMLS #{nmls}), verifies every deal.",
-      unlicensed: ", and we don't have a licensed loan officer in {state} yet, so I can explain things but can't hand you off there.",
+      lead: "Hello, I'm M8. I can assist with anything loan related.",
+      unlicensed: " We don't have a licensed loan officer in {state} yet, so I can explain things but can't hand you off there.",
       moved: " Licensing follows the property, so you're matched for {state}, not {ip}.",
-      close: " What are you trying to do?",
+      close: " What can I help you with today?",
+    },
+    /** C1: the public live chat at /chat (components/M8LiveChat.tsx). */
+    live: {
+      /** Empty-state prompt chips (owner's list, C1). */
+      chips: [
+        "What can I afford?",
+        "Should I refinance?",
+        "Explain points vs. no points",
+        "Second Look: review my Loan Estimate",
+        "What happens after I apply?",
+      ],
+      chipsLabel: "Try asking",
+      /** Persistent strip under the input (owner's wording, C1). */
+      strip: "M8 is an AI assistant, not a loan officer. A licensed loan officer verifies every recommendation. Not a commitment to lend.",
+      inputPlaceholder: "Ask M8 anything about mortgages…",
+      inputBusy: "M8 is typing…",
+      inputLabel: "Your question for M8",
+      send: "Send to M8",
+      startOver: "Start over",
+      typing: "typing",
+      you: "You",
+      error: "Try sending again, or email {email}.",
+      offline: "M8 is offline right now. Email {email}.",
+      /** C4: replies the output guard puts in place of a blocked one. {name} = the loan officer or "a licensed loan officer". */
+      guard: {
+        rate: "I can't quote a rate right now. {name} can send you live pricing.",
+        promise: "Only your licensed loan officer can approve a loan, lock a rate or set a closing date. {name} can walk you through it.",
+        promptLeak: "I can't share that. I'm here to help with your home loan. What are you working on?",
+        sensitive: "For your security I won't repeat account or Social Security numbers here. {name}'s secure application handles those.",
+        /** C6: M8 claimed it could pull pricing while live pricing is off. */
+        pricingPromise: "Live pricing isn't connected to this chat yet, so I can't price your scenario here. I can keep putting it together, and {name} can price it and send it to you.",
+      },
+      /** C6: the "AI" tag next to M8's name on every message (AI disclosure). */
+      aiTag: "AI",
+      /**
+       * C6: the bar above the input once the borrower asks about pricing
+       * (style C, owner 2026-11-05). It opens the same "Talk to" panel as
+       * the card. No availability dot: there's no availability data yet.
+       */
+      priceBar: {
+        title: "A licensed loan officer can price this for you.",
+        titleNamed: "{first} can price this for you.",
+        body: "Live pricing isn't in this chat yet.",
+      },
+      /**
+       * C7: the dated example card under an M8 reply (components/chat/ExamplePricingCard.tsx).
+       * Never the word "live": these are the loan officer's daily snapshots.
+       */
+      example: {
+        eyebrow: "Today's priced example · not your quote",
+        priced: "Priced {date} at {time} PT in the brokerage's pricing engine by a licensed loan officer. Lenders are shown by letter.",
+        pricedNamed: "Priced {date} at {time} PT in the brokerage's pricing engine by {first}. Lenders are shown by letter.",
+        rate: "Rate",
+        apr: "APR",
+        payment: "Principal and interest",
+        mi: "Mortgage insurance",
+        perMonth: "/mo",
+        points: "{pct}% points ({amount})",
+        credit: "{pct}% lender credit ({amount})",
+        noPoints: "No points",
+        fees: "Origination {orig} · lender fees {fees}",
+        lock: "{days}-day lock",
+        risky: "Includes a risky feature",
+        compared: "{n} eligible lenders compared.",
+        assumptions: "What this example assumes",
+        footer: "A dated example for a standard scenario close to yours, not a quote, an offer or a commitment to lend. Prices change during the day, and your own rate depends on your full scenario.",
+        footerNamed: "A dated example for a standard scenario close to yours, not a quote, an offer or a commitment to lend. Prices change during the day. {first} can price your actual scenario.",
+      },
+      /** C4: abusive or harassing input gets this, with no model call. */
+      moderation: "I'm here to help with home loans, and I'll keep things respectful. If something's gone wrong, tell me what you need, or use the Talk to button to reach a licensed loan officer.",
+      redactedNotice: "We removed what looked like a Social Security number, date of birth or account number before M8 saw it. Never share those here; your loan officer's secure application handles them.",
+      rateLimited: "You're sending messages faster than M8 can keep up. Give it a minute and try again.",
+      turnLimit: "This chat has reached its limit. Start over for a fresh chat, or use the Talk to button to reach a licensed loan officer.",
+      dailyCap: "M8 is taking a break for today. Use the Talk to button to reach a licensed loan officer, or come back tomorrow.",
+      botBlocked: "Please try again.",
+      /** C4: the one-line privacy notice above the input. */
+      privacyStored: "Chats are kept for {retention}, with sensitive numbers removed, for compliance review.",
+      privacyNotStored: "Chats stay in this browser; we don't store them on our servers yet.",
+      twoParty: "In {state}, continuing means you consent to this chat being recorded.",
+      privacyLink: "Privacy policy",
+      deleteChat: "Delete my chat",
+      deleting: "Deleting…",
+      deleted: "Your chat was deleted.",
+      deleteFailed: "That didn't delete. Email {email} and we'll remove it.",
+      /** The pinned loan officer card. */
+      card: {
+        eyebrow: "Your loan officer",
+        generic: "A licensed loan officer",
+        genericNote: "Tell us where the property is and we'll match you with a licensed loan officer.",
+        unlicensed: "We don't have a licensed loan officer in {state} yet.",
+        nmls: "NMLS #{nmls}",
+        sponsor: "{sponsor} · {label} #{id}",
+        talk: "Talk to a loan officer",
+        talkNamed: "Talk to {first}",
+      },
+      /** The "Talk to …" handoff panel (posts to /api/chat-question). */
+      handoff: {
+        title: "Talk to a licensed loan officer",
+        titleNamed: "Talk to {first}",
+        book: "Book a call",
+        or: "or send a question",
+        question: "Your question",
+        email: "Your email (so they can reply)",
+        submit: "Send",
+        sending: "Sending…",
+        sent: "Sent. A licensed loan officer will reply by email.",
+        sentNamed: "Sent to {first}. They'll reply by email.",
+        error: "That didn't send. Email {email} instead.",
+        close: "Close",
+        note: "Never include a Social Security number, date of birth or account number.",
+      },
     },
     gate: {
       eyebrow: "// before we start",
       body: "I'm M8, an AI, not a person. A licensed loan officer verifies every deal. This chat may be recorded for compliance; ask for a transcript any time. It is not a credit pull.",
-      recording: "Recording and transcript: conversations may be stored for compliance review. You can request a transcript or deletion at any time. Retention period: [RETENTION — confirm with counsel].",
+      recording: "Recording and transcript: conversations may be stored for compliance review. You can request a transcript or deletion at any time. Retention period: 3 years.",
       twoParty: "If you are in a two-party consent state, continuing means you consent to the recording described above.",
       cta: "Continue",
       back: "Not now",
@@ -734,7 +840,7 @@ export const copy = {
     devToggle: "orb state",
     states: ["idle", "listening", "thinking", "speaking"] as const,
     script: [
-      { from: "m8", text: `G'day. ${AI_DISCLOSURE} I can explain how a mortgage works and write up your options. What are you trying to do?` },
+      { from: "m8", text: `Hello. ${AI_DISCLOSURE} I can explain how a mortgage works and write up your options. What are you trying to do?` },
       { from: "user", text: "Buying our first place. Under contract, and the lender sent a Loan Estimate I don't really understand." },
       { from: "m8", text: "Good place to start. The Loan Estimate is three pages: the loan terms, the closing costs, and the comparisons. Which part is confusing?" },
       { from: "user", text: "Page 2. There's a list of fees and I can't tell which ones are real." },
@@ -867,6 +973,13 @@ export const copy = {
     heading: "That page isn't here.",
     body: "The link may be old, or the page hasn't shipped yet.",
     cta: "Back to the homepage",
+  },
+
+  /** C1: the stealth homepage (ComingSoonHomePage). */
+  comingSoonHome: {
+    chat: "Chat with M8",
+    chatNote: "An AI assistant · A licensed loan officer verifies every recommendation",
+    tester: "Tester access →",
   },
 
   comingSoon: {

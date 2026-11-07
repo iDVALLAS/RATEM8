@@ -1,14 +1,17 @@
 export const dynamic = "force-dynamic";
 import type { MetadataRoute } from "next";
 import { absoluteUrl } from "@/lib/site";
+import { STEALTH_PUBLIC_PAGES, stealthOn } from "@/lib/public-paths";
 
 /**
  * robots.txt — generated, replaces the old static public/robots.txt.
  *
  * Two modes:
  *  - Stealth (NEXT_PUBLIC_STEALTH_MODE !== "false", the default): only the
- *    coming-soon homepage, /demo, /ai, /llms.txt, and this file are
- *    crawlable. Matches middleware.ts, which redirects everything else.
+ *    pages that are public in stealth (lib/public-paths.ts, C5: /, /chat,
+ *    /licensing, /licensing/texas, /disclosures, /privacy, /terms, /ai),
+ *    the state pages, /llms.txt and this file. Matches middleware.ts,
+ *    which redirects everything else.
  *  - Live: everything is crawlable except /api/ (other than /api/agent/)
  *    and /demo. AI crawlers and search crawlers are listed by name so the
  *    policy is explicit and auditable.
@@ -30,14 +33,14 @@ const AI_AND_SEARCH_BOTS = [
 ];
 
 export default function robots(): MetadataRoute.Robots {
-  const stealth = process.env.NEXT_PUBLIC_STEALTH_MODE !== "false";
-
-  if (stealth) {
+  if (stealthOn()) {
+    // "/$" is the homepage only; every other page is listed exactly.
+    const allow = [...STEALTH_PUBLIC_PAGES.map((p) => (p === "/" ? "/$" : `${p}$`)), "/states/", "/llms.txt", "/robots.txt", "/team/"];
     return {
       rules: [
         {
           userAgent: "*",
-          allow: ["/$", "/demo", "/ai", "/llms.txt", "/robots.txt"],
+          allow,
           disallow: "/",
         },
       ],

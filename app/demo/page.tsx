@@ -1,27 +1,22 @@
 import { cookies } from "next/headers";
-import ChatExperience from "@/components/ChatExperience";
-import ChatExperienceWithToggle from "@/components/ChatExperienceWithToggle";
+import { redirect } from "next/navigation";
 import DemoPasswordGate from "@/components/DemoPasswordGate";
 import { CONFIG } from "@/lib/config";
 
 export const metadata = {
-  title: "M8 Preview — LoanM8",
-  description: "Tester preview of the M8 chat shell. By invitation only.",
+  title: "Tester access",
+  description: "Tester access to the pre-launch site. By invitation only.",
   robots: { index: false, follow: false },
 };
 
 /**
- * /demo — the owner's password-gated tester tool.
+ * /demo — the tester password page (C1).
  *
- * After auth this renders ChatExperienceWithToggle: a "Scripted demo"
- * tab (the restored Sarah demo, <ChatExperience />, same as /chat) and,
- * only when M8_LIVE_CHAT is on (v21), a "Live M8 (preview)" tab
- * (<M8LiveChat />, which talks to the model through /api/m8-chat with
- * the draft system prompt).
- *
- * The password gate below is unchanged. The live tab is allowed only
- * behind it; the public /chat route never calls a model while
- * CONFIG.featureFlags.chatLiveAi is false.
+ * The scripted demo and the scripted/live tabs are gone; the live M8 chat
+ * is public at /chat. This page stays only as the way testers unlock the
+ * rest of the pre-launch site: the password sets the cookie middleware.ts
+ * checks. Once in, testers land on the homepage. L3 removes it with the
+ * stealth gate.
  */
 
 async function hashPassword(pw: string): Promise<string> {
@@ -45,5 +40,5 @@ export default async function DemoPage() {
     return <DemoPasswordGate contactEmail={CONFIG.demoContactEmail} />;
   }
 
-  return <ChatExperienceWithToggle scripted={<ChatExperience />} liveEnabled={CONFIG.featureFlags.demoLiveChat} />;
+  redirect("/");
 }

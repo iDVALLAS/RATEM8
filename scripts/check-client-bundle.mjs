@@ -22,6 +22,8 @@ const FORBIDDEN = [
   "restrictsConsumerDisplay", "displayConsent", "sourceSha256", "lenderKey",
   "United Wholesale", "The Loan Store", "Pennymac TPO", "Freedom Mortgage", "REMN Wholesale",
   "Provident Funding", "RISE TPO", "HomeXpress", "Newrez Wholesale", "Kind Lending", "Plaza Home Mortgage",
+  // C3: the M8 system prompt is server-only.
+  "PRICING RULES (hard rules)", "You are M8, the AI loan assistant",
 ];
 
 const files = [];
@@ -42,4 +44,4 @@ if (hits.length) {
   console.error("check:bundle failed — server-only data found in browser files:\n" + hits.join("\n"));
   process.exit(1);
 }
-console.log(`check:bundle passed — ${files.length} browser files scanned, no lender names or admin secrets.`);
+console.log(`check:bundle passed — ${files.length} browser files scanned, no lender names, admin secrets or M8 prompt text.`);

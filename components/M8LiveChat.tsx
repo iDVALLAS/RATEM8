@@ -1,59 +1,123 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { M8Message } from "@/lib/m8";
-import { M8_SESSION_KEY } from "@/lib/m8";
+import Link from "next/link";
+import type { M8Event, M8Message, PricingCard } from "@/lib/m8/shared";
+import { M8_SESSION_KEY } from "@/lib/m8/shared";
 import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import { usStateName } from "@/lib/us-states";
 import { useMloContext, useNamedMlo } from "@/components/mlo/MloContext";
+import MloChatCard from "@/components/chat/MloChatCard";
+import MloAvatar from "@/components/mlo/MloAvatar";
+import RichText from "@/components/chat/RichText";
+import ExamplePricingCard from "@/components/chat/ExamplePricingCard";
+import { fillMlo } from "@/lib/mlo-match";
 
 /**
- * M8LiveChat — the live M8 conversation UI. TESTER PREVIEW ONLY.
+ * M8LiveChat — the live M8 conversation, the public chat at /chat (C1).
  *
- * Rendered on /demo behind the tester password (the "Live M8 (preview)"
- * tab of ChatExperienceWithToggle). Streams responses from /api/m8-chat
- * token-by-token. The public /chat route never renders this while
- * CONFIG.featureFlags.chatLiveAi is false.
+ * Streams responses from /api/m8-chat token-by-token.
  *
- * Behavior:
- *  - Empty state: M8's opening line, which starts with the AI disclosure
- *  - The AI disclosure + recording line (copy.chat.gate.body) sits above
- *    the input at all times
- *  - User types + hits enter -> message appears, streaming reply follows
- *  - Conversation persists in the tester's localStorage between reloads
- *  - "Start over" clears the conversation
- *  - If the API errors, the message is shown in place; retry available
+ * Layout, top to bottom:
+ *  - MloChatCard: the matched loan officer (photo, name, NMLS, sponsor),
+ *    the location line, and "Talk to …"
+ *  - the thread: M8's opening line (C6: the owner's greeting; every M8
+ *    message carries an "AI" tag), then the empty-state prompt chips until
+ *    the first message. M8's replies render **bold** and lists (RichText).
+ *  - C6: once the borrower asks about pricing, a bar above the input says
+ *    the loan officer can price it and opens the card's "Talk to" panel
+ *  - the AI disclosure + recording line (copy.chat.gate.body), the privacy
+ *    line (stored for 3 years or not stored, from the server) with the
+ *    two-party consent note in WA and CA, and the privacy policy link
+ *  - the input (plus a hidden honeypot for the first-message bot check)
+ *  - the persistent strip (copy.chat.live.strip), "Start over" and
+ *    "Delete my chat"
  *
- * Still to do before any public use: transcript persistence with the
- * counsel-confirmed retention, a transcript-on-request path, and an
- * explicit consent record for two-party states. See the RECORDING /
- * CONSENT NOTE in app/api/m8-chat/route.ts.
+ * C4 stream events (lib/m8/shared.ts): `text` appends, `replace` swaps the
+ * whole reply (the output guard), `userText` replaces the borrower's last
+ * message with its redacted form, and `notice` shows a note.
+ *
+ * The conversation also stays in this browser's localStorage between
+ * reloads; "Start over" clears it, "Delete my chat" clears it and the
+ * server copy.
  */
 
-/** M8's opening line; the loan officer part follows MloContext (v15). */
+/** M8's opening line (C6). Unlicensed states and movers still get their sentence. */
 function useOpening(): string {
   const ctx = useMloContext();
   const mlo = useNamedMlo();
   const o = copy.chat.liveOpening;
   const st = ctx.stateName ?? "";
-  let mid = o.generic;
-  if (mlo) mid = o.named.replace("{name}", mlo.name).replace("{state}", st).replace("{nmls}", mlo.nmls);
-  else if (ctx.status === "unlicensed") mid = o.unlicensed.replace("{state}", st);
+  const mid = !mlo && ctx.status === "unlicensed" ? o.unlicensed.replace("{state}", st) : "";
   const moved = mlo && ctx.moved && ctx.ipState ? o.moved.replace("{state}", st).replace("{ip}", usStateName(ctx.ipState) ?? ctx.ipState) : "";
   return `${o.lead}${mid}${moved}${o.close}`;
 }
 
-/** Where testers go when the model is unavailable. From config, never typed here. */
-const CONTACT = CONFIG.contactEmail;
+/** C6: words that mean the borrower is after pricing; the bar appears after the first one. */
+const PRICING_INTENT = /\b(?:rates?|quotes?|pricing|price[sd]?|apr|lock|refi\w*|refinanc\w*|purchas\w*|buying|afford\w*|payments?|pre-?approv\w*)\b/i;
 
-export default function M8LiveChat() {
+/** M8's name, with the "AI" tag that makes every message its own AI disclosure. */
+function M8Name({ typing }: { typing?: boolean }) {
+  return (
+    <div className="msg-meta">
+      <span className="font-medium" style={{ color: "var(--fg)" }}>
+        M8
+      </span>
+      <span className="m8-ai-tag">{copy.chat.live.aiTag}</span>
+      {typing ? <span className="msg-meta--label ml-2">{copy.chat.live.typing}</span> : null}
+    </div>
+  );
+}
+
+/** C6 (style C): "{first} can price this for you", opening the card's panel. */
+function PriceBar({ onTalk }: { onTalk: () => void }) {
+  const ctx = useMloContext();
+  const mlo = useNamedMlo();
+  const b = copy.chat.live.priceBar;
+  const card = copy.chat.live.card;
+  if (ctx.status === "unlicensed") return null;
+  return (
+    <div className="m8-pricebar" role="region" aria-label={mlo ? fillMlo(b.titleNamed, mlo) : b.title}>
+      {mlo ? <MloAvatar mlo={mlo} size={30} /> : <span className="mlo-chat-card__dot" aria-hidden="true" />}
+      <p className="m8-pricebar__text">
+        <strong>{mlo ? fillMlo(b.titleNamed, mlo) : b.title}</strong>
+        <span>{b.body}</span>
+      </p>
+      <button type="button" className="m8-pricebar__btn" onClick={onTalk}>
+        {mlo ? fillMlo(card.talkNamed, mlo) : card.talk}
+      </button>
+    </div>
+  );
+}
+
+/** Where borrowers go when the model is unavailable. From config, never typed here. */
+const CONTACT = CONFIG.contactEmail;
+const t = copy.chat.live;
+
+/** The route's JSON error message, or a plain fallback (never raw JSON). */
+async function errorText(resp: Response): Promise<string> {
+  const body = (await resp.json().catch(() => null)) as { error?: string } | null;
+  return body?.error ?? t.offline.replace("{email}", CONTACT);
+}
+
+/** When the page loaded, for the first-message bot check (a person can't send instantly). */
+const loadedAt = typeof performance !== "undefined" ? performance.now() : 0;
+
+export default function M8LiveChat({ storageOn, retention }: { storageOn: boolean; retention: string }) {
   const opening = useOpening();
+  const ctx = useMloContext();
+  const twoPartyState = CONFIG.states.find((s) => s.code === ctx.stateCode && s.twoPartyConsent)?.name ?? null;
+  const [notice, setNotice] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState("");
+  const [deleteState, setDeleteState] = useState<"idle" | "deleting" | "deleted" | "failed">("idle");
   const [messages, setMessages] = useState<M8Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
+  const [talkOpen, setTalkOpen] = useState(false);
+  const wantsPricing = messages.some((m) => m.role === "user" && PRICING_INTENT.test(m.content));
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -94,6 +158,8 @@ export default function M8LiveChat() {
       if (!text.trim() || streaming) return;
 
       setError(null);
+      setNotice(null);
+      setDeleteState("idle");
       setStreamingText("");
 
       const nextMessages: M8Message[] = [
@@ -108,17 +174,17 @@ export default function M8LiveChat() {
       abortRef.current = controller;
 
       let accumulated = "";
+      let card: PricingCard | undefined;
       try {
         const resp = await fetch("/api/m8-chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: nextMessages }),
+          body: JSON.stringify({ messages: nextMessages, hp: honeypot, t: Math.round(performance.now() - loadedAt) }),
           signal: controller.signal,
         });
 
         if (!resp.ok) {
-          const errText = await resp.text().catch(() => "");
-          throw new Error(errText || `HTTP ${resp.status}`);
+          throw new Error(await errorText(resp));
         }
         if (!resp.body) {
           throw new Error("No response body");
@@ -142,12 +208,20 @@ export default function M8LiveChat() {
             const payload = event.slice(6).trim();
             if (payload === "[DONE]") continue;
             try {
-              const parsed = JSON.parse(payload) as {
-                text?: string;
-                error?: string;
-              };
+              const parsed = JSON.parse(payload) as M8Event;
               if (parsed.error) {
                 throw new Error(parsed.error);
+              }
+              if (parsed.userText !== undefined) {
+                // Show the borrower's message as it was kept: sensitive numbers removed.
+                const masked = parsed.userText;
+                setMessages((m) => m.map((x, i) => (i === m.length - 1 && x.role === "user" ? { ...x, content: masked } : x)));
+              }
+              if (parsed.notice) setNotice(parsed.notice);
+              if (parsed.pricing) card = parsed.pricing;
+              if (parsed.replace !== undefined) {
+                accumulated = parsed.replace;
+                setStreamingText(accumulated);
               }
               if (parsed.text) {
                 accumulated += parsed.text;
@@ -166,13 +240,12 @@ export default function M8LiveChat() {
         if (accumulated) {
           setMessages((m) => [
             ...m,
-            { role: "assistant", content: accumulated },
+            card ? { role: "assistant", content: accumulated, pricing: card } : { role: "assistant", content: accumulated },
           ]);
         }
         setStreamingText("");
       } catch (err) {
-        console.error("[M8LiveChat] send error", err);
-        const msg =
+                const msg =
           err instanceof Error ? err.message : "Something went wrong.";
         setError(msg);
         // Roll back the user message so they can retry cleanly?
@@ -183,7 +256,7 @@ export default function M8LiveChat() {
         abortRef.current = null;
       }
     },
-    [messages, streaming]
+    [messages, streaming, honeypot]
   );
 
   const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -198,6 +271,7 @@ export default function M8LiveChat() {
     setMessages([]);
     setStreamingText("");
     setError(null);
+    setNotice(null);
     setInput("");
     try {
       window.localStorage.removeItem(M8_SESSION_KEY);
@@ -206,34 +280,23 @@ export default function M8LiveChat() {
     }
   };
 
+  /** "Delete my chat": the server copy (when stored) and this browser's copy. */
+  const deleteChat = async () => {
+    setDeleteState("deleting");
+    try {
+      const res = await fetch("/api/m8-chat", { method: "DELETE" });
+      if (!res.ok) throw new Error("delete failed");
+      startOver();
+      setDeleteState("deleted");
+    } catch {
+      setDeleteState("failed");
+    }
+  };
+
   // ─── Render ────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
-      {/* Preview banner */}
-      <div
-        className="px-4 py-2 border-b flex items-center justify-between"
-        style={{
-          borderColor: "var(--rule)",
-          background:
-            "color-mix(in srgb, var(--color-m8-green) 8%, transparent)",
-        }}
-      >
-        <span
-          className="font-mono text-[10px] tracking-[0.15em] uppercase"
-          style={{ color: "var(--color-m8-green)" }}
-        >
-          ● Live M8 · Preview build · Not yet quoting rates
-        </span>
-        {messages.length > 0 && (
-          <button
-            onClick={startOver}
-            className="font-mono text-[10px] tracking-[0.15em] uppercase hover:underline"
-            style={{ color: "var(--muted)" }}
-          >
-            Start over
-          </button>
-        )}
-      </div>
+      <MloChatCard open={talkOpen} onOpenChange={setTalkOpen} />
 
       {/* Message thread */}
       <div ref={scrollRef} className="chat-center flex-1 overflow-y-auto">
@@ -241,14 +304,7 @@ export default function M8LiveChat() {
           <div className="msg-bubble-m8">
             <div className="msg-avatar msg-avatar--m8">M8</div>
             <div className="flex-1 min-w-0">
-              <div className="msg-meta">
-                <span
-                  className="font-medium"
-                  style={{ color: "var(--fg)" }}
-                >
-                  M8
-                </span>
-              </div>
+              <M8Name />
               <p
                 className="text-[15px] leading-relaxed"
                 style={{ color: "var(--fg)" }}
@@ -256,6 +312,16 @@ export default function M8LiveChat() {
                 {opening}
               </p>
             </div>
+          </div>
+        )}
+
+        {messages.length === 0 && !streaming && (
+          <div className="m8-chips" role="group" aria-label={t.chipsLabel}>
+            {t.chips.map((c) => (
+              <button key={c} type="button" className="m8-chip" onClick={() => send(c)}>
+                {c}
+              </button>
+            ))}
           </div>
         )}
 
@@ -272,20 +338,25 @@ export default function M8LiveChat() {
               {msg.role === "user" ? "YOU" : "M8"}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="msg-meta">
-                <span
-                  className="font-medium"
-                  style={{ color: "var(--fg)" }}
-                >
-                  {msg.role === "user" ? "You" : "M8"}
-                </span>
-              </div>
-              <p
-                className="text-[15px] leading-relaxed whitespace-pre-wrap"
-                style={{ color: "var(--fg)" }}
-              >
-                {msg.content}
-              </p>
+              {msg.role === "user" ? (
+                <div className="msg-meta">
+                  <span className="font-medium" style={{ color: "var(--fg)" }}>
+                    {t.you}
+                  </span>
+                </div>
+              ) : (
+                <M8Name />
+              )}
+              {msg.role === "user" ? (
+                <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--fg)" }}>
+                  {msg.content}
+                </p>
+              ) : (
+                <div className="text-[15px] leading-relaxed" style={{ color: "var(--fg)" }}>
+                  <RichText text={msg.content} />
+                  {msg.pricing ? <ExamplePricingCard card={msg.pricing} /> : null}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -295,29 +366,32 @@ export default function M8LiveChat() {
           <div className="msg-bubble-m8">
             <div className="msg-avatar msg-avatar--m8">M8</div>
             <div className="flex-1 min-w-0">
-              <div className="msg-meta">
-                <span
-                  className="font-medium"
-                  style={{ color: "var(--fg)" }}
-                >
-                  M8
-                </span>
-                <span className="msg-meta--label ml-2">TYPING</span>
-              </div>
-              <p
-                className="text-[15px] leading-relaxed whitespace-pre-wrap"
-                style={{ color: "var(--fg)" }}
-              >
+              <M8Name typing />
+              <div className="text-[15px] leading-relaxed" style={{ color: "var(--fg)" }}>
                 {/* v24: skeleton lines until the first words arrive (no spinner). */}
-                {streamingText || (
+                {streamingText ? (
+                  <RichText text={streamingText} />
+                ) : (
                   <span className="flex flex-col gap-2 pt-1" aria-hidden="true">
                     <span className="skeleton" style={{ width: "72%", height: 10 }} />
                     <span className="skeleton" style={{ width: "48%", height: 10 }} />
                   </span>
                 )}
-              </p>
+              </div>
             </div>
           </div>
+        )}
+
+        {notice && (
+          <p className="m8-notice" role="status">
+            {notice}
+          </p>
+        )}
+
+        {deleteState === "deleted" && (
+          <p className="m8-notice" role="status">
+            {t.deleted}
+          </p>
         )}
 
         {error && (
@@ -327,17 +401,25 @@ export default function M8LiveChat() {
                  background: "color-mix(in srgb, #E2746E 8%, transparent)",
                  color: "#E2746E",
                }}>
-            {error}. Try sending again, or email {CONTACT}.
+            {/* Server messages already say where to go; others get the contact line. */}
+            {/email/i.test(error) ? error : `${error.replace(/\.$/, "")}. ${t.error.replace("{email}", CONTACT)}`}
           </div>
         )}
       </div>
+
+      {wantsPricing ? <PriceBar onTalk={() => setTalkOpen(true)} /> : null}
 
       {/* AI disclosure + recording line — always visible above the input */}
       <p
         className="px-4 pt-3 text-xs leading-relaxed"
         style={{ color: "var(--muted)" }}
       >
-        {copy.chat.gate.body}
+        {copy.chat.gate.body} {storageOn ? t.privacyStored.replace("{retention}", retention) : t.privacyNotStored}
+        {/* Two-party consent (WA, CA): only when chats are actually stored. */}
+        {storageOn && twoPartyState ? ` ${t.twoParty.replace("{state}", twoPartyState)}` : ""}{" "}
+        <Link href="/privacy" className="underline hover:no-underline">
+          {t.privacyLink}
+        </Link>
       </p>
 
       {/* Input bar */}
@@ -367,16 +449,16 @@ export default function M8LiveChat() {
             onKeyDown={handleKey}
             disabled={streaming}
             placeholder={
-              streaming ? "M8 is typing…" : "Ask M8 anything about mortgages…"
+              streaming ? t.inputBusy : t.inputPlaceholder
             }
-            className="flex-1 bg-transparent outline-none text-[15px] placeholder:text-[var(--muted)] disabled:opacity-60"
-            aria-label="Your question for M8"
+            className="flex-1 bg-transparent outline-none text-[16px] sm:text-[15px] placeholder:text-[var(--muted)] disabled:opacity-60"
+            aria-label={t.inputLabel}
           />
 
           <button
             onClick={() => send(input)}
             disabled={!input.trim() || streaming}
-            aria-label="Send to M8"
+            aria-label={t.send}
             className="grid place-items-center w-10 h-10 rounded-lg disabled:opacity-40 transition-opacity"
             style={{
               background: "var(--color-m8-deep)",
@@ -392,6 +474,35 @@ export default function M8LiveChat() {
             )}
           </button>
         </div>
+        {/* Honeypot: hidden from people and assistive tech; bots that fill every field give themselves away. */}
+        <input
+          type="text"
+          name="website"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          className="m8-hp"
+        />
+        <div className="m8-strip">
+          <p>{t.strip}</p>
+          <span className="m8-strip__actions">
+            {messages.length > 0 && (
+              <button type="button" onClick={startOver} className="m8-strip__reset">
+                {t.startOver}
+              </button>
+            )}
+            <button type="button" onClick={deleteChat} className="m8-strip__reset" disabled={deleteState === "deleting"}>
+              {deleteState === "deleting" ? t.deleting : t.deleteChat}
+            </button>
+          </span>
+        </div>
+        {deleteState === "failed" && (
+          <p className="m8-strip" role="alert">
+            {t.deleteFailed.replace("{email}", CONTACT)}
+          </p>
+        )}
       </div>
     </div>
   );

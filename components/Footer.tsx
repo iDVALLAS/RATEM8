@@ -2,9 +2,9 @@ import Link from "next/link";
 import StateChip from "@/components/StateChip";
 import Orb from "./Orb";
 import { copy } from "@/lib/copy";
-import { CONFIG, STATES, stateDisplay, NOT_A_COMMITMENT, isPlaceholder } from "@/lib/config";
-import { MloFooterLine } from "@/components/mlo/MloContext";
-import { groupBySponsor } from "@/lib/licensing";
+import { CONFIG, STATES, stateDisplay } from "@/lib/config";
+import { licensing as lic } from "@/lib/content/licensing";
+import EqualHousingLogo from "@/components/legal/EqualHousingLogo";
 
 /**
  * Footer — LOCKED compliance block, one line per licensed state.
@@ -12,17 +12,17 @@ import { groupBySponsor } from "@/lib/licensing";
  * Contains, on every page:
  *   - wordmark + tagline + link columns
  *   - "licensed in" strip with each state's page link
- *   - NMLS numbers (entity; plus the matched MLO's name and NMLS #
- *     when MloContext has one — never a name without its number),
- *     sponsor sentences
- *   - per-state license lines (entity + MLO license, regulator)
- *   - Equal Housing Lender with an accessible text label
- *   - entity / trade-name disclaimer
- *   - the standard "not a commitment to lend" sentence
+ *   - C2, the owner's licensing text, all from config/licensing.ts
+ *     (lib/content/licensing.ts): the trade-name line; the originating
+ *     company, its NMLS (with the Consumer Access link) and every state
+ *     license; the loan officers with their NMLS numbers; and the Equal
+ *     Housing Opportunity / not-a-commitment paragraph
+ *   - the Equal Housing Opportunity logo
+ *   - links to /licensing, the Texas Consumer Complaint Notice and
+ *     /disclosures
  *   - the AI disclosure
  */
 export default function Footer() {
-  const sponsorGroups = groupBySponsor();
   return (
     <footer className="site-footer" role="contentinfo">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-16">
@@ -77,52 +77,48 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Compliance block */}
-        <div className="mt-10 grid gap-8 md:grid-cols-2 text-xs leading-relaxed font-light" style={{ color: "var(--muted)" }}>
-          <div>
-            <p className="mb-3">
-              {CONFIG.entityTradeName} is a trade name of {CONFIG.entityLegalName}
-              {isPlaceholder(CONFIG.entityNmls) ? "" : ` (NMLS #${CONFIG.entityNmls})`}.
-              {/* An individual MLO (with NMLS #) only when MloContext has a match. */}
-              <MloFooterLine />
+        {/* Compliance block (C2): the owner's text, from config/licensing.ts. */}
+        <div className="mt-10 grid gap-8 md:grid-cols-[2fr_1fr] text-xs leading-relaxed font-light" style={{ color: "var(--muted)" }}>
+          <div className="footer-licensing">
+            <p className="mb-3" style={{ color: "var(--fg-soft)" }}>
+              {lic.tradeName}
             </p>
             <p className="mb-3">
-              {sponsorGroups.map((g, i) => (
-                <span key={`${g.sponsor.name}-${g.sponsor.idNumber}`}>
-                  Loans in {g.states.map((s) => s.fullName).join(", ")} are originated through {g.sponsor.name} ({g.sponsor.idLabel} #{g.sponsor.idNumber}).
-                  {i < sponsorGroups.length - 1 ? " " : ""}
-                </span>
-              ))}
+              {lic.originatedBy} (
+              <a href={CONFIG.sponsor.nmlsUrl} target="_blank" rel="noopener noreferrer" className="footer-link">
+                {lic.consumerAccess}
+              </a>
+              ). {lic.licenses}
             </p>
-            <p className="mb-3">{NOT_A_COMMITMENT}</p>
-            <p>{copy.footer.aiNote}</p>
+            <p className="mb-3">{lic.loanOfficers}</p>
+            <p>{lic.equalHousing}</p>
           </div>
           <div>
             <ul className="space-y-2">
-              {STATES.map((s) => (
-                <li key={s.slug}>
-                  <span style={{ color: "var(--fg-soft)" }}>{stateDisplay(s)}:</span> entity license {s.entityLicense}; MLO license {s.mloLicense}; regulator {s.regulatorName}.
-                </li>
-              ))}
+              <li>
+                <Link href="/licensing" className="footer-link">
+                  {lic.links.licensing}
+                </Link>
+              </li>
+              <li>
+                <Link href="/licensing/texas" className="footer-link">
+                  {lic.links.texas}
+                </Link>
+              </li>
+              <li>
+                <Link href="/disclosures" className="footer-link">
+                  {lic.links.disclosures}
+                </Link>
+              </li>
             </ul>
-            <p className="mt-4">
-              <Link href="/disclosures" className="footer-link">
-                Full licensing and disclosures
-              </Link>
-            </p>
+            <p className="mt-4">{copy.footer.aiNote}</p>
           </div>
         </div>
 
         <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3 text-xs" style={{ color: "var(--muted)" }}>
-            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
-              <path d="M3 11 12 3l9 8" />
-              <path d="M5 10v10h14V10" />
-              <path d="M9 20v-6h6v6" />
-              <path d="M8 13h8M8 15.5h8" strokeWidth="1.2" />
-            </svg>
+            <EqualHousingLogo size={28} label={lic.equalHousingLogo} />
             <span>{copy.footer.equalHousing}</span>
-            <span className="sr-only">Equal Housing Lender logo</span>
           </div>
           <p className="font-mono text-[10px] tracking-[0.12em] uppercase" style={{ color: "var(--muted)" }}>
             © {new Date().getFullYear()} {CONFIG.entityLegalName}. All rights reserved.

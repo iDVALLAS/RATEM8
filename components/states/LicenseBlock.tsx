@@ -52,14 +52,12 @@ export default function LicenseBlock({ state }: { state: StateConfig }) {
         <div className="st-license__item">
           <dt>{copy.statePage.licenseLabel}</dt>
           <dd>
-            {CONFIG.entityLegalName}
+            {state.sponsor.name}
             {" · "}
-            <span className="st-placeholder">
-              {t.nmlsLabel} {CONFIG.entityNmls}
-            </span>
+            {t.nmlsLabel} {state.sponsor.idNumber}
             <br />
             <span className="text-sm" style={{ color: "var(--muted)" }}>
-              Originating through {state.sponsor.name} ({state.sponsor.idLabel} {state.sponsor.idNumber})
+              {CONFIG.entityTradeName} is a trade name of {CONFIG.entityLegalName}. Loans are originated by {state.sponsor.name}.
             </span>
           </dd>
         </div>

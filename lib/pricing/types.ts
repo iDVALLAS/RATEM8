@@ -35,6 +35,18 @@ export type BandedScenario = {
   ficoBand: string;
   product: "30yr_fixed" | "15yr_fixed";
   termMonths: number;
+  /** C7: loan program. Absent means conventional. */
+  program?: "conventional" | "fha";
+  /** C7: the ZIP the scenario is priced with in the pricing engine. */
+  zip?: string;
+  /**
+   * C7: mortgage insurance, counted in the APR (it is a finance charge).
+   * pmi: borrower-paid monthly PMI, entered with each snapshot, ending by
+   * schedule at 78% of the original value (Homeowners Protection Act).
+   * fha: upfront MIP financed into the loan, and annual MIP on the
+   * scheduled balance for the life of the loan when LTV is above 90%.
+   */
+  mi?: { kind: "pmi" } | { kind: "fha"; upfrontPct: number; annualPct: number };
   /** Plain-language assumptions shown next to every price. */
   assumptions: string[];
 };
@@ -80,6 +92,8 @@ export type QuoteInput = {
   /** Interest-only months at the start of the term (0 = fully amortizing). */
   interestOnlyMonths: number;
   features: RiskyFeatures;
+  /** C7: borrower-paid monthly PMI in dollars (PMI scenarios only). */
+  monthlyPmi?: number;
 };
 
 /** One lender's normalized, computed result. Public: anonymized. */
@@ -103,6 +117,8 @@ export type LenderQuote = {
   monthlyPayment: number | null;
   /** Payment after an interest-only period ends, when there is one. */
   monthlyPaymentAfterIO: number | null;
+  /** C7: first month's mortgage insurance (PMI or FHA annual MIP), when the scenario has any. */
+  monthlyMi: number | null;
   lockDays: number;
   interestOnlyMonths: number;
   features: RiskyFeatures;
@@ -111,6 +127,8 @@ export type LenderQuote = {
 
 export type SelectionPick = {
   lender: string;
+  /** C8: which of the lender's lines (a lender can have several, e.g. lowest rate and no points). */
+  productLabel: string;
   rationale: string;
 };
 

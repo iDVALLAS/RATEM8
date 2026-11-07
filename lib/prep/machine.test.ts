@@ -56,17 +56,12 @@ describe("prep machine", () => {
   });
 });
 
-describe("M8 system prompt: ready to apply", () => {
-  it("offers both paths, lists exactly the prep fields and the never-ask list, and fills every token", async () => {
+describe("M8 system prompt: sensitive data (C3)", () => {
+  it("never asks for or accepts an SSN, date of birth, full account numbers or passwords, and never says submitted", async () => {
     const { buildM8SystemPrompt } = await import("@/lib/prompts/m8-system");
-    const { PREP_FIELD_DESCRIPTIONS } = await import("./machine");
     const p = buildM8SystemPrompt();
-    expect(p).toContain("## 10. When the person is ready to apply");
-    expect(p).toContain('"Start your application"');
-    expect(p).toContain('"Prep it with me first"');
-    expect(p).toContain("the licensed loan officer's application is the official one");
-    for (const d of Object.values(PREP_FIELD_DESCRIPTIONS)) expect(p).toContain(d);
-    for (const n of NEVER_ASK) expect(p).toContain(n);
-    expect(p).not.toMatch(/\{\{[A-Z_]+\}\}/);
+    expect(p).toContain("Ask for or accept an SSN, date of birth, full account numbers, or passwords.");
+    expect(p).toContain("the loan officer's secure application handles that");
+    for (const w of ["submitted", "application taken"]) expect(p).not.toContain(w);
   });
 });

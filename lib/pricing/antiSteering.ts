@@ -17,6 +17,12 @@
 import { CONFIG } from "@/lib/config";
 import type { AntiSteeringSelection, LenderQuote, SelectionPick } from "./types";
 
+/** The quote a pick refers to (lender and line). C8: a lender can have several lines. */
+export function quoteForPick(quotes: readonly LenderQuote[], pick: SelectionPick | null | undefined): LenderQuote | undefined {
+  if (!pick) return undefined;
+  return quotes.find((q) => q.lender === pick.lender && q.productLabel === pick.productLabel && q.eligible) ?? quotes.find((q) => q.lender === pick.lender && q.eligible);
+}
+
 function byRateThenCost(a: LenderQuote, b: LenderQuote): number {
   return (
     (a.noteRate! - b.noteRate!) ||
@@ -49,14 +55,17 @@ export function selectAntiSteering(quotes: readonly LenderQuote[]): AntiSteering
 
   const pickA: SelectionPick | null = a && {
     lender: a.lender,
+    productLabel: a.productLabel,
     rationale: `Lowest note rate (${a.noteRate!.toFixed(3)}%) among ${n} eligible offers.`,
   };
   const pickB: SelectionPick | null = b && {
     lender: b.lender,
+    productLabel: b.productLabel,
     rationale: `Lowest note rate (${b.noteRate!.toFixed(3)}%) among ${plain.length} eligible offers with no negative amortization, prepayment penalty, interest-only payments, early balloon, demand feature, or shared equity.`,
   };
   const pickC: SelectionPick | null = c && {
     lender: c.lender,
+    productLabel: c.productLabel,
     rationale: `Lowest discount points plus origination fees (${money(c.pointsAndOriginationDollars)}) among ${n} eligible offers.`,
   };
 

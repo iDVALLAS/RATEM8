@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/mlo/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
 import { NICHES, type Niche, type PlaybookEntry } from "@/lib/pricing/playbook";
-import { publishSnapshot, saveSettings } from "@/lib/pricing/publish";
+import { importLoanSifter, publishSnapshot, saveSettings } from "@/lib/pricing/publish";
+import { DEFAULT_COMP_RULE } from "@/lib/pricing/compRule";
 import { NO_RISKY_FEATURES, type QuoteInput } from "@/lib/pricing/types";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
@@ -29,7 +30,14 @@ export async function saveSettingsAction(fd: FormData): Promise<void> {
     niches: fd.getAll(`pb.${k}.niches`).map(String).filter((n): n is Niche => (NICHES as readonly string[]).includes(n)),
     note: str(fd, `pb.${k}.note`),
   }));
-  const res = await saveSettings({ tenantId, activeLenderKeys: active, playbook, actor });
+  // C8: the rate rule (percent of the loan; blanks keep the default).
+  const target = str(fd, "comp.targetPct").replace("%", "");
+  const cap = str(fd, "comp.maxPointsPct").replace("%", "");
+  const comp = {
+    targetPct: target === "" ? DEFAULT_COMP_RULE.targetPct : Number(target),
+    maxPointsPct: cap === "" ? DEFAULT_COMP_RULE.maxPointsPct : Number(cap),
+  };
+  const res = await saveSettings({ tenantId, activeLenderKeys: active, playbook, actor, comp });
   const flash = res.ok
     ? { ok: true, lines: [`Saved version ${res.settings.version}.`, ...res.warnings] }
     : { ok: false, lines: res.errors };
@@ -42,6 +50,10 @@ export async function publishSnapshotAction(fd: FormData): Promise<void> {
   const scenarioId = str(fd, "scenarioId");
   const quotes: QuoteInput[] = [];
   const parseErrors: string[] = [];
+  // C7: one monthly PMI for the snapshot (PMI scenarios); it applies to every lender row.
+  const pmiRaw = str(fd, "pmi");
+  const monthlyPmi = pmiRaw === "" ? undefined : Number(pmiRaw.replace(/[$,]/g, ""));
+  if (monthlyPmi !== undefined && !Number.isFinite(monthlyPmi)) parseErrors.push("Monthly PMI is not a number.");
   for (let i = 0; i < 12; i++) {
     const lenderKey = str(fd, `r${i}.lender`);
     if (!lenderKey) continue;
@@ -67,6 +79,7 @@ export async function publishSnapshotAction(fd: FormData): Promise<void> {
         demandFeature: fd.get(`r${i}.f.demand`) === "on",
         sharedEquityOrAppreciation: fd.get(`r${i}.f.shared`) === "on",
       },
+      ...(eligible && monthlyPmi !== undefined ? { monthlyPmi } : {}),
     };
     for (const [k, v] of Object.entries({ rate: q.noteRate, points: q.pointsPct, origination: q.originationFee, fees: q.lenderFees, lock: q.lockDays })) {
       if (v !== null && Number.isNaN(v)) parseErrors.push(`Row ${i + 1}: ${k} is not a number.`);
@@ -83,4 +96,26 @@ export async function publishSnapshotAction(fd: FormData): Promise<void> {
     : await publishSnapshot({ tenantId, scenarioId, quotes, source, actor });
   const flash = res.ok ? { ok: true, lines: [`Published. Inputs hash ${res.inputsHash.slice(0, 12)}.`] } : { ok: false, lines: res.errors };
   redirect(`/mlo/pricing?t=${encodeURIComponent(tenantId)}&s=${encodeURIComponent(scenarioId)}&f=${encodeFlash(flash)}`);
+}
+
+/** Import from LoanSifter: the text the Send to LoanM8 button copied. */
+export async function importLoanSifterAction(fd: FormData): Promise<void> {
+  const actor = await requireAdmin();
+  const tenantId = str(fd, "tenantId");
+  const pmiRaw = str(fd, "pmi").replace(/[$,]/g, "");
+  const monthlyPmi = pmiRaw === "" ? undefined : Number(pmiRaw);
+  const res = await importLoanSifter({ tenantId, captureText: String(fd.get("capture") ?? ""), monthlyPmi, actor });
+  // Group skipped products by reason so the summary stays short.
+  const byReason = new Map<string, Set<string>>();
+  for (const s of res.skipped ?? []) {
+    const names = byReason.get(s.reason) ?? new Set<string>();
+    names.add(s.investor);
+    byReason.set(s.reason, names);
+  }
+  const skippedLines = [...byReason].map(([reason, names]) => `Skipped (${reason}): ${[...names].join(", ")}.`);
+  const flash = res.ok
+    ? { ok: true, lines: [`Published from LoanSifter: ${res.lenders.length} lenders. Inputs hash ${res.inputsHash.slice(0, 12)}.`, ...skippedLines] }
+    : { ok: false, lines: [...res.errors, ...skippedLines] };
+  const s = res.scenarioId ? `&s=${encodeURIComponent(res.scenarioId)}` : "";
+  redirect(`/mlo/pricing?t=${encodeURIComponent(tenantId)}${s}&f=${encodeFlash(flash)}`);
 }

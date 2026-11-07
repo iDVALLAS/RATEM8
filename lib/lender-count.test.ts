@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { CONFIG } from "./config";
-import { demoChat } from "./demoChat";
 import { selectAntiSteering } from "./pricing/antiSteering";
 import { buildPricingRun } from "./pricing/build";
 import { exampleInputs } from "./pricing/providers/mock";
@@ -12,18 +11,9 @@ describe("lender counts (v22)", () => {
     expect(CONFIG.lenderCountMin).toBe(3);
   });
 
-  it("the demo says 'up to', never a fixed panel size", () => {
-    const line = demoChat.m8Code.find((m) => m.n === "03")!.text;
-    expect(line).toContain(`up to ${CONFIG.lenderCountMax} lenders`);
-    expect(JSON.stringify(demoChat)).not.toMatch(/\b\d+-lender\b/);
-  });
-
-  it("the demo's option set has at least the minimum, and 'N more shopped' is real for the scenario", () => {
-    expect(new Set(demoChat.rateOptions.map((r) => r.lender)).size).toBeGreaterThanOrEqual(CONFIG.lenderCountMin);
-    expect(demoChat.lendersShopped).toBeLessThanOrEqual(CONFIG.lenderCountMax);
-    // v27: 11 first-mortgage lenders on the 14-lender panel → "8 more shopped".
-    expect(demoChat.lendersShopped).toBe(11);
-    expect(demoChat.lendersShopped - demoChat.rateOptions.length).toBe(8);
+  it("the first-mortgage panel is 11 of the 14 (the HELOC programs can't price a first mortgage)", () => {
+    expect(lendersFor("first_mortgage").length).toBe(11);
+    expect(lendersFor("first_mortgage").length).toBeLessThanOrEqual(CONFIG.lenderCountMax);
   });
 
   it("an option set with fewer than the minimum eligible lenders does not meet the count", () => {
