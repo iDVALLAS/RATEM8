@@ -1049,3 +1049,11 @@ Last Search, "Reprice Scenario", "View All Results").
 - Delete the old bookmark and drag the new one from /mlo/pricing.
 - If LoanSifter's address isn't on loansifter.com, the LoanM8 tab says
   which address it ignored; add it to `LOANSIFTER_ORIGINS` in Vercel.
+
+## C11.1 — LoanSifter's address (2026-11-07)
+
+Owner: LoanSifter runs at https://loansifternow.optimalblue.com. The
+receive page now accepts captures from that exact origin (other
+optimalblue.com sites are still refused), alongside loansifter.com and
+`LOANSIFTER_ORIGINS`. Tested; `npm run verify` passes. No Vercel setting
+is needed.

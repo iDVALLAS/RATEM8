@@ -7,16 +7,20 @@
  * logged-in admin, so it must ignore messages from any other site: a
  * different page that opened it could otherwise publish made-up prices.
  *
- * Allowed: https://loansifter.com and its subdomains, plus any exact
+ * Allowed: https://loansifternow.optimalblue.com (where the owner's
+ * LoanSifter runs, 2026-11-07), https://loansifter.com and its subdomains,
+ * plus any exact
  * origins in LOANSIFTER_ORIGINS (comma-separated; https, or http on
  * localhost for testing), read on the server and
  * passed to the page. Kept separate from loansifter.ts so the browser
  * bundle never carries the lender list.
  */
 const DEFAULT = /^https:\/\/([a-z0-9-]+\.)*loansifter\.com$/i;
+/** Exact origins only: other optimalblue.com sites are not LoanSifter. */
+const KNOWN = ["https://loansifternow.optimalblue.com"];
 
 export function isLoanSifterOrigin(origin: string, extra: readonly string[] = []): boolean {
-  if (extra.includes(origin)) return true;
+  if (KNOWN.includes(origin) || extra.includes(origin)) return true;
   return DEFAULT.test(origin);
 }
 

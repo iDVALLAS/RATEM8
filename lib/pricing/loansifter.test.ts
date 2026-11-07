@@ -167,6 +167,10 @@ describe("importLoanSifter publishes a snapshot from a capture", () => {
 
 describe("C11: only LoanSifter pages may hand captures to LoanM8", () => {
   it("accepts loansifter.com and its subdomains over https, and listed extras", () => {
+    expect(isLoanSifterOrigin("https://loansifternow.optimalblue.com")).toBe(true); // the owner's LoanSifter
+    expect(isLoanSifterOrigin("https://other.optimalblue.com")).toBe(false);
+    expect(isLoanSifterOrigin("https://loansifternow.optimalblue.com.evil.example")).toBe(false);
+    expect(isLoanSifterOrigin("http://loansifternow.optimalblue.com")).toBe(false);
     expect(isLoanSifterOrigin("https://loansifter.com")).toBe(true);
     expect(isLoanSifterOrigin("https://app.loansifter.com")).toBe(true);
     expect(isLoanSifterOrigin("http://app.loansifter.com")).toBe(false);
