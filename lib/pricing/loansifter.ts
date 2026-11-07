@@ -60,7 +60,8 @@ const INVESTORS: [RegExp, string][] = [
   [/\bunited wholesale\b|\buwm\b/, "uwm"],
   [/\brocket\b/, "rocket-pro"],
   [/\bkind lending\b/, "kind"],
-  [/\bthe loan store\b|\bloan store\b/, "the-loan-store"],
+  // Owner 2026-11-07: LoanSifter lists The Loan Store as "Averra".
+  [/\bthe loan store\b|\bloan store\b|\baverra\b/, "the-loan-store"],
   [/\bprmg\b|\bparamount residential\b/, "prmg"],
   [/\bpennymac\b/, "pennymac"],
   [/\bfreedom mortgage\b/, "freedom"],

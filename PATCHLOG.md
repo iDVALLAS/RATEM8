@@ -954,3 +954,11 @@ suggested numbers.
 - Save the two searches in LoanSifter with exactly these numbers
   (cash-out: $800,000 value, $640,000 loan, 780; non-QM: $700,000 price,
   $560,000 loan, 720–739, 12-month bank statements).
+
+## C10.1 — Averra is The Loan Store (2026-11-07)
+
+Owner: "Averra is The Loan Store." LoanSifter lists The Loan Store as
+Averra, so imports skipped it as "not on your lender panel".
+`lib/pricing/loansifter.ts` now maps Averra (any channel) to
+`the-loan-store`; names and logos elsewhere are unchanged. Tested;
+`npm run verify` passes.

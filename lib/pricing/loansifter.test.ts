@@ -52,6 +52,8 @@ describe("LoanSifter capture (Send to LoanM8)", () => {
     expect(investorKey("Rocket Pro Non-Delegated")).toBe("rocket-pro");
     expect(investorKey("Newrez LLC Mini-Correspondent")).toBe("newrez");
     expect(investorKey("REMN Wholesale")).toBe("remn");
+    expect(investorKey("Averra Wholesale")).toBe("the-loan-store");
+    expect(investorKey("Averra Non-Delegated")).toBe("the-loan-store");
     expect(investorKey("PRMG Wholesale")).toBe("prmg");
     expect(investorKey("NexBank Non-Delegated")).toBeNull();
     expect(channelOf("Newrez LLC Mini-Correspondent")).toBe("Mini-Correspondent");
