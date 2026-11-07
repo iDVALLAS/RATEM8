@@ -978,3 +978,82 @@ the logo later."
 - Borrowers see pricing lenders by letter, so the name shows only where
   lender marks render (today the /design style guide). `npm run verify`
   passes.
+
+## C10.3 — Daily scenarios assume DTI under 35% (2026-11-07)
+
+Owner: "add under assumptions DTI < 35%." Every daily scenario's
+assumptions now include "Debt-to-income ratio under 35%." (shown on the
+chat's example card and /mlo/pricing). The guard ignores percentages above
+20%, so the line never reads as a rate. Owner action: the saved LoanSifter
+searches should use a DTI under 35% (LoanSifter prices on the DTI entered).
+`npm run verify` passes.
+## C10.4 — One small disclosure line under the chat input (2026-11-07)
+
+Owner: "this verbiage is overkill … put it under the M8 Chat in smaller
+type but we don't need it twice; it's shortening the chat box."
+- `components/M8LiveChat.tsx`: the paragraph above the input is gone. The
+  line under the input now carries each fact once: M8 is an AI, not a
+  person or a loan officer; a licensed loan officer verifies every
+  recommendation; not a credit pull or a commitment to lend; the storage
+  line (kept 3 years with sensitive numbers removed, or not stored); the
+  two-party consent sentence in WA and CA; the privacy policy link. Still
+  visible before the first message, and every M8 message keeps its "AI" tag.
+- `lib/copy.ts` `chat.live.strip` reworded; `app/globals.css` strip at 11px.
+- Dropped as duplicates: "This chat may be recorded for compliance; ask for
+  a transcript any time" (covered by the storage and consent sentences and
+  the privacy policy). Counsel approved the earlier wording on 2026-10-31;
+  this is a placement and wording change to note for them.
+- `npm run verify` passes.
+
+## C11 — One click for all daily scenarios (2026-11-07)
+
+Owner: "One click for all six … let's do this next." Built from the owner's
+pasted LoanSifter Scenarios page (lb-scenario-list: name, scenario id,
+Last Search, "Reprice Scenario", "View All Results").
+
+### Changes
+- `lib/pricing/loansifterBookmarklet.ts` rewritten. On LoanSifter's
+  Scenarios page it shows a checklist of saved scenarios (the ticked ids
+  are remembered in that browser; names starting "M8" are pre-ticked the
+  first time). For each one it clicks Reprice, opens the results (View All
+  Results if repricing stays on the list), opens every rate grid, sends the
+  capture, and goes back (history, then the Scenarios link). On a results
+  page it sends that one search. It talks only to the LoanM8 site that
+  served the bookmark (`bookmarkletUrl(origin)`).
+- Delivery without copy and paste: the button opens `/mlo/pricing/receive`
+  (admin login) in a tab while the click still counts, waits for its
+  "ready", and hands each capture over with `postMessage`. The tab
+  publishes through `importCaptureAction` and answers with the result,
+  which the button lists. If the tab is blocked, a Copy box appears instead.
+- `lib/pricing/loansifterOrigin.ts`: the receive page accepts captures only
+  from https://loansifter.com or a subdomain, plus exact origins in
+  `LOANSIFTER_ORIGINS` (https, or http on localhost for testing), so another
+  site that opened the tab can't publish made-up prices.
+- Pricing time: captures carry LoanSifter's "Search Results" time
+  (`searchedAtIso`); the snapshot is dated by it and a search older than
+  6 hours is refused, even when the button ran just now.
+- Skipped summary names the product for product-level skips
+  (`summarizeSkipped`), so a lender isn't read as skipped when only its
+  jumbo product was.
+- The receive page remembers the monthly PMI for the 5%-down scenario.
+
+### Verified
+- A fake LoanSifter built from the owner's pages (scenarios list, reprice,
+  results, expandable grids), the bookmark as served by /mlo/pricing:
+  two scenarios ticked, both repriced, grids opened, published (4 lenders
+  each), back on the list, no page errors. Single results page and
+  blocked-tab fallback also run. Origin, search-time and skipped-summary
+  tests. `npm run verify` passes.
+
+### Owner action
+- Delete the old bookmark and drag the new one from /mlo/pricing.
+- If LoanSifter's address isn't on loansifter.com, the LoanM8 tab says
+  which address it ignored; add it to `LOANSIFTER_ORIGINS` in Vercel.
+
+## C11.1 — LoanSifter's address (2026-11-07)
+
+Owner: LoanSifter runs at https://loansifternow.optimalblue.com. The
+receive page now accepts captures from that exact origin (other
+optimalblue.com sites are still refused), alongside loansifter.com and
+`LOANSIFTER_ORIGINS`. Tested; `npm run verify` passes. No Vercel setting
+is needed.

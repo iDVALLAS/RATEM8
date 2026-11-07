@@ -29,6 +29,10 @@ const CaptureSchema = z.object({
   v: z.literal(1),
   capturedAt: z.string(),
   searchedAt: z.string().max(200).optional(),
+  /** C11: LoanSifter's "Search Results - …" time, read by the browser in its own time zone. */
+  searchedAtIso: z.string().max(40).optional(),
+  /** C11: LoanSifter's saved-scenario id, when run from the Scenarios page. */
+  scenarioId: z.string().max(40).optional(),
   scenarioName: z.string().max(300).optional(),
   summary: z.object({
     loanType: z.string().max(60),
@@ -160,4 +164,20 @@ export function productsFromCapture(c: LoanSifterCapture, allow: (key: string) =
     });
   }
   return { products, skipped, withoutGrid };
+}
+
+/**
+ * One line per reason, for the admin. Lender-level reasons list lenders;
+ * product-level ones (non-conforming, grid not opened) name the product, so
+ * "UWM" isn't read as skipped when only its jumbo product was.
+ */
+export function summarizeSkipped(skipped: Skipped[]): string[] {
+  const byReason = new Map<string, Set<string>>();
+  for (const s of skipped) {
+    const productLevel = /product|grid|rate and price/.test(s.reason);
+    const names = byReason.get(s.reason) ?? new Set<string>();
+    names.add(productLevel ? `${s.investor} (${s.product})` : s.investor);
+    byReason.set(s.reason, names);
+  }
+  return [...byReason].map(([reason, names]) => `Skipped (${reason}): ${[...names].join(", ")}.`);
 }

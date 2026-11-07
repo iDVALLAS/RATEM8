@@ -124,9 +124,11 @@ export async function importLoanSifter(req: ImportRequest): Promise<ImportResult
     return { ok: false, errors: [`This search doesn't match any daily scenario${near.length ? ` (for example: ${near.join(", ")})` : ""}. Run one of the saved daily scenarios in LoanSifter.`] };
   }
   const now = req.now ?? new Date();
-  const at = new Date(c.capturedAt);
+  // C11: priced when LoanSifter ran the search, not when the button read the page.
+  const searched = c.searchedAtIso ? Date.parse(c.searchedAtIso) : NaN;
+  const at = new Date(Number.isFinite(searched) && searched <= Date.parse(c.capturedAt) + 60_000 ? searched : Date.parse(c.capturedAt));
   const ageH = (now.getTime() - at.getTime()) / 3_600_000;
-  if (ageH > CAPTURE_MAX_AGE_HOURS) return { ok: false, scenarioId: scenario.id, errors: [`This capture is ${Math.floor(ageH)} hours old. Run the button again on a fresh search.`] };
+  if (ageH > CAPTURE_MAX_AGE_HOURS) return { ok: false, scenarioId: scenario.id, errors: [`These prices are from a LoanSifter search ${Math.floor(ageH)} hours old. Reprice the scenario in LoanSifter and run the button again.`] };
   if (ageH < -0.1) return { ok: false, scenarioId: scenario.id, errors: ["This capture's time is in the future. Check the computer's clock and run it again."] };
   if (scenario.mi?.kind === "pmi" && !(req.monthlyPmi !== undefined && req.monthlyPmi > 0)) {
     return { ok: false, scenarioId: scenario.id, errors: ["This scenario has mortgage insurance. Enter the monthly PMI from the MI quote."] };
