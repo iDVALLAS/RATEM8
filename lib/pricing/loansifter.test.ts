@@ -69,6 +69,11 @@ describe("LoanSifter capture (Send to LoanM8)", () => {
   it("the bookmarklet is plain JavaScript that sends nothing over the network", () => {
     expect(() => new Function(BOOKMARKLET_SOURCE)).not.toThrow();
     expect(bookmarkletUrl().startsWith("javascript:")).toBe(true);
+    // Regression (2026-11-06): in a plain template literal "\s" became "s", so every
+    // "s" on the page turned into a space ("Purchase" → "Purcha e").
+    expect(BOOKMARKLET_SOURCE).toContain(String.raw`.replace(/\s+/g, " ")`);
+    expect(BOOKMARKLET_SOURCE).toContain(String.raw`/[$,%()\s]/g`);
+    expect(BOOKMARKLET_SOURCE).not.toMatch(/replace\(\/s\+\//);
     expect(BOOKMARKLET_SOURCE).not.toMatch(/fetch\(|XMLHttpRequest|sendBeacon|WebSocket|\.src\s*=|password|cookie|localStorage/i);
   });
 });

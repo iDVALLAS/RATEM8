@@ -863,3 +863,29 @@ products for the 20%-down daily scenario, three rate grids open).
   Mutual of Omaha, HomeBridge, JMAC, theLender, Plaza, HomeXpress) are
   skipped until the owner decides whether to add them.
 - Non-Delegated rows show no lender fees in LoanSifter; they import as $0.
+
+## C9.1 — Fix: Send to LoanM8 read every "s" as a space (2026-11-07)
+
+Owner's first live run: "This search doesn't match any daily scenario
+(for example: purpose Purcha e)." The bookmarklet's code was kept in a
+plain template literal, where `\s` becomes `s`, so its whitespace cleanup
+turned every "s" on the page into a space ("Purchase" → "Purcha e", and
+lender names were damaged the same way).
+
+### Changes
+- `lib/pricing/loansifterBookmarklet.ts`: the body is now `String.raw`, so
+  the bookmarked code is exactly what is written.
+- `lib/pricing/loansifter.test.ts`: checks the exported code keeps its
+  `\s` patterns (fails on the old code, passes on the fix).
+
+### Verified
+- The exact code the page serves (decoded from the bookmark URL), run in
+  Chromium on the owner's captured results page: purpose "Purchase",
+  $520,000 / $650,000, 53 products with full names, 3 open grids.
+  `npm run verify` passes (250 tests).
+
+### Owner action
+- Delete the old Send to LoanM8 bookmark and drag the new one from
+  /mlo/pricing once this is deployed; the old bookmark keeps the old code.
+- `PRICING_MANUAL` is off on Production (the page says so); set it to
+  `true` for Production so M8 can show published snapshots.
