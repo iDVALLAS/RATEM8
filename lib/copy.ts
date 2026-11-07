@@ -727,7 +727,7 @@ export const copy = {
       ],
       chipsLabel: "Try asking",
       /** Persistent strip under the input (owner's wording, C1). */
-      strip: "M8 is an AI assistant, not a loan officer. A licensed loan officer verifies every recommendation. Not a commitment to lend.",
+      strip: "M8 is an AI, not a person or a loan officer; a licensed loan officer verifies every recommendation. Not a credit pull or a commitment to lend.",
       inputPlaceholder: "Ask M8 anything about mortgages…",
       inputBusy: "M8 is typing…",
       inputLabel: "Your question for M8",

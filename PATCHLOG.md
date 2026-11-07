@@ -987,3 +987,20 @@ chat's example card and /mlo/pricing). The guard ignores percentages above
 20%, so the line never reads as a rate. Owner action: the saved LoanSifter
 searches should use a DTI under 35% (LoanSifter prices on the DTI entered).
 `npm run verify` passes.
+## C10.4 — One small disclosure line under the chat input (2026-11-07)
+
+Owner: "this verbiage is overkill … put it under the M8 Chat in smaller
+type but we don't need it twice; it's shortening the chat box."
+- `components/M8LiveChat.tsx`: the paragraph above the input is gone. The
+  line under the input now carries each fact once: M8 is an AI, not a
+  person or a loan officer; a licensed loan officer verifies every
+  recommendation; not a credit pull or a commitment to lend; the storage
+  line (kept 3 years with sensitive numbers removed, or not stored); the
+  two-party consent sentence in WA and CA; the privacy policy link. Still
+  visible before the first message, and every M8 message keeps its "AI" tag.
+- `lib/copy.ts` `chat.live.strip` reworded; `app/globals.css` strip at 11px.
+- Dropped as duplicates: "This chat may be recorded for compliance; ask for
+  a transcript any time" (covered by the storage and consent sentences and
+  the privacy policy). Counsel approved the earlier wording on 2026-10-31;
+  this is a placement and wording change to note for them.
+- `npm run verify` passes.

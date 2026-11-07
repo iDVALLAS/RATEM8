@@ -27,11 +27,11 @@ import { fillMlo } from "@/lib/mlo-match";
  *    the first message. M8's replies render **bold** and lists (RichText).
  *  - C6: once the borrower asks about pricing, a bar above the input says
  *    the loan officer can price it and opens the card's "Talk to" panel
- *  - the AI disclosure + recording line (copy.chat.gate.body), the privacy
- *    line (stored for 3 years or not stored, from the server) with the
- *    two-party consent note in WA and CA, and the privacy policy link
  *  - the input (plus a hidden honeypot for the first-message bot check)
- *  - the persistent strip (copy.chat.live.strip), "Start over" and
+ *  - C10.4: one small line under the input (copy.chat.live.strip): AI, not
+ *    a loan officer, not a credit pull or commitment; the privacy line
+ *    (stored for 3 years or not, from the server) with the two-party
+ *    consent note in WA and CA; the privacy policy link; "Start over" and
  *    "Delete my chat"
  *
  * C4 stream events (lib/m8/shared.ts): `text` appends, `replace` swaps the
@@ -409,19 +409,6 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
 
       {wantsPricing ? <PriceBar onTalk={() => setTalkOpen(true)} /> : null}
 
-      {/* AI disclosure + recording line — always visible above the input */}
-      <p
-        className="px-4 pt-3 text-xs leading-relaxed"
-        style={{ color: "var(--muted)" }}
-      >
-        {copy.chat.gate.body} {storageOn ? t.privacyStored.replace("{retention}", retention) : t.privacyNotStored}
-        {/* Two-party consent (WA, CA): only when chats are actually stored. */}
-        {storageOn && twoPartyState ? ` ${t.twoParty.replace("{state}", twoPartyState)}` : ""}{" "}
-        <Link href="/privacy" className="underline hover:no-underline">
-          {t.privacyLink}
-        </Link>
-      </p>
-
       {/* Input bar */}
       <div className="chat-input">
         <div
@@ -486,7 +473,15 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
           className="m8-hp"
         />
         <div className="m8-strip">
-          <p>{t.strip}</p>
+          {/* C10.4 (owner): the one AI, recording and privacy line, under the input, visible before the first message. */}
+          <p>
+            {t.strip} {storageOn ? t.privacyStored.replace("{retention}", retention) : t.privacyNotStored}
+            {/* Two-party consent (WA, CA): only when chats are actually stored. */}
+            {storageOn && twoPartyState ? ` ${t.twoParty.replace("{state}", twoPartyState)}` : ""}{" "}
+            <Link href="/privacy" className="underline hover:no-underline">
+              {t.privacyLink}
+            </Link>
+          </p>
           <span className="m8-strip__actions">
             {messages.length > 0 && (
               <button type="button" onClick={startOver} className="m8-strip__reset">
