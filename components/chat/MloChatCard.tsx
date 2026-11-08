@@ -10,7 +10,7 @@ import MloAvatar from "@/components/mlo/MloAvatar";
 /**
  * MloChatCard — the loan officer card pinned at the top of /chat (C1).
  *
- * Shows the matched MLO's photo (36px), name, NMLS number and the sponsor
+ * Shows the matched MLO's photo (56px since C14, owner 2026-11-08), name, NMLS number and the sponsor
  * that holds their license in the routed state, all from one MloContext
  * value. Each state routes to its assigned MLO (CONFIG.routing). The
  * naming rule is lib/mlo-match.ts: without a nameable match the card stays
@@ -42,7 +42,7 @@ export default function MloChatCard({ open: openProp, onOpenChange }: { open?: b
   return (
     <section className="mlo-chat-card" aria-label={t.eyebrow}>
       <div className="mlo-chat-card__row">
-        {mlo ? <MloAvatar mlo={mlo} size={36} /> : <span className="mlo-chat-card__dot" aria-hidden="true" />}
+        {mlo ? <MloAvatar mlo={mlo} size={56} /> : <span className="mlo-chat-card__dot" aria-hidden="true" />}
         <div className="mlo-chat-card__who">
           <p className="mono-label">{t.eyebrow}</p>
           {mlo ? (

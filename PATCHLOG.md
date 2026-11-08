@@ -1161,4 +1161,9 @@ a waist-up shot, so at 30–36px the face was tiny.
   cache serves the new one; the old file is removed.
 - Verified in the chat card at 36px: face clearly visible.
   `npm run verify` passes.
-- Ryder's photo: waiting for the file (it arrived mid-task and wasn't saved).
+- Ryder's photo (`public/team/ryder-fasse-2026.webp`): same crop and light
+  circle, centred on his face; `config/licensing.ts` points to it, so
+  Oregon visitors see his face instead of initials.
+- Chat card avatar 36px → 56px (owner chose 56 from a 36/48/56/64 mockup).
+  Checked on desktop and 390px for WA (Jason) and OR (Ryder): 56×56, no
+  overflow.
