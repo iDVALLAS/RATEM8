@@ -572,7 +572,7 @@ with the source screenshot. Pricing APIs and the rate sheet engine
     homepage's "Chat with M8" both go to `/chat`.
   - `/chat?prep=1` is still the prep flow.
   - Headshots live in `public/team/` (public in stealth). The owner's is
-    `jason-shapiro.webp`, 512×512 with transparent corners.
+    `jason-shapiro-2026.webp` (owner photo of 2026-11-08, face-centred crop on a light circle), 512×512 with transparent corners. A new photo gets a new file name so image caches refresh.
 - **Lender marks (v23, logos v26):** `lib/lenders.ts` +
   `components/LenderMark.tsx`.
   - A logo renders only when `logoApproved` AND `logoFile` is set. The
