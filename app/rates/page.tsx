@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import PageShell from "@/components/PageShell";
 import NextStepActions from "@/components/NextStepActions";
 import PricingDisplay from "@/components/pricing/PricingDisplay";
@@ -8,7 +9,7 @@ import { CONFIG } from "@/lib/config";
 import Reveal from "@/components/motion/Reveal";
 import EmptyState from "@/components/ui/EmptyState";
 import { copy } from "@/lib/copy";
-import { displayScenarios, resolveDisplay } from "@/lib/pricing/display";
+import { availableScenarios, resolveDisplay } from "@/lib/pricing/display";
 import { routeContext } from "@/lib/route-context";
 
 /**
@@ -20,18 +21,26 @@ import { routeContext } from "@/lib/route-context";
  */
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Example rates",
-  description: "How M8 shows pricing: the three options anti-steering rules describe, then every result, with APR, points, fees and lock period. Dated examples, not quotes.",
-  alternates: { canonical: "/rates" },
-  robots: { index: false, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  // C13: decided here, before the loading skeleton streams, so a hidden page is a real 404.
+  if ((await availableScenarios()).length === 0) notFound();
+  const daily = CONFIG.pricing.manual;
+  return {
+    title: daily ? "Today's priced examples" : "Example rates",
+    description: "How M8 shows pricing: the three options anti-steering rules describe, then every result, with APR, points, fees and lock period. Dated examples, not quotes.",
+    alternates: { canonical: "/rates" },
+    robots: { index: false, follow: true },
+  };
+}
 
 type Props = { searchParams: Promise<{ s?: string }> };
 
 export default async function RatesPage({ searchParams }: Props) {
   const c = copy.pricing;
-  const scenarios = displayScenarios();
+  // C13: only scenarios with pricing available now; none → the page is hidden.
+  const scenarios = await availableScenarios();
+  if (scenarios.length === 0) notFound();
+  const daily = CONFIG.pricing.manual;
   const { s } = await searchParams;
   const active = scenarios.find((x) => x.id === s) ?? scenarios[0];
   const display = active ? await resolveDisplay(active.id) : null;
@@ -40,10 +49,10 @@ export default async function RatesPage({ searchParams }: Props) {
   const unlicensed = route.status === "unlicensed" ? copy.routing.unlicensedRates.replace("{state}", route.stateName ?? "") : null;
 
   return (
-    <PageShell stickyCta crumbs={[{ name: "Home", path: "/" }, { name: "Example rates", path: "/rates" }]}>
+    <PageShell stickyCta crumbs={[{ name: "Home", path: "/" }, { name: daily ? c.dailyCrumb : "Example rates", path: "/rates" }]}>
       <header className="mx-auto max-w-6xl px-4 sm:px-6 pt-8 pb-6 sm:pt-12">
-        <Reveal as="h1" text={c.heading} accent={c.headingAccent} immediate className="tagline text-4xl sm:text-6xl leading-tight mb-5" />
-        <p className="text-lg leading-relaxed font-light max-w-3xl" style={{ color: "var(--muted)" }}>{c.sub}</p>
+        <Reveal as="h1" text={daily ? c.dailyHeading : c.heading} accent={daily ? c.dailyHeadingAccent : c.headingAccent} immediate className="tagline text-4xl sm:text-6xl leading-tight mb-5" />
+        <p className="text-lg leading-relaxed font-light max-w-3xl" style={{ color: "var(--muted)" }}>{daily ? c.dailySub : c.sub}</p>
       </header>
 
       <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-16" aria-label={c.scenarioNav}>
@@ -52,7 +61,7 @@ export default async function RatesPage({ searchParams }: Props) {
             {scenarios.map((x) => (
               <li key={x.id}>
                 <Link href={`/rates?s=${x.id}`} aria-current={x.id === active?.id ? "page" : undefined} scroll={false}>
-                  {x.title} · {x.state}
+                  {daily ? x.title : `${x.title} · ${x.state}`}
                 </Link>
               </li>
             ))}

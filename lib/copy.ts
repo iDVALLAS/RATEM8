@@ -927,6 +927,11 @@ export const copy = {
     eyebrowSnapshot: "// rate snapshot",
     labelExample: "Example pricing · {date} · not a quote or commitment to lend.",
     labelSnapshot: "Rate snapshot · pulled {date} · not a quote or commitment to lend.",
+    // C13: /rates when the loan officer's daily scenarios are priced.
+    dailyCrumb: "Today's priced examples",
+    dailyHeading: "Today's priced examples.",
+    dailyHeadingAccent: "priced examples.",
+    dailySub: "Standard Washington scenarios your loan officer prices each morning across the lenders they work with, shown the way M8 shows pricing: the lowest rate, the lowest rate without risky features, and the lowest points and origination fees, then every other result. Each is dated. They are examples, not your quote: your own pricing depends on your scenario.",
     heading: "Three options first. Then every result.",
     headingAccent: "every result.",
     sub: "When M8 shows pricing, it leads with the three options federal anti-steering rules describe: the lowest rate, the lowest rate without risky features, and the lowest points and origination fees. Then every other result, including lenders that said no and why.",
