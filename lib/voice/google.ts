@@ -152,6 +152,8 @@ export function speakableText(reply: string): string {
     .replace(/^\s{0,3}#{1,6}\s+/gm, "")
     .replace(/^\s*(?:[-*•]|\d+[.)])\s+/gm, "")
     .replace(/https?:\/\/\S+/g, "")
+    .replace(/[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u{FE0F}\u{200D}]/gu, "")
+    .replace(/ +([.,!?])/g, "$1")
     .replace(/\n{2,}/g, "\n")
     .replace(/[ \t]+/g, " ")
     .trim();

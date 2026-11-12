@@ -1263,5 +1263,10 @@ the chat screen and keeping logs of the chat."
   mic off (`listenOn()` false), Voice keeps the old popup.
 - Shared pieces: `lib/m8/client.ts` (one streamed turn), `lib/voice/client.ts`
   (play M8's voice, the silent unlock sound), `useMic` gains `auto`.
+- Spoken text drops emoji (`speakableText`); the written reply keeps them.
+- Checked on the preview at 390px with a simulated microphone (tester
+  cookie, stealth on): consent note → listen → `m8-listen` 200 →
+  `m8-chat` 200 → `m8-speak` 200, the conversation written out under the
+  orb, status "M8 is talking. Tap the orb to cut in."
 - `npm run verify` passes. Counsel: the consent note is new copy
   (`copy.hero.voiceChat`).

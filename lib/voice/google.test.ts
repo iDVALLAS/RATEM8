@@ -39,6 +39,10 @@ describe("M8 voice (C15)", () => {
     expect(verifyReply("Hello", sig)).toBe(false);
   });
 
+  it("leaves emoji out of the spoken version", () => {
+    expect(speakableText("Happy to help! 😄 Ask away 👍🏽.")).toBe("Happy to help! Ask away.");
+  });
+
   it("reads markdown as plain speech and caps the length at a sentence", () => {
     expect(speakableText("**Points** lower the rate.\n\n- One [link](https://x.y)\n- Two https://a.b/c")).toBe("Points lower the rate.\nOne link\nTwo");
     const long = "This is one sentence. ".repeat(200);
