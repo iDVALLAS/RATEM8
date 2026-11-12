@@ -1219,3 +1219,17 @@ same API key as Text-to-Speech, so no new Vercel variable.
   `npm run verify` passes.
 - Counsel: the mic note is new consent copy (`copy.chat.live.mic`); see
   COMPLIANCE.md §6.
+
+## C16.1 — Guard no longer blocks "3.5% down" mid-stream (2026-11-12)
+
+Found while testing C16 on the preview: "What is a good down payment for
+a first home?" was replaced every time with "I can't quote a rate right
+now" (logs: `unquoted-rate (3.5%)`). The guard checks the reply as it
+streams; "as little as 3.5%" arrived before " down", and a bare decimal
+between 2% and 12% with no context reads as a rate.
+- `lib/m8/guard.ts`: mid-stream, a bare percentage with no rate word is
+  judged only once the words after it have arrived. The finished-reply
+  check is unchanged, so a bare rate is still replaced.
+- `lib/m8/pipeline.ts` `fallbackFor`: capitalizes each sentence start
+  ("… right now. A licensed loan officer …").
+- Tests in `lib/m8/m8.test.ts`. `npm run verify` passes.

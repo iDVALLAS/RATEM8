@@ -111,3 +111,23 @@ describe("guard and a dated example's figures (C9.2)", () => {
     expect(guardReply("Rates are around 7% today, APR 7.1%." + tail, priced)).toMatchObject({ ok: false, reason: "unquoted-rate" });
   });
 });
+
+describe("guard while a reply streams (C16.1)", () => {
+  const full = "FHA loans let you put as little as 3.5% down, and conventional loans start at 3% down for first-time buyers.";
+  it("doesn't block a down payment percentage before the word 'down' arrives", () => {
+    for (let i = 1; i <= full.length; i++) expect(guardReply(full.slice(0, i), new Set(), new Set(), true).ok).toBe(true);
+    expect(guardReply(full, new Set())).toEqual({ ok: true });
+  });
+  it("still blocks a bare rate once the reply is finished, and a named rate mid-stream", () => {
+    expect(guardReply("Right now you could get 6.25%", new Set(), new Set(), true).ok).toBe(true);
+    expect(guardReply("Right now you could get 6.25%.", new Set()).ok).toBe(false);
+    expect(guardReply("The rate is 6.25%", new Set(), new Set(), true).ok).toBe(false);
+  });
+});
+
+describe("guard fallback text (C16.1)", () => {
+  it("capitalizes the generic name at a sentence start", async () => {
+    const { fallbackFor } = await import("./pipeline");
+    expect(fallbackFor("unquoted-rate", "a licensed loan officer")).toBe("I can't quote a rate right now. A licensed loan officer can send you live pricing.");
+  });
+});

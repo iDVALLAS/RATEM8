@@ -47,7 +47,8 @@ export function fallbackFor(reason: GuardReason, name: string): string {
   const g = copy.chat.live.guard;
   const t = reason === "prompt-leak" ? g.promptLeak : reason === "promise" ? g.promise : reason === "sensitive-echo" ? g.sensitive : reason === "pricing-promise" ? g.pricingPromise : g.rate;
   const filled = t.replaceAll("{name}", name);
-  return filled.charAt(0).toUpperCase() + filled.slice(1);
+  // Capitalize every sentence start ("…right now. a licensed loan officer…" reads wrong).
+  return filled.replace(/(^|[.?!]\s+)([a-z])/g, (_, pre: string, c: string) => pre + c.toUpperCase());
 }
 
 export type TurnResult = { reply: string; guard: GuardReason | null; tokens: number; pricing?: PricingCard };

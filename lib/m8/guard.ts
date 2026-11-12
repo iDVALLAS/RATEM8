@@ -66,8 +66,12 @@ function nearestDistance(text: string, re: RegExp, at: number): number {
  * counts when a rate word is nearer to it than a non-rate word (down
  * payment, LTV, DTI…), or when it's a decimal between 2% and 12% with no
  * non-rate word near it.
+ *
+ * C16.1: mid-stream (`partial`), a bare decimal with no rate word yet is
+ * left for later when the words after it haven't arrived ("as little as
+ * 3.5%" before " down"). The check on the finished reply judges it.
  */
-export function findRateMentions(text: string): { value: number; raw: string; index: number; decimals: number }[] {
+export function findRateMentions(text: string, partial = false): { value: number; raw: string; index: number; decimals: number }[] {
   const out: { value: number; raw: string; index: number; decimals: number }[] = [];
   PERCENT.lastIndex = 0;
   let m: RegExpExecArray | null;
@@ -80,6 +84,8 @@ export function findRateMentions(text: string): { value: number; raw: string; in
     const other = nearestDistance(window, OTHER_WORDS, at);
     // With no context either way, a decimal percentage between 2 and 12 reads as a rate ("you can get 5.99%").
     const rateShaped = /\.\d+$/.test(m[1]) && value >= 2 && value <= 12;
+    const contextPending = partial && m.index + m[0].length + WINDOW > text.length;
+    if (contextPending && rate === Infinity) continue;
     if ((rate < Infinity && rate < other) || (rateShaped && other === Infinity)) out.push({ value, raw: m[0], index: m.index, decimals: (m[1].split(".")[1] ?? "").length });
   }
   return out;
@@ -120,7 +126,7 @@ export function guardReply(text: string, pricedRates: Set<string>, userStated: S
   if (SSN_SHAPE.test(text) || ACCOUNT_RUN.test(text)) return { ok: false, reason: "sensitive-echo" };
   if (PROMISE.test(text)) return { ok: false, reason: "promise" };
   if (!pricingLive && PRICING_PROMISE.test(text)) return { ok: false, reason: "pricing-promise" };
-  const rates = findRateMentions(text);
+  const rates = findRateMentions(text, partial);
   let quoted = false;
   for (const x of rates) {
     if (isPriced(x, pricedRates)) quoted = true;
