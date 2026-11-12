@@ -1230,6 +1230,12 @@ between 2% and 12% with no context reads as a rate.
 - `lib/m8/guard.ts`: mid-stream, a bare percentage with no rate word is
   judged only once the words after it have arrived. The finished-reply
   check is unchanged, so a bare rate is still replaced.
+- Retest on the preview still blocked: the finished reply listed "- **3.5% –
+  FHA loans** are popular for first-timers" under "**Common down payment
+  options:**", far outside the 45-character window. A bare decimal with no
+  context now also reads its line and the list's lead-in (the nearest line
+  above ending in ":"): a non-rate figure there and no rate word in either
+  means it isn't a rate.
 - `lib/m8/pipeline.ts` `fallbackFor`: capitalizes each sentence start
   ("… right now. A licensed loan officer …").
 - Tests in `lib/m8/m8.test.ts`. `npm run verify` passes.

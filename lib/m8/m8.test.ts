@@ -131,3 +131,15 @@ describe("guard fallback text (C16.1)", () => {
     expect(fallbackFor("unquoted-rate", "a licensed loan officer")).toBe("I can't quote a rate right now. A licensed loan officer can send you live pricing.");
   });
 });
+
+describe("guard reads a list's lead-in (C16.1)", () => {
+  const reply = "Great question! Here's a plain-English breakdown:\n\n**Common down payment options:**\n\n- **3% – Conventional loans** (e.g., HomeReady or Home Possible) are available to first-time buyers with solid credit.\n- **3.5% – FHA loans** are popular for first-timers, with more flexible credit guidelines.\n- **20%** avoids private mortgage insurance on a conventional loan.";
+  it("treats percentages under a down payment heading as down payments, streaming or finished", () => {
+    for (let i = 1; i <= reply.length; i += 7) expect(guardReply(reply.slice(0, i), new Set(), new Set(), true).ok).toBe(true);
+    expect(guardReply(reply, new Set())).toEqual({ ok: true });
+  });
+  it("still blocks a rate list, or a heading that names rates", () => {
+    expect(guardReply("**Today's options:**\n\n- 6.25% – 30-year loans for buyers with good credit.", new Set()).ok).toBe(false);
+    expect(guardReply("**Down payment and rates:**\n\n- 6.25% – 30-year loans.", new Set()).ok).toBe(false);
+  });
+});
