@@ -105,6 +105,29 @@ export const copy = {
     // 2026-10-01 (Edit 1): both buttons open a popup that routes to /chat.
     voicePopup: "My voice chat tech is being upgraded, be back soon. Chat with me in the meantime — M8",
     qaPopup: "Opening M8 Chat — ask me anything about rates, points, or your loan. — M8",
+    /**
+     * C17 (owner 2026-11-12): Voice on the homepage talks with M8 right
+     * here, the conversation written out under the orb and saved like M8
+     * Chat. Shown only while the mic is on; otherwise the popup above.
+     */
+    voiceChat: {
+      consentTitle: "Talk with M8",
+      consentBody: "M8 is an AI, not a person or a loan officer. Your voice goes to Google only to turn it into text, and the recording isn't kept. The conversation is written out here.",
+      start: "Start talking",
+      notNow: "Not now",
+      listening: "Listening…",
+      thinking: "M8 is thinking…",
+      speaking: "M8 is talking. Tap the orb to cut in.",
+      paused: "Paused. Tap the orb to keep talking.",
+      hint: "Ask about payments, points, or what a line on your Loan Estimate means.",
+      end: "End voice chat",
+      continueInChat: "Continue in M8 Chat",
+      transcriptLabel: "Your conversation with M8",
+      you: "You",
+      micBlocked: "The microphone is blocked. Allow it in your browser's settings, or type in M8 Chat.",
+      failed: "M8 couldn't answer just now. Try again, or type in M8 Chat.",
+      speakFailed: "M8 couldn't read that aloud. The reply is written above.",
+    },
     /** × on the popup: cancels the redirect and stays on the homepage. */
     popupCancel: "Cancel and stay on this page",
     /** Screen-reader hint read after the popup text. */

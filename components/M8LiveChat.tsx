@@ -14,6 +14,7 @@ import RichText from "@/components/chat/RichText";
 import ExamplePricingCard from "@/components/chat/ExamplePricingCard";
 import { fillMlo } from "@/lib/mlo-match";
 import { useMic } from "@/components/chat/useMic";
+import { silentWav } from "@/lib/voice/client";
 
 /**
  * M8LiveChat — the live M8 conversation, the public chat at /chat (C1).
@@ -107,18 +108,6 @@ async function errorText(resp: Response): Promise<string> {
 const READ_ALOUD_KEY = "loanm8.readAloud";
 /** C16: the borrower agreed to the mic note once (this browser only). */
 const MIC_OK_KEY = "loanm8.micOk";
-
-/** A tiny silent WAV, played inside a tap so phones allow the reply audio that follows. */
-function silentWav(): string {
-  const b = new Uint8Array(46);
-  const v = new DataView(b.buffer);
-  const str = (o: number, x: string) => [...x].forEach((c, i) => (b[o + i] = c.charCodeAt(0)));
-  str(0, "RIFF"); v.setUint32(4, 38, true); str(8, "WAVE"); str(12, "fmt ");
-  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-  v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
-  str(36, "data"); v.setUint32(40, 2, true);
-  return `data:audio/wav;base64,${btoa(String.fromCharCode(...b))}`;
-}
 
 /** When the page loaded, for the first-message bot check (a person can't send instantly). */
 const loadedAt = typeof performance !== "undefined" ? performance.now() : 0;

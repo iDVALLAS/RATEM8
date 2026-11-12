@@ -11,11 +11,20 @@ export type MicState = "idle" | "listening" | "working";
  * seconds, and sends 16 kHz PCM to /api/m8-listen. `onText` gets what
  * Google heard; `onError` a plain message. Audio never leaves memory
  * except for that one request.
+ *
+ * C17 hands-free (`auto`): stops by itself after SILENCE_MS of quiet once
+ * the person has spoken, and calls `onSilence` if nobody speaks within
+ * NO_SPEECH_MS.
  */
-export function useMic(onText: (text: string) => void, onError: (msg: string) => void) {
+const SPEECH_RMS = 0.02;
+const SILENCE_MS = 1300;
+const NO_SPEECH_MS = 9000;
+
+export function useMic(onText: (text: string) => void, onError: (msg: string) => void, opts: { auto?: boolean; onSilence?: () => void } = {}) {
+  const { auto = false, onSilence } = opts;
   const [state, setState] = useState<MicState>("idle");
   const [seconds, setSeconds] = useState(0);
-  const rec = useRef<{ ctx: AudioContext; stream: MediaStream; node: ScriptProcessorNode; chunks: Float32Array[]; timer: number; started: number } | null>(null);
+  const rec = useRef<{ ctx: AudioContext; stream: MediaStream; node: ScriptProcessorNode; chunks: Float32Array[]; timer: number; started: number; heard: boolean; lastLoud: number } | null>(null);
 
   const teardown = () => {
     const r = rec.current;
@@ -70,19 +79,38 @@ export function useMic(onText: (text: string) => void, onError: (msg: string) =>
     const source = ctx.createMediaStreamSource(stream);
     const node = ctx.createScriptProcessor(4096, 1, 1);
     const chunks: Float32Array[] = [];
-    node.onaudioprocess = (e) => chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+    node.onaudioprocess = (e) => {
+      const d = new Float32Array(e.inputBuffer.getChannelData(0));
+      chunks.push(d);
+      const r = rec.current;
+      if (!r) return;
+      let sum = 0;
+      for (let i = 0; i < d.length; i++) sum += d[i] * d[i];
+      if (Math.sqrt(sum / d.length) > SPEECH_RMS) {
+        r.heard = true;
+        r.lastLoud = Date.now();
+      }
+    };
     source.connect(node);
     node.connect(ctx.destination);
     const started = Date.now();
     const timer = window.setInterval(() => {
       const s = Math.floor((Date.now() - started) / 1000);
       setSeconds(s);
+      const r = rec.current;
       if (s >= MAX_LISTEN_SECONDS) void stop();
-    }, 250);
-    rec.current = { ctx, stream, node, chunks, timer, started };
+      else if (auto && r?.heard && Date.now() - r.lastLoud > SILENCE_MS) void stop();
+      else if (auto && r && !r.heard && Date.now() - started > NO_SPEECH_MS) {
+        teardown();
+        setSeconds(0);
+        setState("idle");
+        onSilence?.();
+      }
+    }, 150);
+    rec.current = { ctx, stream, node, chunks, timer, started, heard: false, lastLoud: started };
     setSeconds(0);
     setState("listening");
-  }, [onError, stop]);
+  }, [onError, stop, auto, onSilence]);
 
   const cancel = useCallback(() => {
     teardown();

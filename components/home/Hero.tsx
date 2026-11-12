@@ -1,6 +1,8 @@
 import Reveal from "@/components/motion/Reveal";
 import { copy } from "@/lib/copy";
 import HeroOrb from "./HeroOrb";
+import { listenOn } from "@/lib/voice/google";
+import { RETENTION, storageOn } from "@/lib/m8/store";
 import ActionGrid from "./ActionGrid";
 import TrustStrip from "./TrustStrip";
 
@@ -42,6 +44,9 @@ export default function Hero() {
             qaPopup={copy.hero.qaPopup}
             cancelLabel={copy.hero.popupCancel}
             redirectNote={copy.hero.popupRedirectNote}
+            voiceLive={listenOn()}
+            storageOn={storageOn()}
+            retention={RETENTION}
           />
         </div>
 

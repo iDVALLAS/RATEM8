@@ -1239,3 +1239,29 @@ between 2% and 12% with no context reads as a rate.
 - `lib/m8/pipeline.ts` `fallbackFor`: capitalizes each sentence start
   ("… right now. A licensed loan officer …").
 - Tests in `lib/m8/m8.test.ts`. `npm run verify` passes.
+
+## C17 — Talk with M8 on the homepage (2026-11-12)
+
+Owner: "tap Voice on the homepage and the chat just starts chatting with
+the M8 orb. It doesn't go anywhere, but it is being transcribed … within
+the chat screen and keeping logs of the chat."
+
+- `components/voice/useVoiceChat.ts`: hands-free loop. Listen (stops by
+  itself after ~1.3s of quiet; pauses if nobody speaks for 9s) → the words
+  go to M8 → M8 answers out loud → listen again. Same endpoints as the
+  typed chat, so the redaction, guard, limits and transcript storage (Neon,
+  3 years) apply, and the same browser copy of the conversation, so
+  "Continue in M8 Chat" picks up where it left off.
+- `components/voice/VoicePanel.tsx` under the orb: a one-time note before
+  the mic opens (AI disclosure, Google turns voice into text and the
+  recording isn't kept, the storage line, the two-party consent line in WA
+  and CA, privacy link), then the conversation written out, a status line,
+  "End voice chat" and "Continue in M8 Chat".
+- `HeroOrb`: Voice and the orb start it; the orb shows listening, thinking
+  and speaking. Tapping the orb while M8 talks cuts in; while listening,
+  sends now; while paused, resumes. Q & A still opens M8 Chat. With the
+  mic off (`listenOn()` false), Voice keeps the old popup.
+- Shared pieces: `lib/m8/client.ts` (one streamed turn), `lib/voice/client.ts`
+  (play M8's voice, the silent unlock sound), `useMic` gains `auto`.
+- `npm run verify` passes. Counsel: the consent note is new copy
+  (`copy.hero.voiceChat`).

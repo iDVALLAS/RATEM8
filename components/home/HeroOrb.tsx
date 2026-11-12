@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Orb, { type OrbState } from "@/components/Orb";
 import TermField from "@/components/TermField";
 import OrbMonogram from "./OrbMonogram";
+import VoicePanel from "@/components/voice/VoicePanel";
+import { useVoiceChat } from "@/components/voice/useVoiceChat";
 
 /**
  * HeroOrb — the hero orb with two stitched-line actions under it.
@@ -23,8 +25,11 @@ import OrbMonogram from "./OrbMonogram";
  * with every breath (CSS, synced to the orb's keyframes; home.css), and
  * holds steady while Voice or Q & A is hovered or keyboard-focused.
  *
- * NO microphone access. NO audio. NO AI call. Orb state changes are
- * speed / amplitude / halo only.
+ * C17: while the mic is on (`voiceLive`), Voice and the orb start a
+ * spoken conversation with M8 right here (components/voice/*): the orb
+ * listens, thinks and speaks, and the conversation is written out under
+ * the buttons. Q & A still opens M8 Chat. With the mic off, Voice keeps
+ * the popup above. Orb state changes are speed / amplitude / halo only.
  */
 type HeroOrbProps = {
   ariaLabel: string;
@@ -34,6 +39,10 @@ type HeroOrbProps = {
   qaPopup: string;
   cancelLabel: string;
   redirectNote: string;
+  /** C17: the mic and voice are on (lib/voice/google.ts listenOn). */
+  voiceLive?: boolean;
+  storageOn?: boolean;
+  retention?: string;
 };
 
 type Popup = "voice" | "qa";
@@ -62,7 +71,9 @@ function QaIcon() {
   );
 }
 
-export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qaPopup, cancelLabel, redirectNote }: HeroOrbProps) {
+export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qaPopup, cancelLabel, redirectNote, voiceLive = false, storageOn = false, retention = "" }: HeroOrbProps) {
+  const vc = useVoiceChat();
+  const inVoice = vc.phase !== "off";
   const router = useRouter();
   const [pulse, setPulse] = useState(false);
   const [state, setState] = useState<OrbState>("idle");
@@ -114,7 +125,12 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
     return () => window.removeEventListener("keydown", onKey);
   }, [popup, cancel]);
 
-  const onVoice = useCallback(() => open("voice"), [open]);
+  const onVoice = useCallback(() => {
+    if (!voiceLive) return open("voice");
+    clearRedirect();
+    setPopup(null);
+    vc.tap();
+  }, [voiceLive, open, clearRedirect, vc]);
   const onQa = useCallback(() => open("qa"), [open]);
 
   const holdProps = {
@@ -146,7 +162,7 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
         <TermField />
         <button type="button" onClick={onVoice} aria-label={ariaLabel} className="hm-orb-btn">
           {/* v30: size follows --hero-orb (220px; larger on desktop, home.css). */}
-          <Orb size="hero" state={state} className={`orb--mono ${pulse ? "orb--pulse" : ""}`.trim()} style={{ width: "var(--hero-orb, 220px)", height: "var(--hero-orb, 220px)" }}>
+          <Orb size="hero" state={inVoice ? vc.orb : state} className={`orb--mono ${pulse ? "orb--pulse" : ""}`.trim()} style={{ width: "var(--hero-orb, 220px)", height: "var(--hero-orb, 220px)" }}>
             <OrbMonogram />
           </Orb>
         </button>
@@ -157,8 +173,8 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
           type="button"
           onClick={onVoice}
           {...holdProps}
-          className={`stitch-btn ${popup === "voice" ? "stitch-btn--on" : ""}`.trim()}
-          aria-expanded={popup === "voice"}
+          className={`stitch-btn ${popup === "voice" || inVoice ? "stitch-btn--on" : ""}`.trim()}
+          aria-expanded={popup === "voice" || inVoice}
         >
           <VoiceIcon />
           <span>{voiceLabel}</span>
@@ -178,6 +194,7 @@ export default function HeroOrb({ ariaLabel, voiceLabel, qaLabel, voicePopup, qa
           {renderPopup("qa", qaPopup)}
         </div>
       </div>
+      {voiceLive && inVoice ? <VoicePanel vc={vc} storageOn={storageOn} retention={retention} /> : null}
     </div>
   );
 }
