@@ -13,8 +13,8 @@ import type { Mlo } from "@/lib/config";
  * supplied), draws an initials avatar in M8 Green, so there is never a
  * broken image. Alt text carries the name and NMLS number together.
  *
- * Sizes by placement (launch brief L1): 72 on the MLO card, 36 in the chat
- * header, 28 on rate results.
+ * Sizes by placement (launch brief L1): 72 on the MLO card, 56 in the chat
+ * header (C14, owner 2026-11-08; was 36), 28 on rate results.
  */
 export function hasPhoto(mlo: Pick<Mlo, "photo">): boolean {
   return /^\/team\/[a-z0-9-]+\.(webp|png|jpg)$/.test(mlo.photo);
