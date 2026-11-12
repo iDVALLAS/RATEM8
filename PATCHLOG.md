@@ -1197,3 +1197,25 @@ that API and saved in Vercel as `GOOGLE_CLOUD_API_KEY` (Sensitive).
   `M8_VOICE_DAILY_CHARS`, `M8_VOICE_SECRET` (else derived from the key).
 - Next: phase 2, the mic (Cloud Speech-to-Text) once that API is enabled
   in Loanmate and added to the key's restrictions.
+
+## C16 — M8 listens: a mic button in the chat (2026-11-12)
+
+Owner: Cloud Speech-to-Text is now enabled in "Loanmate" and allowed on the
+same API key as Text-to-Speech, so no new Vercel variable.
+
+- Mic button between the message box and Send (only while the mic is on).
+  First tap shows a one-time note: the voice goes to Google only to become
+  text, the recording isn't kept, and the words land in the box to check
+  before sending. Nothing goes to M8 until the borrower presses Send, so
+  the usual redaction and guard apply to spoken questions too.
+- Recording: Web Audio (`components/chat/useMic.ts`, `lib/voice/pcm.ts`),
+  16 kHz mono PCM, stops on a second tap or at 30 seconds; near-silence
+  isn't sent. Same in Chrome, Safari and Firefox.
+- `/api/m8-listen`: Google `speech:recognize` (en-US, punctuation, a
+  mortgage phrase list). Audio and text are never stored or logged. 20/min
+  and 150/day per hashed IP; site-wide `M8_LISTEN_DAILY_SECONDS` (7,200).
+  `M8_LISTEN="false"` turns off only the mic.
+- Tests: `lib/voice/pcm.test.ts`, mic switch in `lib/voice/google.test.ts`.
+  `npm run verify` passes.
+- Counsel: the mic note is new consent copy (`copy.chat.live.mic`); see
+  COMPLIANCE.md §6.

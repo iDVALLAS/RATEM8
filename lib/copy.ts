@@ -759,6 +759,17 @@ export const copy = {
         expired: "That reply is too old to read aloud. Newer replies can be.",
         failed: "M8 couldn't read that aloud just now. The reply is above.",
       },
+      /** C16: the microphone. The words land in the box; nothing is sent until the borrower presses send. */
+      mic: {
+        start: "Speak your question",
+        stop: "Stop and turn it into text",
+        listening: "Listening… tap the mic when you're done ({s}s)",
+        working: "Turning your words into text…",
+        consentTitle: "Talk instead of typing?",
+        consentBody: "Your voice goes to Google only to turn it into text, and the recording isn't kept. The words land in the box so you can check them before you send.",
+        consentYes: "Turn on the mic",
+        consentNo: "Not now",
+      },
       /**
        * C6: the bar above the input once the borrower asks about pricing
        * (style C, owner 2026-11-05). It opens the same "Talk to" panel as

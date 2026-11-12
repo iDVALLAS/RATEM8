@@ -141,6 +141,12 @@ social proof, testimonials, fake stats, "trusted by" (plus "six figures",
   (recording, transcript on request, retention placeholder, two-party
   consent line) with a Continue button. Voice stays disabled by
   `CONFIG.featureFlags.voice = false` (`components/chat/VoiceModal.tsx`).
+- C15–C16 live chat voice (on with `GOOGLE_CLOUD_API_KEY`): M8 reads its
+  replies aloud only when the borrower turns it on or taps Listen. The mic
+  shows a one-time note before first use (`copy.chat.live.mic`): audio goes
+  to Google only to become text and is not kept; the text lands in the box
+  and is sent only when the borrower presses Send. Audio and its text are
+  never stored or logged. New consent copy for counsel review.
 - Two-party consent states come from `CONFIG.states[].twoPartyConsent`
   and are listed on `/privacy` and `/disclosures`.
 

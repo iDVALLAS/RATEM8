@@ -29,6 +29,17 @@ export function voiceOn(): boolean {
   return !!env("GOOGLE_CLOUD_API_KEY") && env("M8_VOICE") !== "false";
 }
 
+/** C16: the microphone (speech to text). Same key; M8_LISTEN="false" turns only the mic off. */
+export function listenOn(): boolean {
+  return voiceOn() && env("M8_LISTEN") !== "false";
+}
+
+/** Seconds of speech turned into text per day across the site (M8_LISTEN_DAILY_SECONDS overrides). */
+export function dailyListenCap(): number {
+  const n = Number(env("M8_LISTEN_DAILY_SECONDS"));
+  return Number.isInteger(n) && n > 0 ? n : 7_200;
+}
+
 /** Characters spoken per day across the site (M8_VOICE_DAILY_CHARS overrides). */
 export function dailyCharCap(): number {
   const n = Number(env("M8_VOICE_DAILY_CHARS"));
@@ -188,4 +199,42 @@ export async function availableCandidates(): Promise<typeof VOICE_CANDIDATES> {
   } catch {
     return VOICE_CANDIDATES;
   }
+}
+
+// ─── Speech to text (C16) ───────────────────────────────────
+
+/** Words Google should expect in a mortgage chat. */
+export const MORTGAGE_PHRASES = [
+  "M8", "LoanM8", "APR", "FHA", "VA loan", "USDA", "HELOC", "escrow", "PMI", "mortgage insurance",
+  "refinance", "cash-out refinance", "rate lock", "discount points", "Loan Estimate", "Closing Disclosure",
+  "pre-approval", "debt-to-income", "loan-to-value", "jumbo", "conforming", "non-QM", "bank statement loan",
+  "buydown", "2-1 buydown", "down payment", "closing costs",
+];
+
+/** Text for 16 kHz, 16-bit mono PCM, or "" when nothing was understood. Throws on failure. */
+export async function transcribe(pcm: Uint8Array): Promise<string> {
+  const key = env("GOOGLE_CLOUD_API_KEY");
+  if (!key) throw new Error("voice off");
+  const res = await fetch("https://speech.googleapis.com/v1/speech:recognize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key },
+    body: JSON.stringify({
+      config: {
+        encoding: "LINEAR16",
+        sampleRateHertz: 16_000,
+        languageCode: "en-US",
+        enableAutomaticPunctuation: true,
+        speechContexts: [{ phrases: MORTGAGE_PHRASES }],
+      },
+      audio: { content: Buffer.from(pcm).toString("base64") },
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`google stt ${res.status}`);
+  const out = (await res.json()) as { results?: { alternatives?: { transcript?: string }[] }[] };
+  return (out.results ?? [])
+    .map((r) => r.alternatives?.[0]?.transcript?.trim() ?? "")
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 }

@@ -60,7 +60,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
   - **C15 voice:** M8 reads replies aloud with a Google stock voice
     (`lib/voice/google.ts`, `/api/m8-speak`, picker at `/mlo/voice`). On
     with `GOOGLE_CLOUD_API_KEY`; `M8_VOICE="false"` is its kill switch.
-    Only signed M8 replies are spoken. No microphone yet.
+    Only signed M8 replies are spoken. C16 mic: `/api/m8-listen`
+    (Speech-to-Text, same key), text lands in the box, never auto-sent;
+    `M8_LISTEN="false"` turns off only the mic.
   - Second Look still needs `SECOND_LOOK_LIVE`.
   - The owner reported counsel approval of everything on 2026-10-31.
   - **Launch series:** C1–C5 (`LoanM8_Launch_Live_M8_Chat.md`), then

@@ -13,6 +13,7 @@ import MloAvatar from "@/components/mlo/MloAvatar";
 import RichText from "@/components/chat/RichText";
 import ExamplePricingCard from "@/components/chat/ExamplePricingCard";
 import { fillMlo } from "@/lib/mlo-match";
+import { useMic } from "@/components/chat/useMic";
 
 /**
  * M8LiveChat — the live M8 conversation, the public chat at /chat (C1).
@@ -104,6 +105,8 @@ async function errorText(resp: Response): Promise<string> {
 
 /** C15: whether the borrower turned on "Read replies aloud" (this browser only). */
 const READ_ALOUD_KEY = "loanm8.readAloud";
+/** C16: the borrower agreed to the mic note once (this browser only). */
+const MIC_OK_KEY = "loanm8.micOk";
 
 /** A tiny silent WAV, played inside a tap so phones allow the reply audio that follows. */
 function silentWav(): string {
@@ -120,7 +123,7 @@ function silentWav(): string {
 /** When the page loaded, for the first-message bot check (a person can't send instantly). */
 const loadedAt = typeof performance !== "undefined" ? performance.now() : 0;
 
-export default function M8LiveChat({ storageOn, retention, voice = false }: { storageOn: boolean; retention: string; voice?: boolean }) {
+export default function M8LiveChat({ storageOn, retention, voice = false, listen = false }: { storageOn: boolean; retention: string; voice?: boolean; listen?: boolean }) {
   const opening = useOpening();
   const ctx = useMloContext();
   const twoPartyState = CONFIG.states.find((s) => s.code === ctx.stateCode && s.twoPartyConsent)?.name ?? null;
@@ -214,6 +217,39 @@ export default function M8LiveChat({ storageOn, retention, voice = false }: { st
     } catch {
       // ignore
     }
+  };
+
+  // ─── C16: the microphone ───────────────────────────────────
+  const [micAsk, setMicAsk] = useState(false);
+  const onHeard = useCallback((text: string) => {
+    setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+    window.setTimeout(() => inputRef.current?.focus(), 0);
+  }, []);
+  const mic = useMic(onHeard, setVoiceNote);
+  const micOk = () => {
+    try {
+      return window.localStorage.getItem(MIC_OK_KEY) === "1";
+    } catch {
+      return false;
+    }
+  };
+  const tapMic = () => {
+    setVoiceNote(null);
+    if (mic.state === "listening") return void mic.stop();
+    if (mic.state !== "idle") return;
+    if (!micOk()) return setMicAsk(true);
+    stopSpeaking();
+    void mic.start();
+  };
+  const acceptMic = () => {
+    try {
+      window.localStorage.setItem(MIC_OK_KEY, "1");
+    } catch {
+      // ignore
+    }
+    setMicAsk(false);
+    stopSpeaking();
+    void mic.start();
   };
 
   // Stop talking when the chat goes away.
@@ -538,6 +574,21 @@ export default function M8LiveChat({ storageOn, retention, voice = false }: { st
 
       {/* Input bar */}
       <div className="chat-input">
+        {micAsk && (
+          <div className="m8-micask" role="dialog" aria-label={t.mic.consentTitle}>
+            <p>
+              <strong>{t.mic.consentTitle}</strong> {t.mic.consentBody}
+            </p>
+            <span className="m8-micask__actions">
+              <button type="button" className="m8-listen" onClick={acceptMic}>
+                {t.mic.consentYes}
+              </button>
+              <button type="button" className="m8-strip__reset" onClick={() => setMicAsk(false)}>
+                {t.mic.consentNo}
+              </button>
+            </span>
+          </div>
+        )}
         <div
           className="chat-input-row flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors"
           style={{
@@ -550,7 +601,7 @@ export default function M8LiveChat({ storageOn, retention, voice = false }: { st
               onClick={() => inputRef.current?.focus()}
               aria-label="M8 is here"
               className={`m8-input-orb ${
-                streaming ? "m8-input-orb--sending" : input ? "m8-input-orb--typing" : "m8-input-orb--idle"
+                streaming || mic.state === "working" ? "m8-input-orb--sending" : input || mic.state === "listening" ? "m8-input-orb--typing" : "m8-input-orb--idle"
               }`}
             />
           </div>
@@ -563,11 +614,39 @@ export default function M8LiveChat({ storageOn, retention, voice = false }: { st
             onKeyDown={handleKey}
             disabled={streaming}
             placeholder={
-              streaming ? t.inputBusy : t.inputPlaceholder
+              streaming
+                ? t.inputBusy
+                : mic.state === "listening"
+                  ? t.mic.listening.replace("{s}", String(mic.seconds))
+                  : mic.state === "working"
+                    ? t.mic.working
+                    : t.inputPlaceholder
             }
             className="flex-1 bg-transparent outline-none text-[16px] sm:text-[15px] placeholder:text-[var(--muted)] disabled:opacity-60"
             aria-label={t.inputLabel}
           />
+
+          {listen && (
+            <button
+              type="button"
+              onClick={tapMic}
+              disabled={streaming || mic.state === "working"}
+              aria-label={mic.state === "listening" ? t.mic.stop : t.mic.start}
+              aria-pressed={mic.state === "listening"}
+              className={`m8-mic${mic.state === "listening" ? " m8-mic--on" : ""}`}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                {mic.state === "listening" ? (
+                  <rect x="7" y="7" width="10" height="10" rx="2" />
+                ) : (
+                  <>
+                    <rect x="9" y="3" width="6" height="11" rx="3" />
+                    <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+                  </>
+                )}
+              </svg>
+            </button>
+          )}
 
           <button
             onClick={() => send(input)}

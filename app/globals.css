@@ -2850,6 +2850,39 @@ a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(
   color: var(--fg-soft);
 }
 .m8-listen:hover, .m8-listen[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+/* C16: the mic button and its one-time note. */
+.m8-mic {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid var(--rule);
+  color: var(--fg-soft);
+}
+.m8-mic:hover { color: var(--accent); border-color: var(--accent); }
+.m8-mic:disabled { opacity: 0.4; }
+.m8-mic--on { color: var(--accent); border-color: var(--accent); animation: m8-mic-pulse 1.4s ease-in-out infinite; }
+@keyframes m8-mic-pulse { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .m8-mic--on { animation: none; } }
+.m8-micask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--fg-soft);
+}
+.m8-micask strong { color: var(--fg); font-weight: 500; }
+.m8-micask__actions { display: inline-flex; align-items: center; gap: 12px; }
+.m8-micask .m8-listen { margin-top: 0; }
 /* JetBrains Mono ships 400/500 only; no synthesized bold on the live chat avatars. */
 .live-chat-frame .msg-avatar { font-weight: 500; }
 

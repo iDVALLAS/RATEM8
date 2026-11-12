@@ -60,3 +60,23 @@ describe("M8 voice (C15)", () => {
     expect(await currentVoice()).toBe("en-US-Chirp3-HD-Charon");
   });
 });
+
+describe("M8 mic switch (C16)", () => {
+  const saved = { ...process.env };
+  afterEach(() => {
+    process.env = { ...saved };
+  });
+  it("needs the voice key, and M8_LISTEN=false turns off only the mic", async () => {
+    const { listenOn } = await import("./google");
+    process.env.GOOGLE_CLOUD_API_KEY = "k";
+    delete process.env.M8_VOICE;
+    delete process.env.M8_LISTEN;
+    expect(listenOn()).toBe(true);
+    process.env.M8_LISTEN = "false";
+    expect(listenOn()).toBe(false);
+    expect(voiceOn()).toBe(true);
+    delete process.env.M8_LISTEN;
+    process.env.M8_VOICE = "false";
+    expect(listenOn()).toBe(false);
+  });
+});

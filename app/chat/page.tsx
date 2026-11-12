@@ -3,7 +3,7 @@ import PageShell from "@/components/PageShell";
 import ChatShell from "@/components/chat/ChatShell";
 import { copy } from "@/lib/copy";
 import { RETENTION, storageOn } from "@/lib/m8/store";
-import { voiceOn } from "@/lib/voice/google";
+import { listenOn, voiceOn } from "@/lib/voice/google";
 
 export const metadata = {
   title: "M8 Chat",
@@ -37,7 +37,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
     <PageShell mainClassName="live-chat-main">
       <h1 className="sr-only">{copy.chat.title}</h1>
       <div className="live-chat-frame">
-        <M8LiveChat storageOn={storageOn()} retention={RETENTION} voice={voiceOn()} />
+        <M8LiveChat storageOn={storageOn()} retention={RETENTION} voice={voiceOn()} listen={listenOn()} />
       </div>
     </PageShell>
   );
