@@ -2833,6 +2833,23 @@ a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(
   color: var(--muted);
 }
 .m8-strip__reset:hover { color: var(--fg); text-decoration: underline; }
+.m8-strip__reset[aria-pressed="true"] { color: var(--accent); }
+/* C15: "Listen" under an M8 reply. */
+.m8-listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-family: var(--font-jetbrains);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-soft);
+}
+.m8-listen:hover, .m8-listen[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
 /* JetBrains Mono ships 400/500 only; no synthesized bold on the live chat avatars. */
 .live-chat-frame .msg-avatar { font-weight: 500; }
 

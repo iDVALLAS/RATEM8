@@ -15,6 +15,8 @@ export type M8Message = {
   content: string;
   /** C7: a dated example shown as a card under an M8 reply. Display only: never sent to the model. */
   pricing?: PricingCard;
+  /** C15: the reply's read-aloud signature (/api/m8-speak). Display only: never sent to the model. */
+  voice?: string;
 };
 
 /** C7: one of the three options on a dated example card. Figures are computed server-side. */
@@ -56,5 +58,6 @@ export const M8_SESSION_KEY = "loanm8_m8_conversation_v10";
  * - notice: a short note for the borrower (e.g. something was redacted)
  * - error: the reply failed
  * - pricing: C7, a dated example card for this reply
+ * - voice: C15, the finished reply's signature for /api/m8-speak (only while voice is on)
  */
-export type M8Event = { text?: string; replace?: string; userText?: string; notice?: string; error?: string; pricing?: PricingCard };
+export type M8Event = { text?: string; replace?: string; userText?: string; notice?: string; error?: string; pricing?: PricingCard; voice?: string };

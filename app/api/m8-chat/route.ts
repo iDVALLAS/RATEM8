@@ -12,6 +12,7 @@ import { checkRateLimit, countTurn, hashIp, recordUsage, underDailyBudget } from
 import { deleteSession, saveTranscript } from "@/lib/m8/store";
 import type { M8Event, M8Message } from "@/lib/m8/shared";
 import { report } from "@/lib/monitoring";
+import { signReply, voiceOn } from "@/lib/voice/google";
 
 /**
  * /api/m8-chat — the live M8 endpoint behind the public /chat (C1, hardened in C4).
@@ -183,6 +184,8 @@ export async function POST(req: Request) {
           tokens = result.tokens;
           guard = result.guard;
         }
+        // C15: lets /api/m8-speak voice this exact reply, and nothing else.
+        if (reply && voiceOn()) emit({ voice: signReply(reply) });
         controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
       } catch (err) {
         error = err;

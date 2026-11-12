@@ -3,12 +3,13 @@ import { mloContent } from "@/lib/content/mlo";
 import type { Flash } from "@/lib/mlo/flash";
 import type { Tenant } from "@/lib/pricing/tenants";
 
-export function MloNav({ current, tenantId }: { current: "setup" | "pricing"; tenantId: string }) {
+export function MloNav({ current, tenantId }: { current: "setup" | "pricing" | "voice"; tenantId: string }) {
   const q = `?t=${encodeURIComponent(tenantId)}`;
   return (
     <nav className="mlo-nav" aria-label="MLO admin">
       <Link href={`/mlo/setup${q}`} aria-current={current === "setup" ? "page" : undefined}>{mloContent.nav.setup}</Link>
       <Link href={`/mlo/pricing${q}`} aria-current={current === "pricing" ? "page" : undefined}>{mloContent.nav.pricing}</Link>
+      <Link href={`/mlo/voice${q}`} aria-current={current === "voice" ? "page" : undefined}>{mloContent.nav.voice}</Link>
       <Link href="/rates">{mloContent.nav.rates}</Link>
     </nav>
   );

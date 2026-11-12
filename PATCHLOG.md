@@ -1167,3 +1167,33 @@ a waist-up shot, so at 30–36px the face was tiny.
 - Chat card avatar 36px → 56px (owner chose 56 from a 36/48/56/64 mockup).
   Checked on desktop and 390px for WA (Jason) and OR (Ryder): 56×56, no
   overflow.
+
+## C15 — M8 speaks: read replies aloud with its own Google voice (2026-11-12)
+
+Owner: "get the talk function going"; M8 gets "its own distinct voice, not
+mine", "warm and conversational but confident and seasoned." Google Cloud
+project "Loanmate", Cloud Text-to-Speech enabled, API key restricted to
+that API and saved in Vercel as `GOOGLE_CLOUD_API_KEY` (Sensitive).
+
+- `lib/voice/google.ts` (server-only): the switch (`voiceOn()`: key set
+  and `M8_VOICE` not "false"), Google TTS over REST (MP3), the curated
+  stock voices (Chirp 3 HD and Studio, a warm/confident mix), the saved
+  choice (pricing store settings row `site-voice`, default Sulafat), reply
+  signing (HMAC, one hour), and `speakableText` (markdown out, 2,500-char
+  cap at a sentence end).
+- `/api/m8-chat` sends a `voice` signature with each finished reply.
+  `/api/m8-speak` voices only signed replies; 20/min and 200/day per
+  hashed IP; site-wide daily cap `M8_VOICE_DAILY_CHARS` (200,000). Logs
+  counts only.
+- Chat: "Read replies aloud: on/off" in the strip under the input (this
+  browser remembers it), and "Listen"/"Stop" under each reply that has a
+  signature. Nothing shows while voice is off. No microphone yet.
+- `/mlo/voice` (admin): each candidate reads the same line ("Play
+  sample"), then "Use this voice". Samples are admin-only and cached.
+- Tests: `lib/voice/google.test.ts` (switch, signatures, speech text,
+  candidates, saving). `npm run verify` passes. Local runs have no Google
+  or Anthropic key, so the audio itself is checked on the Vercel preview.
+- Optional Vercel variables: `M8_VOICE="false"` (kill switch),
+  `M8_VOICE_DAILY_CHARS`, `M8_VOICE_SECRET` (else derived from the key).
+- Next: phase 2, the mic (Cloud Speech-to-Text) once that API is enabled
+  in Loanmate and added to the key's restrictions.

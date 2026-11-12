@@ -4,7 +4,7 @@
  */
 export const mloContent = {
   title: "MLO admin",
-  nav: { setup: "Setup", pricing: "Pricing snapshots", rates: "View /rates" },
+  nav: { setup: "Setup", pricing: "Pricing snapshots", voice: "M8 voice", rates: "View /rates" },
   tenantLabel: "Sponsoring brokerage",
   setup: {
     heading: "Setup",

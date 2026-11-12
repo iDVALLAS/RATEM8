@@ -58,7 +58,7 @@ function useOpening(): string {
 const PRICING_INTENT = /\b(?:rates?|quotes?|pricing|price[sd]?|apr|lock|refi\w*|refinanc\w*|purchas\w*|buying|afford\w*|payments?|pre-?approv\w*)\b/i;
 
 /** M8's name, with the "AI" tag that makes every message its own AI disclosure. */
-function M8Name({ typing }: { typing?: boolean }) {
+function M8Name({ typing, speaking }: { typing?: boolean; speaking?: boolean }) {
   return (
     <div className="msg-meta">
       <span className="font-medium" style={{ color: "var(--fg)" }}>
@@ -66,6 +66,7 @@ function M8Name({ typing }: { typing?: boolean }) {
       </span>
       <span className="m8-ai-tag">{copy.chat.live.aiTag}</span>
       {typing ? <span className="msg-meta--label ml-2">{copy.chat.live.typing}</span> : null}
+      {speaking ? <span className="msg-meta--label ml-2">{copy.chat.live.voice.reading}</span> : null}
     </div>
   );
 }
@@ -101,10 +102,25 @@ async function errorText(resp: Response): Promise<string> {
   return body?.error ?? t.offline.replace("{email}", CONTACT);
 }
 
+/** C15: whether the borrower turned on "Read replies aloud" (this browser only). */
+const READ_ALOUD_KEY = "loanm8.readAloud";
+
+/** A tiny silent WAV, played inside a tap so phones allow the reply audio that follows. */
+function silentWav(): string {
+  const b = new Uint8Array(46);
+  const v = new DataView(b.buffer);
+  const str = (o: number, x: string) => [...x].forEach((c, i) => (b[o + i] = c.charCodeAt(0)));
+  str(0, "RIFF"); v.setUint32(4, 38, true); str(8, "WAVE"); str(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, "data"); v.setUint32(40, 2, true);
+  return `data:audio/wav;base64,${btoa(String.fromCharCode(...b))}`;
+}
+
 /** When the page loaded, for the first-message bot check (a person can't send instantly). */
 const loadedAt = typeof performance !== "undefined" ? performance.now() : 0;
 
-export default function M8LiveChat({ storageOn, retention }: { storageOn: boolean; retention: string }) {
+export default function M8LiveChat({ storageOn, retention, voice = false }: { storageOn: boolean; retention: string; voice?: boolean }) {
   const opening = useOpening();
   const ctx = useMloContext();
   const twoPartyState = CONFIG.states.find((s) => s.code === ctx.stateCode && s.twoPartyConsent)?.name ?? null;
@@ -121,6 +137,87 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // ─── C15: read aloud ───────────────────────────────────────
+  const [readAloud, setReadAloud] = useState(false);
+  const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+  const [voiceNote, setVoiceNote] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speakToken = useRef(0);
+
+  useEffect(() => {
+    if (!voice) return;
+    try {
+      setReadAloud(window.localStorage.getItem(READ_ALOUD_KEY) === "1");
+    } catch {
+      // ignore
+    }
+  }, [voice]);
+
+  /** Inside a tap: makes the audio element playable on phones. */
+  const unlockAudio = useCallback(() => {
+    if (!voice) return;
+    const a = audioRef.current ?? new Audio();
+    audioRef.current = a;
+    if (!a.src || a.paused) {
+      a.src = silentWav();
+      a.play().catch(() => {});
+    }
+  }, [voice]);
+
+  const stopSpeaking = useCallback(() => {
+    speakToken.current++;
+    audioRef.current?.pause();
+    setSpeakingIdx(null);
+  }, []);
+
+  const speak = useCallback(
+    async (idx: number, text: string, sig: string) => {
+      const token = ++speakToken.current;
+      audioRef.current?.pause();
+      setVoiceNote(null);
+      setSpeakingIdx(idx);
+      try {
+        const res = await fetch("/api/m8-speak", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, sig }),
+        });
+        if (!res.ok) throw new Error(res.status === 403 ? t.voice.expired : ((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? t.voice.failed);
+        const url = URL.createObjectURL(await res.blob());
+        if (token !== speakToken.current) return URL.revokeObjectURL(url);
+        const a = audioRef.current ?? new Audio();
+        audioRef.current = a;
+        a.onended = () => {
+          URL.revokeObjectURL(url);
+          if (token === speakToken.current) setSpeakingIdx(null);
+        };
+        a.src = url;
+        await a.play();
+      } catch (err) {
+        if (token !== speakToken.current) return;
+        setSpeakingIdx(null);
+        // A blocked autoplay isn't worth a message: the Listen button is right there.
+        if (err instanceof Error && err.name !== "NotAllowedError") setVoiceNote(err.message);
+      }
+    },
+    [],
+  );
+
+  const toggleReadAloud = () => {
+    const next = !readAloud;
+    setReadAloud(next);
+    if (next) unlockAudio();
+    else stopSpeaking();
+    try {
+      window.localStorage.setItem(READ_ALOUD_KEY, next ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  };
+
+  // Stop talking when the chat goes away.
+  useEffect(() => () => audioRef.current?.pause(), []);
 
   // ─── Load from localStorage on mount ───────────────────────
   useEffect(() => {
@@ -159,7 +256,10 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
 
       setError(null);
       setNotice(null);
+      setVoiceNote(null);
       setDeleteState("idle");
+      stopSpeaking();
+      if (readAloud) unlockAudio();
       setStreamingText("");
 
       const nextMessages: M8Message[] = [
@@ -175,6 +275,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
 
       let accumulated = "";
       let card: PricingCard | undefined;
+      let voiceSig: string | undefined;
       try {
         const resp = await fetch("/api/m8-chat", {
           method: "POST",
@@ -219,6 +320,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
               }
               if (parsed.notice) setNotice(parsed.notice);
               if (parsed.pricing) card = parsed.pricing;
+              if (parsed.voice) voiceSig = parsed.voice;
               if (parsed.replace !== undefined) {
                 accumulated = parsed.replace;
                 setStreamingText(accumulated);
@@ -238,10 +340,11 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
 
         // Streaming done — commit the assistant message and clear the buffer
         if (accumulated) {
-          setMessages((m) => [
-            ...m,
-            card ? { role: "assistant", content: accumulated, pricing: card } : { role: "assistant", content: accumulated },
-          ]);
+          const reply: M8Message = { role: "assistant", content: accumulated };
+          if (card) reply.pricing = card;
+          if (voice && voiceSig) reply.voice = voiceSig;
+          setMessages((m) => [...m, reply]);
+          if (voice && voiceSig && readAloud) void speak(nextMessages.length, accumulated, voiceSig);
         }
         setStreamingText("");
       } catch (err) {
@@ -256,7 +359,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
         abortRef.current = null;
       }
     },
-    [messages, streaming, honeypot]
+    [messages, streaming, honeypot, voice, readAloud, speak, stopSpeaking, unlockAudio]
   );
 
   const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -268,6 +371,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
 
   const startOver = () => {
     if (abortRef.current) abortRef.current.abort();
+    stopSpeaking();
     setMessages([]);
     setStreamingText("");
     setError(null);
@@ -345,7 +449,7 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
                   </span>
                 </div>
               ) : (
-                <M8Name />
+                <M8Name speaking={speakingIdx === i} />
               )}
               {msg.role === "user" ? (
                 <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--fg)" }}>
@@ -355,6 +459,23 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
                 <div className="text-[15px] leading-relaxed" style={{ color: "var(--fg)" }}>
                   <RichText text={msg.content} />
                   {msg.pricing ? <ExamplePricingCard card={msg.pricing} /> : null}
+                  {voice && msg.voice ? (
+                    <button
+                      type="button"
+                      className="m8-listen"
+                      aria-pressed={speakingIdx === i}
+                      onClick={() => {
+                        if (speakingIdx === i) return stopSpeaking();
+                        unlockAudio();
+                        void speak(i, msg.content, msg.voice as string);
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        {speakingIdx === i ? <path d="M7 6h3v12H7zM14 6h3v12h-3z" /> : <path d="M4 9v6h4l5 4V5L8 9H4zM16.5 8.5a5 5 0 0 1 0 7" />}
+                      </svg>
+                      {speakingIdx === i ? t.voice.stop : t.voice.listen}
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -385,6 +506,12 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
         {notice && (
           <p className="m8-notice" role="status">
             {notice}
+          </p>
+        )}
+
+        {voiceNote && (
+          <p className="m8-notice" role="status">
+            {voiceNote}
           </p>
         )}
 
@@ -483,6 +610,11 @@ export default function M8LiveChat({ storageOn, retention }: { storageOn: boolea
             </Link>
           </p>
           <span className="m8-strip__actions">
+            {voice && (
+              <button type="button" onClick={toggleReadAloud} className="m8-strip__reset" aria-pressed={readAloud}>
+                {readAloud ? t.voice.toggleOn : t.voice.toggleOff}
+              </button>
+            )}
             {messages.length > 0 && (
               <button type="button" onClick={startOver} className="m8-strip__reset">
                 {t.startOver}

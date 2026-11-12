@@ -57,6 +57,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     - `lib/public-paths.ts` is the single list of stealth-public pages
       that middleware, robots.txt and sitemap.xml all use.
     - The launch checklist is `CHAT_LAUNCH_CHECKLIST.md`.
+  - **C15 voice:** M8 reads replies aloud with a Google stock voice
+    (`lib/voice/google.ts`, `/api/m8-speak`, picker at `/mlo/voice`). On
+    with `GOOGLE_CLOUD_API_KEY`; `M8_VOICE="false"` is its kill switch.
+    Only signed M8 replies are spoken. No microphone yet.
   - Second Look still needs `SECOND_LOOK_LIVE`.
   - The owner reported counsel approval of everything on 2026-10-31.
   - **Launch series:** C1–C5 (`LoanM8_Launch_Live_M8_Chat.md`), then

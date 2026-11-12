@@ -10,6 +10,7 @@ import { summarizeSkipped } from "@/lib/pricing/loansifter";
 import { pricingScenarios } from "@/lib/pricing/daily";
 import { DEFAULT_COMP_RULE } from "@/lib/pricing/compRule";
 import { NO_RISKY_FEATURES, type QuoteInput } from "@/lib/pricing/types";
+import { saveVoice } from "@/lib/voice/google";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string, d = 0) => {
@@ -132,4 +133,13 @@ export async function importCaptureAction(captureText: string): Promise<{ ok: bo
   return res.ok
     ? { ok: true, scenario, lines: [`Published: ${res.lenders.length} lenders.`, ...skipped] }
     : { ok: false, scenario, lines: [...res.errors, ...skipped] };
+}
+
+/** C15: M8's voice, chosen on /mlo/voice. */
+export async function saveVoiceAction(fd: FormData): Promise<void> {
+  const actor = await requireAdmin();
+  const name = str(fd, "voice");
+  const res = await saveVoice(name, actor);
+  const flash = res.ok ? { ok: true, lines: [`M8 now speaks with ${name}.`] } : { ok: false, lines: [res.error] };
+  redirect(`/mlo/voice?f=${encodeFlash(flash)}`);
 }

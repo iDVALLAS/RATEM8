@@ -749,6 +749,16 @@ export const copy = {
       },
       /** C6: the "AI" tag next to M8's name on every message (AI disclosure). */
       aiTag: "AI",
+      /** C15: M8 reads its replies aloud (Google voice; shown only while voice is on). */
+      voice: {
+        toggleOn: "Read replies aloud: on",
+        toggleOff: "Read replies aloud: off",
+        listen: "Listen",
+        stop: "Stop",
+        reading: "reading aloud",
+        expired: "That reply is too old to read aloud. Newer replies can be.",
+        failed: "M8 couldn't read that aloud just now. The reply is above.",
+      },
       /**
        * C6: the bar above the input once the borrower asks about pricing
        * (style C, owner 2026-11-05). It opens the same "Talk to" panel as
