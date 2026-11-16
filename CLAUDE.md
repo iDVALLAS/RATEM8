@@ -22,8 +22,12 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     - SSN, date-of-birth and account-number redaction before the model and
       any log.
     - Abuse blocked with no model call.
-    - Only two tools: `get_pricing` (unavailable until L4b) and
-      `request_handoff`, both zod-validated.
+    - Three tools: `get_pricing` (unavailable until L4b),
+      `request_handoff` and (C19) `show_options`, all zod-validated.
+  - **C19:** owner's instructions after the prompt (`lib/prompts/m8-owner.ts`,
+    notes edited at `/mlo/training`); boxes under replies
+    (`components/chat/ActionCards.tsx`): call 9–6 Pacific, else call-back
+    (`/api/m8-callback`), plus booking. LO direct lines in `config/licensing.ts`.
     - An output guard: no rate outside a pricing result, a rate needs its
       APR and the not-a-commitment line, and no prompt leaks, promises or
       echoed numbers.

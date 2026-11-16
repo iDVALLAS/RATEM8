@@ -782,6 +782,22 @@ export const copy = {
         expired: "That reply is too old to read aloud. Newer replies can be.",
         failed: "M8 couldn't read that aloud just now. The reply is above.",
       },
+      /** C19: boxes M8 shows under a reply (show_options). {first} = the loan officer's first name. */
+      actions: {
+        callNow: "Call {first} now",
+        callHours: "Available {hours}.",
+        callBack: "Have {first} call me",
+        callBackBody: "It's outside call hours ({hours}). Leave your number and {first} will call you.",
+        phoneLabel: "Your phone number",
+        nameLabel: "Your first name (optional)",
+        whenLabel: "Best time to call (optional)",
+        send: "Request a call",
+        sending: "Sending…",
+        sent: "Sent. {first} has your number and what you've been asking about.",
+        failed: "This box can't send right now. You can call {first} at {phone}.",
+        book: "Book a time with {first}",
+        bookSoon: "Booking link coming soon.",
+      },
       /** C16: the microphone. The words land in the box; nothing is sent until the borrower presses send. */
       mic: {
         start: "Speak your question",

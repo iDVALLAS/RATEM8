@@ -6,6 +6,7 @@ import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import { useMloContext } from "@/components/mlo/MloContext";
 import RichText from "@/components/chat/RichText";
+import ActionCards from "@/components/chat/ActionCards";
 import type { useVoiceChat } from "./useVoiceChat";
 
 const v = copy.hero.voiceChat;
@@ -64,6 +65,7 @@ export default function VoicePanel({ vc, storageOn, retention }: { vc: ReturnTyp
               {m.role === "assistant" ? <span className="m8-ai-tag">{live.aiTag}</span> : null}
             </span>
             {m.role === "assistant" ? <RichText text={m.content} /> : <p>{m.content}</p>}
+            {m.actions?.length ? <ActionCards actions={m.actions} recent={vc.messages} /> : null}
           </div>
         ))}
         {vc.draft ? (

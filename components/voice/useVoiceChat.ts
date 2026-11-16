@@ -93,6 +93,7 @@ export function useVoiceChat() {
       const reply: M8Message = { role: "assistant", content: out.text };
       if (out.pricing) reply.pricing = out.pricing;
       if (out.voice) reply.voice = out.voice;
+      if (out.actions?.length) reply.actions = out.actions;
       commit(out.text ? [...shown, reply] : shown);
       setDraft("");
       if (q) {

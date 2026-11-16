@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import type { M8Event, M8Message, PricingCard } from "@/lib/m8/shared";
+import type { ChatAction, M8Event, M8Message, PricingCard } from "@/lib/m8/shared";
 import { M8_SESSION_KEY } from "@/lib/m8/shared";
 import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
@@ -12,6 +12,7 @@ import MloChatCard from "@/components/chat/MloChatCard";
 import MloAvatar from "@/components/mlo/MloAvatar";
 import RichText from "@/components/chat/RichText";
 import ExamplePricingCard from "@/components/chat/ExamplePricingCard";
+import ActionCards from "@/components/chat/ActionCards";
 import { fillMlo } from "@/lib/mlo-match";
 import { useMic } from "@/components/chat/useMic";
 import { SpeechQueue, silentWav } from "@/lib/voice/client";
@@ -303,6 +304,7 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
       let accumulated = "";
       let card: PricingCard | undefined;
       let voiceSig: string | undefined;
+      let actions: ChatAction[] | undefined;
       // C18: with "Read replies aloud" on, M8 speaks each sentence as it arrives.
       const replyIdx = nextMessages.length;
       const audioEl = voice && readAloud ? audioRef.current : null;
@@ -355,6 +357,7 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
               if (parsed.notice) setNotice(parsed.notice);
               if (parsed.pricing) card = parsed.pricing;
               if (parsed.voice) voiceSig = parsed.voice;
+              if (parsed.actions) actions = parsed.actions;
               if (parsed.sayReset) q?.stop();
               if (parsed.say && q) {
                 q.push(parsed.say.text, parsed.say.sig);
@@ -382,6 +385,7 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
         if (accumulated) {
           const reply: M8Message = { role: "assistant", content: accumulated };
           if (card) reply.pricing = card;
+          if (actions?.length) reply.actions = actions;
           if (voice && voiceSig) reply.voice = voiceSig;
           setMessages((m) => [...m, reply]);
           if (q && spoke) {
@@ -504,6 +508,7 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
                 <div className="text-[15px] leading-relaxed" style={{ color: "var(--fg)" }}>
                   <RichText text={msg.content} />
                   {msg.pricing ? <ExamplePricingCard card={msg.pricing} /> : null}
+                  {msg.actions?.length ? <ActionCards actions={msg.actions} recent={messages.slice(0, i + 1)} /> : null}
                   {voice && msg.voice ? (
                     <button
                       type="button"

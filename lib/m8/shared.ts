@@ -17,7 +17,13 @@ export type M8Message = {
   pricing?: PricingCard;
   /** C15: the reply's read-aloud signature (/api/m8-speak). Display only: never sent to the model. */
   voice?: string;
+  /** C19: boxes under this reply (show_options). Display only: never sent to the model. */
+  actions?: ChatAction[];
 };
+
+/** C19: the boxes M8 can put under a reply with the show_options tool. */
+export const CHAT_ACTIONS = ["call_loan_officer", "book_time"] as const;
+export type ChatAction = (typeof CHAT_ACTIONS)[number];
 
 /** C7: one of the three options on a dated example card. Figures are computed server-side. */
 export type PricingCardOption = {
@@ -61,5 +67,6 @@ export const M8_SESSION_KEY = "loanm8_m8_conversation_v10";
  * - voice: C15, the finished reply's signature for /api/m8-speak (only while voice is on)
  * - say: C18, one finished sentence (or a few) of the reply, signed, to speak right away
  * - sayReset: C18, the guard replaced the reply: stop speaking and drop what's queued
+ * - actions: C19, boxes to show under this reply (call, book, …)
  */
-export type M8Event = { text?: string; replace?: string; userText?: string; notice?: string; error?: string; pricing?: PricingCard; voice?: string; say?: { text: string; sig: string }; sayReset?: true };
+export type M8Event = { text?: string; replace?: string; userText?: string; notice?: string; error?: string; pricing?: PricingCard; voice?: string; say?: { text: string; sig: string }; sayReset?: true; actions?: ChatAction[] };

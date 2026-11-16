@@ -38,8 +38,9 @@ export const SPONSOR = {
 };
 
 export const MLOS = {
-  jason: { name: "Jason Shapiro", nmls: "1844143", photo: "/team/jason-shapiro-2026.webp", stateLicenses: { CA: "CA-DFPI 1844143" } },
-  ryder: { name: "Ryder Fasse", nmls: "119822", photo: "/team/ryder-fasse-2026.webp" /* owner-supplied photo, 2026-11-08 */ },
+  // C19 (owner, 2026-11-16): direct numbers for "Call {first} now" in M8 chat.
+  jason: { name: "Jason Shapiro", nmls: "1844143", phone: "206-234-2734", photo: "/team/jason-shapiro-2026.webp", stateLicenses: { CA: "CA-DFPI 1844143" } },
+  ryder: { name: "Ryder Fasse", nmls: "119822", phone: "206-351-0923", photo: "/team/ryder-fasse-2026.webp" /* owner-supplied photo, 2026-11-08 */ },
 };
 
 // Every state routes to Jason EXCEPT Oregon → Ryder.

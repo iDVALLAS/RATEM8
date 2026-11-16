@@ -1295,3 +1295,41 @@ separate codebase and Google project and is untouched).
 - `/api/m8-speak` per-IP limits raised to 90/min and 1,500/day (a reply is
   now several requests); the daily character cap is unchanged.
 - Tests: `lib/voice/sentences.test.ts`. `npm run verify` passes.
+
+## C19 — Training, honest handoffs and boxes in the chat (2026-11-16)
+
+From the owner's review of a real test chat (Neon `m8_transcripts`,
+2026-11-16, WA refinance): M8 used emoji (read aloud as "smiling face"),
+promised a priced example three times before finding none matched, said
+"Jason has been notified and will reach out" with no phone or email, then
+pointed to a "Talk to" button it couldn't locate and claimed a handoff
+"should trigger the contact option".
+
+- **Owner's instructions** (`lib/prompts/m8-owner.ts`), appended after the
+  unchanged production prompt on every chat: no emoji; M8 can connect the
+  borrower to the loan officer now and does it with the boxes; never say
+  the LO was notified without contact details; no priced-example promise
+  before `get_pricing` returns one; one short line before a tool; ask a
+  cut-off question to be finished. Plus the Pacific time and whether calls
+  are open, and the owner's training notes.
+- **`/mlo/training`** (admin): the owner types M8's training notes (up to
+  12,000 characters, settings row `site-training`); used from the next
+  message. The built-in rules are shown below it.
+- **Third tool `show_options`** (`call_loan_officer`, `book_time`), zod-
+  validated; boxes go out only with a reply that passed the guard. Without
+  a nameable loan officer it says there's no one to connect to.
+  `request_handoff`'s results no longer tell M8 the LO will reach out.
+- **Boxes** (`components/chat/ActionCards.tsx`, in M8 Chat and the homepage
+  voice panel): 9 AM–6 PM Pacific every day (`lib/call-hours.ts`) "Call
+  {first} now" (tel: link, number shown for computers); otherwise "Have
+  {first} call me" (phone required, name and best time optional →
+  `/api/m8-callback`: saved as a handoff and emailed with the last few
+  redacted messages; 503 shows the number instead; 5/hour per IP); "Book a
+  time" always under it. Direct lines in `config/licensing.ts` (owner:
+  Jason 206-234-2734, Ryder 206-351-0923). No Twilio: texts or a website-
+  bridged warm transfer would need it.
+- Tests: `lib/call-hours.test.ts`, show_options in `lib/m8/m8.test.ts`,
+  R41/R44 updated for three tools. `npm run verify` passes.
+- Counsel: "Have {first} call me" collects a phone number (kept with
+  handoffs, 3 years); `/privacy` may need a line. Next: C20, the Loan
+  Estimate upload box (M8 explains it, the LO gets a copy).

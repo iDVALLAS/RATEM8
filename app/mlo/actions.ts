@@ -11,6 +11,7 @@ import { pricingScenarios } from "@/lib/pricing/daily";
 import { DEFAULT_COMP_RULE } from "@/lib/pricing/compRule";
 import { NO_RISKY_FEATURES, type QuoteInput } from "@/lib/pricing/types";
 import { saveVoice } from "@/lib/voice/google";
+import { saveTraining } from "@/lib/prompts/m8-owner";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const num = (fd: FormData, k: string, d = 0) => {
@@ -142,4 +143,12 @@ export async function saveVoiceAction(fd: FormData): Promise<void> {
   const res = await saveVoice(name, actor);
   const flash = res.ok ? { ok: true, lines: [`M8 now speaks with ${name}.`] } : { ok: false, lines: [res.error] };
   redirect(`/mlo/voice?f=${encodeFlash(flash)}`);
+}
+
+/** C19: the owner's training notes for M8, from /mlo/training. */
+export async function saveTrainingAction(fd: FormData): Promise<void> {
+  const actor = await requireAdmin();
+  const res = await saveTraining(String(fd.get("training") ?? ""), actor);
+  const flash = res.ok ? { ok: true, lines: ["Saved. M8 uses it from the next message (within a minute)."] } : { ok: false, lines: [res.error] };
+  redirect(`/mlo/training?f=${encodeFlash(flash)}`);
 }

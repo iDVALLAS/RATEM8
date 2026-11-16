@@ -46,14 +46,14 @@ describe("output guard (C4)", () => {
 });
 
 describe("pipeline (C4)", () => {
-  it("streams a clean reply slice by slice, offering exactly the two tools, and counts tokens", async () => {
+  it("streams a clean reply slice by slice, offering exactly the three tools, and counts tokens", async () => {
     const { client, calls } = fakeClient([{ chunks: chunk("Points are prepaid interest. Want to compare both ways?") }]);
     const events: string[] = [];
     const r = await runM8Turn({ client, model: "fake", maxTokens: M8_MAX_TOKENS, system: "SYSTEM", turn: prepareTurn([{ role: "user", content: "What are points?" }]), tools: { sessionId: "s", mloId: null, mloName: null, state: null }, mloName: "x", emit: (e) => e.text && events.push(e.text) });
     expect(r.guard).toBeNull();
     expect(events.join("")).toBe(r.reply);
     expect(calls[0].system).toBe("SYSTEM");
-    expect(calls[0].tools).toEqual(["get_pricing", "request_handoff"]);
+    expect(calls[0].tools).toEqual(["get_pricing", "request_handoff", "show_options"]);
     expect(r.tokens).toBe(150);
   });
 
@@ -141,5 +141,31 @@ describe("guard reads a list's lead-in (C16.1)", () => {
   it("still blocks a rate list, or a heading that names rates", () => {
     expect(guardReply("**Today's options:**\n\n- 6.25% – 30-year loans for buyers with good credit.", new Set()).ok).toBe(false);
     expect(guardReply("**Down payment and rates:**\n\n- 6.25% – 30-year loans.", new Set()).ok).toBe(false);
+  });
+});
+
+describe("show_options boxes (C19)", () => {
+  it("shows the call box with the loan officer, and says honestly when there is none", async () => {
+    const { runTool } = await import("./tools");
+    const ctx = { sessionId: "s", mloId: "mlo-001", mloName: "Pat Lee", state: "WA" };
+    const run = await runTool("show_options", { options: ["call_loan_officer", "call_loan_officer"] }, ctx);
+    expect(run.isError).toBe(false);
+    expect(run.actions).toEqual(["call_loan_officer"]);
+    expect(JSON.parse(run.content).message).toMatch(/Don't say Pat Lee has been notified/);
+    const none = await runTool("show_options", { options: ["book_time"] }, { ...ctx, mloName: null });
+    expect(none.actions).toBeUndefined();
+    expect(JSON.parse(none.content).status).toBe("unavailable");
+    expect((await runTool("show_options", { options: ["wire_money"] }, ctx)).isError).toBe(true);
+  });
+
+  it("sends the boxes after a reply that passed the guard", async () => {
+    const { fakeClient, chunk } = await import("../../tests/m8-harness");
+    const { client } = fakeClient([
+      { chunks: chunk("I can connect you now."), tool: { name: "show_options", input: { options: ["call_loan_officer"] } } },
+      { chunks: chunk(" Tap the box below.") },
+    ]);
+    const events: { actions?: unknown }[] = [];
+    await runM8Turn({ client, model: "fake", maxTokens: M8_MAX_TOKENS, system: "S", turn: prepareTurn([{ role: "user", content: "Can I talk to someone?" }]), tools: { sessionId: "s", mloId: "mlo-001", mloName: "Pat Lee", state: "WA" }, mloName: "Pat Lee", emit: (e) => events.push(e) });
+    expect(events.find((e) => e.actions)?.actions).toEqual(["call_loan_officer"]);
   });
 });

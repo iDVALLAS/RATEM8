@@ -4,9 +4,9 @@
  * (lib/m8/shared.ts M8Event). Used by the homepage voice session; the
  * typed chat (components/M8LiveChat.tsx) has its own copy of this loop.
  */
-import type { M8Event, M8Message, PricingCard } from "./shared";
+import type { ChatAction, M8Event, M8Message, PricingCard } from "./shared";
 
-export type M8TurnResult = { text: string; pricing?: PricingCard; voice?: string; userText?: string };
+export type M8TurnResult = { text: string; pricing?: PricingCard; voice?: string; userText?: string; actions?: ChatAction[] };
 
 export async function streamM8Turn(
   messages: M8Message[],
@@ -58,6 +58,7 @@ export async function streamM8Turn(
       if (e.userText !== undefined) out.userText = e.userText;
       if (e.pricing) out.pricing = e.pricing;
       if (e.voice) out.voice = e.voice;
+      if (e.actions) out.actions = e.actions;
       if (e.sayReset) opts.onSayReset?.();
       if (e.say) opts.onSay?.(e.say.text, e.say.sig);
       if (e.replace !== undefined) out.text = e.replace;

@@ -41,6 +41,8 @@ export type TenantSettings = {
   monthlyPmi?: number;
   /** C15: M8's voice, on the site-wide row only (lib/voice/google.ts VOICE_SETTINGS_ID). */
   voiceName?: string;
+  /** C19: the owner's training notes for M8, on the site-wide row only (lib/prompts/m8-owner.ts). */
+  trainingText?: string;
   updatedBy: string;
   updatedAt: string;
 };

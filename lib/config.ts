@@ -103,6 +103,8 @@ export type Mlo = {
   photo: string;
   /** Borrower booking link. Empty → "coming soon". */
   calendly: string;
+  /** C19: direct line for "Call {first} now" in M8 chat (config/licensing.ts). */
+  phone?: string;
   /**
    * The MLO's own secure application (POS / 1003) link, e.g. their ARIVE
    * borrower portal (v18). Only an https URL renders "Start your
@@ -195,6 +197,7 @@ export const CONFIG = {
     // C1 (owner-supplied headshot, 2026-11-01): 512×512, transparent corners.
     photo: MLOS.jason.photo,
     calendly: env("NEXT_PUBLIC_CALENDLY_BORROWER") ?? "",
+    phone: MLOS.jason.phone,
     applicationUrl: env("APPLICATION_URL_MLO_001") ?? "[APPLICATION URL — POS / 1003 link]",
     licenses: licensesFor("jason"),
   } satisfies Mlo,
@@ -212,6 +215,7 @@ export const CONFIG = {
       // Listed before the file exists: MloAvatar falls back to initials until it does.
       photo: MLOS.ryder.photo,
       calendly: env("NEXT_PUBLIC_CALENDLY_RYDER") ?? "",
+      phone: MLOS.ryder.phone,
       applicationUrl: env("APPLICATION_URL_MLO_002") ?? "[APPLICATION URL — POS / 1003 link]",
       // Owner 2026-10-01: Oregon only on this site. NMLS Consumer Access
       // (owner screenshot 2026-10-01): Oregon MLO license under his NMLS ID,

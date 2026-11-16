@@ -31,3 +31,6 @@
 .mlo-voice .mlo-btn { margin-top: 0; }
 .mlo-btn--ghost { background: transparent; color: var(--accent); }
 .mlo-btn:disabled { opacity: 0.5; cursor: default; }
+/* C19: /mlo/training */
+.mlo-textarea { width: 100%; margin-top: 12px; padding: 12px; border: 1px solid var(--rule-strong); border-radius: 12px; background: transparent; color: var(--fg); font: inherit; font-size: 0.95rem; line-height: 1.55; }
+.mlo-pre { white-space: pre-wrap; font-family: var(--font-jetbrains); font-size: 0.8rem; line-height: 1.6; color: var(--fg-soft); }

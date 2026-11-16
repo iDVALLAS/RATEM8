@@ -15,6 +15,7 @@ import { report } from "@/lib/monitoring";
 import { signReply, voiceOn } from "@/lib/voice/google";
 import { SentenceSplitter } from "@/lib/voice/sentences";
 import { VOICE_STYLE } from "@/lib/prompts/voice-style";
+import { ownerAddendum } from "@/lib/prompts/m8-owner";
 
 /**
  * /api/m8-chat — the live M8 endpoint behind the public /chat (C1, hardened in C4).
@@ -197,7 +198,7 @@ export async function POST(req: Request) {
             client: new Anthropic({ apiKey }),
             model: m8Model(),
             maxTokens: M8_MAX_TOKENS,
-            system: buildM8SystemPrompt(vars) + (voiceMode ? VOICE_STYLE : ""),
+            system: buildM8SystemPrompt(vars) + (await ownerAddendum()) + (voiceMode ? VOICE_STYLE : ""),
             turn,
             tools: { sessionId: sid, mloId: mlo?.id ?? null, mloName: mlo?.name ?? null, state: route?.stateName ?? null, examplesOn: CONFIG.pricing.manual },
             mloName: vars.mloName,
