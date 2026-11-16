@@ -26,9 +26,10 @@ import { manualProvider } from "@/lib/pricing/providers/manual";
 import { tenantForState } from "@/lib/pricing/tenants";
 import type { LenderQuote, PricingRun } from "@/lib/pricing/types";
 import { quoteForPick } from "@/lib/pricing/antiSteering";
-import type { PricingCard, PricingCardOption } from "./shared";
+import { CHAT_ACTIONS, type ChatAction, type PricingCard, type PricingCardOption } from "./shared";
+import { CALL_HOURS, inCallHours } from "@/lib/call-hours";
 
-export const TOOL_NAMES = ["get_pricing", "request_handoff"] as const;
+export const TOOL_NAMES = ["get_pricing", "request_handoff", "show_options"] as const;
 export type ToolName = (typeof TOOL_NAMES)[number];
 
 const PricingInput = z.object({
@@ -78,6 +79,9 @@ const HandoffInput = z.object({
   email: z.email().max(254).optional(),
 });
 
+/** C19: boxes under the reply. */
+const OptionsInput = z.object({ options: z.array(z.enum(CHAT_ACTIONS)).min(1).max(3) });
+
 const HandoffOutput = z.object({ status: z.enum(["sent", "saved", "unavailable"]), message: z.string() });
 
 /** Anthropic tool definitions (JSON Schema mirrors of the zod inputs). */
@@ -116,6 +120,16 @@ export const M8_TOOLS: Anthropic.Messages.Tool[] = [
       required: ["reason", "summary"],
     },
   },
+  {
+    name: "show_options",
+    description:
+      "Show boxes under your reply that the borrower can tap. call_loan_officer: connect them to their licensed loan officer now (a tap-to-call box during call hours; outside them, a box where they leave their number for a call back, plus a booking link). book_time: their loan officer's booking link. upload_loan_estimate: a box to upload their Loan Estimate (PDF or photo); you'll then get the figures read from it to explain, and their loan officer gets a copy. Use this instead of describing buttons.",
+    input_schema: {
+      type: "object",
+      properties: { options: { type: "array", items: { type: "string", enum: [...CHAT_ACTIONS] }, minItems: 1, maxItems: 3 } },
+      required: ["options"],
+    },
+  },
 ];
 
 export type ToolContext = {
@@ -126,7 +140,7 @@ export type ToolContext = {
   /** C7: PRICING_MANUAL is on, so get_pricing may return a dated example. */
   examplesOn?: boolean;
 };
-export type ToolRun = { content: string; isError: boolean; pricing?: PricingResult; card?: PricingCard };
+export type ToolRun = { content: string; isError: boolean; pricing?: PricingResult; card?: PricingCard; actions?: ChatAction[] };
 
 /** The rates and APRs in a pricing result, as guard keys. */
 export function pricedRates(result: PricingResult | undefined): Set<string> {
@@ -252,17 +266,54 @@ async function requestHandoff(input: unknown, ctx: ToolContext): Promise<ToolRun
   }
   const out = HandoffOutput.parse(
     sent
-      ? { status: "sent", message: "Sent to the loan officer. They'll reply by email if the borrower gave one; otherwise suggest the Talk to button to book a call." }
+      ? { status: "sent", message: email ? "Sent to the loan officer, who will reply by email." : "Sent to the loan officer, but the borrower gave no email or phone, so they can't be contacted yet. Don't say they'll reach out: call show_options with call_loan_officer so the borrower can call or leave a number." }
       : saved
-        ? { status: "saved", message: "Saved for the loan officer. Suggest the Talk to button to book a call or send a question now." }
+        ? { status: "saved", message: "Saved for the loan officer, but not sent. Don't say they'll reach out: call show_options with call_loan_officer so the borrower can call, leave a number or book a time." }
         : { status: "unavailable", message: "Handoffs can't be sent from the chat right now. Point the borrower to the Talk to button above the chat." },
   );
   return { content: JSON.stringify(out), isError: false };
 }
 
-/** Runs one tool call. Unknown tools are refused (only the two above are allowed). */
+/**
+ * C19: the boxes. Only with a nameable loan officer (a licensed state);
+ * otherwise M8 is told so and says it honestly.
+ */
+function showOptions(input: unknown, ctx: ToolContext, now = new Date()): ToolRun {
+  const parsed = OptionsInput.safeParse(input);
+  if (!parsed.success) return err("Invalid options: choose from call_loan_officer, book_time and upload_loan_estimate.");
+  const wanted = Array.from(new Set(parsed.data.options));
+  const leOn = process.env.SECOND_LOOK_LIVE === "true";
+  if (!ctx.mloName && !(leOn && wanted.includes("upload_loan_estimate"))) {
+    return { content: JSON.stringify({ status: "unavailable", message: "No licensed loan officer serves the borrower's state on this site yet, so there's no one to connect them to. Say so plainly." }), isError: false };
+  }
+  // Calls and booking need a loan officer; the upload needs Loan Estimate reading turned on.
+  const actions = wanted.filter((a) => (a === "upload_loan_estimate" ? leOn : !!ctx.mloName));
+  if (!actions.length) return { content: JSON.stringify({ status: "unavailable", message: "Loan Estimate upload isn't turned on yet. Offer to explain any line they read out instead." }), isError: false };
+  const open = inCallHours(now);
+  const lo = ctx.mloName ?? "their loan officer";
+  const shown = actions.map((a) =>
+    a === "upload_loan_estimate"
+      ? `an "Upload your Loan Estimate" box (M8 reads it and the figures come back to you to explain; a copy goes to ${lo})`
+      : a === "call_loan_officer"
+      ? open
+        ? `a "Call ${ctx.mloName} now" box that dials them directly (call hours are ${CALL_HOURS.label}, and it's within them now), with "Book a time" under it`
+        : `a "Have ${ctx.mloName} call me" box where the borrower leaves their number for a call back (it's outside call hours, ${CALL_HOURS.label}), with "Book a time" under it`
+      : `a "Book a time with ${ctx.mloName}" box`,
+  );
+  return {
+    content: JSON.stringify({
+      status: "shown",
+      message: `The chat now shows ${shown.join(" and ")} right under your reply. Refer to it as "the box below". Don't say ${lo} has been notified or will reach out: nothing is sent until the borrower uses a box.${actions.length < wanted.length ? " Some of what you asked for isn't available here, so it isn't shown." : ""}`,
+    }),
+    isError: false,
+    actions,
+  };
+}
+
+/** Runs one tool call. Unknown tools are refused (only the three above are allowed). */
 export async function runTool(name: string, input: unknown, ctx: ToolContext): Promise<ToolRun> {
   if (name === "get_pricing") return getPricing(input, ctx);
   if (name === "request_handoff") return requestHandoff(input, ctx);
+  if (name === "show_options") return showOptions(input, ctx);
   return err(`Unknown tool ${name}.`);
 }

@@ -62,12 +62,38 @@ function nearestDistance(text: string, re: RegExp, at: number): number {
 }
 
 /**
+ * True when the percentage's own line, or the nearest line above it that
+ * introduces a list (ends with ":"), names a non-rate figure and no rate.
+ */
+function leadInIsOther(text: string, at: number): boolean {
+  const lineStart = text.lastIndexOf("\n", at - 1) + 1;
+  const nl = text.indexOf("\n", at);
+  const line = text.slice(lineStart, nl === -1 ? text.length : nl);
+  const above = text.slice(0, lineStart).split("\n").reverse().slice(0, 12);
+  const leadIn = above.find((l) => /:\**\s*$/.test(l)) ?? "";
+  const has = (re: RegExp, s: string) => {
+    re.lastIndex = 0;
+    return re.test(s);
+  };
+  if (has(RATE_WORDS, line) || has(RATE_WORDS, leadIn)) return false;
+  return has(OTHER_WORDS, line) || has(OTHER_WORDS, leadIn);
+}
+
+/**
  * Percentages in `text` that read as an interest rate or APR. A percentage
  * counts when a rate word is nearer to it than a non-rate word (down
  * payment, LTV, DTI…), or when it's a decimal between 2% and 12% with no
  * non-rate word near it.
+ *
+ * C16.1: mid-stream (`partial`), a bare decimal with no rate word yet is
+ * left for later when the words after it haven't arrived ("as little as
+ * 3.5%" before " down"). The check on the finished reply judges it.
+ *
+ * C16.1: a bare decimal in a list or line whose lead-in names a non-rate
+ * figure ("Common down payment options:" then "- 3.5% – FHA loans…") is
+ * that figure, as long as neither the line nor the lead-in names a rate.
  */
-export function findRateMentions(text: string): { value: number; raw: string; index: number; decimals: number }[] {
+export function findRateMentions(text: string, partial = false): { value: number; raw: string; index: number; decimals: number }[] {
   const out: { value: number; raw: string; index: number; decimals: number }[] = [];
   PERCENT.lastIndex = 0;
   let m: RegExpExecArray | null;
@@ -80,6 +106,9 @@ export function findRateMentions(text: string): { value: number; raw: string; in
     const other = nearestDistance(window, OTHER_WORDS, at);
     // With no context either way, a decimal percentage between 2 and 12 reads as a rate ("you can get 5.99%").
     const rateShaped = /\.\d+$/.test(m[1]) && value >= 2 && value <= 12;
+    if (rateShaped && rate === Infinity && other === Infinity && leadInIsOther(text, m.index)) continue;
+    const contextPending = partial && m.index + m[0].length + WINDOW > text.length;
+    if (contextPending && rate === Infinity) continue;
     if ((rate < Infinity && rate < other) || (rateShaped && other === Infinity)) out.push({ value, raw: m[0], index: m.index, decimals: (m[1].split(".")[1] ?? "").length });
   }
   return out;
@@ -120,7 +149,7 @@ export function guardReply(text: string, pricedRates: Set<string>, userStated: S
   if (SSN_SHAPE.test(text) || ACCOUNT_RUN.test(text)) return { ok: false, reason: "sensitive-echo" };
   if (PROMISE.test(text)) return { ok: false, reason: "promise" };
   if (!pricingLive && PRICING_PROMISE.test(text)) return { ok: false, reason: "pricing-promise" };
-  const rates = findRateMentions(text);
+  const rates = findRateMentions(text, partial);
   let quoted = false;
   for (const x of rates) {
     if (isPriced(x, pricedRates)) quoted = true;

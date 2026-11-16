@@ -1148,3 +1148,219 @@ it's not available."
 - Verified locally with snapshots published through the fake LoanSifter:
   200 with both tabs, desktop and 390px without overflow or errors; with
   no snapshots, 404. `npm run verify` passes.
+
+## C14 — New headshot for the owner (2026-11-08)
+
+Owner: "use this photo instead … so my face is visible." The old photo was
+a waist-up shot, so at 30–36px the face was tiny.
+- `public/team/jason-shapiro-2026.webp`: the owner's new photo (cut-out on
+  transparent), cropped to head and shoulders with room above the hair, on
+  a light circle (#E8ECE9) so dark hair and the suit don't vanish on the
+  dark theme; 512×512, transparent corners.
+- New file name (and `config/licensing.ts` photo path) so Vercel's image
+  cache serves the new one; the old file is removed.
+- Verified in the chat card at 36px: face clearly visible.
+  `npm run verify` passes.
+- Ryder's photo (`public/team/ryder-fasse-2026.webp`): same crop and light
+  circle, centred on his face; `config/licensing.ts` points to it, so
+  Oregon visitors see his face instead of initials.
+- Chat card avatar 36px → 56px (owner chose 56 from a 36/48/56/64 mockup).
+  Checked on desktop and 390px for WA (Jason) and OR (Ryder): 56×56, no
+  overflow.
+
+## C15 — M8 speaks: read replies aloud with its own Google voice (2026-11-12)
+
+Owner: "get the talk function going"; M8 gets "its own distinct voice, not
+mine", "warm and conversational but confident and seasoned." Google Cloud
+project "Loanmate", Cloud Text-to-Speech enabled, API key restricted to
+that API and saved in Vercel as `GOOGLE_CLOUD_API_KEY` (Sensitive).
+
+- `lib/voice/google.ts` (server-only): the switch (`voiceOn()`: key set
+  and `M8_VOICE` not "false"), Google TTS over REST (MP3), the curated
+  stock voices (Chirp 3 HD and Studio, a warm/confident mix), the saved
+  choice (pricing store settings row `site-voice`, default Sulafat), reply
+  signing (HMAC, one hour), and `speakableText` (markdown out, 2,500-char
+  cap at a sentence end).
+- `/api/m8-chat` sends a `voice` signature with each finished reply.
+  `/api/m8-speak` voices only signed replies; 20/min and 200/day per
+  hashed IP; site-wide daily cap `M8_VOICE_DAILY_CHARS` (200,000). Logs
+  counts only.
+- Chat: "Read replies aloud: on/off" in the strip under the input (this
+  browser remembers it), and "Listen"/"Stop" under each reply that has a
+  signature. Nothing shows while voice is off. No microphone yet.
+- `/mlo/voice` (admin): each candidate reads the same line ("Play
+  sample"), then "Use this voice". Samples are admin-only and cached.
+- Tests: `lib/voice/google.test.ts` (switch, signatures, speech text,
+  candidates, saving). `npm run verify` passes. Local runs have no Google
+  or Anthropic key, so the audio itself is checked on the Vercel preview.
+- Optional Vercel variables: `M8_VOICE="false"` (kill switch),
+  `M8_VOICE_DAILY_CHARS`, `M8_VOICE_SECRET` (else derived from the key).
+- Next: phase 2, the mic (Cloud Speech-to-Text) once that API is enabled
+  in Loanmate and added to the key's restrictions.
+
+## C16 — M8 listens: a mic button in the chat (2026-11-12)
+
+Owner: Cloud Speech-to-Text is now enabled in "Loanmate" and allowed on the
+same API key as Text-to-Speech, so no new Vercel variable.
+
+- Mic button between the message box and Send (only while the mic is on).
+  First tap shows a one-time note: the voice goes to Google only to become
+  text, the recording isn't kept, and the words land in the box to check
+  before sending. Nothing goes to M8 until the borrower presses Send, so
+  the usual redaction and guard apply to spoken questions too.
+- Recording: Web Audio (`components/chat/useMic.ts`, `lib/voice/pcm.ts`),
+  16 kHz mono PCM, stops on a second tap or at 30 seconds; near-silence
+  isn't sent. Same in Chrome, Safari and Firefox.
+- `/api/m8-listen`: Google `speech:recognize` (en-US, punctuation, a
+  mortgage phrase list). Audio and text are never stored or logged. 20/min
+  and 150/day per hashed IP; site-wide `M8_LISTEN_DAILY_SECONDS` (7,200).
+  `M8_LISTEN="false"` turns off only the mic.
+- Tests: `lib/voice/pcm.test.ts`, mic switch in `lib/voice/google.test.ts`.
+  `npm run verify` passes.
+- Counsel: the mic note is new consent copy (`copy.chat.live.mic`); see
+  COMPLIANCE.md §6.
+
+## C16.1 — Guard no longer blocks "3.5% down" mid-stream (2026-11-12)
+
+Found while testing C16 on the preview: "What is a good down payment for
+a first home?" was replaced every time with "I can't quote a rate right
+now" (logs: `unquoted-rate (3.5%)`). The guard checks the reply as it
+streams; "as little as 3.5%" arrived before " down", and a bare decimal
+between 2% and 12% with no context reads as a rate.
+- `lib/m8/guard.ts`: mid-stream, a bare percentage with no rate word is
+  judged only once the words after it have arrived. The finished-reply
+  check is unchanged, so a bare rate is still replaced.
+- Retest on the preview still blocked: the finished reply listed "- **3.5% –
+  FHA loans** are popular for first-timers" under "**Common down payment
+  options:**", far outside the 45-character window. A bare decimal with no
+  context now also reads its line and the list's lead-in (the nearest line
+  above ending in ":"): a non-rate figure there and no rate word in either
+  means it isn't a rate.
+- `lib/m8/pipeline.ts` `fallbackFor`: capitalizes each sentence start
+  ("… right now. A licensed loan officer …").
+- Tests in `lib/m8/m8.test.ts`. `npm run verify` passes.
+
+## C17 — Talk with M8 on the homepage (2026-11-12)
+
+Owner: "tap Voice on the homepage and the chat just starts chatting with
+the M8 orb. It doesn't go anywhere, but it is being transcribed … within
+the chat screen and keeping logs of the chat."
+
+- `components/voice/useVoiceChat.ts`: hands-free loop. Listen (stops by
+  itself after ~1.3s of quiet; pauses if nobody speaks for 9s) → the words
+  go to M8 → M8 answers out loud → listen again. Same endpoints as the
+  typed chat, so the redaction, guard, limits and transcript storage (Neon,
+  3 years) apply, and the same browser copy of the conversation, so
+  "Continue in M8 Chat" picks up where it left off.
+- `components/voice/VoicePanel.tsx` under the orb: a one-time note before
+  the mic opens (AI disclosure, Google turns voice into text and the
+  recording isn't kept, the storage line, the two-party consent line in WA
+  and CA, privacy link), then the conversation written out, a status line,
+  "End voice chat" and "Continue in M8 Chat".
+- `HeroOrb`: Voice and the orb start it; the orb shows listening, thinking
+  and speaking. Tapping the orb while M8 talks cuts in; while listening,
+  sends now; while paused, resumes. Q & A still opens M8 Chat. With the
+  mic off (`listenOn()` false), Voice keeps the old popup.
+- Shared pieces: `lib/m8/client.ts` (one streamed turn), `lib/voice/client.ts`
+  (play M8's voice, the silent unlock sound), `useMic` gains `auto`.
+- Spoken text drops emoji (`speakableText`); the written reply keeps them.
+- Checked on the preview at 390px with a simulated microphone (tester
+  cookie, stealth on): consent note → listen → `m8-listen` 200 →
+  `m8-chat` 200 → `m8-speak` 200, the conversation written out under the
+  orb, status "M8 is talking. Tap the orb to cut in."
+- `npm run verify` passes. Counsel: the consent note is new copy
+  (`copy.hero.voiceChat`).
+
+## C18 — M8 starts talking after its first sentence (2026-11-16)
+
+Owner: "he needs to start talking before he types out his whole answer
+because his response time is way too slow" (as on JParlay; JParlay is a
+separate codebase and Google project and is untouched).
+
+- Before: the whole reply was written, then sent to Google as one piece,
+  then played. Now `/api/m8-chat` (when the browser asks, `speak: true`)
+  cuts the streamed reply into sentences (`lib/voice/sentences.ts`: first
+  piece from 20 characters, then 60; never at "3.5%" or "e.g.") and sends
+  each one signed (`say` events). The browser fetches each piece's audio
+  as it arrives and plays them in order (`SpeechQueue`, `lib/voice/client.ts`),
+  so the next piece is ready while the current one plays.
+- Only text that already passed the streaming guard is spoken: the same
+  text that is already on screen. If the finished-reply check replaces the
+  reply, `sayReset` stops the speech and the replacement is spoken instead.
+- The homepage conversation also sends `voiceMode: true`, which appends
+  `lib/prompts/voice-style.ts` to the system prompt: two to four plain
+  sentences, no lists or emoji, every prompt rule still applies. The
+  owner's prompt text is unchanged. M8 Chat's "Read replies aloud" speaks
+  sentence by sentence too, without the shorter style.
+- `/api/m8-speak` per-IP limits raised to 90/min and 1,500/day (a reply is
+  now several requests); the daily character cap is unchanged.
+- Tests: `lib/voice/sentences.test.ts`. `npm run verify` passes.
+
+## C19 — Training, honest handoffs and boxes in the chat (2026-11-16)
+
+From the owner's review of a real test chat (Neon `m8_transcripts`,
+2026-11-16, WA refinance): M8 used emoji (read aloud as "smiling face"),
+promised a priced example three times before finding none matched, said
+"Jason has been notified and will reach out" with no phone or email, then
+pointed to a "Talk to" button it couldn't locate and claimed a handoff
+"should trigger the contact option".
+
+- **Owner's instructions** (`lib/prompts/m8-owner.ts`), appended after the
+  unchanged production prompt on every chat: no emoji; M8 can connect the
+  borrower to the loan officer now and does it with the boxes; never say
+  the LO was notified without contact details; no priced-example promise
+  before `get_pricing` returns one; one short line before a tool; ask a
+  cut-off question to be finished. Plus the Pacific time and whether calls
+  are open, and the owner's training notes.
+- **`/mlo/training`** (admin): the owner types M8's training notes (up to
+  12,000 characters, settings row `site-training`); used from the next
+  message. The built-in rules are shown below it.
+- **Third tool `show_options`** (`call_loan_officer`, `book_time`), zod-
+  validated; boxes go out only with a reply that passed the guard. Without
+  a nameable loan officer it says there's no one to connect to.
+  `request_handoff`'s results no longer tell M8 the LO will reach out.
+- **Boxes** (`components/chat/ActionCards.tsx`, in M8 Chat and the homepage
+  voice panel): 9 AM–6 PM Pacific every day (`lib/call-hours.ts`) "Call
+  {first} now" (tel: link, number shown for computers); otherwise "Have
+  {first} call me" (phone required, name and best time optional →
+  `/api/m8-callback`: saved as a handoff and emailed with the last few
+  redacted messages; 503 shows the number instead; 5/hour per IP); "Book a
+  time" always under it. Direct lines in `config/licensing.ts` (owner:
+  Jason 206-234-2734, Ryder 206-351-0923). No Twilio: texts or a website-
+  bridged warm transfer would need it.
+- Tests: `lib/call-hours.test.ts`, show_options in `lib/m8/m8.test.ts`,
+  R41/R44 updated for three tools. `npm run verify` passes.
+- Counsel: "Have {first} call me" collects a phone number (kept with
+  handoffs, 3 years); `/privacy` may need a line. Next: C20, the Loan
+  Estimate upload box (M8 explains it, the LO gets a copy).
+
+## C20 — Upload your Loan Estimate in M8 chat (2026-11-16)
+
+Owner: a box in the chat to upload a Loan Estimate; "both" — M8 explains it
+and the loan officer gets a copy.
+
+- `show_options` gains `upload_loan_estimate` (only while
+  `SECOND_LOOK_LIVE=true`; works without a named loan officer, unlike the
+  call and booking boxes). The owner's instructions tell M8 to offer it when
+  the borrower has a Loan Estimate, then explain the figures line by line
+  without judging the lender or comparing pricing.
+- Box (`components/chat/ActionCards.tsx` `UploadBox`): PDF, PNG, JPG or WebP
+  up to 4 MB, with the note that M8 reads it, a copy goes to the loan
+  officer, and LoanM8 doesn't keep the file.
+- `/api/m8-loan-estimate`: in parallel, M8 reads it
+  (`lib/second-look/decode.ts`: Second Look's explain-only prompt and zod
+  schema, now with PDFs; the document is data, never instructions) and
+  Resend emails the file to the loan officer as an attachment. Not stored,
+  content never logged; 4/hour and 10/day per hashed IP; 503 while
+  `SECOND_LOOK_LIVE` is off.
+- Then the chat sends M8 the figures it read as the borrower's message
+  (`lib/second-look/chat.ts`), so M8 can walk through them and the guard
+  lets it repeat the borrower's own rate and APR. Works in M8 Chat and the
+  homepage voice conversation.
+- Tests: `lib/second-look/chat.test.ts`, the C20 case in `lib/m8/m8.test.ts`.
+  `npm run verify` passes.
+- `/api/second-look` (the standalone page) is unchanged; it still takes
+  images or text only.
+- Counsel: the Second Look prompt file is still marked DRAFT for counsel;
+  turning on `SECOND_LOOK_LIVE` also turns on the standalone page's live
+  decode. The emailed copy contains the borrower's name and address.

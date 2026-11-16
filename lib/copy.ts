@@ -105,6 +105,29 @@ export const copy = {
     // 2026-10-01 (Edit 1): both buttons open a popup that routes to /chat.
     voicePopup: "My voice chat tech is being upgraded, be back soon. Chat with me in the meantime — M8",
     qaPopup: "Opening M8 Chat — ask me anything about rates, points, or your loan. — M8",
+    /**
+     * C17 (owner 2026-11-12): Voice on the homepage talks with M8 right
+     * here, the conversation written out under the orb and saved like M8
+     * Chat. Shown only while the mic is on; otherwise the popup above.
+     */
+    voiceChat: {
+      consentTitle: "Talk with M8",
+      consentBody: "M8 is an AI, not a person or a loan officer. Your voice goes to Google only to turn it into text, and the recording isn't kept. The conversation is written out here.",
+      start: "Start talking",
+      notNow: "Not now",
+      listening: "Listening…",
+      thinking: "M8 is thinking…",
+      speaking: "M8 is talking. Tap the orb to cut in.",
+      paused: "Paused. Tap the orb to keep talking.",
+      hint: "Ask about payments, points, or what a line on your Loan Estimate means.",
+      end: "End voice chat",
+      continueInChat: "Continue in M8 Chat",
+      transcriptLabel: "Your conversation with M8",
+      you: "You",
+      micBlocked: "The microphone is blocked. Allow it in your browser's settings, or type in M8 Chat.",
+      failed: "M8 couldn't answer just now. Try again, or type in M8 Chat.",
+      speakFailed: "M8 couldn't read that aloud. The reply is written above.",
+    },
     /** × on the popup: cancels the redirect and stays on the homepage. */
     popupCancel: "Cancel and stay on this page",
     /** Screen-reader hint read after the popup text. */
@@ -749,6 +772,53 @@ export const copy = {
       },
       /** C6: the "AI" tag next to M8's name on every message (AI disclosure). */
       aiTag: "AI",
+      /** C15: M8 reads its replies aloud (Google voice; shown only while voice is on). */
+      voice: {
+        toggleOn: "Read replies aloud: on",
+        toggleOff: "Read replies aloud: off",
+        listen: "Listen",
+        stop: "Stop",
+        reading: "reading aloud",
+        expired: "That reply is too old to read aloud. Newer replies can be.",
+        failed: "M8 couldn't read that aloud just now. The reply is above.",
+      },
+      /** C19: boxes M8 shows under a reply (show_options). {first} = the loan officer's first name. */
+      actions: {
+        callNow: "Call {first} now",
+        callHours: "Available {hours}.",
+        callBack: "Have {first} call me",
+        callBackBody: "It's outside call hours ({hours}). Leave your number and {first} will call you.",
+        phoneLabel: "Your phone number",
+        nameLabel: "Your first name (optional)",
+        whenLabel: "Best time to call (optional)",
+        send: "Request a call",
+        sending: "Sending…",
+        sent: "Sent. {first} has your number and what you've been asking about.",
+        failed: "This box can't send right now. You can call {first} at {phone}.",
+        book: "Book a time with {first}",
+        /** C20: the Loan Estimate upload box. {lo} = the loan officer's first name, or "your loan officer". */
+        upload: "Upload your Loan Estimate",
+        uploadBody: "A PDF or a photo, up to 4 MB. M8 reads it here and explains it, and a copy goes to {lo} so they can price against it. LoanM8 doesn't keep the file.",
+        uploadPick: "Choose file",
+        uploadSend: "Upload",
+        uploading: "M8 is reading it…",
+        uploadDone: "M8 read your Loan Estimate.",
+        uploadEmailed: "{lo} has a copy.",
+        uploadNotEmailed: "The copy to {lo} didn't send; you can share it on a call.",
+        uploadFallbackLo: "your loan officer",
+        bookSoon: "Booking link coming soon.",
+      },
+      /** C16: the microphone. The words land in the box; nothing is sent until the borrower presses send. */
+      mic: {
+        start: "Speak your question",
+        stop: "Stop and turn it into text",
+        listening: "Listening… tap the mic when you're done ({s}s)",
+        working: "Turning your words into text…",
+        consentTitle: "Talk instead of typing?",
+        consentBody: "Your voice goes to Google only to turn it into text, and the recording isn't kept. The words land in the box so you can check them before you send.",
+        consentYes: "Turn on the mic",
+        consentNo: "Not now",
+      },
       /**
        * C6: the bar above the input once the borrower asks about pricing
        * (style C, owner 2026-11-05). It opens the same "Talk to" panel as

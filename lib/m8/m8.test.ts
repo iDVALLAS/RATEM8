@@ -46,14 +46,14 @@ describe("output guard (C4)", () => {
 });
 
 describe("pipeline (C4)", () => {
-  it("streams a clean reply slice by slice, offering exactly the two tools, and counts tokens", async () => {
+  it("streams a clean reply slice by slice, offering exactly the three tools, and counts tokens", async () => {
     const { client, calls } = fakeClient([{ chunks: chunk("Points are prepaid interest. Want to compare both ways?") }]);
     const events: string[] = [];
     const r = await runM8Turn({ client, model: "fake", maxTokens: M8_MAX_TOKENS, system: "SYSTEM", turn: prepareTurn([{ role: "user", content: "What are points?" }]), tools: { sessionId: "s", mloId: null, mloName: null, state: null }, mloName: "x", emit: (e) => e.text && events.push(e.text) });
     expect(r.guard).toBeNull();
     expect(events.join("")).toBe(r.reply);
     expect(calls[0].system).toBe("SYSTEM");
-    expect(calls[0].tools).toEqual(["get_pricing", "request_handoff"]);
+    expect(calls[0].tools).toEqual(["get_pricing", "request_handoff", "show_options"]);
     expect(r.tokens).toBe(150);
   });
 
@@ -109,5 +109,83 @@ describe("guard and a dated example's figures (C9.2)", () => {
     expect(guardReply("Lender A: 6.75% rate, APR 6.80%." + tail, priced)).toEqual({ ok: false, reason: "unquoted-rate", value: "6.75%" });
     // One decimal or none is not a priced figure: "7%" is not 6.875%.
     expect(guardReply("Rates are around 7% today, APR 7.1%." + tail, priced)).toMatchObject({ ok: false, reason: "unquoted-rate" });
+  });
+});
+
+describe("guard while a reply streams (C16.1)", () => {
+  const full = "FHA loans let you put as little as 3.5% down, and conventional loans start at 3% down for first-time buyers.";
+  it("doesn't block a down payment percentage before the word 'down' arrives", () => {
+    for (let i = 1; i <= full.length; i++) expect(guardReply(full.slice(0, i), new Set(), new Set(), true).ok).toBe(true);
+    expect(guardReply(full, new Set())).toEqual({ ok: true });
+  });
+  it("still blocks a bare rate once the reply is finished, and a named rate mid-stream", () => {
+    expect(guardReply("Right now you could get 6.25%", new Set(), new Set(), true).ok).toBe(true);
+    expect(guardReply("Right now you could get 6.25%.", new Set()).ok).toBe(false);
+    expect(guardReply("The rate is 6.25%", new Set(), new Set(), true).ok).toBe(false);
+  });
+});
+
+describe("guard fallback text (C16.1)", () => {
+  it("capitalizes the generic name at a sentence start", async () => {
+    const { fallbackFor } = await import("./pipeline");
+    expect(fallbackFor("unquoted-rate", "a licensed loan officer")).toBe("I can't quote a rate right now. A licensed loan officer can send you live pricing.");
+  });
+});
+
+describe("guard reads a list's lead-in (C16.1)", () => {
+  const reply = "Great question! Here's a plain-English breakdown:\n\n**Common down payment options:**\n\n- **3% – Conventional loans** (e.g., HomeReady or Home Possible) are available to first-time buyers with solid credit.\n- **3.5% – FHA loans** are popular for first-timers, with more flexible credit guidelines.\n- **20%** avoids private mortgage insurance on a conventional loan.";
+  it("treats percentages under a down payment heading as down payments, streaming or finished", () => {
+    for (let i = 1; i <= reply.length; i += 7) expect(guardReply(reply.slice(0, i), new Set(), new Set(), true).ok).toBe(true);
+    expect(guardReply(reply, new Set())).toEqual({ ok: true });
+  });
+  it("still blocks a rate list, or a heading that names rates", () => {
+    expect(guardReply("**Today's options:**\n\n- 6.25% – 30-year loans for buyers with good credit.", new Set()).ok).toBe(false);
+    expect(guardReply("**Down payment and rates:**\n\n- 6.25% – 30-year loans.", new Set()).ok).toBe(false);
+  });
+});
+
+describe("show_options boxes (C19)", () => {
+  it("shows the call box with the loan officer, and says honestly when there is none", async () => {
+    const { runTool } = await import("./tools");
+    const ctx = { sessionId: "s", mloId: "mlo-001", mloName: "Pat Lee", state: "WA" };
+    const run = await runTool("show_options", { options: ["call_loan_officer", "call_loan_officer"] }, ctx);
+    expect(run.isError).toBe(false);
+    expect(run.actions).toEqual(["call_loan_officer"]);
+    expect(JSON.parse(run.content).message).toMatch(/Don't say Pat Lee has been notified/);
+    const none = await runTool("show_options", { options: ["book_time"] }, { ...ctx, mloName: null });
+    expect(none.actions).toBeUndefined();
+    expect(JSON.parse(none.content).status).toBe("unavailable");
+    expect((await runTool("show_options", { options: ["wire_money"] }, ctx)).isError).toBe(true);
+  });
+
+  it("sends the boxes after a reply that passed the guard", async () => {
+    const { fakeClient, chunk } = await import("../../tests/m8-harness");
+    const { client } = fakeClient([
+      { chunks: chunk("I can connect you now."), tool: { name: "show_options", input: { options: ["call_loan_officer"] } } },
+      { chunks: chunk(" Tap the box below.") },
+    ]);
+    const events: { actions?: unknown }[] = [];
+    await runM8Turn({ client, model: "fake", maxTokens: M8_MAX_TOKENS, system: "S", turn: prepareTurn([{ role: "user", content: "Can I talk to someone?" }]), tools: { sessionId: "s", mloId: "mlo-001", mloName: "Pat Lee", state: "WA" }, mloName: "Pat Lee", emit: (e) => events.push(e) });
+    expect(events.find((e) => e.actions)?.actions).toEqual(["call_loan_officer"]);
+  });
+});
+
+describe("Loan Estimate box (C20)", () => {
+  it("shows only while Loan Estimate reading is on, even without a loan officer", async () => {
+    const { runTool } = await import("./tools");
+    const ctx = { sessionId: "s", mloId: null, mloName: null, state: "IA" };
+    const prev = process.env.SECOND_LOOK_LIVE;
+    try {
+      delete process.env.SECOND_LOOK_LIVE;
+      const off = await runTool("show_options", { options: ["upload_loan_estimate"] }, ctx);
+      expect(off.actions).toBeUndefined();
+      process.env.SECOND_LOOK_LIVE = "true";
+      const on = await runTool("show_options", { options: ["upload_loan_estimate", "call_loan_officer"] }, ctx);
+      expect(on.actions).toEqual(["upload_loan_estimate"]);
+      expect(JSON.parse(on.content).message).toMatch(/isn't available here/);
+    } finally {
+      if (prev === undefined) delete process.env.SECOND_LOOK_LIVE;
+      else process.env.SECOND_LOOK_LIVE = prev;
+    }
   });
 });

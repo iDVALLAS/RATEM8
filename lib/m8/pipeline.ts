@@ -17,7 +17,7 @@ import { redactChatInput, type RedactionKind } from "./redact";
 import { isAbusive } from "./moderation";
 import { guardReply, userPercentages, type GuardReason } from "./guard";
 import { M8_TOOLS, pricedRates, runTool, type PricingResult, type ToolContext } from "./tools";
-import type { M8Event, M8Message, PricingCard } from "./shared";
+import type { ChatAction, M8Event, M8Message, PricingCard } from "./shared";
 
 export type PreparedTurn = {
   messages: M8Message[];
@@ -47,7 +47,8 @@ export function fallbackFor(reason: GuardReason, name: string): string {
   const g = copy.chat.live.guard;
   const t = reason === "prompt-leak" ? g.promptLeak : reason === "promise" ? g.promise : reason === "sensitive-echo" ? g.sensitive : reason === "pricing-promise" ? g.pricingPromise : g.rate;
   const filled = t.replaceAll("{name}", name);
-  return filled.charAt(0).toUpperCase() + filled.slice(1);
+  // Capitalize every sentence start ("…right now. a licensed loan officer…" reads wrong).
+  return filled.replace(/(^|[.?!]\s+)([a-z])/g, (_, pre: string, c: string) => pre + c.toUpperCase());
 }
 
 export type TurnResult = { reply: string; guard: GuardReason | null; tokens: number; pricing?: PricingCard };
@@ -72,6 +73,7 @@ export async function runM8Turn(opts: {
 }): Promise<TurnResult> {
   const offerOk = opts.pricingAvailable ?? CONFIG.liveRatesEnabled;
   let card: PricingCard | undefined;
+  let actions: ChatAction[] = [];
   const { client, turn, emit } = opts;
   const api: Anthropic.Messages.MessageParam[] = turn.messages.map((m) => ({ role: m.role, content: m.content }));
   let reply = "";
@@ -130,6 +132,7 @@ export async function runM8Turn(opts: {
       const run = await runTool(call.name, call.input, opts.tools);
       if (run.pricing) pricing = run.pricing;
       if (run.card) card = run.card;
+      if (run.actions) actions = [...new Set([...actions, ...run.actions])];
       results.push({ type: "tool_result", tool_use_id: call.id, content: run.content, is_error: run.isError });
     }
     api.push({ role: "user", content: results });
@@ -140,5 +143,7 @@ export async function runM8Turn(opts: {
   if (!check.ok) return fail(check.reason, check.value);
   // C7: the dated example card goes out only with a reply that passed the guard.
   if (card) emit({ pricing: card });
+  // C19: the boxes, also only with a reply that passed the guard.
+  if (actions.length) emit({ actions });
   return { reply, guard: null, tokens, pricing: card };
 }

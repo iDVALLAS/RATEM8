@@ -22,8 +22,12 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     - SSN, date-of-birth and account-number redaction before the model and
       any log.
     - Abuse blocked with no model call.
-    - Only two tools: `get_pricing` (unavailable until L4b) and
-      `request_handoff`, both zod-validated.
+    - Three tools: `get_pricing` (unavailable until L4b),
+      `request_handoff` and (C19) `show_options`, all zod-validated.
+  - **C19:** owner's instructions after the prompt (`lib/prompts/m8-owner.ts`,
+    notes edited at `/mlo/training`); boxes under replies
+    (`components/chat/ActionCards.tsx`): call 9–6 Pacific, else call-back
+    (`/api/m8-callback`), plus booking. LO direct lines in `config/licensing.ts`.
     - An output guard: no rate outside a pricing result, a rate needs its
       APR and the not-a-commitment line, and no prompt leaks, promises or
       echoed numbers.
@@ -57,6 +61,12 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     - `lib/public-paths.ts` is the single list of stealth-public pages
       that middleware, robots.txt and sitemap.xml all use.
     - The launch checklist is `CHAT_LAUNCH_CHECKLIST.md`.
+  - **C15 voice:** M8 reads replies aloud with a Google stock voice
+    (`lib/voice/google.ts`, `/api/m8-speak`, picker at `/mlo/voice`). On
+    with `GOOGLE_CLOUD_API_KEY`; `M8_VOICE="false"` is its kill switch.
+    Only signed M8 replies are spoken. C16 mic: `/api/m8-listen`
+    (Speech-to-Text, same key), text lands in the box, never auto-sent;
+    `M8_LISTEN="false"` turns off only the mic.
   - Second Look still needs `SECOND_LOOK_LIVE`.
   - The owner reported counsel approval of everything on 2026-10-31.
   - **Launch series:** C1–C5 (`LoanM8_Launch_Live_M8_Chat.md`), then
@@ -572,7 +582,8 @@ with the source screenshot. Pricing APIs and the rate sheet engine
     homepage's "Chat with M8" both go to `/chat`.
   - `/chat?prep=1` is still the prep flow.
   - Headshots live in `public/team/` (public in stealth). The owner's is
-    `jason-shapiro.webp`, 512×512 with transparent corners.
+    `jason-shapiro-2026.webp` (owner photo of 2026-11-08, face-centred crop on a light circle), 512×512 with transparent corners. A new photo gets a new file name so image caches refresh. Ryder's is
+    `ryder-fasse-2026.webp`, cropped the same way.
 - **Lender marks (v23, logos v26):** `lib/lenders.ts` +
   `components/LenderMark.tsx`.
   - A logo renders only when `logoApproved` AND `logoFile` is set. The
