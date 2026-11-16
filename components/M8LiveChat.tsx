@@ -14,7 +14,7 @@ import RichText from "@/components/chat/RichText";
 import ExamplePricingCard from "@/components/chat/ExamplePricingCard";
 import { fillMlo } from "@/lib/mlo-match";
 import { useMic } from "@/components/chat/useMic";
-import { silentWav } from "@/lib/voice/client";
+import { SpeechQueue, silentWav } from "@/lib/voice/client";
 
 /**
  * M8LiveChat — the live M8 conversation, the public chat at /chat (C1).
@@ -136,6 +136,7 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
   const [voiceNote, setVoiceNote] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const speakToken = useRef(0);
+  const queueRef = useRef<SpeechQueue | null>(null);
 
   useEffect(() => {
     if (!voice) return;
@@ -159,6 +160,7 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
 
   const stopSpeaking = useCallback(() => {
     speakToken.current++;
+    queueRef.current?.stop();
     audioRef.current?.pause();
     setSpeakingIdx(null);
   }, []);
@@ -301,11 +303,18 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
       let accumulated = "";
       let card: PricingCard | undefined;
       let voiceSig: string | undefined;
+      // C18: with "Read replies aloud" on, M8 speaks each sentence as it arrives.
+      const replyIdx = nextMessages.length;
+      const audioEl = voice && readAloud ? audioRef.current : null;
+      const q = audioEl
+        ? (queueRef.current ??= new SpeechQueue(audioEl, { fallbackError: t.voice.failed, onError: (msg) => setVoiceNote(msg) }))
+        : null;
+      let spoke = false;
       try {
         const resp = await fetch("/api/m8-chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: nextMessages, hp: honeypot, t: Math.round(performance.now() - loadedAt) }),
+          body: JSON.stringify({ messages: nextMessages, hp: honeypot, t: Math.round(performance.now() - loadedAt), speak: !!q }),
           signal: controller.signal,
         });
 
@@ -346,6 +355,12 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
               if (parsed.notice) setNotice(parsed.notice);
               if (parsed.pricing) card = parsed.pricing;
               if (parsed.voice) voiceSig = parsed.voice;
+              if (parsed.sayReset) q?.stop();
+              if (parsed.say && q) {
+                q.push(parsed.say.text, parsed.say.sig);
+                spoke = true;
+                setSpeakingIdx(replyIdx);
+              }
               if (parsed.replace !== undefined) {
                 accumulated = parsed.replace;
                 setStreamingText(accumulated);
@@ -369,7 +384,12 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
           if (card) reply.pricing = card;
           if (voice && voiceSig) reply.voice = voiceSig;
           setMessages((m) => [...m, reply]);
-          if (voice && voiceSig && readAloud) void speak(nextMessages.length, accumulated, voiceSig);
+          if (q && spoke) {
+            const token = speakToken.current;
+            void q.drained().then(() => {
+              if (token === speakToken.current) setSpeakingIdx((cur) => (cur === replyIdx ? null : cur));
+            });
+          }
         }
         setStreamingText("");
       } catch (err) {
@@ -384,7 +404,7 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
         abortRef.current = null;
       }
     },
-    [messages, streaming, honeypot, voice, readAloud, speak, stopSpeaking, unlockAudio]
+    [messages, streaming, honeypot, voice, readAloud, stopSpeaking, unlockAudio]
   );
 
   const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => {

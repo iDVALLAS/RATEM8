@@ -10,14 +10,15 @@ import { currentVoice, dailyCharCap, speakableText, synthesize, verifyReply, voi
  * `sig` the signature /api/m8-chat sent with it (lib/voice/google.ts). Any
  * other text is refused, so this can't voice arbitrary words.
  *
- * Limits: 20 per minute and 200 per day per hashed IP, and a site-wide
+ * Limits: 90 per minute and 1,500 per day per hashed IP (C18: a reply is
+ * now spoken a sentence or two at a time), and a site-wide
  * daily character cap (M8_VOICE_DAILY_CHARS, default 200,000). Off (404)
  * without GOOGLE_CLOUD_API_KEY or with M8_VOICE="false". Logs carry
  * counts and reasons only, never the text.
  */
 
-const PER_MINUTE = 20;
-const PER_DAY = 200;
+const PER_MINUTE = 90;
+const PER_DAY = 1500;
 
 const fail = (status: number, error: string) =>
   new Response(JSON.stringify({ ok: false, error }), { status, headers: { "Content-Type": "application/json" } });

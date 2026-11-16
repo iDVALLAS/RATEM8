@@ -5,7 +5,7 @@ import type { OrbState } from "@/components/Orb";
 import { useMic } from "@/components/chat/useMic";
 import { streamM8Turn } from "@/lib/m8/client";
 import { M8_SESSION_KEY, type M8Message } from "@/lib/m8/shared";
-import { playM8Reply, silentWav } from "@/lib/voice/client";
+import { SpeechQueue, silentWav } from "@/lib/voice/client";
 import { copy } from "@/lib/copy";
 
 export type VoicePhase = "off" | "consent" | "listening" | "thinking" | "speaking" | "paused";
@@ -41,6 +41,7 @@ export function useVoiceChat() {
   const phaseRef = useRef<VoicePhase>("off");
   const msgsRef = useRef<M8Message[]>([]);
   const audio = useRef<HTMLAudioElement | null>(null);
+  const queue = useRef<SpeechQueue | null>(null);
   const abort = useRef<AbortController | null>(null);
   const run = useRef(0);
 
@@ -69,8 +70,24 @@ export function useVoiceChat() {
     go("thinking");
     const ctl = new AbortController();
     abort.current = ctl;
+    // C18: M8 starts talking after its first sentence; the rest follows as it's written.
+    const q = audio.current
+      ? (queue.current ??= new SpeechQueue(audio.current, {
+          fallbackError: v.speakFailed,
+          onStart: () => phaseRef.current === "thinking" && go("speaking"),
+          onError: (msg) => setNote(msg),
+        }))
+      : null;
     try {
-      const out = await streamM8Turn(next, { t: Math.round(performance.now() - loadedAt), signal: ctl.signal, onText: setDraft, fallbackError: v.failed });
+      const out = await streamM8Turn(next, {
+        t: Math.round(performance.now() - loadedAt),
+        signal: ctl.signal,
+        onText: setDraft,
+        fallbackError: v.failed,
+        voiceMode: true,
+        onSay: q ? (t, sig) => token === run.current && q.push(t, sig) : undefined,
+        onSayReset: () => q?.stop(),
+      });
       if (token !== run.current) return;
       const shown = out.userText !== undefined ? next.map((m, i) => (i === next.length - 1 ? { ...m, content: out.userText as string } : m)) : next;
       const reply: M8Message = { role: "assistant", content: out.text };
@@ -78,13 +95,9 @@ export function useVoiceChat() {
       if (out.voice) reply.voice = out.voice;
       commit(out.text ? [...shown, reply] : shown);
       setDraft("");
-      if (out.text && out.voice && audio.current) {
-        go("speaking");
-        try {
-          await playM8Reply(audio.current, out.text, out.voice, v.speakFailed);
-        } catch (err) {
-          if (token === run.current) setNote(err instanceof Error ? err.message : v.speakFailed);
-        }
+      if (q) {
+        if (q.busy) go("speaking");
+        await q.drained();
       }
       if (token === run.current && (phaseRef.current as VoicePhase) !== "off") listenRef.current();
     } catch (err) {
@@ -146,7 +159,7 @@ export function useVoiceChat() {
     if (p === "listening") return void mic.stop();
     if (p === "speaking") {
       run.current++;
-      audio.current?.pause();
+      queue.current?.stop();
       return listen();
     }
     if (p === "paused") {
@@ -167,7 +180,7 @@ export function useVoiceChat() {
   const end = useCallback(() => {
     run.current++;
     abort.current?.abort();
-    audio.current?.pause();
+    queue.current?.stop();
     mic.cancel();
     setDraft("");
     setNote(null);

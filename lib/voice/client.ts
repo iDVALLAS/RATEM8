@@ -14,24 +14,82 @@ export function silentWav(): string {
   return `data:audio/wav;base64,${btoa(String.fromCharCode(...b))}`;
 }
 
-/** Fetches M8's voice for a signed reply and plays it on `audio`; resolves when it finishes (or is paused). */
-export async function playM8Reply(audio: HTMLAudioElement, text: string, sig: string, fallbackError: string): Promise<void> {
-  const res = await fetch("/api/m8-speak", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, sig }) });
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(body?.error ?? fallbackError);
+/**
+ * SpeechQueue — M8 speaking a reply a sentence or two at a time (C18).
+ * Each piece's audio is fetched as soon as it arrives (so the next one is
+ * ready while the current one plays) and played in order on one audio
+ * element (the one unlocked by the borrower's tap).
+ */
+export class SpeechQueue {
+  private chain: Promise<void> = Promise.resolve();
+  private gen = 0;
+  private active = 0;
+  private urls = new Set<string>();
+
+  constructor(
+    private audio: HTMLAudioElement,
+    private hooks: { onStart?: () => void; onError?: (msg: string) => void; fallbackError: string },
+  ) {}
+
+  /** True while something is queued or playing. */
+  get busy(): boolean {
+    return this.active > 0;
   }
-  const url = URL.createObjectURL(await res.blob());
-  try {
-    await new Promise<void>((resolve, reject) => {
-      audio.onended = () => resolve();
-      audio.onpause = () => resolve();
-      audio.onerror = () => reject(new Error(fallbackError));
-      audio.src = url;
-      audio.play().catch(reject);
+
+  push(text: string, sig: string): void {
+    const gen = this.gen;
+    this.active++;
+    const clip = fetch("/api/m8-speak", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, sig }) })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(body?.error ?? this.hooks.fallbackError);
+        }
+        const url = URL.createObjectURL(await res.blob());
+        this.urls.add(url);
+        return url;
+      });
+    clip.catch(() => {}); // handled in the chain
+    this.chain = this.chain.then(async () => {
+      try {
+        const url = await clip;
+        if (gen !== this.gen) return;
+        this.hooks.onStart?.();
+        await new Promise<void>((resolve) => {
+          const a = this.audio;
+          const done = () => {
+            a.onended = a.onerror = null;
+            resolve();
+          };
+          a.onended = done;
+          a.onerror = done;
+          a.src = url;
+          a.play().catch(done);
+        });
+      } catch (err) {
+        if (gen === this.gen) this.hooks.onError?.(err instanceof Error ? err.message : this.hooks.fallbackError);
+      } finally {
+        this.active--;
+        this.release();
+      }
     });
-  } finally {
-    audio.onended = audio.onpause = audio.onerror = null;
-    URL.revokeObjectURL(url);
+  }
+
+  /** Resolves once everything queued so far has played (or been stopped). */
+  drained(): Promise<void> {
+    return this.chain;
+  }
+
+  /** Stops now and drops anything queued. */
+  stop(): void {
+    this.gen++;
+    this.audio.pause();
+    this.audio.onended?.(new Event("ended"));
+  }
+
+  private release(): void {
+    if (this.active > 0) return;
+    for (const u of this.urls) URL.revokeObjectURL(u);
+    this.urls.clear();
   }
 }

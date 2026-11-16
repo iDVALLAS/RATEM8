@@ -59,5 +59,7 @@ export const M8_SESSION_KEY = "loanm8_m8_conversation_v10";
  * - error: the reply failed
  * - pricing: C7, a dated example card for this reply
  * - voice: C15, the finished reply's signature for /api/m8-speak (only while voice is on)
+ * - say: C18, one finished sentence (or a few) of the reply, signed, to speak right away
+ * - sayReset: C18, the guard replaced the reply: stop speaking and drop what's queued
  */
-export type M8Event = { text?: string; replace?: string; userText?: string; notice?: string; error?: string; pricing?: PricingCard; voice?: string };
+export type M8Event = { text?: string; replace?: string; userText?: string; notice?: string; error?: string; pricing?: PricingCard; voice?: string; say?: { text: string; sig: string }; sayReset?: true };

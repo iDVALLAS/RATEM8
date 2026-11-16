@@ -13,6 +13,8 @@ import { deleteSession, saveTranscript } from "@/lib/m8/store";
 import type { M8Event, M8Message } from "@/lib/m8/shared";
 import { report } from "@/lib/monitoring";
 import { signReply, voiceOn } from "@/lib/voice/google";
+import { SentenceSplitter } from "@/lib/voice/sentences";
+import { VOICE_STYLE } from "@/lib/prompts/voice-style";
 
 /**
  * /api/m8-chat — the live M8 endpoint behind the public /chat (C1, hardened in C4).
@@ -39,7 +41,12 @@ const SESSION_COOKIE = "lm8_chat_sid";
 const NOTICE_VERSION = "c4-2026-11-02";
 const FIRST_MESSAGE_MIN_MS = 800;
 
-type Body = { messages?: unknown; hp?: unknown; t?: unknown };
+/**
+ * C18: `speak` asks for the reply sentence by sentence (signed `say` events)
+ * so the browser can start talking before the reply is finished; `voiceMode`
+ * is the spoken conversation, which also gets short, plain replies.
+ */
+type Body = { messages?: unknown; hp?: unknown; t?: unknown; speak?: unknown; voiceMode?: unknown };
 
 function isValidMessage(m: unknown): m is M8Message {
   if (!m || typeof m !== "object") return false;
@@ -118,6 +125,8 @@ export async function POST(req: Request) {
     return json(429, { ok: false, error: copy.chat.live.turnLimit }, setCookie);
   }
 
+  const speak = body.speak === true && voiceOn();
+  const voiceMode = body.voiceMode === true && voiceOn();
   const route = await visitorRoute();
   const vars = m8PromptVars(route);
   const mlo = route ? nameableMlo(route) : null;
@@ -157,7 +166,22 @@ export async function POST(req: Request) {
 
   const stream = new ReadableStream({
     async start(controller) {
-      const emit = (e: M8Event) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`));
+      const send = (e: M8Event) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`));
+      // C18: sentence-by-sentence speech. Only text that already passed the
+      // streaming guard is spoken, the same text the borrower sees on screen.
+      const splitter = speak ? new SentenceSplitter() : null;
+      const say = (t: string) => send({ say: { text: t, sig: signReply(t) } });
+      const emit = (e: M8Event) => {
+        send(e);
+        if (!splitter) return;
+        if (e.replace !== undefined) {
+          splitter.reset();
+          send({ sayReset: true });
+          if (e.replace) say(e.replace);
+        } else if (e.text) {
+          for (const piece of splitter.push(e.text)) say(piece);
+        }
+      };
       let reply = "";
       let tokens = 0;
       let guard: string | null = null;
@@ -173,7 +197,7 @@ export async function POST(req: Request) {
             client: new Anthropic({ apiKey }),
             model: m8Model(),
             maxTokens: M8_MAX_TOKENS,
-            system: buildM8SystemPrompt(vars),
+            system: buildM8SystemPrompt(vars) + (voiceMode ? VOICE_STYLE : ""),
             turn,
             tools: { sessionId: sid, mloId: mlo?.id ?? null, mloName: mlo?.name ?? null, state: route?.stateName ?? null, examplesOn: CONFIG.pricing.manual },
             mloName: vars.mloName,
@@ -184,6 +208,8 @@ export async function POST(req: Request) {
           tokens = result.tokens;
           guard = result.guard;
         }
+        const tail = splitter?.flush();
+        if (tail) say(tail);
         // C15: lets /api/m8-speak voice this exact reply, and nothing else.
         if (reply && voiceOn()) emit({ voice: signReply(reply) });
         controller.enqueue(encoder.encode(`data: [DONE]\n\n`));

@@ -10,12 +10,23 @@ export type M8TurnResult = { text: string; pricing?: PricingCard; voice?: string
 
 export async function streamM8Turn(
   messages: M8Message[],
-  opts: { hp?: string; t: number; signal?: AbortSignal; onText?: (soFar: string) => void; fallbackError: string },
+  opts: {
+    hp?: string;
+    t: number;
+    signal?: AbortSignal;
+    onText?: (soFar: string) => void;
+    fallbackError: string;
+    /** C18: ask for the reply sentence by sentence, to speak as it arrives. */
+    onSay?: (text: string, sig: string) => void;
+    onSayReset?: () => void;
+    /** C18: the spoken conversation (short, plain replies). */
+    voiceMode?: boolean;
+  },
 ): Promise<M8TurnResult> {
   const resp = await fetch("/api/m8-chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages: messages.map(({ role, content }) => ({ role, content })), hp: opts.hp ?? "", t: opts.t }),
+    body: JSON.stringify({ messages: messages.map(({ role, content }) => ({ role, content })), hp: opts.hp ?? "", t: opts.t, speak: !!opts.onSay, voiceMode: !!opts.voiceMode }),
     signal: opts.signal,
   });
   if (!resp.ok) {
@@ -47,6 +58,8 @@ export async function streamM8Turn(
       if (e.userText !== undefined) out.userText = e.userText;
       if (e.pricing) out.pricing = e.pricing;
       if (e.voice) out.voice = e.voice;
+      if (e.sayReset) opts.onSayReset?.();
+      if (e.say) opts.onSay?.(e.say.text, e.say.sig);
       if (e.replace !== undefined) out.text = e.replace;
       if (e.text) out.text += e.text;
       if (e.replace !== undefined || e.text) opts.onText?.(out.text);

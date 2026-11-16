@@ -1270,3 +1270,28 @@ the chat screen and keeping logs of the chat."
   orb, status "M8 is talking. Tap the orb to cut in."
 - `npm run verify` passes. Counsel: the consent note is new copy
   (`copy.hero.voiceChat`).
+
+## C18 — M8 starts talking after its first sentence (2026-11-16)
+
+Owner: "he needs to start talking before he types out his whole answer
+because his response time is way too slow" (as on JParlay; JParlay is a
+separate codebase and Google project and is untouched).
+
+- Before: the whole reply was written, then sent to Google as one piece,
+  then played. Now `/api/m8-chat` (when the browser asks, `speak: true`)
+  cuts the streamed reply into sentences (`lib/voice/sentences.ts`: first
+  piece from 20 characters, then 60; never at "3.5%" or "e.g.") and sends
+  each one signed (`say` events). The browser fetches each piece's audio
+  as it arrives and plays them in order (`SpeechQueue`, `lib/voice/client.ts`),
+  so the next piece is ready while the current one plays.
+- Only text that already passed the streaming guard is spoken: the same
+  text that is already on screen. If the finished-reply check replaces the
+  reply, `sayReset` stops the speech and the replacement is spoken instead.
+- The homepage conversation also sends `voiceMode: true`, which appends
+  `lib/prompts/voice-style.ts` to the system prompt: two to four plain
+  sentences, no lists or emoji, every prompt rule still applies. The
+  owner's prompt text is unchanged. M8 Chat's "Read replies aloud" speaks
+  sentence by sentence too, without the shorter style.
+- `/api/m8-speak` per-IP limits raised to 90/min and 1,500/day (a reply is
+  now several requests); the daily character cap is unchanged.
+- Tests: `lib/voice/sentences.test.ts`. `npm run verify` passes.
