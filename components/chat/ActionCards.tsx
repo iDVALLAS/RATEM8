@@ -6,6 +6,8 @@ import { copy } from "@/lib/copy";
 import { useNamedMlo } from "@/components/mlo/MloContext";
 import { CALL_HOURS, inCallHours, telHref } from "@/lib/call-hours";
 import { hasBooking } from "@/lib/config";
+import { leChatMessage } from "@/lib/second-look/chat";
+import type { SecondLookResult } from "@/lib/second-look/schema";
 
 const a = copy.chat.live.actions;
 
@@ -18,9 +20,10 @@ const a = copy.chat.live.actions;
  *  - book_time: the loan officer's booking link.
  * Nothing renders without a nameable loan officer (a licensed state).
  */
-export default function ActionCards({ actions, recent }: { actions: ChatAction[]; recent: M8Message[] }) {
+export default function ActionCards({ actions, recent, onSend }: { actions: ChatAction[]; recent: M8Message[]; onSend?: (text: string) => void }) {
   const mlo = useNamedMlo();
-  if (!mlo) return null;
+  const upload = actions.includes("upload_loan_estimate") && onSend ? <UploadBox lo={mlo?.firstName ?? a.uploadFallbackLo} onSend={onSend} /> : null;
+  if (!mlo) return upload ? <div className="m8-actions">{upload}</div> : null;
   const first = mlo.firstName;
   const fill = (s: string) => s.replaceAll("{first}", first).replaceAll("{hours}", CALL_HOURS.label).replaceAll("{phone}", mlo.phone ?? "");
   const tel = telHref(mlo.phone);
@@ -29,6 +32,7 @@ export default function ActionCards({ actions, recent }: { actions: ChatAction[]
 
   return (
     <div className="m8-actions">
+      {upload}
       {wantsCall && tel && inCallHours() ? (
         <a className="m8-action m8-action--primary" href={tel}>
           <PhoneIcon />
@@ -58,6 +62,61 @@ export default function ActionCards({ actions, recent }: { actions: ChatAction[]
         )
       ) : null}
     </div>
+  );
+}
+
+/** C20: upload → /api/m8-loan-estimate → M8's read goes into the chat as the borrower's message. */
+function UploadBox({ lo, onSend }: { lo: string; onSend: (text: string) => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [state, setState] = useState<"idle" | "sending" | "done">("idle");
+  const [note, setNote] = useState<string | null>(null);
+  const fillLo = (s: string) => s.replaceAll("{lo}", lo);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) return;
+    setState("sending");
+    setNote(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/m8-loan-estimate", { method: "POST", body: fd });
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; emailed?: boolean; result?: SecondLookResult } | null;
+      if (!res.ok || !body?.ok || !body.result) throw new Error(body?.error ?? "M8 couldn't read it just now. Try again.");
+      setState("done");
+      setNote(`${a.uploadDone} ${fillLo(body.emailed ? a.uploadEmailed : a.uploadNotEmailed)}`);
+      onSend(leChatMessage(body.result));
+    } catch (err) {
+      setState("idle");
+      setNote(err instanceof Error ? err.message : "M8 couldn't read it just now. Try again.");
+    }
+  };
+
+  if (state === "done") return <p className="m8-action m8-action--done" role="status">{note}</p>;
+  return (
+    <form className="m8-action m8-action--form" onSubmit={submit}>
+      <strong>
+        <DocIcon /> {a.upload}
+      </strong>
+      <small>{fillLo(a.uploadBody)}</small>
+      <label className="m8-action__file">
+        <span>{file ? file.name : a.uploadPick}</span>
+        <input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      </label>
+      {note ? <small role="alert">{note}</small> : null}
+      <button type="submit" disabled={!file || state === "sending"}>
+        {state === "sending" ? a.uploading : a.uploadSend}
+      </button>
+    </form>
+  );
+}
+
+function DocIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <path d="M14 3v6h6M8 13h8M8 17h5" />
+    </svg>
   );
 }
 

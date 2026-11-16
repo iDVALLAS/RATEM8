@@ -22,7 +22,7 @@ export type M8Message = {
 };
 
 /** C19: the boxes M8 can put under a reply with the show_options tool. */
-export const CHAT_ACTIONS = ["call_loan_officer", "book_time"] as const;
+export const CHAT_ACTIONS = ["call_loan_officer", "book_time", "upload_loan_estimate"] as const;
 export type ChatAction = (typeof CHAT_ACTIONS)[number];
 
 /** C7: one of the three options on a dated example card. Figures are computed server-side. */

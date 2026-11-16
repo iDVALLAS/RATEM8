@@ -169,3 +169,23 @@ describe("show_options boxes (C19)", () => {
     expect(events.find((e) => e.actions)?.actions).toEqual(["call_loan_officer"]);
   });
 });
+
+describe("Loan Estimate box (C20)", () => {
+  it("shows only while Loan Estimate reading is on, even without a loan officer", async () => {
+    const { runTool } = await import("./tools");
+    const ctx = { sessionId: "s", mloId: null, mloName: null, state: "IA" };
+    const prev = process.env.SECOND_LOOK_LIVE;
+    try {
+      delete process.env.SECOND_LOOK_LIVE;
+      const off = await runTool("show_options", { options: ["upload_loan_estimate"] }, ctx);
+      expect(off.actions).toBeUndefined();
+      process.env.SECOND_LOOK_LIVE = "true";
+      const on = await runTool("show_options", { options: ["upload_loan_estimate", "call_loan_officer"] }, ctx);
+      expect(on.actions).toEqual(["upload_loan_estimate"]);
+      expect(JSON.parse(on.content).message).toMatch(/isn't available here/);
+    } finally {
+      if (prev === undefined) delete process.env.SECOND_LOOK_LIVE;
+      else process.env.SECOND_LOOK_LIVE = prev;
+    }
+  });
+});

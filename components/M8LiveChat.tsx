@@ -508,7 +508,7 @@ export default function M8LiveChat({ storageOn, retention, voice = false, listen
                 <div className="text-[15px] leading-relaxed" style={{ color: "var(--fg)" }}>
                   <RichText text={msg.content} />
                   {msg.pricing ? <ExamplePricingCard card={msg.pricing} /> : null}
-                  {msg.actions?.length ? <ActionCards actions={msg.actions} recent={messages.slice(0, i + 1)} /> : null}
+                  {msg.actions?.length ? <ActionCards actions={msg.actions} recent={messages.slice(0, i + 1)} onSend={(text) => void send(text)} /> : null}
                   {voice && msg.voice ? (
                     <button
                       type="button"

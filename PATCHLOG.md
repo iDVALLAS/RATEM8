@@ -1333,3 +1333,34 @@ pointed to a "Talk to" button it couldn't locate and claimed a handoff
 - Counsel: "Have {first} call me" collects a phone number (kept with
   handoffs, 3 years); `/privacy` may need a line. Next: C20, the Loan
   Estimate upload box (M8 explains it, the LO gets a copy).
+
+## C20 — Upload your Loan Estimate in M8 chat (2026-11-16)
+
+Owner: a box in the chat to upload a Loan Estimate; "both" — M8 explains it
+and the loan officer gets a copy.
+
+- `show_options` gains `upload_loan_estimate` (only while
+  `SECOND_LOOK_LIVE=true`; works without a named loan officer, unlike the
+  call and booking boxes). The owner's instructions tell M8 to offer it when
+  the borrower has a Loan Estimate, then explain the figures line by line
+  without judging the lender or comparing pricing.
+- Box (`components/chat/ActionCards.tsx` `UploadBox`): PDF, PNG, JPG or WebP
+  up to 4 MB, with the note that M8 reads it, a copy goes to the loan
+  officer, and LoanM8 doesn't keep the file.
+- `/api/m8-loan-estimate`: in parallel, M8 reads it
+  (`lib/second-look/decode.ts`: Second Look's explain-only prompt and zod
+  schema, now with PDFs; the document is data, never instructions) and
+  Resend emails the file to the loan officer as an attachment. Not stored,
+  content never logged; 4/hour and 10/day per hashed IP; 503 while
+  `SECOND_LOOK_LIVE` is off.
+- Then the chat sends M8 the figures it read as the borrower's message
+  (`lib/second-look/chat.ts`), so M8 can walk through them and the guard
+  lets it repeat the borrower's own rate and APR. Works in M8 Chat and the
+  homepage voice conversation.
+- Tests: `lib/second-look/chat.test.ts`, the C20 case in `lib/m8/m8.test.ts`.
+  `npm run verify` passes.
+- `/api/second-look` (the standalone page) is unchanged; it still takes
+  images or text only.
+- Counsel: the Second Look prompt file is still marked DRAFT for counsel;
+  turning on `SECOND_LOOK_LIVE` also turns on the standalone page's live
+  decode. The emailed copy contains the borrower's name and address.

@@ -123,7 +123,7 @@ export const M8_TOOLS: Anthropic.Messages.Tool[] = [
   {
     name: "show_options",
     description:
-      "Show boxes under your reply that the borrower can tap. call_loan_officer: connect them to their licensed loan officer now (a tap-to-call box during call hours; outside them, a box where they leave their number for a call back, plus a booking link). book_time: their loan officer's booking link. Use this whenever they want to talk to a person, instead of describing buttons.",
+      "Show boxes under your reply that the borrower can tap. call_loan_officer: connect them to their licensed loan officer now (a tap-to-call box during call hours; outside them, a box where they leave their number for a call back, plus a booking link). book_time: their loan officer's booking link. upload_loan_estimate: a box to upload their Loan Estimate (PDF or photo); you'll then get the figures read from it to explain, and their loan officer gets a copy. Use this instead of describing buttons.",
     input_schema: {
       type: "object",
       properties: { options: { type: "array", items: { type: "string", enum: [...CHAT_ACTIONS] }, minItems: 1, maxItems: 3 } },
@@ -280,14 +280,21 @@ async function requestHandoff(input: unknown, ctx: ToolContext): Promise<ToolRun
  */
 function showOptions(input: unknown, ctx: ToolContext, now = new Date()): ToolRun {
   const parsed = OptionsInput.safeParse(input);
-  if (!parsed.success) return err("Invalid options: choose from call_loan_officer and book_time.");
-  if (!ctx.mloName) {
+  if (!parsed.success) return err("Invalid options: choose from call_loan_officer, book_time and upload_loan_estimate.");
+  const wanted = Array.from(new Set(parsed.data.options));
+  const leOn = process.env.SECOND_LOOK_LIVE === "true";
+  if (!ctx.mloName && !(leOn && wanted.includes("upload_loan_estimate"))) {
     return { content: JSON.stringify({ status: "unavailable", message: "No licensed loan officer serves the borrower's state on this site yet, so there's no one to connect them to. Say so plainly." }), isError: false };
   }
-  const actions = Array.from(new Set(parsed.data.options));
+  // Calls and booking need a loan officer; the upload needs Loan Estimate reading turned on.
+  const actions = wanted.filter((a) => (a === "upload_loan_estimate" ? leOn : !!ctx.mloName));
+  if (!actions.length) return { content: JSON.stringify({ status: "unavailable", message: "Loan Estimate upload isn't turned on yet. Offer to explain any line they read out instead." }), isError: false };
   const open = inCallHours(now);
+  const lo = ctx.mloName ?? "their loan officer";
   const shown = actions.map((a) =>
-    a === "call_loan_officer"
+    a === "upload_loan_estimate"
+      ? `an "Upload your Loan Estimate" box (M8 reads it and the figures come back to you to explain; a copy goes to ${lo})`
+      : a === "call_loan_officer"
       ? open
         ? `a "Call ${ctx.mloName} now" box that dials them directly (call hours are ${CALL_HOURS.label}, and it's within them now), with "Book a time" under it`
         : `a "Have ${ctx.mloName} call me" box where the borrower leaves their number for a call back (it's outside call hours, ${CALL_HOURS.label}), with "Book a time" under it`
@@ -296,7 +303,7 @@ function showOptions(input: unknown, ctx: ToolContext, now = new Date()): ToolRu
   return {
     content: JSON.stringify({
       status: "shown",
-      message: `The chat now shows ${shown.join(" and ")} right under your reply. Refer to it as "the box below". Don't say ${ctx.mloName} has been notified or will reach out: nothing is sent until the borrower uses a box.`,
+      message: `The chat now shows ${shown.join(" and ")} right under your reply. Refer to it as "the box below". Don't say ${lo} has been notified or will reach out: nothing is sent until the borrower uses a box.${actions.length < wanted.length ? " Some of what you asked for isn't available here, so it isn't shown." : ""}`,
     }),
     isError: false,
     actions,

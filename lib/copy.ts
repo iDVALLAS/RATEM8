@@ -796,6 +796,16 @@ export const copy = {
         sent: "Sent. {first} has your number and what you've been asking about.",
         failed: "This box can't send right now. You can call {first} at {phone}.",
         book: "Book a time with {first}",
+        /** C20: the Loan Estimate upload box. {lo} = the loan officer's first name, or "your loan officer". */
+        upload: "Upload your Loan Estimate",
+        uploadBody: "A PDF or a photo, up to 4 MB. M8 reads it here and explains it, and a copy goes to {lo} so they can price against it. LoanM8 doesn't keep the file.",
+        uploadPick: "Choose file",
+        uploadSend: "Upload",
+        uploading: "M8 is reading it…",
+        uploadDone: "M8 read your Loan Estimate.",
+        uploadEmailed: "{lo} has a copy.",
+        uploadNotEmailed: "The copy to {lo} didn't send; you can share it on a call.",
+        uploadFallbackLo: "your loan officer",
         bookSoon: "Booking link coming soon.",
       },
       /** C16: the microphone. The words land in the box; nothing is sent until the borrower presses send. */

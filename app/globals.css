@@ -2940,3 +2940,8 @@ a.m8-action:hover { border-color: var(--accent); }
 @media (max-width: 420px) { .m8-action__row { grid-template-columns: 1fr; } }
 .m8-action--form button { align-self: flex-start; padding: 8px 16px; border-radius: 999px; background: var(--color-m8-deep); color: var(--color-m8-paper); font-weight: 500; }
 .m8-action--form button:disabled { opacity: 0.6; }
+/* C20: the Loan Estimate file picker. */
+.m8-action__file { position: relative; display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px; border: 1px dashed var(--rule-strong); border-radius: 8px; color: var(--fg-soft); font-size: 14px; cursor: pointer; }
+.m8-action__file:hover { border-color: var(--accent); }
+.m8-action__file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.m8-action__file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }

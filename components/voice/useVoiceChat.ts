@@ -194,5 +194,14 @@ export function useVoiceChat() {
   }, []);
 
   const orb: OrbState = phase === "listening" ? "listening" : phase === "thinking" ? "thinking" : phase === "speaking" ? "speaking" : "idle";
-  return { phase, messages, draft, note, seconds: mic.seconds, orb, tap, accept, end, decline: () => go("off") };
+  /** C20: a message from a box (the Loan Estimate read), sent as if spoken. */
+  const sendText = useCallback(
+    (text: string) => {
+      mic.cancel();
+      void onHeard(text);
+    },
+    [mic, onHeard],
+  );
+
+  return { phase, messages, draft, note, seconds: mic.seconds, orb, tap, accept, end, sendText, decline: () => go("off") };
 }
