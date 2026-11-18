@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { TESTER_COOKIE, siteLockOn, validTesterCookie } from "@/lib/site-lock";
 import ComingSoonHomePage from "@/components/ComingSoonHomePage";
 import MarketingHomePage from "@/components/MarketingHomePage";
 import { CONFIG } from "@/lib/config";
@@ -23,15 +24,15 @@ export const metadata: Metadata = {
 };
 
 /**
- * The cookie check is SHALLOW — only presence. The deep hash
- * validation happens in /demo before any gated content renders.
+ * C22: the cookie's value is checked against the current DEMO_PASSWORD
+ * (lib/site-lock.ts); it used to be enough for the cookie to exist.
  * `cookies()` is async in Next 15, so this stays an async server
  * component.
  */
 export default async function HomePage() {
-  if (STEALTH) {
+  if (STEALTH || siteLockOn()) {
     const cookieStore = await cookies();
-    const authed = !!cookieStore.get("loanm8_demo_auth");
+    const authed = await validTesterCookie(cookieStore.get(TESTER_COOKIE)?.value);
     if (!authed) return <ComingSoonHomePage />;
   }
   return <MarketingHomePage />;

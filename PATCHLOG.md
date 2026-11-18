@@ -1383,3 +1383,28 @@ and the loan officer gets a copy.
   chip style in M8 green (`.sl-jump--c`: dashed accent border, JetBrains
   Mono caps, 44px tall). Checked at 390px in paper and night themes.
 - `npm run verify` passes.
+
+## C22 — Pre-launch lock on production, with the tester password (2026-11-18)
+
+Owner: "gate the production app until I dig into all of the aspects ...
+with the same password."
+
+- `lib/site-lock.ts` + `middleware.ts`: on production (`VERCEL_ENV=production`)
+  unless `SITE_LOCK="false"`; `SITE_LOCK="true"` locks anywhere. Previews
+  stay behind Vercel's own login, so the remote red team still runs.
+- While locked, only a visitor with a valid tester cookie (from /demo and
+  `DEMO_PASSWORD`) gets past: pages redirect to `/demo`, `/api/*` returns 401
+  (M8 chat, voice, mic, Loan Estimate, call-back, Second Look). Open while
+  locked: the coming-soon homepage, `/demo` and `/api/demo-auth`, the legal
+  pages (licensing, disclosures, privacy, terms), `/api/health`, robots,
+  static files, and `/mlo` (its own login).
+- Fixes a hole: the stealth gate and the homepage only checked that the
+  tester cookie existed; any value got in. Now its value must match the
+  SHA-256 of the current password, so changing `DEMO_PASSWORD` signs
+  everyone out, and no password set means nobody gets in.
+- Checked locally with `npm start`: logged out and fake-cookie visitors are
+  sent to /demo and the chat API answers 401; the right password opens
+  /chat, /second-look and the full homepage. Tests: `lib/site-lock.test.ts`.
+  `npm run verify` passes.
+- To open the site at launch: `SITE_LOCK=false` in Vercel Production (and
+  `NEXT_PUBLIC_STEALTH_MODE=false` for the full homepage), then redeploy.
