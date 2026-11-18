@@ -42,12 +42,12 @@ describe("Morning digest and call session (D11)", () => {
   });
 
   async function book() {
-    await importBatch(me, "contacts", [rec(), rec({ firstName: "Bo", phone: "+12065552222", loan: { closedOn: "2021-11-20", amount: 1, noteRate: 3 } })], "a.csv", "personal");
+    await importBatch(me, "contacts", [rec(), rec({ firstName: "Bo", phone: "+12065552222", relationship: "lead", loan: { closedOn: "2021-11-20", amount: 1, noteRate: 3 } })], "a.csv", "personal");
     const all = (await contacts.list({})).contacts;
     const a = all.find((c) => c.firstName === "Ann")!;
     const b = all.find((c) => c.firstName === "Bo")!;
     for (const c of [a, b]) await contacts.put({ ...c, dnc: { onList: false, checkedAt: "2026-11-10T00:00:00Z", source: "test" } });
-    // Ann gave written permission for calls; Bo has none.
+    // Ann gave written permission for calls; Bo is a lead with none (past clients can be hand-dialed, leads can't).
     await recordConsent(me, a.id, { channel: "call", purpose: "marketing", granted: true, evidence: "written", proof: "form" }, NOW);
     await recordConsent(me, a.id, { channel: "text", purpose: "service", granted: true, evidence: "written", proof: "form" }, NOW);
     return { a: (await contacts.get(a.id))!, b: (await contacts.get(b.id))! };

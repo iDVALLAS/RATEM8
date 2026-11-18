@@ -2024,3 +2024,36 @@ strangers, website soft pulls, and RETR rankings).
   - "Tell your Concierge" (commands that become drafts)
   - post-call dictation
   - D13: per-state gate rows from the ledger
+
+## D12.1 — Hand-dialed calls to past clients (2026-11-18)
+
+Owner decision: "hard dialed calls to past clients are fine."
+
+- **`lib/send-gate/gate.ts`, hand-dialed calls:** a marketing call you
+  dial yourself to a contact marked past client is allowed without
+  recorded permission. The basis is logged as "your own past client, on a
+  call you place yourself".
+  - Leads, sphere and other contacts still need permission, or a loan closed
+    with your current company in the last 18 months.
+  - Texts and AI-voice calls are unchanged: they still need permission on
+    file.
+- **The do-not-call check still applies.** A past client's number must be
+  scrubbed within 31 days.
+  - If it's on a list, the call is allowed only with written permission or
+    a loan closed with your current company in the last 18 months (the EBR
+    exemption, 47 CFR 64.1200(f)(5), which the gate now applies to
+    hand-dialed calls).
+  - Quiet hours, the 3-calls-a-day cap, licensing and the all-party
+    recording reminder still apply.
+- **What changes on screen:** the call session, call scripts and Today now
+  show past clients as callable once their DNC check is current.
+- **Verified:** the gate tests now cover a past client allowed, a lead
+  blocked, a past client on the DNC list blocked unless EBR, and no DNC
+  check blocked. The call-session test uses a lead as the blocked example.
+  `npm run verify` passes (380 tests).
+- **Counsel:**
+  - Connecticut (CGS 42-288a) requires prior express written consent for
+    any telephonic sales call, with an existing-customer exclusion. The
+    ledger's planned CT gate row should confirm which past clients count
+    as existing customers.
+  - The Virginia and Florida rows are still to come (D13).

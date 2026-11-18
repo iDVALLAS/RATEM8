@@ -121,7 +121,9 @@ export function decide(i: GateInput): GateDecision {
     if (!marketing) basis = granted ? `call permission (${ev})${when}` : "a call you place yourself about their loan";
     else if (granted) basis = `call permission (${ev})${when}`;
     else if (c.ebrClosedOn && monthsBetween(c.ebrClosedOn, i.now) <= 18) basis = "established business relationship (a loan closed with your current company in the last 18 months)";
-    else reasons.push("A sales call to someone without permission needs a loan closed with your current company in the last 18 months. Record their permission first.");
+    // Owner decision 2026-11-18: hand-dialed calls to your own past clients are fine. The do-not-call check below still applies.
+    else if (c.relationship === "past_client") basis = "your own past client, on a call you place yourself";
+    else reasons.push("A sales call to someone without permission needs a loan closed with your current company in the last 18 months, or for them to be your past client. Record their permission first.");
   } else if (i.channel === "text") {
     if (!granted) reasons.push("No permission to text on file.");
     else if (marketing && !WRITTEN.includes(ev!)) reasons.push("Marketing texts need written permission (a signed form, a web form or a texted yes), not just your word.");
@@ -144,7 +146,9 @@ export function decide(i: GateInput): GateDecision {
   if (marketing && phone) {
     const fresh = i.dnc?.checkedAt && i.now.getTime() - Date.parse(i.dnc.checkedAt) <= 31 * 24 * 3600 * 1000;
     if (!fresh) reasons.push("Do-not-call lists haven't been checked for this number in the last 31 days.");
-    else if (i.dnc!.onList && !(granted && WRITTEN.includes(ev!))) reasons.push("The number is on a do-not-call list and there's no written permission.");
+    // On a list: written permission, or (for a call you dial yourself) a loan closed with your current company in the last 18 months (47 CFR 64.1200(f)(5)).
+    else if (i.dnc!.onList && !(granted && WRITTEN.includes(ev!)) && !(i.channel === "call" && i.manual && c.ebrClosedOn && monthsBetween(c.ebrClosedOn, i.now) <= 18))
+      reasons.push(i.channel === "call" && c.relationship === "past_client" ? "The number is on a do-not-call list. A past client on the list needs written permission, or a loan closed with your current company in the last 18 months." : "The number is on a do-not-call list and there's no written permission.");
   }
 
   // 5. Frequency caps, for marketing.

@@ -43,10 +43,17 @@ describe("send gate (D3)", () => {
     expect(decide(base({ consent: consent() })).reasons[0]).toMatch(/No permission to text/);
   });
 
-  it("lets a loan officer hand-dial clients whose loan closed with their current company in 18 months, not older ones or texts", () => {
+  it("lets a loan officer hand-dial their own past clients and recent closings (do-not-call still applies), never by text or AI", () => {
     const hand = { channel: "call" as const, manual: true, consent: consent() };
     expect(decide(base({ ...hand, contact: { ...base().contact, ebrClosedOn: "2025-12-01" } })).basis).toMatch(/established business relationship \(a loan closed with your current company/);
-    expect(decide(base({ ...hand, contact: { ...base().contact, ebrClosedOn: "2023-01-01" } })).allowed).toBe(false);
+    // Owner decision 2026-11-18: your own past clients can be hand-dialed; a lead with an old loan can't.
+    expect(decide(base({ ...hand, contact: { ...base().contact, ebrClosedOn: "2023-01-01" } })).basis).toMatch(/your own past client/);
+    expect(decide(base({ ...hand, contact: { ...base().contact, relationship: "lead", ebrClosedOn: "2023-01-01" } })).allowed).toBe(false);
+    // The do-not-call list still applies to past clients, unless the loan closed with your current company in 18 months.
+    const listed = { dnc: { onList: true, checkedAt: base().dnc!.checkedAt } };
+    expect(decide(base({ ...hand, ...listed })).reasons[0]).toMatch(/past client on the list needs written permission/);
+    expect(decide(base({ ...hand, ...listed, contact: { ...base().contact, ebrClosedOn: "2025-12-01" } })).allowed).toBe(true);
+    expect(decide(base({ ...hand, dnc: null })).reasons[0]).toMatch(/haven't been checked/);
     expect(decide(base({ consent: consent(), contact: { ...base().contact, ebrClosedOn: "2026-10-01" } })).allowed).toBe(false); // never for texts
     expect(decide(base({ channel: "ai_call", consent: consent(), contact: { ...base().contact, ebrClosedOn: "2026-10-01" } })).allowed).toBe(false); // never for AI calls
     expect(decide(base({ ...hand, purpose: "service" })).allowed).toBe(true);
