@@ -7,6 +7,7 @@ import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { CHANNELS, contactStore, EVIDENCE, PURPOSES } from "@/lib/contacts/store";
 import { canSee, summarize } from "@/lib/contacts/service";
+import { decisionsFor } from "@/lib/send-gate/for-contact";
 import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
@@ -35,6 +36,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   if (!c || !canSee(v.user, c)) notFound();
   const log = await store.consents(c.id);
   const s = summarize(log);
+  const gate = decisionsFor(v.user, c, s);
   const tenant = listTenants()[0];
 
   return (
@@ -64,6 +66,29 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               {c.notes ? <tr><th scope="row">Notes</th><td style={{ whiteSpace: "pre-wrap" }}>{c.notes}</td></tr> : null}
               <tr><th scope="row">Added</th><td>{fmt(c.createdAt)} · {c.source}</td></tr>
               <tr><th scope="row">Where it came from</th><td>{PROVENANCE_LABELS[c.provenance]}{c.locked ? " · on hold until you release your prior-employer lists" : ""}</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section className="mlo-section">
+          <h2>What you can do right now</h2>
+          <p className="mlo-note">Every text, call and email goes through these checks. When one says no, it says why.</p>
+          <table className="mlo-table mlo-table--plain">
+            <tbody>
+              {CHANNELS.map((ch) =>
+                PURPOSES.map((p) => {
+                  const d = gate[ch][p];
+                  return (
+                    <tr key={`g-${ch}-${p}`}>
+                      <th scope="row">{CHANNEL_LABELS[ch]}<br /><span className="mlo-note">{PURPOSE_LABELS[p]}</span></th>
+                      <td>
+                        <span className={`mlo-pill ${d.allowed ? "" : "mlo-pill--off"}`}>{d.allowed ? "Yes" : "Not now"}</span>{" "}
+                        <span className="mlo-note">{d.allowed ? d.basis : d.reasons[0]}{d.recordingNotice ? " Say the call is recorded first." : ""}</span>
+                      </td>
+                    </tr>
+                  );
+                }),
+              )}
             </tbody>
           </table>
         </section>

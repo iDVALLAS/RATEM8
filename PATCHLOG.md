@@ -1498,3 +1498,39 @@ export for now (partner API later).
   (3 on hold), and recording a consent. Tests: `lib/contacts/contacts.test.ts`
   (9). `npm run verify` passes.
 - Next: D3, the send gate and the state rules table.
+
+## D3 — The send gate and the state rules (2026-11-18)
+
+- **`lib/send-gate/gate.ts`** `decide()`: the only path by which Command
+  Center may text, call or email anyone. Pure, fails closed, and returns
+  plain-English reasons, the basis for the log, whether to say "this call
+  is recorded" first, and when the quiet-hours window next opens. In order:
+  1. On hold, no phone or email, or they said stop (a stop on calls or
+     texts covers every phone channel). Texts and AI calls are never manual.
+  2. Permission strong enough: texts need permission on file; marketing
+     texts and M8 marketing calls need it in writing (signed form, web form
+     or a texted yes, per E-SIGN); M8 calls need proof, never just the loan
+     officer's word. A loan officer may hand-dial a past client whose loan
+     closed in the last 18 months (established business relationship).
+     Email follows CAN-SPAM.
+  3. Marketing a loan only in the loan officer's licensed states; unknown
+     property state blocks.
+  4. Marketing by phone needs a do-not-call check in the last 31 days; on a
+     list needs written permission.
+  5. Caps: 3 marketing calls in 24 hours, 1 marketing text a day and 3 a week.
+  6. Quiet hours in every time zone the state spans (Texas: Central and
+     Mountain).
+- **`lib/send-gate/rules.ts`**: zones for all 50 states, DC and PR; default
+  8 AM–8 PM (stricter than the federal 9 PM); Florida, Oklahoma and
+  Maryland caps; Texas Sundays from noon; no Sunday marketing in Louisiana,
+  Maine and Rhode Island; the all-party recording states. All are
+  conservative defaults for counsel to confirm.
+- **Contact page:** "What you can do right now" shows each channel and
+  purpose with the gate's answer and reason. Until D4 adds do-not-call
+  scrubbing, marketing by phone is blocked.
+- **`/mlo/rules`:** the checks in plain English and the table by state.
+- Clicked through locally: after recording web-form permission for
+  marketing texts, the panel moves on to the do-not-call reason. Tests:
+  `lib/send-gate/gate.test.ts` (9). `npm run verify` passes.
+- Next: D4, Twilio texting (10DLC numbers, inbound STOP handling on every
+  channel, the inbox), do-not-call and line-type checks.
