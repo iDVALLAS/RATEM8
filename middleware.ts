@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { CHOICE_COOKIE, PROPERTY_COOKIE, ROUTE_HEADER, encodeRoute, resolveRoute } from "@/lib/routing";
 import { mloRoutingOn } from "@/lib/config";
 import { isStealthPublic } from "@/lib/public-paths";
+import { TESTER_COOKIE, openWhileLocked, siteLockOn, validTesterCookie } from "@/lib/site-lock";
 
 /**
  * LoanM8 stealth-launch middleware — v9.1 (cookie-aware version).
@@ -103,16 +104,32 @@ function adminGate(request: NextRequest): NextResponse | null {
   return new NextResponse("Authentication required", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="LoanM8 MLO admin", charset="UTF-8"' } });
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const gated = adminGate(request);
   if (gated) return gated;
+
+  const { pathname } = request.nextUrl;
+  const tester = await validTesterCookie(request.cookies.get(TESTER_COOKIE)?.value);
+
+  // C22: the pre-launch lock (lib/site-lock.ts). Without the tester password,
+  // pages send you to the password page and API calls are refused.
+  if (siteLockOn() && !tester && !openWhileLocked(pathname)) {
+    if (pathname.startsWith("/api/")) {
+      return new NextResponse(JSON.stringify({ ok: false, error: "LoanM8 is locked for testing. Enter the tester password at /demo." }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/demo";
+    url.search = "";
+    return NextResponse.redirect(url, 307);
+  }
 
   const stealthMode = process.env.NEXT_PUBLIC_STEALTH_MODE !== "false";
 
   // Stealth off → site is fully public. Middleware no-ops.
   if (!stealthMode) return passThrough(request);
-
-  const { pathname } = request.nextUrl;
 
   // Public paths are always allowed (homepage, demo route, assets, robots, etc.)
   if (isPublic(pathname)) return passThrough(request);
@@ -131,10 +148,9 @@ export function middleware(request: NextRequest) {
   //   - Authenticated visitor → marketing pages open, demo accessible
   //   - Stale cookie visitor → marketing pages open (low risk),
   //     demo prompts for password again (chat still gated)
-  const authCookie = request.cookies.get("loanm8_demo_auth");
-  if (authCookie?.value) {
-    return passThrough(request);
-  }
+  // C22: the cookie's value is now checked against the current password
+  // (it used to be enough for the cookie to exist).
+  if (tester) return passThrough(request);
 
   // No cookie, not a public path → redirect to coming-soon
   const url = request.nextUrl.clone();
