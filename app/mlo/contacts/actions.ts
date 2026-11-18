@@ -1,0 +1,72 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { currentUser } from "@/lib/accounts/auth";
+import { encodeFlash } from "@/lib/mlo/flash";
+import { deleteContact, importBatch, MAX_BATCH, recordConsent, unlockContacts, type ImportResult } from "@/lib/contacts/service";
+import { contactStore } from "@/lib/contacts/store";
+import { UNLOCK_ATTESTATION } from "@/lib/contacts/attestation";
+import { CHANNELS, EVIDENCE, PROVENANCE, PURPOSES } from "@/lib/contacts/store";
+
+const n = z.number().finite().nullable();
+const s = (max: number) => z.string().max(max);
+const Record_ = z.object({
+  firstName: s(60),
+  lastName: s(80),
+  email: s(254).nullable(),
+  phone: z.string().regex(/^\+1\d{10}$/).nullable(),
+  phone2: z.string().regex(/^\+1\d{10}$/).nullable(),
+  street: s(120).nullable(),
+  city: s(60).nullable(),
+  state: z.string().regex(/^[A-Z]{2}$/).nullable(),
+  zip: s(10).nullable(),
+  relationship: z.enum(["past_client", "lead", "sphere", "agent", "other"]),
+  tags: z.array(s(60)).max(20),
+  notes: s(2000).nullable(),
+  loan: z.object({ closedOn: s(10).nullable(), amount: n, noteRate: n }).nullable(),
+  agent: z.object({ brokerage: s(120).nullable(), units: n, volume: n, buyerUnits: n, listingUnits: n, avgPrice: n, topLender: s(120).nullable() }).nullable(),
+  attestedOptIns: z.array(z.enum(["text", "call", "email"])).max(3),
+});
+const Batch = z.object({ kind: z.enum(["contacts", "agents"]), source: s(160), provenance: z.enum(PROVENANCE), records: z.array(Record_).max(MAX_BATCH) });
+
+/** One batch from the import wizard. Returns counts; never echoes data back. */
+export async function importBatchAction(input: unknown): Promise<{ ok: true; result: ImportResult } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in again." };
+  const parsed = Batch.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Some rows didn't look right. Check the column matches and try again." };
+  return { ok: true, result: await importBatch(actor, parsed.data.kind, parsed.data.records, parsed.data.source, parsed.data.provenance) };
+}
+
+export async function consentAction(fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const contactId = String(fd.get("contactId") ?? "");
+  const channel = String(fd.get("channel") ?? "");
+  const purpose = String(fd.get("purpose") ?? "");
+  const evidence = String(fd.get("evidence") ?? "");
+  const granted = fd.get("granted") === "yes";
+  if (!(CHANNELS as readonly string[]).includes(channel) || !(PURPOSES as readonly string[]).includes(purpose) || !(EVIDENCE as readonly string[]).includes(evidence)) {
+    redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: false, lines: ["Pick a channel, purpose and how they told you."] })}`);
+  }
+  const res = await recordConsent(actor, contactId, { channel: channel as (typeof CHANNELS)[number], purpose: purpose as (typeof PURPOSES)[number], granted, evidence: (granted ? evidence : "revoked") as (typeof EVIDENCE)[number], proof: String(fd.get("proof") ?? "") });
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash(res.ok ? { ok: true, lines: [granted ? "Permission recorded." : "Recorded: calls and texts are off for this person, for every purpose."] } : { ok: false, lines: [res.error] })}`);
+}
+
+export async function deleteContactAction(fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const res = await deleteContact(actor, String(fd.get("contactId") ?? ""));
+  redirect(`/mlo/contacts?f=${encodeFlash(res.ok ? { ok: true, lines: ["Deleted, with its consent history."] } : { ok: false, lines: ["Couldn't delete that contact."] })}`);
+}
+
+/** Clears the hold on the signed-in loan officer's prior-employer contacts, after the attestation. */
+export async function unlockAction(fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  if (fd.get("attest") !== "yes") redirect(`/mlo/contacts?f=${encodeFlash({ ok: false, lines: ["Tick the box to confirm first."] })}`);
+  const { contacts } = await contactStore().list({ ownerUserId: actor.id, limit: 500 });
+  const n = await unlockContacts(actor, contacts.filter((c) => c.locked).map((c) => c.id), UNLOCK_ATTESTATION);
+  redirect(`/mlo/contacts?f=${encodeFlash({ ok: true, lines: [`Released ${n} ${n === 1 ? "person" : "people"} from hold. They're still relationship only until their permission is recorded.`] })}`);
+}

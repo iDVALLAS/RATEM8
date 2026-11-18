@@ -41,3 +41,5 @@
 .mlo-pill--off { color: var(--muted); border-style: dashed; }
 .mlo-signout { display: inline; }
 .mlo-signout button { background: none; border: 0; color: var(--fg-soft); text-decoration: underline; cursor: pointer; font: inherit; }
+/* D2: plain row labels where a table holds sentences, not field names. */
+.mlo-table--plain th { font-family: inherit; text-transform: none; letter-spacing: 0; font-size: 0.9rem; font-weight: 500; color: var(--fg); }

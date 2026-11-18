@@ -1450,3 +1450,51 @@ export for now (partner API later).
   Sensitive). Resend must be set (it is, for handoffs). Next: D2 contacts
   and CSV import with consent tracking (RETR agent CSVs use the same
   importer).
+
+## D2 — Contacts and CSV import, with consent and where each list came from (2026-11-18)
+
+- **Import wizard** (`/mlo/contacts/import`): what you're importing (clients
+  and contacts, or agents from a RETR export) → where the list came from →
+  check the column matches → preview → import. The CSV is read in the
+  browser (`lib/contacts/csv.ts`: quotes, line breaks in quotes, CRLF, BOM,
+  semicolons, up to 10,000 rows); only the cleaned rows go to the server,
+  in batches of 500, validated with zod. The file is never uploaded or kept.
+- **Column matching** (`lib/contacts/mapping.ts`) recognizes common exports
+  (Bonzo, Total Expert, Jungo, Salesforce, Google, Outlook, spreadsheets)
+  and RETR-style agent columns (units, volume, buyer and listing sides,
+  average price, lender used). Census-tract and demographic columns are
+  never a field, so they're never stored.
+- **Cleaning** (`lib/contacts/normalize.ts`): US phones to E.164 (fiction
+  and invalid numbers dropped), emails, states from names or ZIP prefixes,
+  "Last, First" names, US dates. Rows nobody can be reached at are skipped
+  with the reason.
+- **Duplicates** merge by phone or email within one loan officer's book:
+  blanks are filled, nothing is overwritten, tags combine.
+- **Consent** (`lib/contacts/store.ts`, `service.ts`): an append-only log per
+  contact, channel (calls, M8 AI calls, texts, email) and purpose (service,
+  marketing), with how it was given and where the proof is. Everyone
+  starts **relationship only**; a "yes" in an opt-in column is recorded as
+  the loan officer's word ("attested"), not proof. A "stop" on calls or
+  texts turns off every phone channel and purpose at once.
+- **Where a list came from** (research 2026-11-18, idea 1): personal, own
+  closings, agents, a previous employer's system, or not sure. Prior-
+  employer lists are **on hold**: nothing will ever be sent to them until the
+  loan officer confirms they may use the list (interim wording in
+  `lib/contacts/attestation.ts`, marked for counsel). A later personal
+  import never releases a hold.
+- **Who sees what:** loan officers see their own book; owners, team leads
+  and assistants see the team's. Assistants can't delete.
+- **Pages:** `/mlo/contacts` (clients and agents tabs, search, relationship
+  filter, permission badge, hold banner), `/mlo/contacts/[id]` (details,
+  their past loan, agent production, permission grid with history, record a
+  yes or a stop, delete).
+- **Research:** the six-lens idea review is in
+  `docs/work/command-center-ideas-2026-11-18.md` (44 ideas → 31 → top 12).
+- **Local testing:** `/api/cc/dev-login` signs in without email when
+  `CC_DEV_LOGIN="1"`; it can't run on Vercel. In-memory stores are shared
+  across the server's bundles.
+- Clicked through with a headless browser at 390px: a Bonzo-style CSV (3
+  new, 1 merged, 1 skipped), a RETR-style agent CSV, a prior-employer list
+  (3 on hold), and recording a consent. Tests: `lib/contacts/contacts.test.ts`
+  (9). `npm run verify` passes.
+- Next: D3, the send gate and the state rules table.

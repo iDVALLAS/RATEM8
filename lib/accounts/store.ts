@@ -192,7 +192,9 @@ export class NeonAccountStore implements AccountStore {
 
 let override: AccountStore | null = null;
 let neonStore: NeonAccountStore | null = null;
-const memory = new MemoryAccountStore();
+// One copy per server process, shared by pages, actions and routes (Next bundles them separately).
+const g = globalThis as unknown as { __lm8AccountMemory?: MemoryAccountStore };
+const memory = (g.__lm8AccountMemory ??= new MemoryAccountStore());
 
 /** Tests swap the store. */
 export function setAccountStoreForTests(s: AccountStore | null) {

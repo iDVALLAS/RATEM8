@@ -43,6 +43,7 @@ const OPEN_EXACT = new Set([
   "/sign-in",
   "/api/cc/verify",
   "/api/cc/signout",
+  "/api/cc/dev-login",
 ]);
 const OPEN_PREFIXES = ["/demo/", "/_next/", "/fonts/", "/images/", "/brand/", "/team/", "/lenders/", "/mlo/", "/.well-known/"];
 

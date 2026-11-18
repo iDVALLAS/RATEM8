@@ -3,7 +3,7 @@ import { mloContent } from "@/lib/content/mlo";
 import type { Flash } from "@/lib/mlo/flash";
 import type { Tenant } from "@/lib/pricing/tenants";
 
-type NavKey = "home" | "team" | "setup" | "pricing" | "voice" | "training";
+type NavKey = "home" | "contacts" | "team" | "setup" | "pricing" | "voice" | "training";
 
 /** D1: admins see the admin areas; everyone signed in sees Home, Team and Sign out. */
 export function MloNav({ current, tenantId, admin = true, signedIn = false }: { current: NavKey; tenantId: string; admin?: boolean; signedIn?: boolean }) {
@@ -14,6 +14,7 @@ export function MloNav({ current, tenantId, admin = true, signedIn = false }: { 
   return (
     <nav className="mlo-nav" aria-label="MLO admin">
       {link("home", "/mlo", mloContent.nav.home)}
+      {link("contacts", "/mlo/contacts", mloContent.nav.contacts)}
       {link("team", "/mlo/team", mloContent.nav.team)}
       {admin ? (
         <>
