@@ -5,6 +5,7 @@
  * Message text is stored with SSNs, dates of birth and account numbers
  * removed (lib/m8/redact.ts), like chat transcripts.
  */
+import { createHash } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { databaseUrl } from "@/lib/m8/server";
 import type { Channel, Purpose } from "@/lib/contacts/store";
@@ -20,6 +21,9 @@ export type Touch = {
   /** queued, sent, delivered, undelivered, failed, received, blocked */
   status: string;
   providerId: string | null;
+  /** D6: the contact's number, and our number that sent or received it (Twilio "From"/"To"). */
+  phone?: string | null;
+  sender?: string | null;
   /** The gate's basis (out) or what the system did (in: "opt-out recorded"). */
   note: string | null;
   at: string;
@@ -27,14 +31,19 @@ export type Touch = {
 };
 
 /**
- * Numbers that replied STOP (or similar) to our texting number. Kept apart
- * from contacts so a revocation is honored even for someone imported later.
+ * Numbers that replied STOP (or similar), per our number they replied to.
+ * D6 (overnight review): one-way. A STOP to any of our numbers blocks that
+ * phone everywhere; a START clears only the entry for the number it was
+ * sent to, so it can never cancel a STOP given to another sender. Phones
+ * are stored hashed.
  */
 export interface OptOutStore {
-  optOut(phone: string, at: string, source: string): Promise<void>;
-  clear(phone: string): Promise<void>;
+  optOut(phone: string, sender: string, at: string, source: string): Promise<void>;
+  clear(phone: string, sender: string): Promise<void>;
   optedOut(phone: string): Promise<boolean>;
 }
+
+export const phoneHash = (p: string) => createHash("sha256").update(`lm8-optout:${p}`).digest("hex");
 
 export interface TouchStore extends OptOutStore {
   add(t: Touch): Promise<void>;
@@ -44,19 +53,25 @@ export interface TouchStore extends OptOutStore {
   threads(ownerUserId: string | undefined, limit?: number): Promise<Touch[]>;
   /** Marketing touches out to this contact since a time, by channel. */
   sentSince(contactId: string, since: string): Promise<Touch[]>;
+  /** D6: loan officers who have texted this phone from this sender number. */
+  ownersWhoTexted(phone: string, sender: string): Promise<string[]>;
 }
 
 export class MemoryTouchStore implements TouchStore {
   private rows: Touch[] = [];
   private outs = new Map<string, string>();
-  async optOut(phone: string, at: string) {
-    this.outs.set(phone, at);
+  async optOut(phone: string, sender: string, at: string) {
+    this.outs.set(`${phoneHash(phone)}|${sender}`, at);
   }
-  async clear(phone: string) {
-    this.outs.delete(phone);
+  async clear(phone: string, sender: string) {
+    this.outs.delete(`${phoneHash(phone)}|${sender}`);
   }
   async optedOut(phone: string) {
-    return this.outs.has(phone);
+    const h = `${phoneHash(phone)}|`;
+    return [...this.outs.keys()].some((k) => k.startsWith(h));
+  }
+  async ownersWhoTexted(phone: string, sender: string) {
+    return [...new Set(this.rows.filter((r) => r.direction === "out" && r.phone === phone && r.sender === sender).map((r) => r.ownerUserId))];
   }
   async add(t: Touch) {
     this.rows.push({ ...t });
@@ -83,6 +98,7 @@ const toTouch = (r: Row): Touch => ({
   id: r.id as string, contactId: r.contact_id as string, ownerUserId: r.owner_user_id as string, channel: r.channel as Channel, purpose: r.purpose as Purpose,
   direction: r.direction as Touch["direction"], body: r.body as string, status: r.status as string, providerId: (r.provider_id as string | null) ?? null,
   note: (r.note as string | null) ?? null, at: new Date(r.at as string).toISOString(), actor: r.actor as string,
+  phone: (r.phone as string | null) ?? null, sender: (r.sender as string | null) ?? null,
 });
 
 export class NeonTouchStore implements TouchStore {
@@ -95,7 +111,10 @@ export class NeonTouchStore implements TouchStore {
         await this.q(`CREATE INDEX IF NOT EXISTS cc_touches_contact ON cc_touches (contact_id, at)`);
         await this.q(`CREATE INDEX IF NOT EXISTS cc_touches_owner ON cc_touches (owner_user_id, at DESC)`);
         await this.q(`CREATE INDEX IF NOT EXISTS cc_touches_provider ON cc_touches (provider_id)`);
-        await this.q(`CREATE TABLE IF NOT EXISTS cc_optouts (phone text PRIMARY KEY, at timestamptz NOT NULL, source text NOT NULL)`);
+        await this.q(`ALTER TABLE cc_touches ADD COLUMN IF NOT EXISTS phone text`);
+        await this.q(`ALTER TABLE cc_touches ADD COLUMN IF NOT EXISTS sender text`);
+        await this.q(`CREATE INDEX IF NOT EXISTS cc_touches_phone ON cc_touches (phone, sender)`);
+        await this.q(`CREATE TABLE IF NOT EXISTS cc_optouts_v2 (phone_hash text NOT NULL, sender text NOT NULL, at timestamptz NOT NULL, source text NOT NULL, PRIMARY KEY (phone_hash, sender))`);
       })().catch((e) => {
         this.ready = null;
         throw e;
@@ -103,21 +122,25 @@ export class NeonTouchStore implements TouchStore {
     }
     return this.ready;
   }
-  async optOut(phone: string, at: string, source: string) {
+  async optOut(phone: string, sender: string, at: string, source: string) {
     await this.init();
-    await this.q(`INSERT INTO cc_optouts (phone, at, source) VALUES ($1,$2,$3) ON CONFLICT (phone) DO UPDATE SET at = EXCLUDED.at, source = EXCLUDED.source`, [phone, at, source]);
+    await this.q(`INSERT INTO cc_optouts_v2 (phone_hash, sender, at, source) VALUES ($1,$2,$3,$4) ON CONFLICT (phone_hash, sender) DO UPDATE SET at = EXCLUDED.at, source = EXCLUDED.source`, [phoneHash(phone), sender, at, source]);
   }
-  async clear(phone: string) {
+  async clear(phone: string, sender: string) {
     await this.init();
-    await this.q(`DELETE FROM cc_optouts WHERE phone = $1`, [phone]);
+    await this.q(`DELETE FROM cc_optouts_v2 WHERE phone_hash = $1 AND sender = $2`, [phoneHash(phone), sender]);
   }
   async optedOut(phone: string) {
     await this.init();
-    return (await this.q(`SELECT 1 FROM cc_optouts WHERE phone = $1`, [phone])).length > 0;
+    return (await this.q(`SELECT 1 FROM cc_optouts_v2 WHERE phone_hash = $1 LIMIT 1`, [phoneHash(phone)])).length > 0;
+  }
+  async ownersWhoTexted(phone: string, sender: string) {
+    await this.init();
+    return (await this.q(`SELECT DISTINCT owner_user_id FROM cc_touches WHERE direction = 'out' AND phone = $1 AND sender = $2`, [phone, sender])).map((r) => r.owner_user_id as string);
   }
   async add(t: Touch) {
     await this.init();
-    await this.q(`INSERT INTO cc_touches VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, [t.id, t.contactId, t.ownerUserId, t.channel, t.purpose, t.direction, t.body, t.status, t.providerId, t.note, t.at, t.actor]);
+    await this.q(`INSERT INTO cc_touches (id, contact_id, owner_user_id, channel, purpose, direction, body, status, provider_id, note, at, actor, phone, sender) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, [t.id, t.contactId, t.ownerUserId, t.channel, t.purpose, t.direction, t.body, t.status, t.providerId, t.note, t.at, t.actor, t.phone ?? null, t.sender ?? null]);
   }
   async setStatus(pid: string, status: string) {
     await this.init();

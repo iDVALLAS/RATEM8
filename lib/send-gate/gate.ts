@@ -22,8 +22,14 @@ export type GateInput = {
     hasPhone: boolean;
     hasEmail: boolean;
     relationship: string;
-    /** Date a loan with us closed, for the established-business-relationship exception on hand calls. */
-    loanClosedOn: string | null;
+    /**
+     * D6: the date a loan closed with the loan officer's CURRENT company, from
+     * their own loan system (pipeline sync). An established business
+     * relationship belongs to the company the loan closed with, so a recruit's
+     * loans from a previous employer never count. It only ever covers hand-dialed
+     * calls (do-not-call), never texts or AI calls.
+     */
+    ebrClosedOn: string | null;
   };
   consent: ConsentSummary;
   /** States the sending loan officer is licensed in. */
@@ -114,8 +120,8 @@ export function decide(i: GateInput): GateDecision {
   } else if (i.channel === "call" && i.manual) {
     if (!marketing) basis = granted ? `call permission (${ev})${when}` : "a call you place yourself about their loan";
     else if (granted) basis = `call permission (${ev})${when}`;
-    else if (c.relationship === "past_client" && c.loanClosedOn && monthsBetween(c.loanClosedOn, i.now) <= 18) basis = "established business relationship (a loan closed in the last 18 months)";
-    else reasons.push("A sales call to someone without permission needs a loan with you in the last 18 months. Record their permission first.");
+    else if (c.ebrClosedOn && monthsBetween(c.ebrClosedOn, i.now) <= 18) basis = "established business relationship (a loan closed with your current company in the last 18 months)";
+    else reasons.push("A sales call to someone without permission needs a loan closed with your current company in the last 18 months. Record their permission first.");
   } else if (i.channel === "text") {
     if (!granted) reasons.push("No permission to text on file.");
     else if (marketing && !WRITTEN.includes(ev!)) reasons.push("Marketing texts need written permission (a signed form, a web form or a texted yes), not just your word.");

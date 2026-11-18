@@ -19,7 +19,7 @@ export function twilioConfig(): { sid: string; token: string; service: string } 
 
 const auth = (c: { sid: string; token: string }) => `Basic ${Buffer.from(`${c.sid}:${c.token}`).toString("base64")}`;
 
-export type SendResult = { ok: true; sid: string; status: string } | { ok: false; error: string };
+export type SendResult = { ok: true; sid: string; status: string; from: string | null } | { ok: false; error: string };
 
 export async function sendSms(to: string, body: string, statusCallback: string | null): Promise<SendResult> {
   const c = twilioConfig();
@@ -33,9 +33,9 @@ export async function sendSms(to: string, body: string, statusCallback: string |
       body: form,
       cache: "no-store",
     });
-    const out = (await res.json().catch(() => ({}))) as { sid?: string; status?: string; message?: string; code?: number };
+    const out = (await res.json().catch(() => ({}))) as { sid?: string; status?: string; message?: string; code?: number; from?: string | null };
     if (!res.ok || !out.sid) return { ok: false, error: out.code === 21610 ? "This number has replied STOP to our texting number." : "Twilio didn't accept the text." };
-    return { ok: true, sid: out.sid, status: out.status ?? "queued" };
+    return { ok: true, sid: out.sid, status: out.status ?? "queued", from: out.from ?? null };
   } catch {
     return { ok: false, error: "Couldn't reach Twilio." };
   }

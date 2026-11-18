@@ -37,16 +37,21 @@ export type StateRule = {
   note?: string;
 };
 
-/** Default: 8 AM to 8 PM local (stricter than the federal 8 to 9), 3 calls a day, 1 text a day and 3 a week. */
-export const DEFAULT_RULE: StateRule = { start: 8, end: 20, callsPerDay: 3, textsPerDay: 1, textsPerWeek: 3, allPartyRecording: false };
+/**
+ * Default: 9 AM to 8 PM local, the strictest window the build prompt calls
+ * for (D6; Connecticut is reported at 9 to 8 for sales calls and texts),
+ * 3 calls a day, 1 text a day and 3 a week.
+ */
+export const DEFAULT_RULE: StateRule = { start: 9, end: 20, callsPerDay: 3, textsPerDay: 1, textsPerWeek: 3, allPartyRecording: false };
 
 /** All-party recording states (counsel to confirm; some apply only to private or in-person conversations). */
 const ALL_PARTY = ["CA", "CT", "DE", "FL", "IL", "MD", "MA", "MI", "MT", "NV", "NH", "OR", "PA", "WA"];
 
 const OVERRIDES: Record<string, Partial<StateRule>> = {
-  FL: { note: "Florida Telephone Solicitation Act: 8 AM–8 PM, no more than 3 calls in 24 hours on the same subject." },
-  OK: { note: "Oklahoma Telephone Solicitation Act: 8 AM–8 PM, no more than 3 calls in 24 hours." },
-  MD: { note: "Maryland Stop the Spam Calls Act: 8 AM–8 PM, no more than 3 calls in 24 hours." },
+  FL: { note: "Florida Telephone Solicitation Act: 8 AM–8 PM, no more than 3 calls in 24 hours on the same subject (our default is stricter)." },
+  OK: { note: "Oklahoma Telephone Solicitation Act: 8 AM–8 PM, no more than 3 calls in 24 hours (our default is stricter)." },
+  MD: { note: "Maryland Stop the Spam Calls Act: 8 AM–8 PM, no more than 3 calls in 24 hours (our default is stricter)." },
+  CT: { note: "Connecticut: 9 AM–8 PM for sales calls and texts (reported; counsel to confirm)." },
   TX: { sunday: { start: 12, end: 20 }, note: "Texas: telephone solicitation on Sunday only from noon; texts are covered since 2025." },
   LA: { sunday: null, note: "Louisiana: no telephone solicitation on Sundays or state holidays." },
   ME: { sunday: null, note: "Maine: conservative default, no Sunday marketing contact." },

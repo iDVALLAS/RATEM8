@@ -12,6 +12,7 @@ import { decide, type GateDecision } from "@/lib/send-gate/gate";
 import { licensedStatesFor } from "@/lib/send-gate/for-contact";
 import { isOptIn, isOptOut, lookupLineType, sendSms, twilioConfig } from "./twilio";
 import { touchStore } from "./store";
+import { pipelineStore } from "@/lib/pipeline/store";
 
 export const MAX_TEXT = 640;
 const tid = () => `t_${randomBytes(9).toString("base64url")}`;
@@ -32,13 +33,20 @@ export async function gateFor(actor: User, c: Contact, channel: Channel, purpose
     channel,
     purpose,
     manual: channel === "call",
-    contact: { locked: c.locked, state: c.state, hasPhone: !!c.phone, hasEmail: !!c.email, relationship: c.relationship, loanClosedOn: c.loan?.closedOn ?? null },
+    contact: { locked: c.locked, state: c.state, hasPhone: !!c.phone, hasEmail: !!c.email, relationship: c.relationship, ebrClosedOn: await ebrDate(c) },
     consent,
     licensedStates: licensedStatesFor(actor),
     dnc: c.dnc ? { onList: c.dnc.onList, checkedAt: c.dnc.checkedAt } : null,
     sent: { callsLast24h: count(["call", "ai_call"], day), textsLast24h: count(["text"], day), textsLast7d: count(["text"], week) },
     now,
   });
+}
+
+/** D6: the latest closing for this contact in the loan officer's own loan system (their current company). */
+async function ebrDate(c: Contact): Promise<string | null> {
+  const loans = (await pipelineStore().list(c.ownerUserId)).filter((l) => l.contactId === c.id && l.closed);
+  const dates = loans.map((l) => l.keyDates.closing ?? l.updatedAt.slice(0, 10)).sort();
+  return dates.length ? dates[dates.length - 1] : null;
 }
 
 /** Who the text is from, and how to stop, on the first text and every marketing text. */
@@ -66,27 +74,34 @@ export async function sendText(actor: User, contactId: string, rawBody: string, 
   const sig = signature(actor);
   const body = purpose === "marketing" || first ? (text.includes("STOP") ? text : `${text}\n\n${sig}`) : text;
   const res = await sendSms(c.phone!, body, statusCallback);
-  await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose, direction: "out", body, status: res.ok ? res.status : "failed", providerId: res.ok ? res.sid : null, note: d.basis, at: now.toISOString(), actor: actor.email });
+  await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose, direction: "out", body, status: res.ok ? res.status : "failed", providerId: res.ok ? res.sid : null, note: d.basis, at: now.toISOString(), actor: actor.email, phone: c.phone, sender: twilioConfig()!.service });
   await audit.audit({ at: now.toISOString(), actor: actor.email, action: "gate.send.text", detail: { contactId, purpose, basis: d.basis, ok: res.ok } });
   return res.ok ? { ok: true } : { ok: false, error: res.error };
 }
 
 /**
- * An inbound text. Stored on every matching contact (every loan officer who
- * has this number). An opt-out revokes every phone channel for all of them
- * at once and goes on the opt-out list, even if nobody has the number yet.
+ * An inbound text to one of our senders (a Twilio Messaging Service).
+ *
+ * D6 (overnight review): it's stored ONLY on the contacts of loan officers
+ * who have texted this phone from that same sender, never copied to every
+ * loan officer who happens to have the number (that leaked one company's
+ * conversation into another's). An opt-out goes on the one-way opt-out list
+ * for that sender (which blocks the phone everywhere) and revokes every
+ * phone channel for the matched contacts. A START clears only that
+ * sender's entry, so it can't cancel a STOP given to anyone else.
  */
-export async function handleInbound(from: string, rawBody: string, now = new Date()): Promise<{ contacts: number; optedOut: boolean }> {
+export async function handleInbound(from: string, sender: string, rawBody: string, now = new Date()): Promise<{ contacts: number; optedOut: boolean }> {
   const at = now.toISOString();
   const body = redactChatInput(rawBody).text.slice(0, 2000);
   const ts = touchStore();
-  const contacts = await contactStore().findByPhone(from);
+  const owners = new Set(await ts.ownersWhoTexted(from, sender));
+  const contacts = (await contactStore().findByPhone(from)).filter((c) => owners.has(c.ownerUserId));
   const out = isOptOut(body);
-  if (out) await ts.optOut(from, at, "text reply");
-  else if (isOptIn(body)) await ts.clear(from);
+  if (out) await ts.optOut(from, sender, at, "text reply");
+  else if (isOptIn(body)) await ts.clear(from, sender);
   for (const c of contacts) {
     if (out) await recordConsent(SYSTEM, c.id, { channel: "text", purpose: "marketing", granted: false, evidence: "revoked", proof: `texted "${body.slice(0, 60)}"` }, now);
-    await ts.add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose: "service", direction: "in", body, status: "received", providerId: null, note: out ? "Opt-out recorded: texts and calls are off for this number." : isOptIn(body) ? "They texted START. Texting is unblocked, but permission still has to be on file." : null, at, actor: "contact" });
+    await ts.add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose: "service", direction: "in", body, status: "received", providerId: null, phone: from, sender, note: out ? "Opt-out recorded: texts and calls are off for this number." : isOptIn(body) ? "They texted START. Texting is unblocked, but permission still has to be on file." : null, at, actor: "contact" });
   }
   await accountStore().audit({ at, actor: "twilio", action: out ? "text.inbound.optout" : "text.inbound", detail: { matched: contacts.length } });
   return { contacts: contacts.length, optedOut: out };

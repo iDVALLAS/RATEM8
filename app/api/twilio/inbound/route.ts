@@ -10,6 +10,8 @@ export async function POST(req: Request) {
   const p = await readTwilio(req);
   if (!p) return new Response("Forbidden", { status: 403 });
   const from = fromNumber(p);
-  if (from) await handleInbound(from, p.Body ?? "");
+  // Our sender is the Messaging Service the text arrived through (one per sponsor's 10DLC brand).
+  const sender = p.MessagingServiceSid || p.To || "";
+  if (from && sender) await handleInbound(from, sender, p.Body ?? "");
   return new Response("<Response></Response>", { headers: { "Content-Type": "text/xml" } });
 }

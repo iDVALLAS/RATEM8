@@ -115,6 +115,11 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
           <span>CSV file (up to {MAX_ROWS.toLocaleString("en-US")} rows). It stays on this computer; only the cleaned rows are sent.</span>
           <input type="file" accept=".csv,text/csv" onChange={(e) => onFile(e.target.files?.[0])} className="mlo-input" />
         </label>
+        {kind === "agents" ? (
+          <p className="mlo-note" style={{ marginTop: 8 }}>
+            RETR&apos;s terms (updated September 2026) don&apos;t allow its data to be used with AI or automated tools. Command Center only shows an agent&apos;s production to you on their page; M8 and Today&apos;s suggestions never use it.
+          </p>
+        ) : null}
         {error ? <div className="mlo-flash mlo-flash--err" role="alert">{error}</div> : null}
       </section>
 

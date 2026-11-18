@@ -8,7 +8,7 @@
 import type { ConsentSummary } from "@/lib/contacts/service";
 import type { Contact } from "@/lib/contacts/store";
 
-export type CardKind = "reply" | "anniversary" | "rate_gap" | "check_in" | "ask_permission" | "agent";
+export type CardKind = "reply" | "anniversary" | "rate_gap" | "check_in" | "ask_permission" | "agent" | "loan_late" | "lock" | "closing";
 
 export type TodayCard = {
   kind: CardKind;
@@ -18,7 +18,7 @@ export type TodayCard = {
   reason: string;
   score: number;
   /** What the loan officer can do in one tap. */
-  next: "reply" | "call" | "text" | "record_permission" | "open";
+  next: "reply" | "call" | "text" | "record_permission" | "open" | "pipeline";
 };
 
 export type TodayFacts = {
@@ -59,11 +59,10 @@ export function cardsFor(f: TodayFacts, now: Date, ref: RateRef): TodayCard[] {
   }
   if (stopped) return out;
 
-  if (c.kind === "agent") {
-    const units = c.agent?.units ?? 0;
-    if (!f.last && units >= 12) out.push({ kind: "agent", contactId: c.id, name: n, title: `Introduce yourself to ${n}`, reason: `${units} closings in 12 months${c.agent?.brokerage ? ` at ${c.agent.brokerage}` : ""}${c.agent?.topLender ? `, usually with ${c.agent.topLender}` : ""}. You haven't been in touch yet.`, score: 40 + Math.min(units, 40), next: "call" });
-    return out;
-  }
+  // D6: agents aren't ranked. RETR's terms (2026-09-17) bar using its data
+  // in AI, rules engines or automated processes, so agent production numbers
+  // are only shown to the loan officer on the agent's page.
+  if (c.kind === "agent") return out;
 
   // 2. Home anniversary in the next two weeks.
   if (c.loan?.closedOn) {

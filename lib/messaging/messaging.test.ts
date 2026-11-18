@@ -62,27 +62,44 @@ describe("texting (D4)", () => {
     expect(sent[0].get("MessagingServiceSid")).toBe("MG123");
     expect(await sendText(me, c.id, "Lunch moved to noon.", "service", null, TUE_10AM_PT)).toEqual({ ok: true });
     expect(sent[1].get("Body")).toBe("Lunch moved to noon.");
-    const early = await sendText(me, c.id, "Morning!", "service", null, new Date("2026-11-17T15:00:00Z"));
-    expect(early).toMatchObject({ ok: false, retryAt: "2026-11-17T16:00:00.000Z" });
+    const early = await sendText(me, c.id, "Morning!", "service", null, new Date("2026-11-17T16:00:00Z"));
+    expect(early).toMatchObject({ ok: false, retryAt: "2026-11-17T17:00:00.000Z" });
   });
 
-  it("a STOP reply revokes texts and calls for that number for every loan officer, even ones who import it later", async () => {
-    await importBatch(lo("lo1"), "contacts", [rec], "a.csv", "personal");
-    await importBatch(lo("lo2"), "contacts", [rec], "b.csv", "personal");
-    const res = await handleInbound("+12065551234", "Please stop texting me", TUE_10AM_PT);
-    expect(res).toEqual({ contacts: 2, optedOut: true });
-    for (const c of (await contacts.list({})).contacts) {
-      const s = summarize(await contacts.consents(c.id));
-      expect(s.text.marketing.evidence).toBe("revoked");
-      expect(s.ai_call.service.evidence).toBe("revoked");
-      expect((await touches.forContact(c.id))[0].note).toMatch(/Opt-out recorded/);
-    }
+  it("stores a reply only with loan officers who texted that phone from that sender, never across companies", async () => {
+    const a = lo("lo1");
+    const b = lo("lo2");
+    await importBatch(a, "contacts", [rec], "a.csv", "personal");
+    await importBatch(b, "contacts", [rec], "b.csv", "personal");
+    const ca = (await contacts.list({ ownerUserId: "lo1" })).contacts[0];
+    const cb = (await contacts.list({ ownerUserId: "lo2" })).contacts[0];
+    await recordConsent(a, ca.id, { channel: "text", purpose: "service", granted: true, evidence: "written", proof: "form" });
+    await sendText(a, ca.id, "Hi Ann", "service", null, TUE_10AM_PT);
+    const res = await handleInbound("+12065551234", "MG123", "Thanks! Talk soon", TUE_10AM_PT);
+    expect(res).toEqual({ contacts: 1, optedOut: false });
+    expect((await touches.forContact(ca.id)).map((t) => t.direction)).toEqual(["out", "in"]);
+    expect(await touches.forContact(cb.id)).toEqual([]);
+  });
+
+  it("a STOP blocks that phone everywhere; a START to another sender can't cancel it", async () => {
+    const a = lo("lo1");
+    await importBatch(a, "contacts", [rec], "a.csv", "personal");
+    const ca = (await contacts.list({ ownerUserId: "lo1" })).contacts[0];
+    await recordConsent(a, ca.id, { channel: "text", purpose: "service", granted: true, evidence: "written", proof: "form" });
+    await sendText(a, ca.id, "Hi Ann", "service", null, TUE_10AM_PT);
+    expect(await handleInbound("+12065551234", "MG123", "Please stop texting me", TUE_10AM_PT)).toEqual({ contacts: 1, optedOut: true });
+    const s = summarize(await contacts.consents(ca.id));
+    for (const ch of ["call", "ai_call", "text"] as const) expect(s[ch].marketing.evidence).toBe("revoked");
+    await handleInbound("+12065551234", "MG999", "START", TUE_10AM_PT); // another company's sender
     expect(await touches.optedOut("+12065551234")).toBe(true);
-    // A third loan officer imports the number later and records permission: still blocked by the opt-out list.
-    const me = lo("lo3");
-    await importBatch(me, "contacts", [rec], "c.csv", "personal");
+    // A different loan officer who imports the number later is still blocked.
+    const c = lo("lo3");
+    await importBatch(c, "contacts", [rec], "c.csv", "personal");
     const c3 = (await contacts.list({ ownerUserId: "lo3" })).contacts[0];
-    await recordConsent(me, c3.id, { channel: "text", purpose: "service", granted: true, evidence: "written", proof: "form" });
-    expect((await sendText(me, c3.id, "Hi", "service", null, TUE_10AM_PT)).ok).toBe(false);
+    await recordConsent(c, c3.id, { channel: "text", purpose: "service", granted: true, evidence: "written", proof: "form" });
+    expect((await sendText(c, c3.id, "Hi", "service", null, TUE_10AM_PT)).ok).toBe(false);
+    // START to the same sender clears only that sender's entry.
+    await handleInbound("+12065551234", "MG123", "START", TUE_10AM_PT);
+    expect(await touches.optedOut("+12065551234")).toBe(false);
   });
 });

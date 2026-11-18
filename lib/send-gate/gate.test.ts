@@ -13,7 +13,7 @@ const base = (over: Partial<GateInput> = {}): GateInput => ({
   channel: "text",
   purpose: "marketing",
   manual: false,
-  contact: { locked: false, state: "WA", hasPhone: true, hasEmail: true, relationship: "past_client", loanClosedOn: null },
+  contact: { locked: false, state: "WA", hasPhone: true, hasEmail: true, relationship: "past_client", ebrClosedOn: null },
   consent: consent(["text", "marketing", "web_form"]),
   licensedStates: ["WA", "OR"],
   dnc: { onList: false, checkedAt: "2026-11-10T00:00:00Z" },
@@ -43,10 +43,12 @@ describe("send gate (D3)", () => {
     expect(decide(base({ consent: consent() })).reasons[0]).toMatch(/No permission to text/);
   });
 
-  it("lets a loan officer hand-dial past clients within 18 months without recorded permission, not older ones", () => {
+  it("lets a loan officer hand-dial clients whose loan closed with their current company in 18 months, not older ones or texts", () => {
     const hand = { channel: "call" as const, manual: true, consent: consent() };
-    expect(decide(base({ ...hand, contact: { ...base().contact, loanClosedOn: "2025-12-01" } })).basis).toMatch(/established business relationship/);
-    expect(decide(base({ ...hand, contact: { ...base().contact, loanClosedOn: "2023-01-01" } })).allowed).toBe(false);
+    expect(decide(base({ ...hand, contact: { ...base().contact, ebrClosedOn: "2025-12-01" } })).basis).toMatch(/established business relationship \(a loan closed with your current company/);
+    expect(decide(base({ ...hand, contact: { ...base().contact, ebrClosedOn: "2023-01-01" } })).allowed).toBe(false);
+    expect(decide(base({ consent: consent(), contact: { ...base().contact, ebrClosedOn: "2026-10-01" } })).allowed).toBe(false); // never for texts
+    expect(decide(base({ channel: "ai_call", consent: consent(), contact: { ...base().contact, ebrClosedOn: "2026-10-01" } })).allowed).toBe(false); // never for AI calls
     expect(decide(base({ ...hand, purpose: "service" })).allowed).toBe(true);
     expect(decide(base({ channel: "text", manual: true })).allowed).toBe(false);
   });
@@ -70,13 +72,15 @@ describe("send gate (D3)", () => {
   });
 
   it("keeps quiet hours in every time zone of the state, and says when the window opens", () => {
-    const early = new Date("2026-11-17T15:30:00Z"); // 7:30 AM Pacific
+    const early = new Date("2026-11-17T16:30:00Z"); // 8:30 AM Pacific: our default window opens at 9
     const d = decide(base({ now: early }));
     expect(d.allowed).toBe(false);
-    expect(d.retryAt).toBe("2026-11-17T16:00:00.000Z");
-    // Texas: 8 AM Central is 7 AM in El Paso (Mountain), so not yet.
-    expect(inWindow("TX", new Date("2026-11-17T14:30:00Z"), "service")).toBe(false);
-    expect(inWindow("TX", new Date("2026-11-17T15:00:00Z"), "service")).toBe(true);
+    expect(d.retryAt).toBe("2026-11-17T17:00:00.000Z");
+    // Texas: 9 AM Central is 8 AM in El Paso (Mountain), so not yet.
+    expect(inWindow("TX", new Date("2026-11-17T15:00:00Z"), "service")).toBe(false);
+    expect(inWindow("TX", new Date("2026-11-17T16:00:00Z"), "service")).toBe(true);
+    // Every state is closed at 8:30 AM local.
+    expect(inWindow("CT", new Date("2026-11-17T13:30:00Z"), "service")).toBe(false);
     // Louisiana: no marketing on Sunday; Texas Sunday from noon.
     const sun = new Date("2026-11-15T17:00:00Z"); // 11 AM Central
     expect(inWindow("LA", sun, "marketing")).toBe(false);
@@ -86,8 +90,8 @@ describe("send gate (D3)", () => {
 
   it("flags all-party recording states for calls only, and allows email without prior consent", () => {
     expect(decide(base({ channel: "call", manual: true, purpose: "service", consent: consent() })).recordingNotice).toBe(true);
-    expect(decide(base({ channel: "call", manual: true, purpose: "service", consent: consent(), now: new Date("2026-11-17T15:30:00Z") })).recordingNotice).toBe(false);
-    expect(decide(base({ now: new Date("2026-11-17T15:30:00Z") })).reasons[0]).toBe("Outside 8 AM–8 PM their local time.");
+    expect(decide(base({ channel: "call", manual: true, purpose: "service", consent: consent(), now: new Date("2026-11-17T16:30:00Z") })).recordingNotice).toBe(false);
+    expect(decide(base({ now: new Date("2026-11-17T16:30:00Z") })).reasons[0]).toBe("Outside 9 AM–8 PM their local time.");
     expect(decide(base({ contact: { ...base().contact, state: "OR" } })).recordingNotice).toBe(false);
     expect(ruleFor("AZ").allPartyRecording).toBe(false);
     const email = decide(base({ channel: "email", consent: consent(), now: new Date("2026-11-17T08:00:00Z") }));

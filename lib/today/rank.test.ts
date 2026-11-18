@@ -43,10 +43,10 @@ describe("Today ranking (D5)", () => {
     expect(cardsFor(facts({ consent: stopped, contact: contact({ loan: { closedOn: "2020-11-20", amount: null, noteRate: null } }) }), NOW, null)).toEqual([]);
   });
 
-  it("suggests check-ins with permission after 90 quiet days, asking past clients without it, and introducing top agents", () => {
+  it("suggests check-ins with permission after 90 quiet days and asking past clients without it; never ranks agents on production data", () => {
     expect(cardsFor(facts({ consent: granted("text") }), NOW, null)[0]).toMatchObject({ kind: "check_in", next: "text" });
     expect(cardsFor(facts(), NOW, null)[0]).toMatchObject({ kind: "ask_permission", next: "record_permission" });
     const agent = contact({ kind: "agent", relationship: "agent", agent: { brokerage: "Windermere", units: 24, volume: null, buyerUnits: null, listingUnits: null, avgPrice: null, topLender: "Big Bank" } });
-    expect(cardsFor(facts({ contact: agent }), NOW, null)[0].reason).toMatch(/24 closings in 12 months at Windermere, usually with Big Bank/);
+    expect(cardsFor(facts({ contact: agent }), NOW, null)).toEqual([]);
   });
 });
