@@ -200,7 +200,14 @@
 
 /* ─── Live upload (Layer 2) ───────────────────────────────────── */
 
-.sl-live { margin-top: 56px; }
+.sl-live { margin-top: 56px; scroll-margin-top: 96px; }
+/* 2026-11-18: past the sample to the borrower's own upload. */
+.sl-jump--a { display: inline-flex; align-items: center; gap: 10px; margin-top: 20px; min-height: 48px; padding: 12px 22px; border-radius: 9999px; background: var(--color-m8-deep); color: var(--color-m8-paper); font-weight: 500; text-decoration: none; }
+.sl-jump--a:hover { filter: none; opacity: 0.92; }
+.sl-jump--b { display: inline-block; margin-top: 18px; color: var(--accent); font-size: 1rem; text-decoration: underline; text-underline-offset: 4px; }
+.sl-jump--b:hover { color: var(--fg); }
+.sl-jump svg { flex-shrink: 0; }
+.sl-jump--b svg { display: inline; margin-left: 6px; vertical-align: -2px; }
 .sl-live__panel { margin-top: 20px; }
 .sl-live__steps {
   display: flex;

@@ -348,6 +348,11 @@ export const copy = {
     accent: "Drop it.",
     sub: "You already have a Loan Estimate from someone else. Good. M8 walks through it line by line, in plain English, and tells you which questions to ask. It does not compare it to our pricing and it does not tell you to switch.",
     sampleNote: "The demo below uses a fictional Loan Estimate. Nothing you see is a real offer.",
+    /** Owner 2026-11-18: a way past the sample to the borrower's own upload. */
+    jump: {
+      a: "Skip the sample. Drop my Loan Estimate",
+      b: "Have your own? Scroll to the end to drop your Loan Estimate",
+    },
     scenes: [
       { label: "// 01 — drop", title: "Drop the document.", body: "A Loan Estimate is a standard three-page form. M8 reads the standard fields, nothing else." },
       { label: "// 02 — read", title: "M8 reads the fields.", body: "Interest rate. APR. Points. Lender credits. Section A origination charges. Section B and C services. Cash to close." },
@@ -385,9 +390,8 @@ export const copy = {
         title: "Before you upload",
         items: [
           `${NOT_A_CREDIT_PULL} Uploading a document does not touch your credit.`,
-          `What is stored, and for how long: ${CONFIG.secondLookRetention}`,
+          "We don't keep your document or share your information. M8 reads it once to explain it, then it's discarded.",
           "The analysis is AI-generated. It is an explanation of your document, not a commitment to lend and not an offer.",
-          "You can request deletion of anything you uploaded at any time.",
           "Your name, address, loan ID, and any SSN-shaped strings are masked on your device before anything is sent.",
         ],
         cta: "I understand, continue",

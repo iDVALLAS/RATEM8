@@ -1364,3 +1364,20 @@ and the loan officer gets a copy.
 - Counsel: the Second Look prompt file is still marked DRAFT for counsel;
   turning on `SECOND_LOOK_LIVE` also turns on the standalone page's live
   decode. The emailed copy contains the borrower's name and address.
+
+## C21 — Second Look: no retention placeholder, and a link past the sample (2026-11-18)
+
+- Owner: counsel says no retention period applies to notes from a Loan
+  Estimate when no application was taken; "remove or say we don't share".
+  `CONFIG.secondLookRetention` is now "Not stored. M8 reads your document
+  once to explain it, then it's discarded" (also on /privacy). The consent
+  line is "We don't keep your document or share your information. M8 reads
+  it once to explain it, then it's discarded."; the "request deletion"
+  line is gone (nothing is kept). True for /second-look, which stores and
+  sends nothing; the M8 chat upload box (C20) still says a copy goes to the
+  loan officer.
+- `/second-look`: under the sample note, "Have your own? Scroll to the end
+  to drop your Loan Estimate ↓" jumps to the upload (`#your-loan-estimate`).
+  Owner picked option B (a link) over A (a green button) from phone
+  mockups; A's style is kept (`.sl-jump--a`).
+- `npm run verify` passes.

@@ -261,7 +261,7 @@ export default function LiveUpload({ live }: { live: boolean }) {
   const draftBox = draft ? boxFromPoints(draft.a, draft.b, 0) : null;
 
   return (
-    <section className="sl-live" aria-labelledby="sl-live-heading">
+    <section id="your-loan-estimate" className="sl-live" aria-labelledby="sl-live-heading">
       <p className="eyebrow">{L.eyebrow}</p>
       <h2 id="sl-live-heading" className="sl-scene__title" style={{ marginTop: 8 }}>
         {L.heading}
