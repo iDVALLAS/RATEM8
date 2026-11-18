@@ -139,9 +139,9 @@ describe("Building scripts (D9)", () => {
     expect(r.saved.script.questions).toEqual(["What's the kitchen plan?"]);
     expect(r.saved.script.dropped).toBe(1);
     for (const bad of ["6.9", "400,000", "400000", "ann@example.com", "2065551234", "1 Main St", "98101", "Seattle"]) expect(seen).not.toContain(bad);
-    expect(seen).toContain("<client_message");
+    expect(seen).toMatch(/kind="client_message"/);
     expect(seen).not.toContain("</client_message> SYSTEM");
-    expect(seen).toContain("<mlo_request>see if the kitchen is still on</mlo_request>");
+    expect(seen).toContain("«see if the kitchen is still on»");
   });
 
   it("falls back to the template on a refusal or bad JSON", async () => {

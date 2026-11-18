@@ -11,8 +11,9 @@ import { contactStore, type Channel, type Contact, type Purpose } from "@/lib/co
 import { decide, type GateDecision } from "@/lib/send-gate/gate";
 import { licensedStatesFor } from "@/lib/send-gate/for-contact";
 import { isOptIn, isOptOut, lookupLineType, sendSms, twilioConfig } from "./twilio";
-import { touchStore } from "./store";
+import { touchStore, type Touch } from "./store";
 import { pipelineStore } from "@/lib/pipeline/store";
+import { conciergeStore } from "@/lib/concierge/store";
 
 export const MAX_TEXT = 640;
 const tid = () => `t_${randomBytes(9).toString("base64url")}`;
@@ -57,7 +58,7 @@ export function signature(actor: User): string {
 
 export type SendOutcome = { ok: true } | { ok: false; error: string; reasons?: string[]; retryAt?: string | null };
 
-export async function sendText(actor: User, contactId: string, rawBody: string, purpose: Purpose, statusCallback: string | null, now = new Date()): Promise<SendOutcome> {
+export async function sendText(actor: User, contactId: string, rawBody: string, purpose: Purpose, statusCallback: string | null, now = new Date(), opts: { origin?: Touch["origin"] } = {}): Promise<SendOutcome> {
   const c = await contactStore().get(contactId);
   if (!c || !canSee(actor, c)) return { ok: false, error: "No such contact." };
   const text = redactChatInput(rawBody.trim()).text;
@@ -74,7 +75,7 @@ export async function sendText(actor: User, contactId: string, rawBody: string, 
   const sig = signature(actor);
   const body = purpose === "marketing" || first ? (text.includes("STOP") ? text : `${text}\n\n${sig}`) : text;
   const res = await sendSms(c.phone!, body, statusCallback);
-  await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose, direction: "out", body, status: res.ok ? res.status : "failed", providerId: res.ok ? res.sid : null, note: d.basis, at: now.toISOString(), actor: actor.email, phone: c.phone, sender: twilioConfig()!.service });
+  await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose, direction: "out", body, status: res.ok ? res.status : "failed", providerId: res.ok ? res.sid : null, note: d.basis, at: now.toISOString(), actor: actor.email, phone: c.phone, sender: twilioConfig()!.service, origin: opts.origin ?? "human" });
   await audit.audit({ at: now.toISOString(), actor: actor.email, action: "gate.send.text", detail: { contactId, purpose, basis: d.basis, ok: res.ok } });
   return res.ok ? { ok: true } : { ok: false, error: res.error };
 }
@@ -100,6 +101,8 @@ export async function handleInbound(from: string, sender: string, rawBody: strin
   if (out) await ts.optOut(from, sender, at, "text reply");
   else if (isOptIn(body)) await ts.clear(from, sender);
   for (const c of contacts) {
+    // D8.1: anything they send makes waiting Concierge drafts stale (they were written before it).
+    await conciergeStore().markStale(c.id);
     if (out) await recordConsent(SYSTEM, c.id, { channel: "text", purpose: "marketing", granted: false, evidence: "revoked", proof: `texted "${body.slice(0, 60)}"` }, now);
     await ts.add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose: "service", direction: "in", body, status: "received", providerId: null, phone: from, sender, note: out ? "Opt-out recorded: texts and calls are off for this number." : isOptIn(body) ? "They texted START. Texting is unblocked, but permission still has to be on file." : null, at, actor: "contact" });
   }

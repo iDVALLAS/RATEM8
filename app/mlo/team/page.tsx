@@ -23,6 +23,8 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
   const store = accountStore();
   const [users, audit] = me ? await Promise.all([store.listUsers(), store.recentAudit(20)]) : [[], []];
   const addable = me ? ROLES.filter((r) => canManage(me, r)) : [];
+  const books = users.filter((u) => u.role !== "assistant" && u.status === "active");
+  const nameOf = (id: string | null | undefined) => users.find((u) => u.id === id)?.name ?? "nobody yet";
 
   return (
     <PageShell>
@@ -58,6 +60,13 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
                       {ALL_MLOS.map((m) => <option key={m.id} value={m.id}>{m.name} · NMLS #{m.nmls}</option>)}
                     </select>
                   </label>
+                  <label className="mlo-field">
+                    <span>Works for (assistants only: they see just this loan officer&apos;s clients)</span>
+                    <select name="assists" className="mlo-select" defaultValue="">
+                      <option value="">Not an assistant</option>
+                      {books.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                  </label>
                   <button type="submit" className="mlo-btn">Add and email a sign-in link</button>
                 </form>
                 <p className="mlo-note" style={{ marginTop: 8 }}>A new loan officer also needs a record in the site&apos;s licensing file (name, NMLS number, licenses) before they can be matched with borrowers.</p>
@@ -76,6 +85,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
                       </th>
                       <td>
                         <span className={`mlo-pill ${u.status === "disabled" ? "mlo-pill--off" : ""}`}>{u.status === "disabled" ? "Disabled" : ROLE_LABELS[u.role]}</span>
+                        {u.role === "assistant" ? <><br /><span className="mlo-note">Works for {nameOf(u.assistsUserId)}</span></> : null}
                       </td>
                       <td>
                         {canManage(me, u.role) && u.id !== me.id ? (
@@ -84,6 +94,12 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
                             <select name="role" defaultValue={u.role} className="mlo-select" aria-label={`Role for ${u.name}`}>
                               {ROLES.filter((r) => canManage(me, r)).map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                             </select>
+                            {u.role === "assistant" ? (
+                              <select name="assists" defaultValue={u.assistsUserId ?? ""} className="mlo-select" aria-label={`Who ${u.name} works for`}>
+                                <option value="">Pick a loan officer</option>
+                                {books.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                              </select>
+                            ) : null}
                             <select name="status" defaultValue={u.status} className="mlo-select" aria-label={`Status for ${u.name}`}>
                               <option value="active">Active</option>
                               <option value="disabled">Disabled</option>

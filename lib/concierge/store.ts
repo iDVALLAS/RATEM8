@@ -37,7 +37,8 @@ export type Proposal = {
   why: string;
   /** "model" when drafted by the AI, "template" when written from a rule. */
   source: "model" | "template";
-  status: "pending" | "sent" | "dismissed" | "blocked";
+  /** D8.1: "sending" while one approval holds it (a second click can't send twice); "stale" when the client wrote again or stopped. */
+  status: "pending" | "sending" | "sent" | "dismissed" | "blocked" | "stale";
   /** The send gate's answer when it was drafted. */
   gate: { allowed: boolean; reason: string | null };
   createdAt: string;
@@ -45,9 +46,11 @@ export type Proposal = {
   decidedBy: string | null;
 };
 
-export type Task = { id: string; ownerUserId: string; contactId: string; title: string; why: string; due: string | null; done: boolean; createdAt: string };
+/** D8.1: lane "personal" = reply yourself; the Concierge stays out (hardship, a protected topic) and pauses marketing for 30 days. */
+export type Task = { id: string; ownerUserId: string; contactId: string; title: string; why: string; due: string | null; done: boolean; createdAt: string; lane?: "personal" };
 
-export const MEMORY_KINDS = ["need", "plan", "preference", "timing", "relationship"] as const;
+/** D8.1: "relationship" removed (it invited notes about family and partners). */
+export const MEMORY_KINDS = ["need", "plan", "preference", "timing"] as const;
 export type MemoryNote = {
   id: string;
   ownerUserId: string;
@@ -59,7 +62,12 @@ export type MemoryNote = {
   source: string;
   expiresAt: string | null;
   createdAt: string;
+  /** D8.1: a note waits for the loan officer to keep it before anything uses it. Missing = kept (notes made before D8.1). */
+  status?: "pending" | "kept";
 };
+
+/** Only kept notes are used by the Concierge and the script builder. */
+export const isKept = (m: MemoryNote) => m.status !== "pending";
 
 export interface ConciergeStore {
   settings(owner: string): Promise<ConciergeSettings>;
@@ -68,11 +76,21 @@ export interface ConciergeStore {
   putProposal(p: Proposal): Promise<void>;
   proposal(id: string): Promise<Proposal | null>;
   proposals(owner: string, status?: Proposal["status"]): Promise<Proposal[]>;
+  /** Moves a pending draft to "sending" for exactly one caller; null if it wasn't pending. */
+  claimProposal(owner: string, id: string): Promise<Proposal | null>;
+  /** Marks this contact's pending drafts stale (the client wrote again, or stopped). */
+  markStale(contactId: string): Promise<number>;
   putTask(t: Task): Promise<void>;
   tasks(owner: string, open?: boolean): Promise<Task[]>;
   addMemory(m: MemoryNote): Promise<void>;
-  memory(contactId: string, now: string): Promise<MemoryNote[]>;
+  /** One loan officer's notes on one contact (unexpired). Pending notes only when asked for. */
+  memory(owner: string, contactId: string, now: string, opts?: { includePending?: boolean }): Promise<MemoryNote[]>;
+  /** Pending notes waiting for the loan officer. */
+  pendingMemory(owner: string, now: string): Promise<MemoryNote[]>;
+  keepMemory(owner: string, id: string): Promise<void>;
   deleteMemory(owner: string, id: string): Promise<void>;
+  /** Hard-deletes expired notes. */
+  purgeExpired(now: string): Promise<number>;
 }
 
 export class MemoryConciergeStore implements ConciergeStore {
@@ -99,6 +117,17 @@ export class MemoryConciergeStore implements ConciergeStore {
   async proposals(owner: string, status?: Proposal["status"]) {
     return [...this.p.values()].filter((x) => x.ownerUserId === owner && (!status || x.status === status)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((x) => structuredClone(x));
   }
+  async claimProposal(owner: string, id: string) {
+    const x = this.p.get(id);
+    if (!x || x.ownerUserId !== owner || x.status !== "pending") return null;
+    x.status = "sending";
+    return structuredClone(x);
+  }
+  async markStale(contactId: string) {
+    let n = 0;
+    for (const x of this.p.values()) if (x.contactId === contactId && x.status === "pending") (x.status = "stale"), n++;
+    return n;
+  }
   async putTask(x: Task) {
     this.t.set(x.id, structuredClone(x));
   }
@@ -108,11 +137,23 @@ export class MemoryConciergeStore implements ConciergeStore {
   async addMemory(x: MemoryNote) {
     this.m.set(x.id, structuredClone(x));
   }
-  async memory(contactId: string, now: string) {
-    return [...this.m.values()].filter((x) => x.contactId === contactId && (!x.expiresAt || x.expiresAt > now)).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  async memory(owner: string, contactId: string, now: string, opts: { includePending?: boolean } = {}) {
+    return [...this.m.values()].filter((x) => x.ownerUserId === owner && x.contactId === contactId && (!x.expiresAt || x.expiresAt > now) && (opts.includePending || isKept(x))).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((x) => structuredClone(x));
+  }
+  async pendingMemory(owner: string, now: string) {
+    return [...this.m.values()].filter((x) => x.ownerUserId === owner && x.status === "pending" && (!x.expiresAt || x.expiresAt > now)).map((x) => structuredClone(x));
+  }
+  async keepMemory(owner: string, id: string) {
+    const x = this.m.get(id);
+    if (x?.ownerUserId === owner) x.status = "kept";
   }
   async deleteMemory(owner: string, id: string) {
     if (this.m.get(id)?.ownerUserId === owner) this.m.delete(id);
+  }
+  async purgeExpired(now: string) {
+    let n = 0;
+    for (const [k, x] of this.m) if (x.expiresAt && x.expiresAt <= now) this.m.delete(k), n++;
+    return n;
   }
 }
 
@@ -133,6 +174,7 @@ export class NeonConciergeStore implements ConciergeStore {
         await this.q(`CREATE TABLE IF NOT EXISTS cc_concierge_tasks (id text PRIMARY KEY, owner_user_id text NOT NULL, done boolean NOT NULL, body jsonb NOT NULL)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_concierge_memory (id text PRIMARY KEY, owner_user_id text NOT NULL, contact_id text NOT NULL, expires_at timestamptz, created_at timestamptz NOT NULL, body jsonb NOT NULL)`);
         await this.q(`CREATE INDEX IF NOT EXISTS cc_concierge_memory_contact ON cc_concierge_memory (contact_id)`);
+        await this.q(`CREATE INDEX IF NOT EXISTS cc_concierge_memory_owner ON cc_concierge_memory (owner_user_id, contact_id, expires_at)`);
       })().catch((e) => {
         this.ready = null;
         throw e;
@@ -167,6 +209,16 @@ export class NeonConciergeStore implements ConciergeStore {
     const r = status ? await this.q(`SELECT body FROM cc_concierge_proposals WHERE owner_user_id = $1 AND status = $2 ORDER BY created_at DESC LIMIT 200`, [owner, status]) : await this.q(`SELECT body FROM cc_concierge_proposals WHERE owner_user_id = $1 ORDER BY created_at DESC LIMIT 200`, [owner]);
     return r.map((x) => body<Proposal>(x));
   }
+  async claimProposal(owner: string, id: string) {
+    await this.init();
+    const r = await this.q(`UPDATE cc_concierge_proposals SET status = 'sending', body = jsonb_set(body, '{status}', '"sending"') WHERE id = $1 AND owner_user_id = $2 AND status = 'pending' RETURNING body`, [id, owner]);
+    return r[0] ? body<Proposal>(r[0]) : null;
+  }
+  async markStale(contactId: string) {
+    await this.init();
+    const r = await this.q(`UPDATE cc_concierge_proposals SET status = 'stale', body = jsonb_set(body, '{status}', '"stale"') WHERE body->>'contactId' = $1 AND status = 'pending' RETURNING id`, [contactId]);
+    return r.length;
+  }
   async putTask(x: Task) {
     await this.init();
     await this.q(`INSERT INTO cc_concierge_tasks (id, owner_user_id, done, body) VALUES ($1,$2,$3,$4) ON CONFLICT (id) DO UPDATE SET done = EXCLUDED.done, body = EXCLUDED.body`, [x.id, x.ownerUserId, x.done, JSON.stringify(x)]);
@@ -180,9 +232,22 @@ export class NeonConciergeStore implements ConciergeStore {
     await this.init();
     await this.q(`INSERT INTO cc_concierge_memory (id, owner_user_id, contact_id, expires_at, created_at, body) VALUES ($1,$2,$3,$4,$5,$6)`, [x.id, x.ownerUserId, x.contactId, x.expiresAt, x.createdAt, JSON.stringify(x)]);
   }
-  async memory(contactId: string, now: string) {
+  async memory(owner: string, contactId: string, now: string, opts: { includePending?: boolean } = {}) {
     await this.init();
-    return (await this.q(`SELECT body FROM cc_concierge_memory WHERE contact_id = $1 AND (expires_at IS NULL OR expires_at > $2) ORDER BY created_at DESC`, [contactId, now])).map((x) => body<MemoryNote>(x));
+    const rows = (await this.q(`SELECT body FROM cc_concierge_memory WHERE owner_user_id = $1 AND contact_id = $2 AND (expires_at IS NULL OR expires_at > $3) ORDER BY created_at DESC`, [owner, contactId, now])).map((x) => body<MemoryNote>(x));
+    return opts.includePending ? rows : rows.filter(isKept);
+  }
+  async pendingMemory(owner: string, now: string) {
+    await this.init();
+    return (await this.q(`SELECT body FROM cc_concierge_memory WHERE owner_user_id = $1 AND body->>'status' = 'pending' AND (expires_at IS NULL OR expires_at > $2) ORDER BY created_at DESC LIMIT 200`, [owner, now])).map((x) => body<MemoryNote>(x));
+  }
+  async keepMemory(owner: string, id: string) {
+    await this.init();
+    await this.q(`UPDATE cc_concierge_memory SET body = jsonb_set(body, '{status}', '"kept"') WHERE owner_user_id = $1 AND id = $2`, [owner, id]);
+  }
+  async purgeExpired(now: string) {
+    await this.init();
+    return (await this.q(`DELETE FROM cc_concierge_memory WHERE expires_at IS NOT NULL AND expires_at <= $1 RETURNING id`, [now])).length;
   }
   async deleteMemory(owner: string, id: string) {
     await this.init();

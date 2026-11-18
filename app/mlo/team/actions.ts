@@ -14,7 +14,7 @@ export async function inviteAction(fd: FormData): Promise<void> {
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   const mloId = String(fd.get("mloId") ?? "");
-  const res = await inviteUser(actor, { email: String(fd.get("email") ?? ""), name: String(fd.get("name") ?? ""), role: String(fd.get("role") ?? ""), mloId: mloId || null }, origin);
+  const res = await inviteUser(actor, { email: String(fd.get("email") ?? ""), name: String(fd.get("name") ?? ""), role: String(fd.get("role") ?? ""), mloId: mloId || null, assistsUserId: String(fd.get("assists") ?? "") || null }, origin);
   if (!res.ok) back(false, res.error);
   else back(true, res.emailed ? "Added. They've been emailed a sign-in link." : "Added, but the sign-in email didn't send. They can request a link at /sign-in.");
 }
@@ -27,6 +27,7 @@ export async function updateAction(fd: FormData): Promise<void> {
   const res = await updateUser(actor, String(fd.get("userId") ?? ""), {
     role: fd.get("role") ? String(fd.get("role")) : undefined,
     status: status === "active" || status === "disabled" ? status : undefined,
+    assistsUserId: fd.has("assists") ? String(fd.get("assists")) || null : undefined,
   });
   back(res.ok, res.ok ? "Saved." : res.error);
 }

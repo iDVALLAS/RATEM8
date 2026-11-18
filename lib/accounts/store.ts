@@ -21,6 +21,8 @@ export type User = {
   role: Role;
   /** The loan officer record this account is (lib/config.ts ids like "mlo-001"), or null for staff. */
   mloId: string | null;
+  /** D8.1: for an assistant, the loan officer whose book they work. Without one an assistant sees no clients. */
+  assistsUserId?: string | null;
   status: "active" | "disabled";
   createdAt: string;
   createdBy: string;
@@ -103,6 +105,7 @@ const toUser = (r: Row): User => ({
   name: r.name as string,
   role: r.role as Role,
   mloId: (r.mlo_id as string | null) ?? null,
+  assistsUserId: (r.assists_user_id as string | null) ?? null,
   status: r.status as User["status"],
   createdAt: new Date(r.created_at as string).toISOString(),
   createdBy: r.created_by as string,
@@ -117,6 +120,7 @@ export class NeonAccountStore implements AccountStore {
     if (!this.ready) {
       this.ready = (async () => {
         await this.q(`CREATE TABLE IF NOT EXISTS cc_users (id text PRIMARY KEY, email text NOT NULL UNIQUE, name text NOT NULL, role text NOT NULL, mlo_id text, status text NOT NULL, created_at timestamptz NOT NULL, created_by text NOT NULL)`);
+        await this.q(`ALTER TABLE cc_users ADD COLUMN IF NOT EXISTS assists_user_id text`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_login_tokens (token_hash text PRIMARY KEY, user_id text NOT NULL, expires_at timestamptz NOT NULL, used_at timestamptz)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_sessions (token_hash text PRIMARY KEY, user_id text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), expires_at timestamptz NOT NULL)`);
         await this.q(`CREATE INDEX IF NOT EXISTS cc_sessions_user ON cc_sessions (user_id)`);
@@ -146,9 +150,9 @@ export class NeonAccountStore implements AccountStore {
   async putUser(u: User) {
     await this.init();
     await this.q(
-      `INSERT INTO cc_users (id, email, name, role, mlo_id, status, created_at, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, role = EXCLUDED.role, mlo_id = EXCLUDED.mlo_id, status = EXCLUDED.status`,
-      [u.id, u.email.toLowerCase(), u.name, u.role, u.mloId, u.status, u.createdAt, u.createdBy],
+      `INSERT INTO cc_users (id, email, name, role, mlo_id, status, created_at, created_by, assists_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, name = EXCLUDED.name, role = EXCLUDED.role, mlo_id = EXCLUDED.mlo_id, status = EXCLUDED.status, assists_user_id = EXCLUDED.assists_user_id`,
+      [u.id, u.email.toLowerCase(), u.name, u.role, u.mloId, u.status, u.createdAt, u.createdBy, u.assistsUserId ?? null],
     );
   }
   async putLoginToken(hash: string, userId: string, expiresAt: string) {

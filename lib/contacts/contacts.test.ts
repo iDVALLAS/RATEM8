@@ -119,12 +119,16 @@ describe("importing and consent (D2)", () => {
     expect((await store.get(c.id))?.locked).toBe(false);
   });
 
-  it("loan officers see only their own contacts; leads see the team's", async () => {
+  it("each person sees only the book they work (D8.1); only the owner sees every book", async () => {
     await importBatch(user("lo1", "lo"), "contacts", [rec()], "a.csv");
     const c = (await store.list({})).contacts[0];
     expect(canSee(user("lo1", "lo"), c)).toBe(true);
     expect(canSee(user("lo2", "lo"), c)).toBe(false);
-    expect(canSee(user("lead", "team_lead"), c)).toBe(true);
+    expect(canSee(user("lead", "team_lead"), c)).toBe(false);
+    expect(canSee(user("boss", "owner"), c)).toBe(true);
+    expect(canSee({ ...user("asst", "assistant"), assistsUserId: "lo1" }, c)).toBe(true);
+    expect(canSee({ ...user("asst2", "assistant"), assistsUserId: "lo2" }, c)).toBe(false);
+    expect(canSee(user("asst3", "assistant"), c)).toBe(false);
     expect((await recordConsent(user("lo2", "lo"), c.id, { channel: "text", purpose: "service", granted: true, evidence: "written", proof: "x" })).ok).toBe(false);
   });
 });

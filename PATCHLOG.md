@@ -1804,3 +1804,113 @@ contact." (Numbering: texting registration per sponsor moves to D10.)
     (the gate treats it as marketing).
   - Retention for script outcomes.
 - **Next up:** D10, texting registration per sponsor (10DLC).
+
+## D8.1 — Concierge and call-script hardening from the verified research (2026-11-18)
+
+Source: the second research run (14 agents). It produced three reports,
+saved in `docs/work/`:
+- `concierge-spec-2026-11-18.md`: the full Concierge spec. §8.1 lists D8
+  defects verified in code.
+- `verified-claims-ledger-2026-11-18.md`: every legal and data-license claim
+  checked against its primary source. Section M covers the code claims;
+  "Changes required" is ranked.
+- `command-center-final-form-addendum-2026-11-18.md`: corrections to the
+  final-form plan.
+
+The fixes, in the ledger's order of urgency:
+
+- **Who sees whose clients** (`lib/contacts/service.ts` `bookOf`/`canSee`).
+  This was the most serious leak.
+  - Before: every role except `lo` saw every contact.
+  - Now loan officers and team leads see their own book. An assistant sees
+    only the book of the loan officer they work for (`assistsUserId`,
+    chosen on `/mlo/team`; required for assistants). Without one, they see
+    none.
+  - The owner still sees every book (one sponsor today) and must move to
+    aggregates before a second sponsor joins.
+  - The Concierge's sweep and Ask use only the user's own book
+    (`todayFor(…, { ownOnly })`).
+  - Memory queries now filter by owner.
+- **The brief** (`lib/concierge/agent.ts`, `lib/concierge/data.ts`):
+  - Today's card text never reaches the model. It could carry the note rate
+    (rate-gap) or the client's raw words (reply). Each card kind maps to a
+    fixed sentence; reply cards add only the age in hours.
+  - Names, remembered needs, voice notes, loan-system text and messages go
+    in `<data-NONCE>` blocks with a new nonce per request. The text is NFKC
+    normalised, invisible, tag and bidi characters are stripped, and `<`,
+    `>` and the full-width forms are escaped.
+  - Earlier Concierge or template texts are no longer shown to the model as
+    the loan officer's own (`Touch.origin`).
+  - Ask gets the same treatment.
+  - The call-script brief follows the same rules. The loan officer's own
+    request is marked as theirs.
+- **Lanes, decided in code before any model call:**
+  - A revocation means no model call, memory or task.
+  - Opt-out detection now catches casual and Spanish phrasings ("lose my
+    number", "I'm good, no more", "no me escribas", "basta").
+  - A hard life event creates a "Reply to … personally" task and pauses the
+    Concierge for that person for 30 days.
+  - A message that touches a protected topic also becomes a "reply
+    personally" task, not silence. "Can my Social Security count?" deserves
+    an answer. The old prompt line "ignore it" is gone.
+- **The guard** (`lib/concierge/guard.ts`, `GUARD_VERSION` d8.1):
+  - The client's name and city are removed before scanning, so "Hi
+    Christian", "Faith", Temple TX and White Salmon pass. So do "retire my
+    HELOC" and "Visa card".
+  - Euphemisms are added (twins, hubby, pension, Section 8 variants, creed,
+    religious holidays).
+  - Drafts may carry only the loan officers' own links (site, booking,
+    application) and phone lines. No other URL, email or phone, no dollar
+    figures, no calendar dates, no rewards for referrals, no product
+    recommendations, no approval odds.
+  - The same checks run on every string a model writes: why, reminders,
+    memory facts, Ask answers and voice notes. Phone and link checks run on
+    the raw text, because redaction masks digits.
+  - Reminder titles come from a fixed list plus the client's name.
+- **Approvals** (`lib/concierge/desk.ts`, `store.ts`):
+  - A compare-and-swap moves a draft from pending to sending, so a double
+    click sends once.
+  - Every draft is re-checked at approval, edited or not, and the guard
+    version is recorded.
+  - Any inbound text marks that person's waiting drafts stale.
+- **Memory:**
+  - New notes wait for "Keep" (on the desk and the contact page) before
+    drafts or scripts use them.
+  - "relationship" is no longer a memory kind.
+  - A quote needs at least three words.
+  - Expired notes are hard-deleted at each sweep.
+- **Model calls:**
+  - No automatic fallback to another model for the Concierge, Ask or
+    scripts, since it would be a model we haven't red-teamed.
+  - The cache point is on the system prompt, not on each brief.
+  - The served model is logged in the sweep audit.
+- **The morning run** records failures (audit plus Sentry) instead of
+  swallowing them, and returns `failed`.
+- **Tests:**
+  - `lib/concierge/redteam.test.ts`, 14 cases: the rate-gap leak; the
+    reply-card leak; tag-closing, invisible and bidi attacks; guard false
+    positives and true positives; foreign links, phones, dollars and dates;
+    STOP with no model call; the hardship lane and pause; the
+    protected-question lane; an injected phone in a reminder; pending
+    memory; the double-approve race; stale drafts; re-check of old drafts;
+    purge; role scoping.
+  - D2, D8 and D9 tests were updated for the new rules.
+  - `npm run verify` passes (369 tests).
+- **Clicked through locally:** the Concierge desk with notes to keep; an
+  assistant invite without "works for" refused; with it, created, and the
+  assistant sees exactly that loan officer's clients.
+- **Owner, before 2026-11-25** (FCC 26-67 takes effect): in Twilio, set the
+  Messaging Service's opt-out confirmation (Advanced Opt-Out) to a message
+  that only confirms, with no "reply START" and no marketing. Don't name an
+  exclusive way to opt out anywhere.
+- **Not done yet** (from the ledger):
+  - `tenant_id` and `sponsor_id` columns across every table before a second
+    sponsor joins.
+  - The Reader and Planner split ("Rule of Two").
+  - A separate Anthropic workspace and key with zero data retention.
+  - Per-state gate rows: WA CEMA, CT PEWC, VA, the FL per-consumer cap, TX
+    ch. 302 and the no-call list, `ruleFor(states[])`.
+  - A Reassigned Numbers check after 90 days of silence.
+  - The email-first channel plan.
+  - The Need Codec in place of free-text memory.
+  These are D10 onward.

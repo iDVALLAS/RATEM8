@@ -127,7 +127,14 @@ export async function signOut(): Promise<void> {
   jar.delete(SESSION_COOKIE);
 }
 
-export type InviteInput = { email: string; name: string; role: string; mloId: string | null };
+export type InviteInput = { email: string; name: string; role: string; mloId: string | null; assistsUserId?: string | null };
+
+/** An assistant's loan officer must be an active account that has its own book. */
+async function validAssist(id: string | null | undefined): Promise<string | null> {
+  if (!id) return null;
+  const u = await accountStore().userById(id);
+  return u && u.status === "active" && u.role !== "assistant" ? u.id : null;
+}
 
 /** Owner and team leads add people; the new user gets a sign-in link. */
 export async function inviteUser(actor: User, input: InviteInput, origin: string, now = Date.now()): Promise<{ ok: true; emailed: boolean } | { ok: false; error: string }> {
@@ -141,7 +148,9 @@ export async function inviteUser(actor: User, input: InviteInput, origin: string
   const mloId = input.mloId && ALL_MLOS.some((m) => m.id === input.mloId) ? input.mloId : null;
   const store = accountStore();
   if (await store.userByEmail(email)) return { ok: false, error: "That email already has an account." };
-  const user: User = { id: `u_${token().slice(0, 16)}`, email, name, role, mloId, status: "active", createdAt: iso(now), createdBy: actor.email };
+  const assistsUserId = role === "assistant" ? await validAssist(input.assistsUserId) : null;
+  if (role === "assistant" && !assistsUserId) return { ok: false, error: "Pick the loan officer this assistant works for." };
+  const user: User = { id: `u_${token().slice(0, 16)}`, email, name, role, mloId, assistsUserId, status: "active", createdAt: iso(now), createdBy: actor.email };
   await store.putUser(user);
   await store.audit({ at: iso(now), actor: actor.email, action: "user.invite", detail: { userId: user.id, role, mloId } });
   const t = token();
@@ -151,7 +160,7 @@ export async function inviteUser(actor: User, input: InviteInput, origin: string
 }
 
 /** Change a role or disable/enable. Disabling signs them out everywhere. Nobody can lock out the last owner. */
-export async function updateUser(actor: User, userId: string, change: { role?: string; status?: "active" | "disabled" }, now = Date.now()): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function updateUser(actor: User, userId: string, change: { role?: string; status?: "active" | "disabled"; assistsUserId?: string | null }, now = Date.now()): Promise<{ ok: true } | { ok: false; error: string }> {
   const store = accountStore();
   const target = await store.userById(userId);
   if (!target) return { ok: false, error: "No such account." };
@@ -163,7 +172,9 @@ export async function updateUser(actor: User, userId: string, change: { role?: s
     const owners = (await store.listUsers()).filter((u) => u.role === "owner" && u.status === "active");
     if (owners.length <= 1) return { ok: false, error: "There must always be an active owner." };
   }
-  await store.putUser({ ...target, role, status });
+  const assistsUserId = role === "assistant" ? await validAssist(change.assistsUserId !== undefined ? change.assistsUserId : target.assistsUserId) : null;
+  if (role === "assistant" && !assistsUserId) return { ok: false, error: "Pick the loan officer this assistant works for." };
+  await store.putUser({ ...target, role, status, assistsUserId });
   if (status === "disabled") await store.deleteSessionsFor(target.id);
   await store.audit({ at: iso(now), actor: actor.email, action: "user.update", detail: { userId, role, status } });
   return { ok: true };

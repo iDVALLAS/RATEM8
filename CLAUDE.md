@@ -75,6 +75,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     and tenure only, never loans or terms. D8 Concierge (`lib/concierge/*`,
     `/mlo/concierge`); D9 call scripts (`lib/scripts/*`, `/mlo/scripts`, contact
     page #script): needs from loan data, every line checked, rules written in code.
+    D8.1: roles see only their own book (assistants: `assistsUserId`); untrusted
+    text goes to models only in nonce data blocks (`lib/concierge/data.ts`);
+    stop/hardship/protected-topic lanes run before any model call; memory waits
+    for Keep. Research reports: `docs/work/*-2026-11-18.md`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
   - Second Look still needs `SECOND_LOOK_LIVE`.
   - The owner reported counsel approval of everything on 2026-10-31.

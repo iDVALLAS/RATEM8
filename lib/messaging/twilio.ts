@@ -77,10 +77,15 @@ export function validTwilioRequest(url: string, params: Record<string, string>, 
  * UNSUBSCRIBE are always valid (FCC); the phrases catch "any reasonable
  * means" in plain English ("please stop texting me", "remove me").
  */
+/**
+ * A revocation in any reasonable words (47 CFR 64.1200(a)(10)–(11); FCC 26-67
+ * from 2026-11-25). We name no exclusive method, so casual phrasings and
+ * Spanish count too (D8.1). Erring toward "stop" is deliberate.
+ */
 export function isOptOut(body: string): boolean {
-  const t = body.trim().toLowerCase().replace(/[.!]+$/, "");
-  if (/^(stop|stopall|quit|end|revoke|opt[ -]?out|cancel|unsubscribe)$/.test(t)) return true;
-  return /\b(stop (texting|messaging|contacting|calling)|don'?t (text|call|contact) me|remove me|take me off|no more (texts|messages|calls)|leave me alone|wrong number)\b/.test(t);
+  const t = body.normalize("NFKC").trim().toLowerCase().replace(/[’]/g, "'").replace(/[.!¡]+$/, "").replace(/^[¡!]+/, "");
+  if (/^(stop|stop all|stopall|stop please|please stop|quit|end|revoke|opt[ -]?out|cancel|unsubscribe|remove|para|alto|basta|cancelar|no más|no mas)$/.test(t)) return true;
+  return /\b(stop (texting|messaging|contacting|calling|sending)|(don'?t|do not|never) (text|call|contact|message) (me|us)( again)?|remove me|take me off|unsubscribe me|opt me out|no more (texts|messages|calls)|leave me alone|wrong number|lose my number|delete my (number|info)|i'?m good,? no more|not interested,? (stop|please stop)|no me (escribas|llames|envíes|envies|contactes)|deja de (escribir|enviar|llamar)|ya no (me )?(escribas|envíes|envies|llames))\b/.test(t);
 }
 
 export const isOptIn = (body: string) => /^(start|unstop|yes)$/i.test(body.trim());

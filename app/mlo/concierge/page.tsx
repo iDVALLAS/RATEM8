@@ -8,7 +8,7 @@ import { conciergeStore } from "@/lib/concierge/store";
 import { contactStore } from "@/lib/contacts/store";
 import { FlashBox, MloNav } from "../MloChrome";
 import Ask from "./Ask";
-import { approveAction, dismissAction, settingsAction, sweepAction, taskDoneAction } from "./actions";
+import { approveAction, dismissAction, forgetFromDeskAction, keepAction, settingsAction, sweepAction, taskDoneAction } from "./actions";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +21,10 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
   const tenant = listTenants()[0];
   const me = v.user;
   const store = conciergeStore();
-  const [s, drafts, tasks] = me ? await Promise.all([store.settings(me.id), store.proposals(me.id, "pending"), store.tasks(me.id)]) : [null, [], []];
-  const people = await Promise.all([...drafts.map((d) => d.contactId), ...tasks.map((t) => t.contactId)].map((id) => contactStore().get(id)));
+  const [s, drafts, openTasks, toKeep] = me ? await Promise.all([store.settings(me.id), store.proposals(me.id, "pending"), store.tasks(me.id), store.pendingMemory(me.id, new Date().toISOString())]) : [null, [], [], []];
+  // D8.1: "reply personally" first.
+  const tasks = [...openTasks.filter((t) => t.lane === "personal"), ...openTasks.filter((t) => t.lane !== "personal")];
+  const people = await Promise.all([...new Set([...drafts.map((d) => d.contactId), ...tasks.map((t) => t.contactId), ...toKeep.map((m) => m.contactId)])].map((id) => contactStore().get(id)));
   const nameOf = (id: string) => {
     const c = people.find((p) => p?.id === id);
     return c ? `${c.firstName} ${c.lastName}`.trim() || c.email || "Someone" : "Someone";
@@ -84,9 +86,29 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                   <tbody>
                     {tasks.map((t) => (
                       <tr key={t.id}>
-                        <th scope="row"><Link href={`/mlo/contacts/${t.contactId}`}>{t.title}</Link><br /><span className="mlo-note">{t.why}</span></th>
+                        <th scope="row">{t.lane === "personal" ? <span className="mlo-pill">Reply yourself</span> : null} <Link href={`/mlo/contacts/${t.contactId}#conversation`}>{t.title}</Link><br /><span className="mlo-note">{t.why}</span></th>
                         <td className="mlo-note">{t.due ? `due ${t.due}` : ""}</td>
                         <td><form action={taskDoneAction}><input type="hidden" name="id" value={t.id} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Done</button></form></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+
+            <section className="mlo-section" id="memory">
+              <h2>Notes to keep or forget ({toKeep.length})</h2>
+              <p className="mlo-note">Needs and plans clients mentioned, in their own words. Nothing is used for drafts or call scripts until you keep it.</p>
+              {toKeep.length === 0 ? <p className="mlo-note">Nothing waiting.</p> : (
+                <table className="mlo-table mlo-table--plain">
+                  <tbody>
+                    {toKeep.map((m) => (
+                      <tr key={m.id}>
+                        <th scope="row"><Link href={`/mlo/contacts/${m.contactId}#memory`}>{nameOf(m.contactId)}</Link>: {m.fact}<br /><span className="mlo-note">“{m.quote}” · {m.kind}</span></th>
+                        <td className="mlo-row-form">
+                          <form action={keepAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={m.contactId} /><input type="hidden" name="from" value="desk" /><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Keep</button></form>
+                          <form action={forgetFromDeskAction}><input type="hidden" name="id" value={m.id} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Forget</button></form>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

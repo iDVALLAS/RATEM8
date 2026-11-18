@@ -11,7 +11,7 @@ import { gateFor, MAX_TEXT } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
 import { twilioConfig } from "@/lib/messaging/twilio";
 import { conciergeStore } from "@/lib/concierge/store";
-import { forgetAction } from "../../concierge/actions";
+import { forgetAction, keepAction } from "../../concierge/actions";
 import { gather } from "@/lib/scripts/generate";
 import { scriptStore } from "@/lib/scripts/store";
 import { GOAL_LABELS, GOALS } from "@/lib/scripts/signals";
@@ -53,7 +53,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const gate = Object.fromEntries(CHANNELS.map((ch) => [ch, Object.fromEntries(PURPOSES.map((p) => [p, decisions[pairs.findIndex(([a, b]) => a === ch && b === p)]]))])) as Record<(typeof CHANNELS)[number], Record<(typeof PURPOSES)[number], (typeof decisions)[number]>>;
   const thread = await touchStore().forContact(c.id, 100);
   const texting = !!twilioConfig();
-  const memory = await conciergeStore().memory(c.id, new Date().toISOString());
+  const memory = await conciergeStore().memory(c.ownerUserId, c.id, new Date().toISOString(), { includePending: true });
   const tenant = listTenants()[0];
   // D9: possible needs and the latest call script.
   const [known, scripts, picked] = await Promise.all([gather(v.user, c, new Date()), scriptStore().forContact(v.user.id, c.id, 1), scriptId ? scriptStore().get(scriptId) : Promise.resolve(null)]);
@@ -133,14 +133,17 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
         <section className="mlo-section" id="memory">
           <h2>What your Concierge remembers</h2>
           {memory.length === 0 ? (
-            <p className="mlo-note">Nothing yet. It only remembers needs and plans {c.firstName || "they"} mention in their own words.</p>
+            <p className="mlo-note">Nothing yet. It only remembers needs and plans {c.firstName || "they"} mention in their own words, and nothing is used until you keep it.</p>
           ) : (
             <table className="mlo-table mlo-table--plain">
               <tbody>
                 {memory.map((m) => (
                   <tr key={m.id}>
-                    <th scope="row">{m.fact}<br /><span className="mlo-note">“{m.quote}” · {m.kind} · {new Date(m.createdAt).toLocaleDateString("en-US")}{m.expiresAt ? ` · forgets ${m.expiresAt.slice(0, 10)}` : ""}</span></th>
-                    <td><form action={forgetAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={c.id} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Forget</button></form></td>
+                    <th scope="row">{m.status === "pending" ? <span className="mlo-pill">Waiting for you</span> : null} {m.fact}<br /><span className="mlo-note">“{m.quote}” · {m.kind} · {new Date(m.createdAt).toLocaleDateString("en-US")}{m.expiresAt ? ` · forgets ${m.expiresAt.slice(0, 10)}` : ""}</span></th>
+                    <td className="mlo-row-form">
+                      {m.status === "pending" ? <form action={keepAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={c.id} /><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Keep</button></form> : null}
+                      <form action={forgetAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={c.id} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Forget</button></form>
+                    </td>
                   </tr>
                 ))}
               </tbody>

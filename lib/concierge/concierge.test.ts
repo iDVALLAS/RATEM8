@@ -99,7 +99,7 @@ describe("Concierge sweeps (D8)", () => {
         content: [
           toolUse("propose_text", { purpose: "service", body: "Great news Ann, rates are 2.5% for you!", why: "they asked" }, 1),
           toolUse("remember", { kind: "plan", fact: "Kitchen remodel next spring", quote: "redoing the kitchen next spring", expiresInDays: 200 }, 2),
-          toolUse("add_task", { title: "Call Ann about the kitchen project", why: "She mentioned a remodel", dueInDays: 2 }, 3),
+          toolUse("add_task", { action: "call", why: "She mentioned a remodel", dueInDays: 2 }, 3),
         ],
       };
     };
@@ -107,8 +107,8 @@ describe("Concierge sweeps (D8)", () => {
     expect(r).toMatchObject({ mode: "model", proposals: 0, tasks: 1, remembered: 1 });
     expect(r.refused[0]).toMatch(/draft refused/);
     // The client's words reach the model as tagged data, never as instructions.
-    expect(seen[0]).toMatch(/<client_message[^>]*>We're thinking about redoing the kitchen/);
-    expect((await concierge.memory(c.id, NOW.toISOString()))[0]).toMatchObject({ fact: "Kitchen remodel next spring", quote: "redoing the kitchen next spring" });
+    expect(seen[0]).toMatch(/kind=\\"client_message\\"[^>]*>We're thinking about redoing the kitchen/);
+    expect((await concierge.memory("lo1", c.id, NOW.toISOString(), { includePending: true }))[0]).toMatchObject({ fact: "Kitchen remodel next spring", quote: "redoing the kitchen next spring" });
   });
 
   it("never works on contacts on hold, who said stop, or that belong to another loan officer", async () => {
@@ -122,9 +122,11 @@ describe("Concierge sweeps (D8)", () => {
   });
 
   it("puts only redacted facts in the brief, and never the loan's rate", () => {
-    const text = briefText({ contact: { ...rec(), id: "c", ownerUserId: "lo1", kind: "contact", provenance: "personal", locked: false, source: "", createdAt: "", updatedAt: "" } as never, card: null, allowed: { service: { ok: true, reason: null }, marketing: { ok: false, reason: "no permission" } }, messages: [], memory: [] }, defaultSettings("lo1"));
+    const text = briefText({ contact: { ...rec(), id: "c", ownerUserId: "lo1", kind: "contact", provenance: "personal", locked: false, source: "", createdAt: "", updatedAt: "" } as never, card: null, allowed: { service: { ok: true, reason: null }, marketing: { ok: false, reason: "no permission" } }, messages: [], memory: [] }, defaultSettings("lo1"), "dtest");
     expect(text).not.toMatch(/3\.1/);
-    expect(text).toMatch(/do not mention its rate/);
-    expect(text).toMatch(/offer or check-in: not allowed \(no permission\)/);
+    expect(text).not.toMatch(/400,?000/);
+    expect(text).toMatch(/Never mention its rate or amount/);
+    expect(text).toMatch(/offer or check-in: not allowed now/);
+    expect(text).toMatch(/<data-dtest kind="first_name">Ann<\/data-dtest>/);
   });
 });

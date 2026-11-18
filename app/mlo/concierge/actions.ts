@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
 import { sweep } from "@/lib/concierge/agent";
-import { approve, ask, closeTask, dismiss, saveSettings } from "@/lib/concierge/desk";
+import { approve, ask, closeTask, dismiss, keepMemory, saveSettings } from "@/lib/concierge/desk";
 import { conciergeStore } from "@/lib/concierge/store";
 
 const back = (ok: boolean, lines: string[], hash = "") => redirect(`/mlo/concierge?f=${encodeFlash({ ok, lines })}${hash}`);
@@ -21,7 +21,7 @@ export async function sweepAction(): Promise<void> {
   const u = await me();
   const r = await sweep(u);
   if (r.mode === "off") back(false, ["Turn the Concierge on first."]);
-  back(true, [`Looked at ${r.people} ${r.people === 1 ? "person" : "people"}: ${r.proposals} draft${r.proposals === 1 ? "" : "s"}, ${r.tasks} reminder${r.tasks === 1 ? "" : "s"}, ${r.remembered} note${r.remembered === 1 ? "" : "s"} remembered${r.mode === "template" ? " (simple templates: add the Anthropic key in Vercel for written drafts)" : ""}.`, ...r.refused.slice(0, 5).map((x) => `Held back: ${x}`)]);
+  back(true, [`Looked at ${r.people} ${r.people === 1 ? "person" : "people"}: ${r.proposals} draft${r.proposals === 1 ? "" : "s"}, ${r.tasks} reminder${r.tasks === 1 ? "" : "s"}, ${r.remembered} note${r.remembered === 1 ? "" : "s"} to keep or forget${r.personal ? `, ${r.personal} to answer personally` : ""}${r.mode === "template" ? " (simple templates: add the Anthropic key in Vercel for written drafts)" : ""}.`, ...r.refused.slice(0, 5).map((x) => `Held back: ${x}`)]);
 }
 
 export async function approveAction(fd: FormData): Promise<void> {
@@ -49,6 +49,21 @@ export async function forgetAction(fd: FormData): Promise<void> {
   const contactId = String(fd.get("contactId") ?? "");
   await conciergeStore().deleteMemory(u.id, String(fd.get("id") ?? ""));
   redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: true, lines: ["Forgotten."] })}#memory`);
+}
+
+/** D8.1: keep a remembered need (from a contact's page, or the desk when there's no contact). */
+export async function keepAction(fd: FormData): Promise<void> {
+  const u = await me();
+  const contactId = String(fd.get("contactId") ?? "");
+  await keepMemory(u, String(fd.get("id") ?? ""));
+  if (fd.get("from") === "desk") back(true, ["Kept."], "#memory");
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: true, lines: ["Kept."] })}#memory`);
+}
+
+export async function forgetFromDeskAction(fd: FormData): Promise<void> {
+  const u = await me();
+  await conciergeStore().deleteMemory(u.id, String(fd.get("id") ?? ""));
+  back(true, ["Forgotten."], "#memory");
 }
 
 export async function askAction(question: string): Promise<string> {

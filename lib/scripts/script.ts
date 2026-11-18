@@ -10,8 +10,7 @@
  */
 import { guardReply } from "@/lib/m8/guard";
 import { redactChatInput } from "@/lib/m8/redact";
-import { protectedTopic } from "@/lib/concierge/guard";
-import { checkDraft } from "@/lib/concierge/guard";
+import { checkDraft, foreignContact, protectedTopic, type ScanContext } from "@/lib/concierge/guard";
 import { GOAL_LABELS, SERVICE_GOALS, type ScriptGoal, type Signal } from "./signals";
 
 export type Objection = { they: string; you: string };
@@ -59,27 +58,29 @@ const PRESSURE = new RegExp(
 const PAYMENT = /\$\s?\d[\d,]*(\.\d+)?\s*(\/|a|per)\s*(mo|month)/i;
 
 /** Checks one line a loan officer might read aloud. */
-export function checkLine(raw: string): { ok: true; text: string } | { ok: false; reason: string } {
+export function checkLine(raw: string, ctx: ScanContext = {}): { ok: true; text: string } | { ok: false; reason: string } {
   const text = redactChatInput(String(raw ?? "").trim()).text.replace(/\s+/g, " ").slice(0, 600);
   if (!text) return { ok: false, reason: "empty" };
-  const topic = protectedTopic(text);
+  const topic = protectedTopic(text, ctx);
   if (topic) return { ok: false, reason: `touches ${topic}` };
   // The loan officer can promise to price (pricingLive = true), but no rate may appear.
   const g = guardReply(text, new Set(), new Set(), false, true);
   if (!g.ok) return { ok: false, reason: g.reason };
   if (PRESSURE.test(text)) return { ok: false, reason: "pressure or a promise" };
   if (PAYMENT.test(text)) return { ok: false, reason: "a payment amount" };
+  const fc = foreignContact(String(raw ?? ""));
+  if (fc) return { ok: false, reason: fc };
   return { ok: true, text };
 }
 
 const FIELD_MAX = { prep: 5, questions: 7, listenFor: 6, points: 6, objections: 4 } as const;
 
 /** Runs every line through the checks. Single lines that fail fall back to the template's line. */
-export function cleanScript(d: ScriptDraft, fallback: ScriptDraft): { script: ScriptDraft; dropped: number; reasons: string[] } {
+export function cleanScript(d: ScriptDraft, fallback: ScriptDraft, ctx: ScanContext = {}): { script: ScriptDraft; dropped: number; reasons: string[] } {
   let dropped = 0;
   const reasons: string[] = [];
   const one = (v: string, fb: string) => {
-    const r = checkLine(v);
+    const r = checkLine(v, ctx);
     if (r.ok) return r.text;
     dropped++;
     reasons.push(r.reason);
@@ -87,7 +88,7 @@ export function cleanScript(d: ScriptDraft, fallback: ScriptDraft): { script: Sc
   };
   const many = (vs: string[], max: number, fb: string[]) => {
     const kept = (Array.isArray(vs) ? vs : []).flatMap((v) => {
-      const r = checkLine(v);
+      const r = checkLine(v, ctx);
       if (r.ok) return [r.text];
       dropped++;
       reasons.push(r.reason);
@@ -96,15 +97,15 @@ export function cleanScript(d: ScriptDraft, fallback: ScriptDraft): { script: Sc
     return (kept.length ? kept : fb).slice(0, max);
   };
   const objections = (Array.isArray(d.objections) ? d.objections : []).flatMap((o) => {
-    const a = checkLine(o?.they ?? "");
-    const b = checkLine(o?.you ?? "");
+    const a = checkLine(o?.they ?? "", ctx);
+    const b = checkLine(o?.you ?? "", ctx);
     if (a.ok && b.ok) return [{ they: a.text, you: b.text }];
     dropped++;
     reasons.push(!a.ok ? a.reason : !b.ok ? b.reason : "");
     return [];
   });
-  const fu = checkDraft(d.followUp ?? "");
-  const fuLine = fu.ok ? checkLine(fu.text) : fu;
+  const fu = checkDraft(d.followUp ?? "", ctx);
+  const fuLine = fu.ok ? checkLine(fu.text, ctx) : fu;
   if (!fuLine.ok) {
     dropped++;
     reasons.push(fuLine.reason);
