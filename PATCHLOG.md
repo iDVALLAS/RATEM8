@@ -1595,3 +1595,65 @@ export for now (partner API later).
   precompute comes with larger books.
 - Clicked through locally (an empty book, then a three-person import).
   Tests: `lib/today/rank.test.ts` (5). `npm run verify` passes.
+
+## D6 — Fixes from the overnight review (2026-11-18)
+
+The overnight research run (`docs/work/command-center-final-form-2026-11-18.md`,
+§2 "Corrections") checked the built code and found four problems. Fixed:
+
+- **Inbound texts leaked across companies.** `handleInbound` stored a reply
+  on every loan officer's contact with that phone, and a START cleared the
+  network-wide opt-out, so a START to one company could cancel a STOP given
+  to another. Now: outbound texts record the contact's phone and our sender
+  (the Twilio Messaging Service, one per sponsor brand from D8); a reply is
+  stored only with loan officers who texted that phone from that sender.
+  Opt-outs are one-way, per sender, with the phone hashed: a STOP to any
+  sender blocks the phone everywhere; a START clears only its own sender's
+  entry. (Neon: `cc_optouts_v2`, `cc_touches.phone/sender`.)
+- **Quiet hours:** `DEFAULT_RULE` is now 9 AM–8 PM, as the build prompt
+  requires (Connecticut row added). Every state is closed at 8:30 AM local.
+- **Established business relationship:** only a loan closed with the loan
+  officer's current company, from their own loan system (pipeline sync),
+  counts, and only for hand-dialed calls. A recruit's prior-company loans,
+  texts and AI calls never qualify.
+- **RETR data:** RETR's terms (2026-09-17) bar using its data in AI, rules
+  engines or automated processes. Today no longer ranks agents on
+  production; agent production is shown only to the loan officer, and the
+  agent import says so.
+- Tests updated and added (cross-company reply isolation, START scoping,
+  9 AM, EBR). `npm run verify` passes.
+- **Owner decisions raised by the review, not changed in code yet:**
+  "one originator per service area" (`/join`, `lib/copy.ts`) becomes an
+  antitrust problem once competing loan officers co-own the platform;
+  and keeping ownership words off recruiting pages until counsel picks a
+  structure.
+
+## D7 — Loan system sync (ARIVE first) and the milestone guardian (2026-11-18)
+
+- **Intake** `POST /api/pipeline/inbound` with a per-loan-officer key
+  (`X-CC-Key` header or `?key=`; only its hash is stored; made and turned
+  off on `/mlo/pipeline`, shown once). For ARIVE: a Zapier "Loan Status
+  Updated" trigger and a "Webhooks by Zapier" POST, with ARIVE's own field
+  names (`lib/pipeline/intake.ts` matches names loosely, including nested
+  objects). One update or up to 100; 600 an hour per key. Reachable while
+  production is locked (it checks its own key).
+- **Loans** (`lib/pipeline/store.ts`, `cc_loans`): upserted by loan number,
+  with stage history, key dates (application, lock expiry, appraisal, CTC,
+  closing), agent, amount and rate. The borrower is linked to a contact (or
+  added as the loan officer's own client); at closing they become a past
+  client with the loan's date, amount and rate, and that closing is what
+  the gate's established-business-relationship rule now uses. Nothing is
+  ever sent automatically.
+- **Milestone guardian** (`lib/pipeline/guardian.ts`): learns the loan
+  officer's own median days per stage (3+ examples; cautious defaults
+  before that). It flags a stage running 50% and 2+ days long, a lock
+  expiring within 5 days, and a closing within 3 days without
+  clear-to-close. The alerts appear on Today (ahead of people) and on the
+  pipeline page. Copy never promises a date.
+- Clicked through locally: key made, an ARIVE-style update accepted, a
+  fake key refused (401), the loan listed with "Lock expiring" and
+  "Closing without CTC", both on Today. Tests: `lib/pipeline/pipeline.test.ts`
+  (4). `npm run verify` passes.
+- Numbering: the overnight plan's roadmap (§10) puts these fixes at D6 and
+  ARIVE sync at D13; this sync is the first part of that "connector core".
+  The plan's later patches keep their order.

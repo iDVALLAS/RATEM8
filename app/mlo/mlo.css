@@ -55,3 +55,4 @@
 .cc-card .mlo-btn { margin-top: 8px; }
 .cc-card__title { font-weight: 500; color: var(--fg); margin-bottom: 4px; }
 .cc-card--reply { border-color: var(--accent); }
+.mlo-code { display: block; overflow-wrap: anywhere; padding: 8px 10px; margin: 4px 0 8px; border: 1px solid var(--rule); border-radius: 8px; font-family: var(--font-jetbrains); font-size: 12px; }

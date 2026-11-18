@@ -57,14 +57,14 @@ export default async function CommandCenterHome() {
                   const tel = telHref(phones[i] ?? undefined);
                   const href = `/mlo/contacts/${card.contactId}`;
                   return (
-                    <li key={`${card.contactId}-${card.kind}`} className={`cc-card cc-card--${card.kind}`}>
+                    <li key={`${card.contactId}-${card.kind}-${i}`} className={`cc-card cc-card--${card.kind}`}>
                       <p className="cc-card__title">{card.title}</p>
                       <p className="mlo-note">{card.reason}</p>
                       <div className="mlo-row-form">
                         {card.next === "reply" || card.next === "text" ? <Link className="mlo-btn" href={`${href}#conversation`}>{card.next === "reply" ? "Reply" : "Text"}</Link> : null}
                         {card.next === "call" && tel ? <a className="mlo-btn" href={tel}>Call {formatPhone(phones[i])}</a> : null}
                         {card.next === "record_permission" ? <Link className="mlo-btn" href={`${href}#permission`}>Record what they said</Link> : null}
-                        <Link className="mlo-btn mlo-btn--ghost" href={href}>Open</Link>
+                        {card.contactId ? <Link className="mlo-btn mlo-btn--ghost" href={href}>Open</Link> : <Link className="mlo-btn mlo-btn--ghost" href="/mlo/pipeline">Open pipeline</Link>}
                       </div>
                     </li>
                   );

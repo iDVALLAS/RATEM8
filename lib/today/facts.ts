@@ -9,6 +9,8 @@ import { DAILY_SCENARIOS } from "@/lib/pricing/daily";
 import { manualProvider } from "@/lib/pricing/providers/manual";
 import { tenantForState } from "@/lib/pricing/tenants";
 import { rankToday, type RateRef, type TodayCard } from "./rank";
+import { pipelineStore } from "@/lib/pipeline/store";
+import { alertsFor, learnPace } from "@/lib/pipeline/guardian";
 
 /** Today's lowest priced example for the standard rate-and-term refinance, if fresh. Loan officer's eyes only. */
 export async function refinanceReference(): Promise<RateRef> {
@@ -28,5 +30,12 @@ export async function todayFor(user: User, now = new Date()): Promise<{ cards: T
     const t = lastBy.get(contact.id);
     return { contact, consent: summarize(consents.filter((e) => e.contactId === contact.id)), last: t ? { direction: t.direction, at: t.at, body: t.body } : null };
   });
-  return { cards: rankToday(facts, now, ref), people: contacts.length, ref };
+  // D6: the milestone guardian's alerts, alongside people.
+  const loans = await pipelineStore().list(scopeOf(user));
+  const pace = learnPace(loans);
+  const loanCards: TodayCard[] = loans.flatMap((l) =>
+    alertsFor(l, pace, now).map((a) => ({ kind: a.kind === "late" ? "loan_late" : a.kind, contactId: l.contactId ?? "", name: l.borrowerName, title: a.title, reason: a.reason, score: a.score, next: l.contactId ? "text" : "pipeline" }) as TodayCard),
+  );
+  const cards = [...loanCards, ...rankToday(facts, now, ref, 24)].sort((a, b) => b.score - a.score).slice(0, 15);
+  return { cards, people: contacts.length + loans.length, ref };
 }
