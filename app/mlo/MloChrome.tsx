@@ -3,7 +3,7 @@ import { mloContent } from "@/lib/content/mlo";
 import type { Flash } from "@/lib/mlo/flash";
 import type { Tenant } from "@/lib/pricing/tenants";
 
-type NavKey = "home" | "concierge" | "scripts" | "inbox" | "pipeline" | "contacts" | "rules" | "team" | "setup" | "pricing" | "voice" | "training";
+type NavKey = "home" | "concierge" | "scripts" | "automations" | "calls" | "refi" | "inbox" | "pipeline" | "contacts" | "rules" | "team" | "setup" | "pricing" | "voice" | "training";
 
 /** D1: admins see the admin areas; everyone signed in sees Home, Team and Sign out. */
 export function MloNav({ current, tenantId, admin = true, signedIn = false }: { current: NavKey; tenantId: string; admin?: boolean; signedIn?: boolean }) {
@@ -16,6 +16,9 @@ export function MloNav({ current, tenantId, admin = true, signedIn = false }: { 
       {link("home", "/mlo", mloContent.nav.home)}
       {link("concierge", "/mlo/concierge", mloContent.nav.concierge)}
       {link("scripts", "/mlo/scripts", mloContent.nav.scripts)}
+      {link("calls", "/mlo/calls", mloContent.nav.calls)}
+      {link("automations", "/mlo/automations", mloContent.nav.automations)}
+      {link("refi", "/mlo/refi", mloContent.nav.refi)}
       {link("inbox", "/mlo/inbox", mloContent.nav.inbox)}
       {link("pipeline", "/mlo/pipeline", mloContent.nav.pipeline)}
       {link("contacts", "/mlo/contacts", mloContent.nav.contacts)}

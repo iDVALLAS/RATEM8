@@ -7,6 +7,8 @@
  * synonyms), so a Zap can send ARIVE's own field names.
  */
 import { randomBytes } from "node:crypto";
+import { onLoanChange } from "@/lib/automations/engine";
+import { report } from "@/lib/monitoring";
 import { accountStore } from "@/lib/accounts/store";
 import { contactStore } from "@/lib/contacts/store";
 import { cleanEmail, isoDate, splitName, toE164 } from "@/lib/contacts/normalize";
@@ -140,6 +142,11 @@ export async function ingest(ownerUserId: string, u: LoanUpdate, source: string,
     updatedAt: at,
   };
   await ps.put(loan);
-  if (changed) await accountStore().audit({ at, actor: `pipeline:${source}`, action: "loan.milestone", detail: { loanId: loan.id, milestone: u.milestone.slice(0, 40) } });
+  if (changed) {
+    await accountStore().audit({ at, actor: `pipeline:${source}`, action: "loan.milestone", detail: { loanId: loan.id, milestone: u.milestone.slice(0, 40) } });
+    // D10: stage updates the loan officer turned on (drafts for approval, never sent from here).
+    // A failure here must not lose the loan update, so it is reported, not thrown.
+    await onLoanChange(loan, prev?.milestone ?? null, now).catch((e) => report("error", e, { route: "pipeline", stage: "automations" }));
+  }
   return loan;
 }

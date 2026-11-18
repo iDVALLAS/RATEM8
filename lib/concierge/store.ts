@@ -22,6 +22,8 @@ export type ConciergeSettings = {
   tasks: boolean;
   /** How the loan officer likes to sound (their words), used for drafts. */
   voice: string;
+  /** D11: email a morning summary (names and counts only). */
+  digest?: boolean;
   updatedAt: string;
 };
 
@@ -35,8 +37,8 @@ export type Proposal = {
   purpose: Purpose;
   body: string;
   why: string;
-  /** "model" when drafted by the AI, "template" when written from a rule. */
-  source: "model" | "template";
+  /** "model" when drafted by the AI, "template" when written from a rule, "automation" from a D10 recipe. */
+  source: "model" | "template" | "automation";
   /** D8.1: "sending" while one approval holds it (a second click can't send twice); "stale" when the client wrote again or stopped. */
   status: "pending" | "sending" | "sent" | "dismissed" | "blocked" | "stale";
   /** The send gate's answer when it was drafted. */
@@ -73,6 +75,8 @@ export interface ConciergeStore {
   settings(owner: string): Promise<ConciergeSettings>;
   putSettings(s: ConciergeSettings): Promise<void>;
   enabledOwners(): Promise<string[]>;
+  /** D11: loan officers who asked for the morning email. */
+  digestOwners(): Promise<string[]>;
   putProposal(p: Proposal): Promise<void>;
   proposal(id: string): Promise<Proposal | null>;
   proposals(owner: string, status?: Proposal["status"]): Promise<Proposal[]>;
@@ -107,6 +111,9 @@ export class MemoryConciergeStore implements ConciergeStore {
   async enabledOwners() {
     return [...this.s.values()].filter((x) => x.enabled).map((x) => x.ownerUserId);
   }
+  async digestOwners() {
+    return [...this.s.values()].filter((x) => x.digest).map((x) => x.ownerUserId);
+  }
   async putProposal(x: Proposal) {
     this.p.set(x.id, structuredClone(x));
   }
@@ -125,7 +132,11 @@ export class MemoryConciergeStore implements ConciergeStore {
   }
   async markStale(contactId: string) {
     let n = 0;
-    for (const x of this.p.values()) if (x.contactId === contactId && x.status === "pending") (x.status = "stale"), n++;
+    for (const x of this.p.values())
+      if (x.contactId === contactId && x.status === "pending") {
+        x.status = "stale";
+        n++;
+      }
     return n;
   }
   async putTask(x: Task) {
@@ -152,7 +163,11 @@ export class MemoryConciergeStore implements ConciergeStore {
   }
   async purgeExpired(now: string) {
     let n = 0;
-    for (const [k, x] of this.m) if (x.expiresAt && x.expiresAt <= now) this.m.delete(k), n++;
+    for (const [k, x] of this.m)
+      if (x.expiresAt && x.expiresAt <= now) {
+        this.m.delete(k);
+        n++;
+      }
     return n;
   }
 }
@@ -194,6 +209,10 @@ export class NeonConciergeStore implements ConciergeStore {
   async enabledOwners() {
     await this.init();
     return (await this.q(`SELECT owner_user_id FROM cc_concierge_settings WHERE enabled`)).map((r) => r.owner_user_id as string);
+  }
+  async digestOwners() {
+    await this.init();
+    return (await this.q(`SELECT owner_user_id FROM cc_concierge_settings WHERE (body->>'digest')::boolean IS TRUE`)).map((r) => r.owner_user_id as string);
   }
   async putProposal(x: Proposal) {
     await this.init();

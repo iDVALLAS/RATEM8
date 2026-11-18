@@ -49,6 +49,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                 <label className="mlo-check"><input type="checkbox" name="enabled" defaultChecked={s.enabled} /> <span>Turn the Concierge on (it looks at your book each morning, and whenever you press “Run now”)</span></label>
                 <label className="mlo-check"><input type="checkbox" name="memory" defaultChecked={s.memory} /> <span>Remember needs and plans clients mention in their own words (you can delete any note)</span></label>
                 <label className="mlo-check"><input type="checkbox" name="tasks" defaultChecked={s.tasks} /> <span>Set reminders for me</span></label>
+                <label className="mlo-check"><input type="checkbox" name="digest" defaultChecked={!!s.digest} /> <span>Email me a morning summary: who to reach, drafts waiting, loans needing a touch (first names and counts only, no rates or messages)</span></label>
                 <label className="mlo-field"><span>How you sound (a few words, for drafts): for example “friendly, short, first names, sign off with ‑J”</span><input name="voice" defaultValue={s.voice} className="mlo-input" maxLength={600} /></label>
                 <p className="mlo-note">Texts are always drafts for you to approve. Sending on its own waits for counsel.</p>
                 <button type="submit" className="mlo-btn">Save</button>
@@ -62,7 +63,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                 <ol className="cc-today">
                   {drafts.map((d) => (
                     <li key={d.id} className="cc-card">
-                      <p className="cc-card__title"><Link href={`/mlo/contacts/${d.contactId}#conversation`}>{nameOf(d.contactId)}</Link> · {d.purpose === "service" ? "about their loan" : "a check-in"}{d.source === "template" ? " · template" : " · drafted by AI"}</p>
+                      <p className="cc-card__title"><Link href={`/mlo/contacts/${d.contactId}#conversation`}>{nameOf(d.contactId)}</Link> · {d.purpose === "service" ? "about their loan" : "a check-in"}{d.source === "template" ? " · template" : d.source === "automation" ? ` · loan update` : " · drafted by AI"}</p>
                       <p className="mlo-note">Why: {d.why}</p>
                       {!d.gate.allowed ? <p className="mlo-note">Not sendable right now: {d.gate.reason}</p> : null}
                       <form action={approveAction} className="mlo-grid">

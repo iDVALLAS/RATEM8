@@ -79,6 +79,11 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     text goes to models only in nonce data blocks (`lib/concierge/data.ts`);
     stop/hardship/protected-topic lanes run before any model call; memory waits
     for Keep. Research reports: `docs/work/*-2026-11-18.md`.
+    D10 automations (`lib/automations/*`, `/mlo/automations`): stage updates from
+    the loan sync and morning recipes, drafts only; agent updates need the
+    client's say-so (`Contact.partnerUpdates`). D11 morning email (`lib/digest.ts`,
+    names and counts only) and call session (`/mlo/calls`, hand-dialed, gated).
+    D12 refi watch (`/mlo/refi`, estimates for the LO only).
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
   - Second Look still needs `SECOND_LOOK_LIVE`.
   - The owner reported counsel approval of everything on 2026-10-31.

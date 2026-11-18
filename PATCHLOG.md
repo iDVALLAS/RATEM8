@@ -1914,3 +1914,113 @@ The fixes, in the ledger's order of urgency:
   - The email-first channel plan.
   - The Need Codec in place of free-text memory.
   These are D10 onward.
+
+## D10–D12 — What we took from Broker Marketplace, Viato and Bonzo (2026-11-18)
+
+Owner: "do a deep dive into this platform https://broker-marketplace.com/demo?tool=overview&clip=2 as well as Viato mortgage and take whatever you think will be useful from here and build on it as well as Bonzo.com".
+
+The research is in `docs/work/competitor-deep-dive-2026-11-18.md`. It
+covers all 37 Broker Marketplace tools, Viato's CRM, Super Agent and LOS
+sync, and Bonzo's campaigns, with their prices. It says what we took, what
+we left for later, and what we refuse and why (AI voice calls, triple-line
+dialing and voicemail drops, iMessage blasts, owner-contact data on
+strangers, website soft pulls, and RETR rankings).
+
+### D10 — Loan updates and ready-made campaigns (Viato's stage automations, Bonzo's templates)
+
+- **Recipes** (`lib/automations/recipes.ts`):
+  - **Borrower updates** at seven stages: application, disclosures,
+    appraisal, underwriting, conditions, clear to close, closed.
+  - **Agent updates** at five stages.
+  - **After closing:** a 30-day check-in draft and a 6-month call reminder.
+  - **New contacts:** a "how would you like to hear from me" reminder for
+    new contacts with no permission.
+  - `stageOf()` maps loan-system stage names to ours. Every draft passes
+    the Concierge guard (tested): no dates, approvals, rates or promises.
+- **Engine** (`lib/automations/engine.ts`):
+  - **When it runs:** `onLoanChange` runs from the loan-system sync
+    (`lib/pipeline/intake.ts`) when a stage changes. `runDaily` runs from
+    the morning job.
+  - **Once only:** each recipe fires once per loan or person, recorded in
+    `cc_auto_fired`.
+  - **Where results land:** drafts go to the Concierge desk
+    (source "automation", shown as "loan update"); reminders go to the
+    reminder list. Nothing is sent from here.
+  - **Who it skips:** people who said stop, contacts on hold, and (for
+    marketing) anyone the Concierge lanes pause. A newer stage update makes
+    the older waiting one stale.
+- **Agent updates go out only on the client's say-so** (GLBA).
+  - The contact page has "Updates to their agent": pick the agent from your
+    agents, then record how the client told you. It can be revoked.
+  - The agent also needs their own texting permission at approval.
+- **Screens:** `/mlo/automations` has the recipe checkboxes, each with an
+  example, "Check my book now", and a "Recently fired" list.
+
+### D11 — Morning email and call session (Viato's Jobs, a compliant take on its power dialer)
+
+- **Morning email** (`lib/digest.ts`): opt in under Concierge settings
+  ("Email me a morning summary").
+  - It covers people to answer personally, loans needing a touch, people
+    worth reaching, drafts waiting and notes to keep.
+  - It carries first names and fixed descriptions only: no rates, amounts,
+    client words or phone numbers (tested).
+  - It is sent once a day, after the morning run, through Resend.
+- **Call session** (`/mlo/calls`, `lib/calls/session.ts`):
+  - Today's people come one at a time, each checked by the send gate for a
+    call first. Anyone blocked is listed with the reason.
+  - "Next up" shows why, a `tel:` link you dial by hand, their script (or
+    "Build their script"), and the all-party recording reminder.
+  - One-tap outcomes log the call on the conversation (it counts toward the
+    daily call cap) and move to the next person. "Asked not to be
+    contacted" and "Wrong number" record a stop.
+  - No simultaneous ringing and no prerecorded voicemail drops.
+
+### D12 — Refi watch (Broker Marketplace's Refi Finder)
+
+- `/mlo/refi` and `lib/refi/watch.ts`, for the loan officer only. It lists
+  past clients with an amount, note rate and close date on file and a rate
+  at least N points above the comparison rate.
+- **Comparison rate:** today's priced example, or one you enter.
+- **For each client:**
+  - an estimated balance (30-year amortization from the close date)
+  - an estimated principal-and-interest change for a new 30-year loan, and
+    for keeping the same term
+  - months to recover an entered closing-cost estimate
+- Always labelled an estimate, with "price their real scenario first", and
+  linked to their call script.
+
+### Verified
+
+- **Tests:**
+  - `lib/automations/automations.test.ts` (5): stage mapping; every draft
+    passing the guard; fires once per stage and only when on; the stale
+    draft retired; the agent only with the client's say-so; a stopped
+    borrower skipped; the 30-day and new-contact morning run happening once.
+  - `lib/calls/calls.test.ts` (3): the email off by default, with no rate,
+    number or client words, sent once a day; the queue gated with reasons;
+    logging moves on and redacts; a wrong number records a stop.
+  - `lib/refi/watch.test.ts` (3): amortization matches the standard figures;
+    the change and break-even; no estimate without the data; no break-even
+    when the rate is higher.
+- `npm run verify` passes (380 tests).
+- **Clicked through locally:**
+  - automations saved, and the morning check set 3 permission reminders
+  - refi watch (7.25% from 2020 against 5.75%: about $555 a month less on a
+    new 30-year, about 8 months to recover $4,000)
+  - the call session, listing gate-blocked people with the reason
+  - the agent-updates panel
+  - no console errors and no horizontal overflow at 390px
+- **Owner:** nothing new to set up. The morning email needs the existing
+  Resend keys and `CRON_SECRET`.
+- **Counsel:**
+  - whether borrower stage updates may be sent automatically once approved
+    as templates (today every one waits for approval)
+  - the wording of the client's direction for agent updates
+  - whether a hand-dialed call to a past client without written permission
+    is allowed (the gate blocks it today; most of the call session shows
+    "Not now" until permission is recorded)
+- **Next up:**
+  - lead-vendor intake webhooks
+  - "Tell your Concierge" (commands that become drafts)
+  - post-call dictation
+  - D13: per-state gate rows from the ledger

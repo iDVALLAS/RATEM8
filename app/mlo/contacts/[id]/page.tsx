@@ -18,6 +18,7 @@ import { GOAL_LABELS, GOALS } from "@/lib/scripts/signals";
 import ScriptView from "../../scripts/ScriptView";
 import { BuildButton } from "../../scripts/Buttons";
 import { buildScriptAction } from "../../scripts/actions";
+import { partnerUpdatesAction } from "../../automations/actions";
 import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
@@ -60,6 +61,9 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const shownScript = picked && picked.ownerUserId === v.user.id && picked.contactId === c.id ? picked : scripts[0] ?? null;
   const callStopped = s.call.service.evidence === "revoked" || s.call.marketing.evidence === "revoked";
   const signalGoals = known.signals.map((x) => x.goal);
+  // D10: the client's own agents list, for "Updates to their agent".
+  const agents = c.kind === "contact" ? (await store.list({ ownerUserId: c.ownerUserId, kind: "agent", limit: 500 })).contacts : [];
+  const linkedAgent = c.partnerUpdates?.agentContactId ? agents.find((a) => a.id === c.partnerUpdates!.agentContactId) ?? null : null;
   const goalOptions = c.kind === "agent" ? (["partner"] as const) : [...new Set([...signalGoals, ...GOALS.filter((g) => g !== "auto" && g !== "partner")])];
 
   return (
@@ -129,6 +133,36 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
             </>
           )}
         </section>
+
+        {c.kind === "contact" ? (
+          <section className="mlo-section" id="partner">
+            <h2>Updates to their agent</h2>
+            <p className="mlo-note">
+              {c.partnerUpdates?.allowed && linkedAgent
+                ? `On: ${linkedAgent.firstName} ${linkedAgent.lastName} gets loan updates (recorded ${new Date(c.partnerUpdates.at).toLocaleDateString("en-US")}: “${c.partnerUpdates.proof}”).`
+                : `Off. Their agent only hears how the loan is going if ${c.firstName || "they"} said so. Record it here when they do.`}
+            </p>
+            {v.user.id === c.ownerUserId ? (
+              <form action={partnerUpdatesAction} className="mlo-grid">
+                <input type="hidden" name="contactId" value={c.id} />
+                <div className="mlo-grid mlo-grid--2">
+                  <label className="mlo-field"><span>Their agent</span>
+                    <select name="agentId" defaultValue={c.partnerUpdates?.agentContactId ?? ""}>
+                      <option value="">Pick an agent</option>
+                      {agents.map((a) => <option key={a.id} value={a.id}>{`${a.firstName} ${a.lastName}`.trim()}{a.agent?.brokerage ? ` · ${a.agent.brokerage}` : ""}</option>)}
+                    </select>
+                  </label>
+                  <label className="mlo-field"><span>How they told you</span><input name="proof" maxLength={300} placeholder="Said yes by text, Nov 18" defaultValue={c.partnerUpdates?.allowed ? c.partnerUpdates.proof : ""} /></label>
+                </div>
+                <div className="mlo-row-form">
+                  <button type="submit" name="allowed" value="yes" className="mlo-btn" style={{ marginTop: 0 }}>Their agent may get updates</button>
+                  {c.partnerUpdates?.allowed ? <button type="submit" name="allowed" value="no" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Stop updates</button> : null}
+                </div>
+                {agents.length === 0 ? <p className="mlo-note">Import your agents first (Contacts → Import → Agents).</p> : null}
+              </form>
+            ) : null}
+          </section>
+        ) : null}
 
         <section className="mlo-section" id="memory">
           <h2>What your Concierge remembers</h2>

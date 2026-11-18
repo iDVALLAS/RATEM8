@@ -3,6 +3,9 @@ import { accountStore } from "@/lib/accounts/store";
 import { conciergeStore } from "@/lib/concierge/store";
 import { sweep } from "@/lib/concierge/agent";
 import { report } from "@/lib/monitoring";
+import { runDaily } from "@/lib/automations/engine";
+import { sendDigest } from "@/lib/digest";
+import { automationStore } from "@/lib/automations/store";
 
 /**
  * GET /api/cc/concierge/sweep — the morning run for every loan officer who
@@ -15,15 +18,19 @@ export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   const given = (req.headers.get("authorization") ?? "").replace(/^Bearer /, "");
   if (!secret || given.length !== secret.length || !timingSafeEqual(Buffer.from(given), Buffer.from(secret))) return new Response("Not found", { status: 404 });
-  const owners = await conciergeStore().enabledOwners();
+  // D10: loan officers with the Concierge on, or with any after-closing / new-contact recipe on.
+  const owners = [...new Set([...(await conciergeStore().enabledOwners()), ...(await conciergeStore().digestOwners()), ...(await automationStore().owners())])];
   let done = 0;
   let failed = 0;
   for (const owner of owners.slice(0, 200)) {
     const user = await accountStore().userById(owner);
     if (!user || user.status !== "active") continue;
     try {
+      await runDaily(user);
       const r = await sweep(user);
       if (r.errors) failed++;
+      // D11: after the run, so the email counts this morning's drafts.
+      if ((await sendDigest(user)) === "failed") failed++;
       done++;
     } catch (e) {
       // D8.1: a failed run is recorded, never mistaken for a quiet day.

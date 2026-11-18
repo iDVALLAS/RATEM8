@@ -30,7 +30,7 @@ export async function approve(actor: User, proposalId: string, editedBody: strin
     await release();
     return { ok: false, error: edited ? `Your edit can't be sent: it ${d.reason}.` : `This draft can't be sent under the current rules: it ${d.reason}. Edit it or dismiss it.` };
   }
-  const res = await sendText(actor, p.contactId, d.text, p.purpose, statusCallback, now, { origin: edited ? "human" : p.source === "template" ? "template" : "concierge" });
+  const res = await sendText(actor, p.contactId, d.text, p.purpose, statusCallback, now, { origin: edited ? "human" : p.source === "model" ? "concierge" : "template" });
   if (res.ok) await store.putProposal({ ...p, body: d.text, status: "sent", decidedAt: now.toISOString(), decidedBy: actor.email });
   else await release();
   await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: res.ok ? "concierge.approve" : "concierge.approve_blocked", detail: { proposalId, edited, guard: GUARD_VERSION } });
@@ -56,7 +56,7 @@ export async function closeTask(actor: User, taskId: string): Promise<void> {
   if (t) await store.putTask({ ...t, done: true });
 }
 
-export async function saveSettings(actor: User, change: Partial<Pick<ConciergeSettings, "enabled" | "memory" | "tasks" | "voice">>, now = new Date()): Promise<void> {
+export async function saveSettings(actor: User, change: Partial<Pick<ConciergeSettings, "enabled" | "memory" | "tasks" | "voice" | "digest">>, now = new Date()): Promise<void> {
   const store = conciergeStore();
   const s = await store.settings(actor.id);
   if (change.voice) {
