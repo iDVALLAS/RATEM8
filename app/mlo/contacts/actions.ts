@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { checkLine, recordDnc, sendText } from "@/lib/messaging/service";
 import { z } from "zod";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
@@ -69,4 +71,35 @@ export async function unlockAction(fd: FormData): Promise<void> {
   const { contacts } = await contactStore().list({ ownerUserId: actor.id, limit: 500 });
   const n = await unlockContacts(actor, contacts.filter((c) => c.locked).map((c) => c.id), UNLOCK_ATTESTATION);
   redirect(`/mlo/contacts?f=${encodeFlash({ ok: true, lines: [`Released ${n} ${n === 1 ? "person" : "people"} from hold. They're still relationship only until their permission is recorded.`] })}`);
+}
+
+/** D4: send a text through the gate. */
+export async function sendTextAction(fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const contactId = String(fd.get("contactId") ?? "");
+  const purpose = fd.get("purpose") === "marketing" ? "marketing" : "service";
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+  const res = await sendText(actor, contactId, String(fd.get("body") ?? ""), purpose, `${origin}/api/twilio/status`);
+  const lines = res.ok ? ["Sent."] : [res.error, ...(res.retryAt ? [`Their window opens ${new Date(res.retryAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", weekday: "short", hour: "numeric", minute: "2-digit" })} Pacific.`] : [])];
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: res.ok, lines })}#conversation`);
+}
+
+/** D4: line type from Twilio Lookup. */
+export async function checkLineAction(fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const contactId = String(fd.get("contactId") ?? "");
+  const r = await checkLine(actor, contactId);
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: r.ok, lines: [r.message] })}`);
+}
+
+/** D4: record a do-not-call scrub result. */
+export async function dncAction(fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const contactId = String(fd.get("contactId") ?? "");
+  const ok = await recordDnc(actor, contactId, fd.get("onList") === "yes", String(fd.get("source") ?? ""));
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok, lines: [ok ? "Do-not-call check recorded. It's good for 31 days." : "Couldn't record that."] })}`);
 }

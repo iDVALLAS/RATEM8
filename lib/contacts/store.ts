@@ -34,6 +34,10 @@ export type Contact = Omit<ImportRecord, "attestedOptIns"> & {
   provenance: Provenance;
   /** True while the loan officer hasn't cleared a prior-employer list. Nothing is sent to a locked contact. */
   locked: boolean;
+  /** D4: the last do-not-call check of their phone (national, state or vendor scrub). */
+  dnc?: { onList: boolean; checkedAt: string; source: string } | null;
+  /** D4: line type from Twilio Lookup. */
+  line?: { type: string; carrier: string | null; checkedAt: string } | null;
   ownerUserId: string;
   kind: "contact" | "agent";
   source: string;
@@ -58,6 +62,8 @@ export type ContactFilter = { ownerUserId?: string; kind?: "contact" | "agent"; 
 export interface ContactStore {
   readonly kind: string;
   findDuplicate(ownerUserId: string, phone: string | null, email: string | null): Promise<Contact | null>;
+  /** Every contact with this phone, across all loan officers (for inbound texts and opt-outs). */
+  findByPhone(phone: string): Promise<Contact[]>;
   put(c: Contact): Promise<void>;
   get(id: string): Promise<Contact | null>;
   list(f: ContactFilter): Promise<{ contacts: Contact[]; total: number }>;
@@ -87,6 +93,9 @@ export class MemoryContactStore implements ContactStore {
   private log: ConsentEntry[] = [];
   async findDuplicate(owner: string, phone: string | null, email: string | null) {
     return [...this.rows.values()].find((c) => c.ownerUserId === owner && ((phone && c.phone === phone) || (email && c.email === email))) ?? null;
+  }
+  async findByPhone(phone: string) {
+    return [...this.rows.values()].filter((c) => c.phone === phone || c.phone2 === phone).map((c) => structuredClone(c));
   }
   async put(c: Contact) {
     this.rows.set(c.id, structuredClone(c));
@@ -145,6 +154,11 @@ export class NeonContactStore implements ContactStore {
     await this.init();
     const r = await this.q(`SELECT body FROM cc_contacts WHERE owner_user_id = $1 AND ((phone IS NOT NULL AND phone = $2) OR (email IS NOT NULL AND email = $3)) LIMIT 1`, [owner, phone, email]);
     return r[0] ? toContact(r[0]) : null;
+  }
+  async findByPhone(phone: string) {
+    await this.init();
+    const r = await this.q(`SELECT body FROM cc_contacts WHERE phone = $1 OR body->>'phone2' = $1`, [phone]);
+    return r.map(toContact);
   }
   async put(c: Contact) {
     await this.init();

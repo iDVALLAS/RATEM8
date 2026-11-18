@@ -7,12 +7,14 @@ import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { CHANNELS, contactStore, EVIDENCE, PURPOSES } from "@/lib/contacts/store";
 import { canSee, summarize } from "@/lib/contacts/service";
-import { decisionsFor } from "@/lib/send-gate/for-contact";
+import { gateFor, MAX_TEXT } from "@/lib/messaging/service";
+import { touchStore } from "@/lib/messaging/store";
+import { twilioConfig } from "@/lib/messaging/twilio";
 import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { consentAction, deleteContactAction } from "../actions";
+import { checkLineAction, consentAction, deleteContactAction, dncAction, sendTextAction } from "../actions";
 import "../../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +38,11 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   if (!c || !canSee(v.user, c)) notFound();
   const log = await store.consents(c.id);
   const s = summarize(log);
-  const gate = decisionsFor(v.user, c, s);
+  const pairs = CHANNELS.flatMap((ch) => PURPOSES.map((p) => [ch, p] as const));
+  const decisions = await Promise.all(pairs.map(([ch, p]) => gateFor(v.user!, c, ch, p)));
+  const gate = Object.fromEntries(CHANNELS.map((ch) => [ch, Object.fromEntries(PURPOSES.map((p) => [p, decisions[pairs.findIndex(([a, b]) => a === ch && b === p)]]))])) as Record<(typeof CHANNELS)[number], Record<(typeof PURPOSES)[number], (typeof decisions)[number]>>;
+  const thread = await touchStore().forContact(c.id, 100);
+  const texting = !!twilioConfig();
   const tenant = listTenants()[0];
 
   return (
@@ -65,9 +71,49 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               ) : null}
               {c.notes ? <tr><th scope="row">Notes</th><td style={{ whiteSpace: "pre-wrap" }}>{c.notes}</td></tr> : null}
               <tr><th scope="row">Added</th><td>{fmt(c.createdAt)} · {c.source}</td></tr>
+              <tr>
+                <th scope="row">Phone checks</th>
+                <td>
+                  {c.line ? `${c.line.type} line${c.line.carrier ? ` (${c.line.carrier})` : ""}, checked ${fmt(c.line.checkedAt)}` : "Line type not checked"}
+                  {" · "}
+                  {c.dnc ? `${c.dnc.onList ? "on a do-not-call list" : "not on do-not-call lists"} (${c.dnc.source}, ${fmt(c.dnc.checkedAt)})` : "Do-not-call not checked"}
+                </td>
+              </tr>
               <tr><th scope="row">Where it came from</th><td>{PROVENANCE_LABELS[c.provenance]}{c.locked ? " · on hold until you release your prior-employer lists" : ""}</td></tr>
             </tbody>
           </table>
+        </section>
+
+        <section className="mlo-section" id="conversation">
+          <h2>Conversation</h2>
+          {thread.length ? (
+            <ol className="mlo-thread">
+              {thread.map((t) => (
+                <li key={t.id} className={`mlo-msg mlo-msg--${t.direction}`}>
+                  <p style={{ whiteSpace: "pre-wrap" }}>{t.body}</p>
+                  <span className="mlo-note">{t.direction === "in" ? "They texted" : `Text from ${t.actor}`} · {new Date(t.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {t.status}{t.note && t.direction === "in" ? ` · ${t.note}` : ""}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="mlo-note">No texts yet.</p>
+          )}
+          {!texting ? <p className="mlo-note">Texting turns on when the Twilio keys are in Vercel.</p> : null}
+          <form action={sendTextAction} className="mlo-grid" style={{ marginTop: 12 }}>
+            <input type="hidden" name="contactId" value={c.id} />
+            <label className="mlo-field">
+              <span>Text {c.firstName || "them"}</span>
+              <textarea name="body" rows={3} maxLength={MAX_TEXT} className="mlo-textarea" required />
+            </label>
+            <div className="mlo-row-form">
+              <select name="purpose" className="mlo-select" aria-label="What it's about" defaultValue="service">
+                <option value="service">About their loan or account ({gate.text.service.allowed ? "allowed now" : "not now"})</option>
+                <option value="marketing">An offer or check-in ({gate.text.marketing.allowed ? "allowed now" : "not now"})</option>
+              </select>
+              <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={!texting}>Send text</button>
+            </div>
+            <p className="mlo-note">Your first text, and every offer, ends with who it&apos;s from and “Reply STOP to opt out.”</p>
+          </form>
         </section>
 
         <section className="mlo-section">
@@ -151,6 +197,24 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               </table>
             </details>
           ) : null}
+        </section>
+
+        <section className="mlo-section">
+          <h2>Phone checks</h2>
+          <form action={checkLineAction} className="mlo-row-form">
+            <input type="hidden" name="contactId" value={c.id} />
+            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={!c.phone}>Check line type (mobile or landline)</button>
+          </form>
+          <form action={dncAction} className="mlo-row-form" style={{ marginTop: 12 }}>
+            <input type="hidden" name="contactId" value={c.id} />
+            <select name="onList" className="mlo-select" aria-label="Do-not-call result" defaultValue="no">
+              <option value="no">Not on do-not-call lists</option>
+              <option value="yes">On a do-not-call list</option>
+            </select>
+            <input name="source" placeholder="Checked with (your DNC vendor or the registry)" className="mlo-input" style={{ flex: "1 1 240px" }} />
+            <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Record check</button>
+          </form>
+          <p className="mlo-note">A check is good for 31 days. Marketing by phone needs one.</p>
         </section>
 
         {v.user.role !== "assistant" ? (

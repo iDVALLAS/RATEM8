@@ -1534,3 +1534,40 @@ export for now (partner API later).
   `lib/send-gate/gate.test.ts` (9). `npm run verify` passes.
 - Next: D4, Twilio texting (10DLC numbers, inbound STOP handling on every
   channel, the inbox), do-not-call and line-type checks.
+
+## D4 — Texting through Twilio, replies, opt-outs and phone checks (2026-11-18)
+
+- **Switch:** on with `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` (Sensitive)
+  and `TWILIO_MESSAGING_SERVICE_SID` (the Messaging Service holding the
+  10DLC numbers and campaign). Without them nothing sends and the pages
+  say so. REST over `fetch`, no library (`lib/messaging/twilio.ts`).
+- **Sending** (`lib/messaging/service.ts` `sendText`): every text goes
+  through the D3 gate, now with real data: marketing counts in the last 24
+  hours and 7 days, the do-not-call check, and the opt-out list. Text is
+  redacted (SSN, date of birth, account numbers) before it's sent or
+  stored. The first text to anyone, and every marketing text, ends with
+  who it's from (the loan officer's first name, LoanM8, NMLS number from
+  config) and "Reply STOP to opt out." Blocked attempts go to the audit
+  log with the reason; a quiet-hours block says when the window opens.
+- **Replies** (`/api/twilio/inbound`, signature-verified): stored on every
+  contact with that number, across loan officers. STOP-type words and
+  plain-English opt-outs ("please stop texting me", "remove me", "wrong
+  number") revoke every phone channel and purpose for all of them at once
+  and put the number on an opt-out list (`cc_optouts`), so a later import
+  of the same number is still blocked. START clears the list but grants
+  nothing.
+- **Delivery status** (`/api/twilio/status`, signature-verified).
+- **Phone checks:** line type from Twilio Lookup; the loan officer records a
+  do-not-call scrub result (vendor or registry), good for 31 days.
+- **Pages:** the contact page gets the conversation, a send box showing
+  whether each purpose is allowed now, and phone checks; `/mlo/inbox` lists
+  the latest message with each person. `/api/twilio/*` stays reachable while
+  production is locked (it checks Twilio's signature instead).
+- Tests: `lib/messaging/messaging.test.ts` (opt-out words, signatures,
+  gate-only sending with the signature line and quiet hours, a STOP across
+  three loan officers). Clicked through locally with Twilio off.
+  `npm run verify` passes.
+- **Owner setup in Twilio:** a Messaging Service with your 10DLC number;
+  its incoming-message webhook `https://loanm8.com/api/twilio/inbound`
+  (POST); Advanced Opt-Out on. Not done yet: the FCC Reassigned Numbers
+  Database check and automatic DNC scrubbing need vendor accounts.

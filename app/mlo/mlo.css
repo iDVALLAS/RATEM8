@@ -43,3 +43,9 @@
 .mlo-signout button { background: none; border: 0; color: var(--fg-soft); text-decoration: underline; cursor: pointer; font: inherit; }
 /* D2: plain row labels where a table holds sentences, not field names. */
 .mlo-table--plain th { font-family: inherit; text-transform: none; letter-spacing: 0; font-size: 0.9rem; font-weight: 500; color: var(--fg); }
+/* D4: conversations */
+.mlo-thread { display: flex; flex-direction: column; gap: 10px; }
+.mlo-msg { max-width: 34rem; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--rule); }
+.mlo-msg p { margin-bottom: 4px; }
+.mlo-msg--out { align-self: flex-end; background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.mlo-msg--in { align-self: flex-start; }

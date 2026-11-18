@@ -45,7 +45,8 @@ const OPEN_EXACT = new Set([
   "/api/cc/signout",
   "/api/cc/dev-login",
 ]);
-const OPEN_PREFIXES = ["/demo/", "/_next/", "/fonts/", "/images/", "/brand/", "/team/", "/lenders/", "/mlo/", "/.well-known/"];
+// D4: Twilio webhooks are verified by signature, so they stay reachable while locked.
+const OPEN_PREFIXES = ["/api/twilio/", "/demo/", "/_next/", "/fonts/", "/images/", "/brand/", "/team/", "/lenders/", "/mlo/", "/.well-known/"];
 
 /** Reachable without the password while the lock is on. */
 export function openWhileLocked(pathname: string): boolean {
