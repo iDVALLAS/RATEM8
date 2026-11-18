@@ -45,7 +45,7 @@ describe("pipeline sync (D7)", () => {
 
   it("learns the loan officer's pace and flags late stages, expiring locks and closings without clear-to-close", () => {
     const hist = (days: number) => [{ milestone: "Processing", at: "2026-01-01T00:00:00Z" }, { milestone: "Underwriting", at: new Date(Date.parse("2026-01-01T00:00:00Z") + days * 86400000).toISOString() }];
-    const done = [2, 3, 4].map((d, i) => ({ history: hist(d), closed: true } as unknown as Loan));
+    const done = [2, 3, 4].map((d) => ({ history: hist(d), closed: true } as unknown as Loan));
     expect(learnPace(done)).toEqual({ processing: 3 });
     const loan = { id: "l", borrowerName: "Ann Lee", milestone: "Processing", milestoneAt: "2026-11-10T18:00:00Z", agentName: "Pat", keyDates: { application: null, lockExpires: "2026-11-20", appraisal: null, clearToClose: null, closing: "2026-11-20" }, closed: false, dead: false, history: [] } as unknown as Loan;
     const kinds = alertsFor(loan, { processing: 3 }, T("2026-11-18")).map((a) => a.kind);

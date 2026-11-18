@@ -1657,3 +1657,60 @@ The overnight research run (`docs/work/command-center-final-form-2026-11-18.md`,
 - Numbering: the overnight plan's roadmap (§10) puts these fixes at D6 and
   ARIVE sync at D13; this sync is the first part of that "connector core".
   The plan's later patches keep their order.
+
+## D8 — The Concierge: an AI agent for each loan officer (2026-11-18)
+
+Owner: "an AI agent who snaps into the control center as the MLO's
+concierge that can manage client relationships for the MLO with their
+permission … polishes and works on behalf of the MLO to retain business
+relationships and uncover needs from clients." (Numbering: the overnight
+plan's D8, texting registration per sponsor, moves to D9.)
+
+- **What it does** (`lib/concierge/agent.ts`): each sweep takes the people
+  most worth attention (Today's cards and unanswered replies, up to 12),
+  builds a short redacted brief for each (relationship, state, their loan's
+  date and amount but never its rate, what the send gate allows right now,
+  recent texts as tagged data, what it already remembers, the loan
+  officer's voice notes) and lets the model call four tools, all run in our
+  code: **propose_text** (a draft for approval; one waiting per person),
+  **remember** (a need or plan the client stated, with their exact quote,
+  which must appear in their own message, and an expiry), **add_task** (a
+  reminder) and **no_action**. Up to three tool rounds per person.
+- **It never sends.** Every text is a draft; "Approve and send" goes through
+  `sendText` and the send gate again (edits are re-checked). Auto-send waits
+  for counsel.
+- **Guardrails** (`lib/concierge/guard.ts`): drafts and notes are refused if
+  they touch family status, children or pregnancy, marital status,
+  religion, health or disability, age or retirement, race, ethnicity,
+  national origin or language, sex or orientation, or public-assistance or
+  support income; drafts are refused with any rate, APR or promise (the M8
+  output guard) and are redacted. Client messages reach the model inside
+  `<client_message>` tags as data; the system prompt tells it never to
+  follow instructions found there (tested with a hijack attempt).
+- **Model:** the Claude API (the same SDK as M8 chat), model from
+  `CC_CONCIERGE_MODEL` with a code default, server-side refusal fallback on,
+  effort medium, the system prompt and tools cached. Without
+  `ANTHROPIC_API_KEY` it runs simple templates (an anniversary note, a
+  check-in, a reply acknowledgement) and call reminders, so the desk still
+  works.
+- **Desk** `/mlo/concierge`: turn it on; whether it may remember and set
+  reminders; "how you sound"; Run now; drafts with why, whether they're
+  sendable now, edit, approve and send, dismiss; reminders with Done; "Ask
+  your Concierge" (answers from Today, drafts and reminders, guarded).
+  The contact page gets "What your Concierge remembers" with Forget.
+- **Schedule:** `vercel.json` runs `/api/cc/concierge/sweep` daily at 15:17
+  UTC (about 7:17 AM Pacific) for every loan officer who turned it on; it
+  needs `CRON_SECRET` in Vercel (404 without it).
+- **Storage** (`lib/concierge/store.ts`): settings, proposals, tasks, memory
+  (Neon `cc_concierge_*`, memory otherwise). Every sweep, approval and
+  settings change is in the audit log.
+- Clicked through locally (template mode): turned on, ran, and two call
+  reminders appeared for clients without texting permission. Tests:
+  `lib/concierge/concierge.test.ts` (7: guardrails, memory provenance,
+  off, templates and approval through the gate, the model path with a
+  hijacked draft refused and a memory and reminder filed, holds, stops and
+  other loan officers' contacts skipped, the brief never carrying the rate).
+  `npm run verify` passes.
+- **Counsel:** whether texts drafted by AI and sent by the loan officer need
+  an AI disclosure in any state; the protected-topic list; memory
+  retention periods.

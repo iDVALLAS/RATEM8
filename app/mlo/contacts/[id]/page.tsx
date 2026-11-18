@@ -10,6 +10,8 @@ import { canSee, summarize } from "@/lib/contacts/service";
 import { gateFor, MAX_TEXT } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
 import { twilioConfig } from "@/lib/messaging/twilio";
+import { conciergeStore } from "@/lib/concierge/store";
+import { forgetAction } from "../../concierge/actions";
 import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
@@ -43,6 +45,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const gate = Object.fromEntries(CHANNELS.map((ch) => [ch, Object.fromEntries(PURPOSES.map((p) => [p, decisions[pairs.findIndex(([a, b]) => a === ch && b === p)]]))])) as Record<(typeof CHANNELS)[number], Record<(typeof PURPOSES)[number], (typeof decisions)[number]>>;
   const thread = await touchStore().forContact(c.id, 100);
   const texting = !!twilioConfig();
+  const memory = await conciergeStore().memory(c.id, new Date().toISOString());
   const tenant = listTenants()[0];
 
   return (
@@ -82,6 +85,24 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               <tr><th scope="row">Where it came from</th><td>{PROVENANCE_LABELS[c.provenance]}{c.locked ? " · on hold until you release your prior-employer lists" : ""}</td></tr>
             </tbody>
           </table>
+        </section>
+
+        <section className="mlo-section" id="memory">
+          <h2>What your Concierge remembers</h2>
+          {memory.length === 0 ? (
+            <p className="mlo-note">Nothing yet. It only remembers needs and plans {c.firstName || "they"} mention in their own words.</p>
+          ) : (
+            <table className="mlo-table mlo-table--plain">
+              <tbody>
+                {memory.map((m) => (
+                  <tr key={m.id}>
+                    <th scope="row">{m.fact}<br /><span className="mlo-note">“{m.quote}” · {m.kind} · {new Date(m.createdAt).toLocaleDateString("en-US")}{m.expiresAt ? ` · forgets ${m.expiresAt.slice(0, 10)}` : ""}</span></th>
+                    <td><form action={forgetAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={c.id} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Forget</button></form></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
 
         <section className="mlo-section" id="conversation">
