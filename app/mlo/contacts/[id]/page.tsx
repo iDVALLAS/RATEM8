@@ -12,14 +12,22 @@ import { touchStore } from "@/lib/messaging/store";
 import { twilioConfig } from "@/lib/messaging/twilio";
 import { conciergeStore } from "@/lib/concierge/store";
 import { forgetAction } from "../../concierge/actions";
+import { gather } from "@/lib/scripts/generate";
+import { scriptStore } from "@/lib/scripts/store";
+import { GOAL_LABELS, GOALS } from "@/lib/scripts/signals";
+import ScriptView from "../../scripts/ScriptView";
+import { BuildButton } from "../../scripts/Buttons";
+import { buildScriptAction } from "../../scripts/actions";
 import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../../MloChrome";
 import { checkLineAction, consentAction, deleteContactAction, dncAction, sendTextAction } from "../actions";
 import "../../mlo.css";
+import "../../scripts/scripts.css";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 export const metadata: Metadata = { title: "Contact", robots: { index: false, follow: false } };
 
 const CHANNEL_LABELS = { call: "Calls from you", ai_call: "Calls from M8 (AI voice)", text: "Texts", email: "Email" } as const;
@@ -31,8 +39,8 @@ const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-
 const money = (n: number | null | undefined) => (n === null || n === undefined ? "" : `$${Math.round(n).toLocaleString("en-US")}`);
 
 /** /mlo/contacts/[id] — one person: details, and permission by channel and purpose (D2). */
-export default async function ContactPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ f?: string }> }) {
-  const [{ id }, { f }] = await Promise.all([params, searchParams]);
+export default async function ContactPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ f?: string; script?: string }> }) {
+  const [{ id }, { f, script: scriptId }] = await Promise.all([params, searchParams]);
   const v = await requireViewer();
   if (!v.user) notFound();
   const store = contactStore();
@@ -47,6 +55,12 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const texting = !!twilioConfig();
   const memory = await conciergeStore().memory(c.id, new Date().toISOString());
   const tenant = listTenants()[0];
+  // D9: possible needs and the latest call script.
+  const [known, scripts, picked] = await Promise.all([gather(v.user, c, new Date()), scriptStore().forContact(v.user.id, c.id, 1), scriptId ? scriptStore().get(scriptId) : Promise.resolve(null)]);
+  const shownScript = picked && picked.ownerUserId === v.user.id && picked.contactId === c.id ? picked : scripts[0] ?? null;
+  const callStopped = s.call.service.evidence === "revoked" || s.call.marketing.evidence === "revoked";
+  const signalGoals = known.signals.map((x) => x.goal);
+  const goalOptions = c.kind === "agent" ? (["partner"] as const) : [...new Set([...signalGoals, ...GOALS.filter((g) => g !== "auto" && g !== "partner")])];
 
   return (
     <PageShell>
@@ -87,6 +101,35 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
           </table>
         </section>
 
+        <section className="mlo-section" id="script">
+          <h2>Call script</h2>
+          {c.locked ? <p className="mlo-note">On hold: release the list they came from before you call.</p> : callStopped ? <p className="mlo-note">They asked not to be called, so there&apos;s no call script for them.</p> : (
+            <>
+              <div className="cs-builder">
+                <p className="mlo-note">What they might need, from what you know:</p>
+                <ul className="cs-signals">
+                  {known.signals.slice(0, 5).map((x) => <li key={x.goal}><strong>{x.label}.</strong> {x.why}</li>)}
+                </ul>
+                <form action={buildScriptAction} className="mlo-grid">
+                  <input type="hidden" name="contactId" value={c.id} />
+                  <div className="mlo-grid mlo-grid--2">
+                    <label className="mlo-field"><span>What this call is for</span>
+                      <select name="goal" defaultValue="auto">
+                        {c.kind === "agent" ? null : <option value="auto">{GOAL_LABELS.auto} ({known.signals[0]?.label ?? GOAL_LABELS.check_in})</option>}
+                        {goalOptions.map((g) => <option key={g} value={g}>{GOAL_LABELS[g]}{signalGoals.includes(g) ? " ✓" : ""}</option>)}
+                      </select>
+                    </label>
+                    <label className="mlo-field"><span>Anything you want from this call? (optional)</span><input name="ask" maxLength={400} placeholder="For example: find out if the kitchen project is still on" /></label>
+                  </div>
+                  <p className="mlo-note">✓ = a need the builder found for them.{c.kind === "agent" ? " Agent scripts are plain templates: production data from RETR can't be used with AI." : ""}</p>
+                  <div><BuildButton /></div>
+                </form>
+              </div>
+              {shownScript ? <ScriptView saved={shownScript} back={`/mlo/contacts/${c.id}?script=${shownScript.id}`} /> : null}
+            </>
+          )}
+        </section>
+
         <section className="mlo-section" id="memory">
           <h2>What your Concierge remembers</h2>
           {memory.length === 0 ? (
@@ -112,7 +155,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               {thread.map((t) => (
                 <li key={t.id} className={`mlo-msg mlo-msg--${t.direction}`}>
                   <p style={{ whiteSpace: "pre-wrap" }}>{t.body}</p>
-                  <span className="mlo-note">{t.direction === "in" ? "They texted" : `Text from ${t.actor}`} · {new Date(t.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {t.status}{t.note && t.direction === "in" ? ` · ${t.note}` : ""}</span>
+                  <span className="mlo-note">{t.direction === "in" ? "They texted" : t.channel === "call" ? `Call logged by ${t.actor}` : `Text from ${t.actor}`} · {new Date(t.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {t.status}{t.note && t.direction === "in" ? ` · ${t.note}` : ""}</span>
                 </li>
               ))}
             </ol>

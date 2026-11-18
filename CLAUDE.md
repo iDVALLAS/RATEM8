@@ -72,7 +72,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     one-time links, roles owner/team_lead/lo/assistant, owner from
     `MLO_OWNER_EMAIL`; the shared Basic login works until `MLO_BASIC_AUTH="false"`.
     Carrier: Twilio. Agent data: RETR CSV for now. Recruit rewards: subscription
-    and tenure only, never loans or terms.
+    and tenure only, never loans or terms. D8 Concierge (`lib/concierge/*`,
+    `/mlo/concierge`); D9 call scripts (`lib/scripts/*`, `/mlo/scripts`, contact
+    page #script): needs from loan data, every line checked, rules written in code.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
   - Second Look still needs `SECOND_LOOK_LIVE`.
   - The owner reported counsel approval of everything on 2026-10-31.

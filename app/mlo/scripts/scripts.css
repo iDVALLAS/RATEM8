@@ -1,0 +1,30 @@
+/* D9 call scripts: laid out to read from during a call, and to print. */
+.cs-script { display: grid; gap: 12px; }
+.cs-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.cs-head .mlo-btn { margin-top: 0; }
+.cs-eyebrow { font-family: var(--font-jetbrains), monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.cs-block { padding: 12px 14px; border: 1px solid var(--rule); border-radius: 12px; min-width: 0; }
+.cs-block h3 { font-family: var(--font-jetbrains), monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--label-accent, var(--accent)); margin-bottom: 6px; font-weight: 500; }
+.cs-block ul, .cs-block ol { display: grid; gap: 6px; padding-left: 1.2em; color: var(--fg-soft); line-height: 1.5; }
+.cs-block ul { list-style: disc; }
+.cs-block ol { list-style: decimal; }
+.cs-block p { color: var(--fg-soft); line-height: 1.55; overflow-wrap: anywhere; }
+.cs-block--say { border-color: var(--accent); }
+.cs-say { font-size: 1.05rem; color: var(--fg) !important; }
+.cs-say + .cs-say { margin-top: 6px; }
+.cs-objections { display: grid; gap: 10px; }
+.cs-objections dt { color: var(--fg); font-weight: 500; }
+.cs-objections dd { color: var(--fg-soft); margin: 2px 0 0; line-height: 1.5; }
+.cs-block--rules { background: var(--bg-sunken); }
+.cs-stop { padding: 10px 14px; border: 1px solid var(--rule-strong); border-left: 4px solid var(--accent); border-radius: 10px; color: var(--fg); }
+.cs-signals { display: grid; gap: 6px; margin: 8px 0 4px; }
+.cs-signals li { color: var(--fg-soft); line-height: 1.45; }
+.cs-signals strong { color: var(--fg); font-weight: 500; }
+
+@media print {
+  header, footer, nav, .mlo-nav, .mlo-flash, .cs-noprint, .cs-head .mlo-btn, .cs-builder { display: none !important; }
+  .mlo-section:not(:has(.cs-script)), .mlo-wrap > h1, .mlo-wrap > .eyebrow { display: none !important; }
+  .mlo-section { border: 0; padding: 0; background: none; }
+  .cs-block { break-inside: avoid; border-color: GrayText; }
+  .cs-block, .cs-block p, .cs-block li, .cs-say, .cs-objections dt, .cs-objections dd, .cs-eyebrow, .cs-block h3 { color: CanvasText !important; }
+}

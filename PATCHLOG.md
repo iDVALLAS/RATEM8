@@ -1714,3 +1714,93 @@ plan's D8, texting registration per sponsor, moves to D9.)
 - **Counsel:** whether texts drafted by AI and sent by the loan officer need
   an AI disclosure in any state; the protected-topic list; memory
   retention periods.
+
+## D9 — Call scripts: an AI script builder for each contact (2026-11-18)
+
+Owner: "an internal AI script generator feature that gives specialized
+scripts to LO's based on contact loan information and possible needs per
+contact." (Numbering: texting registration per sponsor moves to D10.)
+
+- **Needs** (`lib/scripts/signals.ts`, pure): finds what a client might need
+  from what the loan officer already knows, strongest first, each with a
+  plain reason:
+  - a reply they're waiting on
+  - a loan in process (milestone, lock and closing dates)
+  - a home anniversary
+  - a refinance look (the Today rate-gap card, with no numbers)
+  - an adjustable rate near its first change (5/6, 7/6, 10/6 …)
+  - mortgage insurance: FHA, or conventional at 2–11 years, using the HPA
+    80% request rule
+  - equity, or a next home, from what the Concierge remembers or the loan
+    officer's notes
+  - introductions from past clients
+  - asking permission
+  - reconnecting with a lead
+  - a check-in
+  Agents get only the partner call: RETR's terms bar its data in AI.
+- **Scripts** (`lib/scripts/script.ts`): before you dial, opener, reason,
+  questions, what to listen for, talking points, "if they say…" answers,
+  close, voicemail and a follow-up text. There are 13 goals, each with a
+  plain template, so it works without a key.
+  - Every line passes `checkLine`: protected traits (the Concierge list),
+    the M8 output guard (no rate outside a priced result), pressure and
+    promise words, and payment amounts.
+  - A line that fails is replaced by the template's line or dropped, and
+    the count is shown.
+- **Rules for this call** (written in code, never by the model):
+  - "Don't call right now" when the send gate blocks the call.
+  - No rate, APR or payment on the call.
+  - All-party recording consent by state.
+  - Fair lending.
+  - Record stops.
+  - Per-goal notes: the equity trade-offs; pricing and break-even first;
+    RESPA 8 for introductions (counsel to confirm); loan file facts only for
+    status calls; how to record a permission; no RETR data for agents.
+  - Whether the follow-up text can go out.
+- **Model** (`lib/scripts/generate.ts`): the Concierge's model setting,
+  effort medium, refusal fallback, and structured outputs (a fixed JSON
+  shape, then validated with zod).
+  - The brief carries first names, relationship, state, loan years and
+    types, pipeline stage, need signals, remembered needs, the loan
+    officer's notes and their request, and recent texts.
+  - It leaves out the client's rate, amount, phone, email, street, city and
+    ZIP. Note sentences that touch protected traits are removed and
+    percentages masked.
+  - Notes, requests and client texts go in as tagged data.
+  - A refusal, bad JSON or an API error falls back to the template.
+- **Won't script:** contacts on hold, people who asked not to be called,
+  and other loan officers' clients (admins can, as in `canSee`).
+- **How did it go?** You can log the result (talked, voicemail, no answer,
+  next step set, not now, asked not to be contacted), whether the script
+  helped, and a note.
+  - A logged call shows on their conversation and counts toward the daily
+    call cap.
+  - "Asked not to be contacted" records a stop on every phone channel.
+- **Screens:**
+  - Contact page, "Call script" (#script): their needs, a goal picker
+    (found needs marked ✓, or let the builder pick), "anything you want
+    from this call?", and the latest script with Print.
+  - `/mlo/scripts` (nav: Call scripts): today's people with a one-tap
+    script each, practice scripts from a described situation (for training
+    new loan officers), and recent scripts with outcomes.
+  - Prints as a clean call sheet.
+- **Storage:** `lib/scripts/store.ts`, Neon `cc_scripts` (memory otherwise).
+  Builds and outcomes are audited.
+- **Verified:**
+  - `lib/scripts/scripts.test.ts`, 14 tests: signals; every template
+    passing its own checks; refusals; the line fallback; code-written
+    rules; masked notes; the brief carrying no rate or contact details with
+    a hijack attempt; refusal and bad-JSON fallbacks; holds, stops, other
+    loan officers and agents (no model call); outcomes and stops; practice
+    scripts.
+  - Clicked through locally in template mode: imported, opened a contact,
+    saw the needs, built, logged a voicemail (it shows on the
+    conversation), and built a practice script (Oregon recording rule).
+    No horizontal overflow at 390px.
+  - `npm run verify` passes (355 tests).
+- **Counsel:**
+  - The RESPA line on asking for introductions.
+  - Whether a hand-dialed call to ask permission counts as telemarketing
+    (the gate treats it as marketing).
+  - Retention for script outcomes.
+- **Next up:** D10, texting registration per sponsor (10DLC).
