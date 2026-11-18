@@ -24,6 +24,17 @@ export const metadata: Metadata = {
   description: copy.secondLook.sub,
 };
 
+function JumpToUpload({ variant }: { variant: "a" | "b" | "c" }) {
+  return (
+    <a href="#your-loan-estimate" className={`sl-jump sl-jump--${variant}`}>
+      {copy.secondLook.jump[variant === "a" ? "a" : "b"]}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <path d="M12 5v14M5 12l7 7 7-7" />
+      </svg>
+    </a>
+  );
+}
+
 export default function SecondLookPage() {
   const sl = copy.secondLook;
   return (
@@ -47,6 +58,8 @@ export default function SecondLookPage() {
           {sl.sub}
         </p>
         <p className="mono-label mt-6">{sl.sampleNote}</p>
+        {/* Owner 2026-11-18: option B's words in the dashed sample-chip style ("c"); "a" (a green button) and "b" (a plain link) are kept. */}
+        <JumpToUpload variant="c" />
       </section>
 
       <SecondLookDemo />

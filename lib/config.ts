@@ -427,7 +427,8 @@ export const CONFIG = {
   },
 
   /** Data retention statement for Second Look uploads. Counsel confirms. */
-  secondLookRetention: "[RETENTION — confirm with counsel]",
+  // Owner 2026-11-18: counsel says no retention period applies to a Loan Estimate when no application was taken. Nothing is stored.
+  secondLookRetention: "Not stored. M8 reads your document once to explain it, then it's discarded",
 
   /**
    * The one-line description of the AI, rendered in the footer, on
