@@ -1378,6 +1378,8 @@ and the loan officer gets a copy.
   loan officer.
 - `/second-look`: under the sample note, "Have your own? Scroll to the end
   to drop your Loan Estimate ↓" jumps to the upload (`#your-loan-estimate`).
-  Owner picked option B (a link) over A (a green button) from phone
-  mockups; A's style is kept (`.sl-jump--a`).
+  Owner picked option B's words over A (a green button) from phone
+  mockups, then asked for it in the dashed "SAMPLE — ILLUSTRATIVE ONLY"
+  chip style in M8 green (`.sl-jump--c`: dashed accent border, JetBrains
+  Mono caps, 44px tall). Checked at 390px in paper and night themes.
 - `npm run verify` passes.

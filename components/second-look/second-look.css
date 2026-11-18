@@ -207,6 +207,26 @@
 .sl-jump--b { display: inline-block; margin-top: 18px; color: var(--accent); font-size: 1rem; text-decoration: underline; text-underline-offset: 4px; }
 .sl-jump--b:hover { color: var(--fg); }
 .sl-jump svg { flex-shrink: 0; }
+/* 2026-11-18 (owner): the dashed "SAMPLE — ILLUSTRATIVE ONLY" chip style, in M8 green, sized to tap. */
+.sl-jump--c {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1.5px dashed var(--accent);
+  border-radius: 6px;
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  text-decoration: none;
+}
+.sl-jump--c:hover { border-style: solid; background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .sl-jump--b svg { display: inline; margin-left: 6px; vertical-align: -2px; }
 .sl-live__panel { margin-top: 20px; }
 .sl-live__steps {
