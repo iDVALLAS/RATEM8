@@ -139,7 +139,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
           </table>
         </section>
 
-        <section className="mlo-section">
+        <section className="mlo-section" id="permission">
           <h2>Permission to contact</h2>
           <p className="mlo-note">You can always call people you know yourself. M8 only texts or calls with permission on file, and AI calls and offers need proof, not just your word. A “stop” on calls or texts turns off every phone channel at once.</p>
           <table className="mlo-table mlo-table--plain">

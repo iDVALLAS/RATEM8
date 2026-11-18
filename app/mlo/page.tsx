@@ -7,6 +7,10 @@ import { ROLE_LABELS } from "@/lib/accounts/auth";
 import { mloById } from "@/lib/config";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { MloNav } from "./MloChrome";
+import { todayFor } from "@/lib/today/facts";
+import { contactStore } from "@/lib/contacts/store";
+import { formatPhone } from "@/lib/contacts/normalize";
+import { telHref } from "@/lib/call-hours";
 import "./mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +21,8 @@ export default async function CommandCenterHome() {
   const v = await requireViewer();
   const tenant = listTenants()[0];
   const mlo = v.user?.mloId ? mloById(v.user.mloId) : null;
+  const today = v.user ? await todayFor(v.user) : null;
+  const phones = today ? await Promise.all(today.cards.map((c) => contactStore().get(c.contactId).then((x) => x?.phone ?? null))) : [];
   return (
     <PageShell>
       <div className="mlo-wrap">
@@ -36,12 +42,38 @@ export default async function CommandCenterHome() {
             </p>
           )}
         </section>
-        <section className="mlo-section">
-          <h2>Coming next</h2>
-          <p className="mlo-note">
-            Contacts and CSV import (with consent tracking) are next, then texting through Twilio, the Today screen, ARIVE pipeline sync, and agent data from RETR exports.
-          </p>
-        </section>
+        {today ? (
+          <section className="mlo-section">
+            <h2>Today</h2>
+            {today.people === 0 ? (
+              <p className="mlo-note">
+                Nothing yet. <Link href="/mlo/contacts/import">Import your contacts</Link> and Today will show who to reach out to, and why.
+              </p>
+            ) : today.cards.length === 0 ? (
+              <p className="mlo-note">You&apos;re caught up: no replies waiting and nothing time-sensitive across {today.people.toLocaleString("en-US")} people.</p>
+            ) : (
+              <ol className="cc-today">
+                {today.cards.map((card, i) => {
+                  const tel = telHref(phones[i] ?? undefined);
+                  const href = `/mlo/contacts/${card.contactId}`;
+                  return (
+                    <li key={`${card.contactId}-${card.kind}`} className={`cc-card cc-card--${card.kind}`}>
+                      <p className="cc-card__title">{card.title}</p>
+                      <p className="mlo-note">{card.reason}</p>
+                      <div className="mlo-row-form">
+                        {card.next === "reply" || card.next === "text" ? <Link className="mlo-btn" href={`${href}#conversation`}>{card.next === "reply" ? "Reply" : "Text"}</Link> : null}
+                        {card.next === "call" && tel ? <a className="mlo-btn" href={tel}>Call {formatPhone(phones[i])}</a> : null}
+                        {card.next === "record_permission" ? <Link className="mlo-btn" href={`${href}#permission`}>Record what they said</Link> : null}
+                        <Link className="mlo-btn mlo-btn--ghost" href={href}>Open</Link>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            {today.ref ? <p className="mlo-note" style={{ marginTop: 8 }}>Refinance comparisons use today&apos;s priced example ({today.ref.rate}%, {today.ref.label}), for your eyes only.</p> : null}
+          </section>
+        ) : null}
       </div>
     </PageShell>
   );

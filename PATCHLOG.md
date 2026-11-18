@@ -1571,3 +1571,27 @@ export for now (partner API later).
   its incoming-message webhook `https://loanm8.com/api/twilio/inbound`
   (POST); Advanced Opt-Out on. Not done yet: the FCC Reassigned Numbers
   Database check and automatic DNC scrubbing need vendor accounts.
+
+## D5 — The Today screen (2026-11-18)
+
+- `/mlo` now opens on **Today**: who to reach out to, why, and one tap to do
+  it. At most one card per person (their best), highest first:
+  1. **They're waiting for a reply** (an inbound text nobody answered).
+  2. **Home anniversary** in the next 14 days, with the year count.
+  3. **A refinance look:** their note rate is at least 0.75 above today's
+     fresh priced example for the standard rate-and-term refinance. Loan
+     officer's eyes only, labelled a dated example and not their quote,
+     with "price their actual scenario before you say anything about rates".
+  4. **Check in:** permission on file and 90 quiet days.
+  5. **Ask a past client** with no permission how they'd like to hear from you.
+  6. **Introduce yourself** to an agent with 12+ closings you haven't contacted.
+- Never suggested: anyone on hold, or anyone who said stop (except to see
+  their reply). Buttons: Reply or Text (to the conversation), Call (the
+  number, as a phone link), Record what they said (to the permission
+  section), Open.
+- `lib/today/rank.ts` (pure, tested) and `lib/today/facts.ts` (gathers
+  contacts, consent, the latest message and today's refinance example).
+  Known limit: it looks at the first 500 people in a book; a nightly
+  precompute comes with larger books.
+- Clicked through locally (an empty book, then a three-person import).
+  Tests: `lib/today/rank.test.ts` (5). `npm run verify` passes.

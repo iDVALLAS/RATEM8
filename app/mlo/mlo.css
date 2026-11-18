@@ -49,3 +49,9 @@
 .mlo-msg p { margin-bottom: 4px; }
 .mlo-msg--out { align-self: flex-end; background: color-mix(in srgb, var(--accent) 10%, transparent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .mlo-msg--in { align-self: flex-start; }
+/* D5: Today */
+.cc-today { display: grid; gap: 10px; }
+.cc-card { padding: 14px 16px; border: 1px solid var(--rule); border-radius: 14px; }
+.cc-card .mlo-btn { margin-top: 8px; }
+.cc-card__title { font-weight: 500; color: var(--fg); margin-bottom: 4px; }
+.cc-card--reply { border-color: var(--accent); }
