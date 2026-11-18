@@ -1408,3 +1408,45 @@ with the same password."
   `npm run verify` passes.
 - To open the site at launch: `SITE_LOCK=false` in Vercel Production (and
   `NEXT_PUBLIC_STEALTH_MODE=false` for the full homepage), then redeploy.
+
+## D1 — Command Center accounts and roles (2026-11-18)
+
+First patch of the Command Center build (`LoanM8_MLO_Command_Center_Build_Prompt.md`
+§7). Owner decisions: ownership or revenue share for recruits, with rewards
+tied only to the recruit's platform subscription and tenure, never to loans
+or loan terms; Twilio as the phone and text carrier; RETR agent data by CSV
+export for now (partner API later).
+
+- **Accounts** (`lib/accounts/store.ts`): users, one-time sign-in links,
+  sessions and an append-only audit log in Neon (`cc_users`,
+  `cc_login_tokens`, `cc_sessions`, `cc_audit`, created on first use); an
+  in-memory store without a database. Only token hashes are stored.
+- **Sign-in** (`lib/accounts/auth.ts`, `/sign-in`, `/api/cc/verify`,
+  `/api/cc/signout`): emailed link through Resend, one use, 15 minutes;
+  session cookie `lm8_cc_session`, httpOnly, 14 days. The form answers the
+  same whether or not the email has an account. 10/hour per IP, 5/hour per
+  email.
+- **Roles:** owner, team lead, loan officer, assistant. The owner account is
+  created from `MLO_OWNER_EMAIL` on first use. Owners manage everyone; team
+  leads add and change loan officers and assistants. There is always an
+  active owner. Disabling an account signs it out everywhere.
+- **`/mlo`** is now the Command Center home; **`/mlo/team`** adds people
+  (name, email, role, loan officer record), changes roles, disables, and
+  shows the owner recent activity. Setup, pricing, voice and training are
+  admin pages (owner and team lead, `lib/mlo/page-auth.ts`); every page
+  checks the session against the database (middleware only does a first
+  pass on the cookie).
+- **The switch from the shared login:** with `MLO_OWNER_EMAIL` set, `/mlo`
+  goes to `/sign-in`; the old HTTP Basic login still works (and
+  `/mlo?basic=1` asks for it, for the LoanSifter bookmark) until
+  `MLO_BASIC_AUTH="false"`. Without `MLO_OWNER_EMAIL` nothing changes.
+- `/sign-in` and the sign-in routes are open during stealth and the
+  production lock (they have their own checks); `/sign-in` is noindex.
+- Checked locally with `npm start`: logged out → /sign-in; a fake session
+  cookie → /sign-in; the shared login still opens setup and team; a bad
+  link → "expired". Tests: `lib/accounts/auth.test.ts` (7). `npm run verify`
+  passes.
+- **To turn it on:** `MLO_OWNER_EMAIL` in Vercel (your email; not
+  Sensitive). Resend must be set (it is, for handoffs). Next: D2 contacts
+  and CSV import with consent tracking (RETR agent CSVs use the same
+  importer).

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/mlo/page-auth";
 import PageShell from "@/components/PageShell";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { mloContent } from "@/lib/content/mlo";
@@ -17,6 +18,7 @@ export const metadata: Metadata = { title: "M8 voice", robots: { index: false, f
  * never a person's: these are Google's stock voices.
  */
 export default async function MloVoice({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
+  await requireAdminPage();
   const { f } = await searchParams;
   const tenant = listTenants()[0];
   const on = voiceOn();

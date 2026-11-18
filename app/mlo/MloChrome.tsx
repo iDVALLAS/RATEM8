@@ -3,15 +3,32 @@ import { mloContent } from "@/lib/content/mlo";
 import type { Flash } from "@/lib/mlo/flash";
 import type { Tenant } from "@/lib/pricing/tenants";
 
-export function MloNav({ current, tenantId }: { current: "setup" | "pricing" | "voice" | "training"; tenantId: string }) {
+type NavKey = "home" | "team" | "setup" | "pricing" | "voice" | "training";
+
+/** D1: admins see the admin areas; everyone signed in sees Home, Team and Sign out. */
+export function MloNav({ current, tenantId, admin = true, signedIn = false }: { current: NavKey; tenantId: string; admin?: boolean; signedIn?: boolean }) {
   const q = `?t=${encodeURIComponent(tenantId)}`;
+  const link = (key: NavKey, href: string, label: string) => (
+    <Link href={href} aria-current={current === key ? "page" : undefined}>{label}</Link>
+  );
   return (
     <nav className="mlo-nav" aria-label="MLO admin">
-      <Link href={`/mlo/setup${q}`} aria-current={current === "setup" ? "page" : undefined}>{mloContent.nav.setup}</Link>
-      <Link href={`/mlo/pricing${q}`} aria-current={current === "pricing" ? "page" : undefined}>{mloContent.nav.pricing}</Link>
-      <Link href={`/mlo/voice${q}`} aria-current={current === "voice" ? "page" : undefined}>{mloContent.nav.voice}</Link>
-      <Link href={`/mlo/training${q}`} aria-current={current === "training" ? "page" : undefined}>{mloContent.nav.training}</Link>
-      <Link href="/rates">{mloContent.nav.rates}</Link>
+      {link("home", "/mlo", mloContent.nav.home)}
+      {link("team", "/mlo/team", mloContent.nav.team)}
+      {admin ? (
+        <>
+          {link("setup", `/mlo/setup${q}`, mloContent.nav.setup)}
+          {link("pricing", `/mlo/pricing${q}`, mloContent.nav.pricing)}
+          {link("voice", `/mlo/voice${q}`, mloContent.nav.voice)}
+          {link("training", `/mlo/training${q}`, mloContent.nav.training)}
+          <Link href="/rates">{mloContent.nav.rates}</Link>
+        </>
+      ) : null}
+      {signedIn ? (
+        <form action="/api/cc/signout" method="post" className="mlo-signout">
+          <button type="submit">{mloContent.nav.signOut}</button>
+        </form>
+      ) : null}
     </nav>
   );
 }

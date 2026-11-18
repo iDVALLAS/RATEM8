@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/mlo/page-auth";
 import PageShell from "@/components/PageShell";
 import PricingDisplay from "@/components/pricing/PricingDisplay";
 import { ALL_MLOS } from "@/lib/config";
@@ -28,6 +29,7 @@ const SELECTS = [
 ] as const;
 
 export default async function MloSetup({ searchParams }: Props) {
+  await requireAdminPage();
   const c = mloContent.setup;
   const { t, f } = await searchParams;
   const tenants = listTenants();

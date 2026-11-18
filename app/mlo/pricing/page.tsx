@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/mlo/page-auth";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
 import { CONFIG } from "@/lib/config";
@@ -23,6 +24,7 @@ type Props = { searchParams: Promise<{ t?: string; s?: string; f?: string }> };
 const ROWS = 12;
 
 export default async function MloPricing({ searchParams }: Props) {
+  await requireAdminPage();
   const c = mloContent.pricing;
   const { t, s, f } = await searchParams;
   // C11: the bookmark sends to the LoanM8 site that served it (loanm8.com, a preview, or local).

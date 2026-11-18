@@ -85,8 +85,19 @@ function adminGate(request: NextRequest): NextResponse | null {
   if (pathname !== "/mlo" && !pathname.startsWith("/mlo/")) return null;
   const user = process.env.MLO_ADMIN_USER;
   const pass = process.env.MLO_ADMIN_PASSWORD;
-  if (!user || !pass) return new NextResponse("Not found", { status: 404 });
+  const basicOn = process.env.MLO_BASIC_AUTH !== "false" && !!user && !!pass;
+  const accountsOn = !!process.env.MLO_OWNER_EMAIL;
+  // D1: a Command Center session cookie gets a first pass here; app/mlo/layout.tsx
+  // and every action check it properly against the database.
+  if (accountsOn && request.cookies.get("lm8_cc_session")?.value && request.nextUrl.searchParams.get("basic") !== "1") {
+    const res = passThrough(request);
+    res.headers.set("x-robots-tag", "noindex, nofollow");
+    res.headers.set("cache-control", "no-store");
+    return res;
+  }
+  if (!basicOn && !accountsOn) return new NextResponse("Not found", { status: 404 });
   const header = request.headers.get("authorization") ?? "";
+  if (!basicOn) return signInRedirect(request);
   if (header.startsWith("Basic ")) {
     try {
       const decoded = atob(header.slice(6));
@@ -101,7 +112,17 @@ function adminGate(request: NextRequest): NextResponse | null {
       /* fall through to 401 */
     }
   }
+  // D1: with accounts on, people go to the email sign-in; "?basic=1" still asks for the shared login.
+  if (accountsOn && !header && request.nextUrl.searchParams.get("basic") !== "1") return signInRedirect(request);
   return new NextResponse("Authentication required", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="LoanM8 MLO admin", charset="UTF-8"' } });
+}
+
+function signInRedirect(request: NextRequest): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = "/sign-in";
+  url.search = "";
+  url.searchParams.set("next", request.nextUrl.pathname);
+  return NextResponse.redirect(url, 307);
 }
 
 export async function middleware(request: NextRequest) {

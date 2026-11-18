@@ -23,6 +23,8 @@ export const STEALTH_PUBLIC_PAGES = [
 /** Files and machine routes that are also public in stealth (not pages to index). */
 export const STEALTH_PUBLIC_FILES = [
   "/demo",
+  // D1: Command Center sign-in (not indexed; the page is noindex).
+  "/sign-in",
   "/robots.txt",
   "/sitemap.xml",
   "/favicon.ico",

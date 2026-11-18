@@ -39,6 +39,10 @@ const OPEN_EXACT = new Set([
   "/robots.txt",
   "/favicon.ico",
   "/favicon.png",
+  // D1: Command Center sign-in has its own checks.
+  "/sign-in",
+  "/api/cc/verify",
+  "/api/cc/signout",
 ]);
 const OPEN_PREFIXES = ["/demo/", "/_next/", "/fonts/", "/images/", "/brand/", "/team/", "/lenders/", "/mlo/", "/.well-known/"];
 

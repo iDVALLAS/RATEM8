@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/mlo/page-auth";
 import PageShell from "@/components/PageShell";
 import { mloContent } from "@/lib/content/mlo";
 import { extraLoanSifterOrigins } from "@/lib/pricing/loansifterOrigin";
@@ -15,7 +16,8 @@ export const metadata: Metadata = { title: "Receiving from LoanSifter", robots: 
  * LoanSifter pages and publishes each one with importLoanSifter. No menu
  * links (C11.3): clicking away from this tab mid-run lost the captures.
  */
-export default function ReceivePage() {
+export default async function ReceivePage() {
+  await requireAdminPage();
   const c = mloContent.receive;
   return (
     <PageShell>

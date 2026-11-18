@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireAdminPage } from "@/lib/mlo/page-auth";
 import PageShell from "@/components/PageShell";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { mloContent } from "@/lib/content/mlo";
@@ -18,6 +19,7 @@ export const metadata: Metadata = { title: "M8 training", robots: { index: false
  * on every chat; the prompt's compliance rules still win.
  */
 export default async function MloTraining({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
+  await requireAdminPage();
   const { f } = await searchParams;
   const tenant = listTenants()[0];
   const store = getStore();
