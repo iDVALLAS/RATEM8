@@ -2472,3 +2472,28 @@ From ledger item 14 and the D9 plan (10DLC per sponsor).
     Pipeline, and the reassigned-number section. No console errors, no
     overflow at 390px.
   - `npm run verify` passes (404 tests).
+
+## D24 — Get set up (2026-11-19)
+
+The Command Center home now starts with "Get set up: N of M done"
+(`lib/setup/checklist.ts`, `app/mlo/SetupGuide.tsx`). It's open while
+anything is left and folds away when everything is done. Each item says
+why it matters and links to where to do it.
+
+- **You:** loan officer record linked; secure application and upload link;
+  booking link.
+- **Texting:** connected for your sponsoring company. Two steps you mark
+  yourself: carrier campaign approved, and the opt-out confirmation that
+  only confirms (FCC 26-67).
+- **Your book:** loan system connected (key made and loans in);
+  contacts imported; permission on file (x of y); do-not-call checks
+  current (x of y); Reassigned Numbers Database account (you mark it);
+  reassigned-number checks current.
+- **Your Concierge:** on with how you sound; morning email on;
+  automations chosen.
+- **Platform (owner only):** database, email sending, Command Center's
+  own AI key, and the morning run (`CRON_SECRET`).
+- **Storage:** marks are stored per person (Neon `cc_setup_marks`, or
+  memory).
+- **Verified:** `lib/setup/checklist.test.ts` (2): real state read;
+  owner-only items; permission and DNC counts. `npm run verify` passes.

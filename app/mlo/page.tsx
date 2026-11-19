@@ -11,6 +11,8 @@ import { todayFor } from "@/lib/today/facts";
 import { contactStore } from "@/lib/contacts/store";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { telHref } from "@/lib/call-hours";
+import SetupGuide from "./SetupGuide";
+import { checklist } from "@/lib/setup/checklist";
 import "./mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +24,7 @@ export default async function CommandCenterHome() {
   const tenant = listTenants()[0];
   const mlo = v.user?.mloId ? mloById(v.user.mloId) : null;
   const today = v.user ? await todayFor(v.user) : null;
+  const setup = v.user ? await checklist(v.user) : null;
   const phones = today ? await Promise.all(today.cards.map((c) => contactStore().get(c.contactId).then((x) => x?.phone ?? null))) : [];
   return (
     <PageShell>
@@ -42,6 +45,7 @@ export default async function CommandCenterHome() {
             </p>
           )}
         </section>
+        {setup ? <SetupGuide items={setup} /> : null}
         {today ? (
           <section className="mlo-section">
             <h2>Today</h2>
