@@ -2101,3 +2101,50 @@ switched off.
 - **Counsel:** confirm the application's consent language covers
   marketing texts (Washington RCW 19.190.060 needs clear affirmative
   consent) and, for M8 calls, artificial or AI voice (FCC 24-17).
+
+## D13 — State-by-state contact rules from the verified ledger (2026-11-19)
+
+From `docs/work/verified-claims-ledger-2026-11-18.md` §B and "Changes
+required" item 8.
+
+- **More than one state can apply** (`ruleForStates`, `areaCodeState` in
+  `lib/send-gate/rules.ts`). The property's state and the phone's area code
+  both count (CT, FL and others presume residence from the area code), and
+  the strictest rule wins: the window, Sunday, caps, all-party recording,
+  and the special rules below.
+  - Quiet hours must hold in every zone of every state that applies.
+  - The area-code table covers our five states plus CT, VA, FL, OK, MD, LA,
+    ME and RI. Unknown codes add nothing.
+- **Connecticut** (CGS 42-288a): any sales call or text needs written
+  permission, except to an existing customer of your current company (a
+  loan closed with them in the last 18 months).
+  - This overrides the D12.1 past-client allowance for CT.
+  - Scripts and the call session show the 10-second opening rule.
+- **Washington:**
+  - RCW 80.36.390: after a "not interested now" on a logged call, no sales
+    calls for a year (the call session and scripts tag it).
+  - RCW 19.190.060: marketing texts already needed written permission;
+    that's now noted on the rule.
+- **Virginia** (59.1-510 to -515): the opening line (first and last name
+  and company) and the 10-year stop are noted. Our 9–8 window is stricter
+  than theirs.
+- **Florida, and everywhere:** the daily and weekly limits now count every
+  marketing touch to the phone number across all loan officers on the
+  platform, not one contact record. Florida counts "regardless of the phone
+  number used".
+- **Switches that stay closed until counsel clears them** (Vercel, exactly
+  `true`, not Sensitive):
+  - `GATE_TX_302_CLEARED`: Texas sales calls and texts (ch. 302
+    registration or an exemption)
+  - `GATE_AZ_PHONE_CLEARED`: Arizona sales calls and texts (A.R.S. 44-1271)
+  - `GATE_CA_AI_VOICE_CLEARED`: M8 AI-voice calls to California
+  - Service messages are unaffected. The contact rules page shows each
+    switch's state.
+- **Verified:** gate tests for CT (blocked, existing customer allowed, CT
+  area code on a WA property), TX and AZ closed but service unaffected, CA
+  AI voice, and the WA one-year rule (`lib/send-gate/gate.test.ts`).
+  Strictest-of-states and area-code tests are in
+  `lib/send-gate/rules.test.ts`. `npm run verify` passes.
+- **Owner:** Texas and Arizona sales calls and texts are now closed until
+  you set those two variables after counsel confirms. Before this patch
+  they were open.

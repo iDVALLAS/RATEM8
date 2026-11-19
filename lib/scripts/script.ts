@@ -129,12 +129,13 @@ export function cleanScript(d: ScriptDraft, fallback: ScriptDraft, ctx: ScanCont
 }
 
 /** What the compliance notes depend on. */
-export type ComplianceInput = { goal: ScriptGoal; stateName: string | null; allPartyRecording: boolean; callAllowed: { ok: boolean; reason: string | null }; textAllowed: { ok: boolean; reason: string | null } };
+export type ComplianceInput = { goal: ScriptGoal; stateName: string | null; allPartyRecording: boolean; opening?: string; callAllowed: { ok: boolean; reason: string | null }; textAllowed: { ok: boolean; reason: string | null } };
 
 /** Written in code, always shown, never by the model. */
 export function complianceNotes(x: ComplianceInput): string[] {
   const out: string[] = [];
   if (!x.callAllowed.ok) out.push(`Don't call right now: ${(x.callAllowed.reason ?? "your contact rules don't allow it").replace(/\.$/, "")}.`);
+  if (x.opening) out.push(x.opening);
   out.push("Don't quote or estimate a rate, APR or payment on this call. If they ask, say you'll price their actual scenario and follow up with the numbers in writing.");
   out.push(x.allPartyRecording ? `${x.stateName ?? "Their state"} requires everyone's consent to record a call. Ask first, or don't record.` : "If you record the call, tell them at the start.");
   out.push("Let them bring up their personal life. Don't steer toward family, marriage, health, age or retirement, religion or national origin, and never base an offer on any of it.");

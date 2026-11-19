@@ -10,6 +10,7 @@ import { canSee, recordConsent, summarize } from "@/lib/contacts/service";
 import { contactStore, type Channel, type Contact, type Purpose } from "@/lib/contacts/store";
 import { decide, type GateDecision } from "@/lib/send-gate/gate";
 import { licensedStatesFor } from "@/lib/send-gate/for-contact";
+import { areaCodeState } from "@/lib/send-gate/rules";
 import { isOptIn, isOptOut, lookupLineType, sendSms, twilioConfig } from "./twilio";
 import { touchStore, type Touch } from "./store";
 import { pipelineStore } from "@/lib/pipeline/store";
@@ -28,19 +29,33 @@ export async function gateFor(actor: User, c: Contact, channel: Channel, purpose
   }
   const day = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
   const week = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
-  const recent = await ts.sentSince(c.id, week);
+  // D13: caps count every marketing touch to this phone number, across every loan officer on the platform
+  // (Florida counts "regardless of the phone number used"; the strictest reading everywhere).
+  const sameNumber = c.phone ? (await contactStore().findByPhone(c.phone)).map((x) => x.id) : [];
+  const ids = [...new Set([c.id, ...sameNumber])];
+  const recent = (await Promise.all(ids.map((id) => ts.sentSince(id, week)))).flat();
+  const declined = (await ts.forContact(c.id, 200)).find((t) => t.channel === "call" && t.direction === "out" && (t.note ?? "").includes("declined a sales call"));
   const count = (chs: Channel[], since: string) => recent.filter((t) => chs.includes(t.channel) && t.at >= since).length;
   return decide({
     channel,
     purpose,
     manual: channel === "call",
-    contact: { locked: c.locked, state: c.state, hasPhone: !!c.phone, hasEmail: !!c.email, relationship: c.relationship, ebrClosedOn: await ebrDate(c) },
+    contact: { locked: c.locked, state: c.state, hasPhone: !!c.phone, hasEmail: !!c.email, relationship: c.relationship, ebrClosedOn: await ebrDate(c), areaState: areaCodeState(c.phone), declinedCallAt: declined?.at ?? null },
+    clearances: stateClearances(),
     consent,
     licensedStates: licensedStatesFor(actor),
     dnc: c.dnc ? { onList: c.dnc.onList, checkedAt: c.dnc.checkedAt } : null,
     sent: { callsLast24h: count(["call", "ai_call"], day), textsLast24h: count(["text"], day), textsLast7d: count(["text"], week) },
     now,
   });
+}
+
+/**
+ * D13: state rules the owner opens once counsel clears them (Vercel env,
+ * exactly "true"). Until then the gate keeps them closed.
+ */
+export function stateClearances() {
+  return { tx302: process.env.GATE_TX_302_CLEARED === "true", azPhone: process.env.GATE_AZ_PHONE_CLEARED === "true", caAiVoice: process.env.GATE_CA_AI_VOICE_CLEARED === "true" };
 }
 
 /** D6: the latest closing for this contact in the loan officer's own loan system (their current company). */

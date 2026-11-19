@@ -6,7 +6,7 @@ import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { callQueue, CALL_RESULT_LABELS, CALL_RESULTS } from "@/lib/calls/session";
 import { formatPhone } from "@/lib/contacts/normalize";
-import { ruleFor } from "@/lib/send-gate/rules";
+import { areaCodeState, ruleForStates } from "@/lib/send-gate/rules";
 import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../MloChrome";
 import { BuildButton } from "../scripts/Buttons";
@@ -62,7 +62,8 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                     </form>
                   )}
                 </div>
-                {ruleFor(next.contact.state).allPartyRecording ? <p className="mlo-note">{usStateName(next.contact.state)} requires everyone&apos;s consent to record. Ask first, or don&apos;t record.</p> : null}
+                {ruleForStates([next.contact.state, areaCodeState(next.contact.phone)]).allPartyRecording ? <p className="mlo-note">{usStateName(next.contact.state)} requires everyone&apos;s consent to record. Ask first, or don&apos;t record.</p> : null}
+                {ruleForStates([next.contact.state, areaCodeState(next.contact.phone)]).opening ? <p className="mlo-note">{ruleForStates([next.contact.state, areaCodeState(next.contact.phone)]).opening}</p> : null}
                 <form action={logCallAction} className="mlo-grid" style={{ marginTop: 12 }}>
                   <input type="hidden" name="contactId" value={next.contact.id} />
                   <input type="hidden" name="purpose" value={next.purpose} />

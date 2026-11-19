@@ -61,7 +61,7 @@ describe("send gate (D3)", () => {
   });
 
   it("blocks marketing where the loan officer isn't licensed or the state is unknown", () => {
-    expect(decide(base({ contact: { ...base().contact, state: "TX" } })).reasons[0]).toMatch(/aren't licensed in TX/);
+    expect(decide(base({ contact: { ...base().contact, state: "TX" }, clearances: { tx302: true, azPhone: false, caAiVoice: false } })).reasons[0]).toMatch(/aren't licensed in TX/);
     expect(decide(base({ contact: { ...base().contact, state: null } })).reasons[0]).toMatch(/property state isn't known/);
   });
 
@@ -105,5 +105,26 @@ describe("send gate (D3)", () => {
     expect(email.allowed).toBe(true);
     expect(email.basis).toMatch(/unsubscribe/);
     expect(decide(base({ channel: "email", consent: consent(["email", "marketing", "revoked"]) })).allowed).toBe(false);
+  });
+
+  it("D13: applies the strictest of every state that may apply, and keeps the uncleared states closed", () => {
+    const hand = { channel: "call" as const, manual: true, consent: consent() };
+    const lic = { licensedStates: ["WA", "OR", "AZ", "CA", "TX", "CT"] };
+    // Connecticut: a past client without written permission can't get a sales call...
+    const ct = decide(base({ ...hand, ...lic, contact: { ...base().contact, state: "CT" } }));
+    expect(ct.reasons[0]).toMatch(/Connecticut needs written permission/);
+    // ...unless they're an existing customer of the current company, or gave written permission.
+    expect(decide(base({ ...hand, ...lic, contact: { ...base().contact, state: "CT", ebrClosedOn: "2026-06-01" } })).allowed).toBe(true);
+    // A Washington property with a Connecticut area code still gets Connecticut's rule.
+    expect(decide(base({ ...hand, ...lic, contact: { ...base().contact, areaState: "CT" } })).reasons[0]).toMatch(/Connecticut/);
+    // Texas and Arizona stay closed for sales calls and texts until cleared; service is unaffected.
+    expect(decide(base({ ...hand, ...lic, contact: { ...base().contact, state: "TX" } })).reasons[0]).toMatch(/Texas: sales calls and texts need telephone-solicitor registration/);
+    expect(decide(base({ ...hand, ...lic, contact: { ...base().contact, state: "AZ" } })).reasons[0]).toMatch(/Arizona/);
+    expect(decide(base({ ...hand, ...lic, purpose: "service", contact: { ...base().contact, state: "TX" } })).reasons.join(" ")).not.toMatch(/Texas/);
+    // California: no AI-voice calls until cleared, even with written permission.
+    expect(decide(base({ ...lic, channel: "ai_call", consent: consent(["ai_call", "marketing", "written"]), contact: { ...base().contact, state: "CA" } })).reasons[0]).toMatch(/California/);
+    // Washington: a no means no sales calls for a year.
+    expect(decide(base({ ...hand, ...lic, contact: { ...base().contact, declinedCallAt: "2026-06-01T00:00:00Z" } })).reasons[0]).toMatch(/Washington doesn't allow another sales call for a year/);
+    expect(decide(base({ ...hand, ...lic, contact: { ...base().contact, declinedCallAt: "2025-06-01T00:00:00Z" } })).allowed).toBe(true);
   });
 });

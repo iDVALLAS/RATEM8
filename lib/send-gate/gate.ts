@@ -9,7 +9,7 @@
  */
 import type { ConsentSummary } from "@/lib/contacts/service";
 import type { Channel, Evidence, Purpose } from "@/lib/contacts/store";
-import { ruleFor, STATE_ZONES } from "./rules";
+import { ruleFor, ruleForStates, STATE_ZONES } from "./rules";
 
 export type GateInput = {
   channel: Channel;
@@ -30,7 +30,18 @@ export type GateInput = {
      * calls (do-not-call), never texts or AI calls.
      */
     ebrClosedOn: string | null;
+    /** D13: the state their phone's area code points to (CT, FL and others presume residence from it). */
+    areaState?: string | null;
+    /** D13: when they last said no to a sales call (WA: no sales calls for a year after). */
+    declinedCallAt?: string | null;
   };
+  /**
+   * D13: state rules that stay closed until the owner records counsel's
+   * clearance (ledger §B): Texas telephone-solicitor registration (Bus. &
+   * Com. ch. 302), Arizona telephone solicitation (A.R.S. 44-1271 et seq.),
+   * and AI-voice calls to California (Pub. Util. 2871–2876).
+   */
+  clearances?: { tx302: boolean; azPhone: boolean; caAiVoice: boolean };
   consent: ConsentSummary;
   /** States the sending loan officer is licensed in. */
   licensedStates: string[];
@@ -63,11 +74,13 @@ function localHM(now: Date, zone: string): { day: number; minutes: number } {
   return { day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(get("weekday")), minutes: Number(get("hour")) * 60 + Number(get("minute")) };
 }
 
-/** Inside the state's calling window in every zone the state spans. */
-export function inWindow(state: string | null, now: Date, purpose: Purpose): boolean {
-  const zones = state ? STATE_ZONES[state] : undefined;
-  if (!zones) return false;
-  const r = ruleFor(state);
+/** Inside the calling window in every zone the state spans (and, D13, every other state that applies). */
+export function inWindow(state: string | null, now: Date, purpose: Purpose, extra: (string | null | undefined)[] = []): boolean {
+  const base = state ? STATE_ZONES[state] : undefined;
+  if (!base) return false;
+  const others = extra.filter((s): s is string => !!s && s !== state);
+  const zones = [...new Set([...base, ...others.flatMap((s) => STATE_ZONES[s] ?? [])])];
+  const r = others.length ? ruleForStates([state, ...others]) : ruleFor(state);
   return zones.every((z) => {
     const { day, minutes } = localHM(now, z);
     const w = day === 0 && purpose === "marketing" && r.sunday !== undefined ? r.sunday : { start: r.start, end: r.end };
@@ -75,10 +88,10 @@ export function inWindow(state: string | null, now: Date, purpose: Purpose): boo
   });
 }
 
-function nextWindow(state: string | null, now: Date, purpose: Purpose): string | null {
+function nextWindow(state: string | null, now: Date, purpose: Purpose, extra: (string | null | undefined)[] = []): string | null {
   for (let m = 15; m <= 7 * 24 * 60; m += 15) {
     const t = new Date(now.getTime() + m * 60_000);
-    if (inWindow(state, t, purpose)) return t.toISOString();
+    if (inWindow(state, t, purpose, extra)) return t.toISOString();
   }
   return null;
 }
@@ -93,12 +106,17 @@ export function decide(i: GateInput): GateDecision {
     allowed,
     reasons,
     basis: allowed ? basis : null,
-    recordingNotice: allowed && (i.channel === "call" || i.channel === "ai_call") && ruleFor(i.contact.state).allPartyRecording,
+    recordingNotice: allowed && (i.channel === "call" || i.channel === "ai_call") && ruleForStates([i.contact.state, i.contact.areaState ?? null]).allPartyRecording,
     retryAt,
   });
   const c = i.contact;
   const phone = PHONE.includes(i.channel);
   const marketing = i.purpose === "marketing";
+  // D13: every state whose law may apply; the strictest rule wins.
+  const states = [...new Set([c.state, c.areaState].filter((s): s is string => !!s))];
+  const r = ruleForStates(states);
+  const clear = i.clearances ?? { tx302: false, azPhone: false, caAiVoice: false };
+  const recentEbr = !!c.ebrClosedOn && monthsBetween(c.ebrClosedOn, i.now) <= 18;
 
   // 1. Absolute blocks.
   if (c.locked) reasons.push("On hold: this person came from a previous employer's list that hasn't been released.");
@@ -119,8 +137,10 @@ export function decide(i: GateInput): GateDecision {
     basis = granted ? `email permission (${ev})${when}` : marketing ? "commercial email with an unsubscribe link (no prior consent needed)" : "relationship email";
   } else if (i.channel === "call" && i.manual) {
     if (!marketing) basis = granted ? `call permission (${ev})${when}` : "a call you place yourself about their loan";
-    else if (granted) basis = `call permission (${ev})${when}`;
+    else if (granted && (!r.salesNeedWritten || WRITTEN.includes(ev!))) basis = `call permission (${ev})${when}`;
     else if (c.ebrClosedOn && monthsBetween(c.ebrClosedOn, i.now) <= 18) basis = "established business relationship (a loan closed with your current company in the last 18 months)";
+    // D13: Connecticut: written permission, or an existing customer of your current company, for any sales call.
+    else if (r.salesNeedWritten) reasons.push("Connecticut needs written permission for sales calls, except to an existing customer of your current company. Record their written permission first.");
     // Owner decision 2026-11-18: hand-dialed calls to your own past clients are fine. The do-not-call check below still applies.
     else if (c.relationship === "past_client") basis = "your own past client, on a call you place yourself";
     else reasons.push("A sales call to someone without permission needs a loan closed with your current company in the last 18 months, or for them to be your past client. Record their permission first.");
@@ -134,6 +154,12 @@ export function decide(i: GateInput): GateDecision {
     else if (marketing && !WRITTEN.includes(ev!)) reasons.push("Marketing calls from M8 need written permission (a signed form, a web form or a texted yes).");
     else basis = `AI call permission (${ev})${when}`;
   }
+  // D13: state switches that stay closed until counsel clears them.
+  if (marketing && phone && states.includes("TX") && !clear.tx302) reasons.push("Texas: sales calls and texts need telephone-solicitor registration (Bus. & Com. ch. 302) or a confirmed exemption. The owner turns this on once counsel confirms.");
+  if (marketing && phone && states.includes("AZ") && !clear.azPhone) reasons.push("Arizona: sales calls and texts wait for counsel to confirm the state's telephone solicitation rules (A.R.S. 44-1271). The owner turns this on once cleared.");
+  if (i.channel === "ai_call" && states.includes("CA") && !clear.caAiVoice) reasons.push("California: calls from M8's AI voice wait for counsel (Pub. Util. Code 2871–2876).");
+  // D13: Washington: after a no, no sales calls for a year.
+  if (marketing && i.channel === "call" && r.noCallYearAfterNo && c.declinedCallAt && i.now.getTime() - Date.parse(c.declinedCallAt) < 365 * 24 * 3600 * 1000) reasons.push(`They said no to a call on ${c.declinedCallAt.slice(0, 10)}. Washington doesn't allow another sales call for a year (RCW 80.36.390).`);
   if (reasons.length) return out(false);
 
   // 3. Licensing: marketing a loan only where the loan officer is licensed.
@@ -151,8 +177,7 @@ export function decide(i: GateInput): GateDecision {
       reasons.push(i.channel === "call" && c.relationship === "past_client" ? "The number is on a do-not-call list. A past client on the list needs written permission, or a loan closed with your current company in the last 18 months." : "The number is on a do-not-call list and there's no written permission.");
   }
 
-  // 5. Frequency caps, for marketing.
-  const r = ruleFor(c.state);
+  // 5. Frequency caps, for marketing (D13: the strictest state; counts are per phone number across the platform).
   if (marketing && (i.channel === "call" || i.channel === "ai_call") && i.sent.callsLast24h >= r.callsPerDay) reasons.push(`Already ${i.sent.callsLast24h} calls in 24 hours (the limit is ${r.callsPerDay}).`);
   if (marketing && i.channel === "text") {
     if (i.sent.textsLast24h >= r.textsPerDay) reasons.push(`Already texted today (the limit is ${r.textsPerDay} a day).`);
@@ -161,10 +186,9 @@ export function decide(i: GateInput): GateDecision {
   if (reasons.length) return out(false);
 
   // 6. Quiet hours (phone only; service texts and calls follow them too).
-  if (phone && !inWindow(c.state, i.now, i.purpose)) {
-    const r2 = ruleFor(c.state);
-    reasons.push(c.state && STATE_ZONES[c.state] ? `Outside ${hour(r2.start)}–${hour(r2.end)} their local time.` : "Their time zone isn't known (no property state).");
-    return out(false, null, nextWindow(c.state, i.now, i.purpose));
+  if (phone && !inWindow(c.state, i.now, i.purpose, [c.areaState])) {
+    reasons.push(c.state && STATE_ZONES[c.state] ? `Outside ${hour(r.start)}–${hour(r.end)} their local time${states.length > 1 ? ` (the strictest of ${states.join(" and ")})` : ""}.` : "Their time zone isn't known (no property state).");
+    return out(false, null, nextWindow(c.state, i.now, i.purpose, [c.areaState]));
   }
   return out(true, basis);
 }

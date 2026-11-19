@@ -68,7 +68,7 @@ export async function logCall(user: User, contactId: string, result: string, not
   if (!(CALL_RESULTS as readonly string[]).includes(result)) return { ok: false, error: "Pick how it went." };
   const r = result as CallResult;
   const clean = redactChatInput(note.trim()).text.slice(0, 400);
-  await touchStore().add({ id: `t_${randomBytes(9).toString("base64url")}`, contactId: c.id, ownerUserId: c.ownerUserId, channel: "call", purpose, direction: "out", body: `Call: ${CALL_RESULT_LABELS[r]}${clean ? `. ${clean}` : ""}`, status: "logged", providerId: null, note: "logged from a call session", at: now.toISOString(), actor: user.email, origin: "human" });
+  await touchStore().add({ id: `t_${randomBytes(9).toString("base64url")}`, contactId: c.id, ownerUserId: c.ownerUserId, channel: "call", purpose, direction: "out", body: `Call: ${CALL_RESULT_LABELS[r]}${clean ? `. ${clean}` : ""}`, status: "logged", providerId: null, note: r === "not_now" ? "logged from a call session; declined a sales call" : "logged from a call session", at: now.toISOString(), actor: user.email, origin: "human" });
   if (r === "asked_to_stop" || r === "wrong_number") {
     const res = await recordConsent(user, c.id, { channel: "call", purpose: "marketing", granted: false, evidence: "revoked", proof: r === "wrong_number" ? `Wrong number, found on a call ${now.toISOString().slice(0, 10)}` : `Said so on a call logged ${now.toISOString().slice(0, 10)}` }, now);
     if (!res.ok) return res;

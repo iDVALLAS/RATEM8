@@ -28,7 +28,7 @@ import { conciergeModel } from "@/lib/concierge/agent";
 import { protectedTopic, type ScanContext } from "@/lib/concierge/guard";
 import { cleanData, dataBlock, dataRule, newNonce } from "@/lib/concierge/data";
 import { redactChatInput } from "@/lib/m8/redact";
-import { ruleFor } from "@/lib/send-gate/rules";
+import { areaCodeState, ruleFor, ruleForStates } from "@/lib/send-gate/rules";
 import { todayFor } from "@/lib/today/facts";
 import { usStateName } from "@/lib/us-states";
 import { assemble, cleanScript, templateScript, type ComplianceInput, type Script, type ScriptDraft } from "./script";
@@ -233,7 +233,7 @@ export async function buildScript(user: User, input: { contactId: string; goal: 
   const call = c.kind === "agent" ? null : opts.call !== undefined ? opts.call : key ? anthropicScriptCall(key) : null;
   const brief = scriptBrief(g, goal, me, { voice: settings.voice, ask: input.ask ?? "" });
   const w = await writeScript(call, brief, goal, template, { names: [c.firstName, c.lastName, me], places: [c.city] });
-  const comp: ComplianceInput = { goal, stateName: usStateName(c.state), allPartyRecording: ruleFor(c.state).allPartyRecording, callAllowed: { ok: callGate.allowed, reason: callGate.reasons[0] ?? null }, textAllowed: { ok: textGate.allowed, reason: textGate.reasons[0] ?? null } };
+  const comp: ComplianceInput = { goal, stateName: usStateName(c.state), allPartyRecording: ruleForStates([c.state, areaCodeState(c.phone)]).allPartyRecording, opening: ruleForStates([c.state, areaCodeState(c.phone)]).opening, callAllowed: { ok: callGate.allowed, reason: callGate.reasons[0] ?? null }, textAllowed: { ok: textGate.allowed, reason: textGate.reasons[0] ?? null } };
   const script = assemble(goal, w.draft, comp, w.source, w.dropped);
   const saved: SavedScript = { id: id(), ownerUserId: user.id, contactId: c.id, contactName: `${c.firstName} ${c.lastName}`.trim(), script, createdAt: now.toISOString(), outcome: null };
   await scriptStore().put(saved);
@@ -261,7 +261,7 @@ export async function practiceScript(user: User, input: { situation: string; goa
     settings.voice ? `The MLO's voice notes: «${cleanData(settings.voice, 400)}»` : "",
   ].filter(Boolean).join("\n");
   const w = await writeScript(call, brief, goal, template);
-  const comp: ComplianceInput = { goal, stateName: usStateName(input.state), allPartyRecording: ruleFor(input.state).allPartyRecording, callAllowed: { ok: true, reason: null }, textAllowed: { ok: true, reason: null } };
+  const comp: ComplianceInput = { goal, stateName: usStateName(input.state), allPartyRecording: ruleFor(input.state).allPartyRecording, opening: ruleFor(input.state).opening, callAllowed: { ok: true, reason: null }, textAllowed: { ok: true, reason: null } };
   const script = assemble(goal, w.draft, comp, w.source, w.dropped);
   const saved: SavedScript = { id: id(), ownerUserId: user.id, contactId: null, contactName: "Practice", script, createdAt: now.toISOString(), outcome: null };
   await scriptStore().put(saved);
@@ -283,7 +283,7 @@ export async function logOutcome(user: User, scriptId: string, input: { result: 
   await scriptStore().put({ ...s, outcome: { result, helpful: input.helpful, note, at: now.toISOString() } });
   if (s.contactId && result !== "no_answer") {
     const label = { reached: "Talked", voicemail: "Left a voicemail", booked: "Talked and set a next step", not_now: "Talked; not interested now", asked_to_stop: "Asked not to be contacted" }[result];
-    await touchStore().add({ id: `t_${randomBytes(9).toString("base64url")}`, contactId: s.contactId, ownerUserId: user.id, channel: "call", purpose: SERVICE_GOALS.includes(s.script.goal) ? "service" : "marketing", direction: "out", body: `Call (${GOAL_LABELS[s.script.goal]}): ${label}${note ? `. ${note}` : ""}`, status: "logged", providerId: null, note: "logged from a call script", at: now.toISOString(), actor: user.email });
+    await touchStore().add({ id: `t_${randomBytes(9).toString("base64url")}`, contactId: s.contactId, ownerUserId: user.id, channel: "call", purpose: SERVICE_GOALS.includes(s.script.goal) ? "service" : "marketing", direction: "out", body: `Call (${GOAL_LABELS[s.script.goal]}): ${label}${note ? `. ${note}` : ""}`, status: "logged", providerId: null, note: result === "not_now" ? "logged from a call script; declined a sales call" : "logged from a call script", at: now.toISOString(), actor: user.email });
   }
   if (s.contactId && result === "asked_to_stop") {
     const r = await recordConsent(user, s.contactId, { channel: "call", purpose: "marketing", granted: false, evidence: "revoked", proof: `Said so on a call logged ${now.toISOString().slice(0, 10)}` }, now);
