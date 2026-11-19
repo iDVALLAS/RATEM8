@@ -300,3 +300,4 @@
   .cc-auth__fine { display: none; }
 }
 @media (max-width: 520px) { .cc-auth__card .su-set { padding: 14px 12px; border-radius: 14px; } .cc-auth__card h1 { font-size: 26px; } }
+.cc-auth__code { letter-spacing: 0.3em; font-size: 24px; text-align: center; font-variant-numeric: tabular-nums; }

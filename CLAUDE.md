@@ -69,7 +69,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     `M8_LISTEN="false"` turns off only the mic.
   - **Command Center (D-series, `LoanM8_MLO_Command_Center_Build_Prompt.md`):**
     D1 accounts (`lib/accounts/*`, `/sign-in`, `/mlo`, `/mlo/team`): emailed
-    one-time links, roles owner/team_lead/lo/assistant, owner from
+    one-time links (D47: plus a 6-digit code bound to the asking browser's
+    `lm8_cc_pending` cookie; the link lands on `/sign-in/link`, a button
+    signs in), roles owner/team_lead/lo/assistant, owner from
     `MLO_OWNER_EMAIL`; the shared Basic login works until `MLO_BASIC_AUTH="false"`.
     Carrier: Twilio. Agent data: RETR CSV for now. Recruit rewards: subscription
     and tenure only, never loans or terms. D8 Concierge (`lib/concierge/*`,

@@ -13,7 +13,7 @@
  * HTTP Basic (MLO_ADMIN_USER / MLO_ADMIN_PASSWORD) still works unless
  * MLO_BASIC_AUTH="false".
  */
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { cookies } from "next/headers";
 import { ALL_MLOS, ccAllMlos } from "@/lib/config";
 import { ensureRegistry } from "@/lib/registry/cache";
@@ -27,6 +27,15 @@ export const SESSION_COOKIE = "lm8_cc_session";
 /** D34: the 5-minute ticket between the emailed link and the authenticator code. */
 export const MFA_COOKIE = "lm8_cc_mfa";
 export const LINK_TTL_MS = 15 * 60 * 1000;
+/**
+ * D47: the browser that asked for a sign-in holds this (httpOnly, path
+ * /sign-in, 15 minutes). The 6-digit code in the email only works together
+ * with it, so typing the code signs in the computer that asked, even when
+ * the email is read on a phone.
+ */
+export const PENDING_COOKIE = "lm8_cc_pending";
+export const CODE_TRIES = 5;
+const codeHash = (pending: string, code: string) => sha256(`code:${pending}:${code}`);
 export const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 export const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -83,8 +92,37 @@ async function sendLink(to: string, link: string, subject: string, lead: string)
   }
 }
 
-/** The sign-in form. The answer never reveals whether the email has an account. */
-export async function requestSignIn(emailRaw: string, origin: string, ipHash: string, now = Date.now()): Promise<{ ok: true } | { ok: false; error: string }> {
+/** D47: the sign-in email: a 6-digit code for the device that asked, and a link for the device reading it. */
+async function sendSignIn(to: string, link: string, code: string): Promise<boolean> {
+  const cfg = emailConfig();
+  if (!cfg) return false;
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: `LoanM8 <${cfg.from}>`,
+        to: [to],
+        subject: `${code} is your LoanM8 sign-in code`,
+        text: `Your LoanM8 Command Center sign-in code is ${code}\n\nType it on the screen where you asked to sign in.\n\nOr, to sign in on the device you're reading this on, open this link:\n${link}\n\nThe code and the link each work once, for 15 minutes. If you didn't ask to sign in, ignore this email.`,
+      }),
+    });
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as { name?: string; message?: string } | null;
+      console.error(`[cc-email] Resend refused a sign-in email: ${res.status} ${err?.name ?? ""} ${(err?.message ?? "").replace(/[^\s@]+@[^\s@]+/g, "[address]").slice(0, 160)}`);
+    }
+    return res.ok;
+  } catch (e) {
+    console.error(`[cc-email] Couldn't reach Resend for a sign-in email: ${e instanceof Error ? e.name : "error"}`);
+    return false;
+  }
+}
+
+/**
+ * The sign-in form. The answer never reveals whether the email has an
+ * account: every success returns a fresh `pending` value for the cookie.
+ */
+export async function requestSignIn(emailRaw: string, origin: string, ipHash: string, now = Date.now()): Promise<{ ok: true; pending: string } | { ok: false; error: string }> {
   const email = emailRaw.trim().toLowerCase();
   if (!EMAIL.test(email) || email.length > 254) return { ok: false, error: "Enter a valid email address." };
   const hour = Math.floor(now / 3_600_000);
@@ -94,30 +132,47 @@ export async function requestSignIn(emailRaw: string, origin: string, ipHash: st
   await ensureOwner(now);
   const store = accountStore();
   const user = await store.userByEmail(email);
+  const pending = token();
   if (user && user.status === "active") {
     const t = token();
+    const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
     await store.putLoginToken(sha256(t), user.id, iso(now + LINK_TTL_MS));
-    const sent = await sendLink(email, `${origin}/api/cc/verify?t=${encodeURIComponent(t)}`, "Your LoanM8 sign-in link", "Here's your link to sign in to LoanM8 Command Center:");
+    await store.putLoginToken(codeHash(pending, code), user.id, iso(now + LINK_TTL_MS));
+    const sent = await sendSignIn(email, `${origin}/api/cc/verify?t=${encodeURIComponent(t)}`, code);
     await store.audit({ at: iso(now), actor: user.email, action: "signin.link_sent", detail: { sent } });
     if (sent) console.log("[cc-signin] sign-in link sent");
   } else {
     // D46.1: the page never says whether an account exists; the log does, without the address.
     console.warn(`[cc-signin] no active account for that email${process.env.MLO_OWNER_EMAIL?.trim() ? "" : " (MLO_OWNER_EMAIL isn't set here)"}`);
   }
-  return { ok: true };
+  return { ok: true, pending };
 }
 
 /** The emailed link. Returns a new session token for the cookie, or null. */
 export async function verifySignIn(t: string, now = Date.now()): Promise<{ session: string; user: User } | { mfa: string; user: User } | null> {
   if (!t || t.length > 100) return null;
-  const store = accountStore();
-  const userId = await store.consumeLoginToken(sha256(t), iso(now));
-  if (!userId) return null;
-  const user = await store.userById(userId);
+  const userId = await accountStore().consumeLoginToken(sha256(t), iso(now));
+  return userId ? finishSignIn(userId, now) : null;
+}
+
+/** The next step once the email step is passed: the phone code (D34), or a session. */
+async function finishSignIn(userId: string, now: number): Promise<{ session: string; user: User } | { mfa: string; user: User } | null> {
+  const user = await accountStore().userById(userId);
   if (!user || user.status !== "active") return null;
-  // D34: with an authenticator app on, the link opens the code step instead of a session.
+  // D34: with an authenticator app on, the email step opens the code step instead of a session.
   if (await mfaOn(user.id)) return { mfa: await openCodeStep(user.id, now), user };
   return { session: await openSession(user, now), user };
+}
+
+/** D47: the 6-digit code from the email, typed in the browser that asked (its pending cookie). */
+export async function verifySignInCode(pending: string | undefined, rawCode: string, now = Date.now()): Promise<{ session: string; user: User } | { mfa: string; user: User } | { error: string; spent?: boolean }> {
+  if (!pending || pending.length > 100) return { error: "That code has expired. Ask for a new one.", spent: true };
+  const code = String(rawCode ?? "").replace(/\D/g, "");
+  if (code.length !== 6) return { error: "Enter the 6-digit code from the email." };
+  if ((await incr(`cc:signin:code:${sha256(pending).slice(0, 24)}`, 1000)) > CODE_TRIES) return { error: "Too many tries. Ask for a new code.", spent: true };
+  const userId = await accountStore().consumeLoginToken(codeHash(pending, code), iso(now));
+  const done = userId ? await finishSignIn(userId, now) : null;
+  return done ?? { error: "That code doesn't match, or it has expired. Check the newest email, or ask for a new code." };
 }
 
 /** A new session for a user who has passed every sign-in step. */

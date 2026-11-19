@@ -3577,3 +3577,49 @@ couldn't be seen.
 - `lib/pilot/service.ts` logs Resend refusals the same way, for reports,
   sign-up emails and triage notes.
 - **Verified:** `npm run verify`.
+
+## D47 — Sign in on your computer even when you read the email on your phone (2026-11-19)
+
+The owner asked for a sign-in link on his computer, opened the email on
+his phone, and the phone got signed in, not the computer. Loan officers
+will do the same every day.
+
+- **The sign-in email carries a 6-digit code as well as the link.**
+  - **Subject:** "123456 is your LoanM8 sign-in code", so the code shows
+    in a phone notification.
+  - **The code** goes on the screen where you asked. The page becomes
+    "Check your email" with a code box.
+  - **The link** signs in whichever device opens it.
+  - Each works once, for 15 minutes.
+- **The code only works in the browser that asked.**
+  - **How:** asking sets an httpOnly cookie, `lm8_cc_pending` (path
+    `/sign-in`, 15 minutes), and the code is stored only as a hash of that
+    value plus the code.
+  - **Limits:** five wrong tries and that code is done.
+  - **For an email with no account,** the reply is the same and the
+    pending value never works, so nothing reveals whether an account
+    exists.
+- **The emailed link no longer signs in by itself.**
+  - `/api/cc/verify` opens `/sign-in/link`, where a "Sign in on this
+    device" button does. Work email systems such as Microsoft 365 open
+    links ahead of time to scan them, which could use up a one-time link
+    before the person taps it.
+  - That page sends no referrer.
+  - Links already sent keep working through the same path.
+- **The phone-code step (D34)** follows either one, as before
+  (`app/sign-in/land.ts`).
+- **The page:** a waiting screen with a note about Junk and Quarantine,
+  and "Send a new code". The side panel says "a code we email you".
+- **Files:** `lib/accounts/auth.ts` (`requestSignIn` returns `pending`;
+  `verifySignInCode`; `finishSignIn` shared with the link),
+  `app/sign-in/page.tsx`, `app/sign-in/land.ts`,
+  `app/sign-in/link/page.tsx`, `app/api/cc/verify/route.ts`, and
+  `/sign-in/link` added to the stealth and site-lock lists.
+- **Verified:**
+  - Two new tests: the code works only with its own pending value, once;
+    it expires; it stops after five tries; strangers' values never work;
+    and the same email's link still works.
+  - `npm run verify`.
+  - **In the browser at 1280px and 390px:** the code screen; a wrong code
+    gets the error; an old-style link lands on the button page; and a bad
+    link sends you back with "expired".

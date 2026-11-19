@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryAccountStore, setAccountStoreForTests, type User } from "./store";
-import { canManage, ensureOwner, inviteUser, LINK_TTL_MS, requestSignIn, updateUser, userForSession, verifySignIn } from "./auth";
+import { canManage, CODE_TRIES, ensureOwner, inviteUser, LINK_TTL_MS, requestSignIn, updateUser, userForSession, verifySignIn, verifySignInCode } from "./auth";
 import { resetMemoryCounters } from "@/lib/m8/kv";
 
 const T0 = Date.parse("2026-11-18T18:00:00Z");
@@ -44,7 +44,7 @@ describe("Command Center accounts (D1)", () => {
   });
 
   it("emails a one-time link that opens a session, and expires", async () => {
-    expect(await requestSignIn("owner@example.com", "https://loanm8.com", "ip1", T0)).toEqual({ ok: true });
+    expect(await requestSignIn("owner@example.com", "https://loanm8.com", "ip1", T0)).toMatchObject({ ok: true });
     expect(sent[0].to).toBe("owner@example.com");
     const t = linkToken();
     const res = await verifySignIn(t, T0 + 60_000);
@@ -56,8 +56,38 @@ describe("Command Center accounts (D1)", () => {
   });
 
   it("never says whether an email has an account, and sends nothing for strangers", async () => {
-    expect(await requestSignIn("stranger@example.com", "https://loanm8.com", "ip2", T0)).toEqual({ ok: true });
+    expect(await requestSignIn("stranger@example.com", "https://loanm8.com", "ip2", T0)).toMatchObject({ ok: true });
     expect(sent).toHaveLength(0);
+  });
+
+  it("D47: the 6-digit code signs in the browser that asked, once, even when the email is read elsewhere", async () => {
+    const r = (await requestSignIn("owner@example.com", "https://loanm8.com", "ip5", T0)) as { ok: true; pending: string };
+    expect(r.pending.length).toBeGreaterThan(20);
+    const code = /code is (\d{6})/.exec(sent[0].text)![1];
+    expect(sent[0].text).toContain("https://loanm8.com/api/cc/verify?t=");
+    // The code alone, in another browser (no pending value, or someone else's), does nothing.
+    expect(await verifySignInCode(undefined, code, T0 + 1000)).toMatchObject({ error: expect.any(String) });
+    expect(await verifySignInCode("someone-elses-pending-value-xxxxxxxxxx", code, T0 + 1000)).toMatchObject({ error: expect.any(String) });
+    const ok = await verifySignInCode(r.pending, code.slice(0, 3) + " " + code.slice(3), T0 + 2000);
+    expect("session" in ok && ok.user.email).toBe("owner@example.com");
+    expect(await verifySignInCode(r.pending, code, T0 + 3000)).toMatchObject({ error: expect.any(String) }); // single use
+    // The link from the same email still works on the device that reads it.
+    expect(await verifySignIn(linkToken(), T0 + 4000)).not.toBeNull();
+  });
+
+  it("D47: codes expire, stop after a few wrong tries, and strangers get a pending value that never works", async () => {
+    const a = (await requestSignIn("owner@example.com", "https://x", "ip6", T0)) as { ok: true; pending: string };
+    const code = /code is (\d{6})/.exec(sent[0].text)![1];
+    expect(await verifySignInCode(a.pending, code, T0 + LINK_TTL_MS + 1)).toMatchObject({ error: expect.any(String) });
+    const b = (await requestSignIn("owner@example.com", "https://x", "ip6", T0)) as { ok: true; pending: string };
+    const good = /code is (\d{6})/.exec(sent[1].text)![1];
+    const wrong = good === "000000" ? "111111" : "000000";
+    for (let i = 0; i < CODE_TRIES; i++) expect(await verifySignInCode(b.pending, wrong, T0 + 1000)).toMatchObject({ error: expect.any(String) });
+    expect(await verifySignInCode(b.pending, good, T0 + 2000)).toMatchObject({ spent: true });
+    const s = (await requestSignIn("stranger@example.com", "https://x", "ip7", T0)) as { ok: true; pending: string };
+    expect(s.pending).toBeTruthy();
+    expect(await verifySignInCode(s.pending, "123456", T0 + 1000)).toMatchObject({ error: expect.any(String) });
+    expect(await verifySignInCode(b.pending, "12345", T0 + 1000)).toMatchObject({ error: "Enter the 6-digit code from the email." });
   });
 
   it("rate limits sign-in requests", async () => {

@@ -42,7 +42,7 @@ export default function CcAuthShell({ children, wide = false }: { children: Reac
                 <li key={p.icon}><span className="cc-auth__icon"><Icon name={p.icon} size={20} /></span><span>{p.text}</span></li>
               ))}
             </ul>
-            <p className="cc-auth__fine"><Icon name="lock" size={16} /> No password: you sign in with an emailed link, and a code from your phone if your team requires it.</p>
+            <p className="cc-auth__fine"><Icon name="lock" size={16} /> No password: you sign in with a code we email you, plus a code from your phone if your team requires it.</p>
           </aside>
           <section className="cc-auth__card">{children}</section>
         </div>
