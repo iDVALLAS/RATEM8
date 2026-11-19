@@ -634,6 +634,23 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 - `/disclosures` lists every MLO with their NMLS number and licensed
   states (the register).
 
+## 4c2. Command Center frame (D43)
+
+- Every `/mlo` page renders in `app/mlo/CcShell.tsx` (imported as
+  `PageShell` from `@/app/mlo/CcShell`), not the public site's PageShell.
+  It has its own top bar (`CcTopBar.tsx`: grouped menus with icons, the
+  theme toggle, the account menu) and, on phones, bottom tabs with the
+  Concierge as the raised center button plus a "More" sheet.
+- Destinations live in one list, `app/mlo/nav.ts`; the menus, tabs and
+  the home screen's tiles all read it. Add a page there, not in a menu.
+- Icons are `app/mlo/icons.tsx`. Tile pictures are SVG scenes in
+  `app/mlo/art.tsx`, drawn from tokens and never photos of people.
+- The palette is `app/mlo/cc-shell.css`. It re-maps the semantic tokens
+  inside `.cc-app` only: Night is near-black with a lime highlight, Dim is
+  graphite, Paper is a pale mint wash with white cards, a mint highlight
+  and Pine text. The public site, the orb and the wordmark are unchanged.
+- `MloNav` renders nothing now (kept so pages compile).
+
 ## 4d. Nav — `components/Nav.tsx`, `components/PartnerMenu.tsx` (v14)
 
 - Desktop has two groups split by `.nav-divider`. Group 1 (Calculators,

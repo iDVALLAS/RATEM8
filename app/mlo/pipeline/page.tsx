@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
-import PageShell from "@/components/PageShell";
+import PageShell from "@/app/mlo/CcShell";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { scopeOf } from "@/lib/contacts/service";

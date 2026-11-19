@@ -1,0 +1,30 @@
+import { currentUser, isAdmin, ROLE_LABELS } from "@/lib/accounts/auth";
+import { adminActor } from "@/lib/mlo/auth";
+import { listTenants } from "@/lib/pricing/tenants";
+import { conciergeStore } from "@/lib/concierge/store";
+import CcTopBar from "./CcTopBar";
+import "./cc-shell.css";
+
+/**
+ * D43: the Command Center frame. Every /mlo page renders inside it in place
+ * of the public site's PageShell, so the back office has its own top bar
+ * (grouped menus, the theme toggle, your account) and phone tabs, and no
+ * public menu or footer. The palette is Command Center's own, brighter,
+ * and follows the Night, Dim and Paper toggle (cc-shell.css).
+ */
+export default async function CcShell({ children }: { children: React.ReactNode; crumbs?: unknown; className?: string; mainClassName?: string; stickyCta?: boolean }) {
+  const user = await currentUser().catch(() => null);
+  const basic = user ? null : await adminActor().catch(() => null);
+  const admin = user ? isAdmin(user) : !!basic;
+  const drafts = user ? (await conciergeStore().proposals(user.id, "pending").catch(() => [])).length : 0;
+  return (
+    <div className="cc-app">
+      <CcTopBar admin={admin} signedIn={!!user} name={user?.name ?? (basic ? "Shared admin login" : "")} email={user?.email ?? ""} role={user ? ROLE_LABELS[user.role] : ""} tenantId={listTenants()[0]?.id ?? ""} badges={{ concierge: drafts }} />
+      <main id="main" className="cc-main">{children}</main>
+      <footer className="cc-foot">
+        <span>LoanM8 Command Center · for licensed loan officers</span>
+        <a href="/" target="_blank" rel="noopener noreferrer">loanm8.com</a>
+      </footer>
+    </div>
+  );
+}

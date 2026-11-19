@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireAdminPage } from "@/lib/mlo/page-auth";
-import PageShell from "@/components/PageShell";
+import PageShell from "@/app/mlo/CcShell";
 import { mloContent } from "@/lib/content/mlo";
 import { extraLoanSifterOrigins } from "@/lib/pricing/loansifterOrigin";
 import { importCaptureAction } from "../../actions";

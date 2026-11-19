@@ -18,7 +18,8 @@
 @media print {
   @page { size: letter; margin: 0.6in; }
   html, body { background: #fff !important; color: #000 !important; }
-  .site-nav, header, footer, .mlo-nav, .ex-noprint, .site-footer { display: none !important; }
+  .site-nav, header, footer, .mlo-nav, .ex-noprint, .site-footer, .cc-tabs, .cc-foot, .cc-bar { display: none !important; }
+  .cc-app { background: #fff !important; }
   .ex-report, .ex-report * { color: #000 !important; background: transparent !important; }
   .ex-report .ex-name { -webkit-text-fill-color: #000 !important; background: none !important; }
   .ex-report table { font-size: 11px; }

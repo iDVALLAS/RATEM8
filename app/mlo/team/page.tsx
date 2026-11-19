@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import PageShell from "@/components/PageShell";
+import PageShell from "@/app/mlo/CcShell";
 import { ALL_MLOS } from "@/lib/config";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { listTenants } from "@/lib/pricing/tenants";

@@ -3291,3 +3291,61 @@ loan officer.
 - **Tour:** 32 screenshots of every Command Center screen with a sample
   book, captured from a local production build. They're published as a
   private page for the owner (outside the repo).
+
+## D43 — Command Center gets its own app frame, home screen and brighter look (2026-11-19)
+
+The owner asked for this with two reference screenshots: a dark fintech
+app with a lime highlight, and a light app with a mint wash, white cards
+and a pill menu. They wanted the MLO back office to have its own menu
+instead of the LoanM8 site's, an icon-driven home with pictures and
+descriptions, brighter colors, and the light/dark toggle kept.
+
+- **The frame** (`app/mlo/CcShell.tsx`) replaces the public PageShell on
+  all 32 Command Center pages. The public menu and footer no longer show
+  in the back office.
+  - **Top bar** (`CcTopBar.tsx`): the brand, then one pill-shaped menu:
+    Home, plus Your day, People, Loans, Grow, Business, Settings and
+    Platform (admins). Each opens a panel with an icon, the name and a
+    one-line description per page. The current section is the dark pill
+    (lime in Night).
+  - **Right side:** the theme toggle, then the account menu (name, email,
+    role, Sign-in security, open loanm8.com, Sign out).
+  - **Badges** for drafts waiting.
+- **Phones:**
+  - **A slim top bar.**
+  - **Bottom tabs:** Home, Contacts, Pipeline, More, with the Concierge as
+    the raised, glowing center button.
+  - **"More"** opens a sheet with every page as an icon grid. It's
+    rendered outside the header, per the v20 lesson.
+- **One list of destinations** (`app/mlo/nav.ts`) feeds the menus, tabs,
+  sheet and home tiles. Admin-only and account-only pages are filtered.
+- **The home screen** (`app/mlo/page.tsx`):
+  - a greeting with your initials
+  - a Today card: people to reach, with chips for drafts, replies, active
+    loans and deadlines, plus "Start calling" and "Import contacts"
+  - a highlight card for the Concierge
+  - "Who to reach" as compact rows, each with an icon and one action
+  - every area as a tile, grouped: a drawn picture (chat bubbles, a
+    pipeline board, a receipt and pin, a network tree…), an icon, the
+    name, a one-line description and a live line ("1 draft waiting",
+    "7 people", "AI this month: $0.00 of $12")
+  - the setup checklist, collapsed, at the bottom
+- **The look** (`app/mlo/cc-shell.css`): Command Center's own tokens
+  inside `.cc-app`, one set per theme.
+  - **Night:** near-black, charcoal cards, lime highlight `#C6F24E`.
+  - **Dim:** graphite.
+  - **Paper:** pale mint wash, white cards, mint highlight `#6FE3A8`, a
+    black pill for the current section, Pine text links (6:1).
+  - **Existing screens follow automatically:** buttons are the highlight
+    with dark text, ghost buttons are outlined, and headings are Geist
+    600. The orb, the "M8" wordmark and the public site are unchanged.
+- **Theme toggle:** it's in the Command Center top bar. Clicking each dot
+  switched Night → Dim → Paper live, confirmed by reading the document's
+  theme and background after each click.
+- **Expense report printing** hides the new bar, tabs and footer.
+- **Verified:** types, lint and build pass.
+  - The QA sweep (every `/mlo` page at 390px and 1280px, plus all flows)
+    passes with no problems or console errors.
+  - Phone pages measure 390px wide (no sideways scroll).
+  - Screenshots of the home screen in Night, Paper and Dim, an open
+    menu, the phone home and the More sheet.

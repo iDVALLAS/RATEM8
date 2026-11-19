@@ -3,13 +3,13 @@ import { GROUP_LABELS, type SetupItem } from "@/lib/setup/checklist";
 import { setupMarkAction } from "./setup-actions";
 
 /** D24: "Get set up" on the Command Center home. Open while anything is left; folds away when everything's done. */
-export default function SetupGuide({ items }: { items: SetupItem[] }) {
+export default function SetupGuide({ items, open }: { items: SetupItem[]; open?: boolean }) {
   const done = items.filter((i) => i.done).length;
   const groups = [...new Set(items.map((i) => i.group))];
   const left = items.length - done;
   return (
     <section className="mlo-section" id="setup">
-      <details open={left > 0}>
+      <details open={open ?? left > 0}>
         <summary className="cc-setup__summary"><h2 style={{ display: "inline" }}>{left ? `Get set up: ${done} of ${items.length} done` : "You're all set up"}</h2></summary>
         <div className="jr-progress" style={{ marginTop: 10 }}><span style={{ width: `${Math.round((done / items.length) * 100)}%` }} /></div>
         {groups.map((g) => (

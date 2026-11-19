@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireAdminPage } from "@/lib/mlo/page-auth";
-import PageShell from "@/components/PageShell";
+import PageShell from "@/app/mlo/CcShell";
 import PricingDisplay from "@/components/pricing/PricingDisplay";
 import { ALL_MLOS } from "@/lib/config";
 import { mloContent } from "@/lib/content/mlo";

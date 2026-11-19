@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import PageShell from "@/components/PageShell";
+import PageShell from "@/app/mlo/CcShell";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { DEFAULT_RULE, ruleFor, STATE_ZONES } from "@/lib/send-gate/rules";

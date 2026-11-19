@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import PageShell from "@/components/PageShell";
+import PageShell from "@/app/mlo/CcShell";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireAdminPage } from "@/lib/mlo/page-auth";
 import { ALL_MLOS } from "@/lib/config";

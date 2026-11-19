@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requireAdminPage } from "@/lib/mlo/page-auth";
-import PageShell from "@/components/PageShell";
+import PageShell from "@/app/mlo/CcShell";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { mloContent } from "@/lib/content/mlo";
 import { listTenants } from "@/lib/pricing/tenants";

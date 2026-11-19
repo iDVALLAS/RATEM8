@@ -5,49 +5,12 @@ import type { Tenant } from "@/lib/pricing/tenants";
 
 type NavKey = "report" | "home" | "concierge" | "scripts" | "automations" | "calls" | "refi" | "inbox" | "pipeline" | "contacts" | "rules" | "team" | "security" | "network" | "expenses" | "templates" | "academy" | "setup" | "pricing" | "voice" | "training";
 
-/** D1: admins see the admin areas; everyone signed in sees Home, Team and Sign out. */
-export function MloNav({ current, tenantId, admin = true, signedIn = false }: { current: NavKey; tenantId: string; admin?: boolean; signedIn?: boolean }) {
-  const q = `?t=${encodeURIComponent(tenantId)}`;
-  const link = (key: NavKey, href: string, label: string) => (
-    <Link href={href} aria-current={current === key ? "page" : undefined}>{label}</Link>
-  );
-  return (
-    <nav className="mlo-nav" aria-label="MLO admin">
-      {link("home", "/mlo", mloContent.nav.home)}
-      {link("concierge", "/mlo/concierge", mloContent.nav.concierge)}
-      {link("scripts", "/mlo/scripts", mloContent.nav.scripts)}
-      {link("templates", "/mlo/templates", mloContent.nav.templates)}
-      {link("academy", "/mlo/academy", mloContent.nav.academy)}
-      {link("calls", "/mlo/calls", mloContent.nav.calls)}
-      {link("automations", "/mlo/automations", mloContent.nav.automations)}
-      {link("refi", "/mlo/refi", mloContent.nav.refi)}
-      {link("report", "/mlo/report", mloContent.nav.report)}
-      {link("inbox", "/mlo/inbox", mloContent.nav.inbox)}
-      {link("pipeline", "/mlo/pipeline", mloContent.nav.pipeline)}
-      {link("contacts", "/mlo/contacts", mloContent.nav.contacts)}
-      {link("rules", "/mlo/rules", mloContent.nav.rules)}
-      {link("team", "/mlo/team", mloContent.nav.team)}
-      {signedIn ? link("network", "/mlo/network", mloContent.nav.network) : null}
-      {signedIn ? link("expenses", "/mlo/expenses", mloContent.nav.expenses) : null}
-      {signedIn ? link("security", "/mlo/security", mloContent.nav.security) : null}
-      {admin ? (
-        <>
-          {link("setup", `/mlo/setup${q}`, mloContent.nav.setup)}
-          <Link href="/mlo/texting">{mloContent.nav.texting}</Link>
-          <Link href="/mlo/launch">{mloContent.nav.launch}</Link>
-          {link("pricing", `/mlo/pricing${q}`, mloContent.nav.pricing)}
-          {link("voice", `/mlo/voice${q}`, mloContent.nav.voice)}
-          {link("training", `/mlo/training${q}`, mloContent.nav.training)}
-          <Link href="/rates">{mloContent.nav.rates}</Link>
-        </>
-      ) : null}
-      {signedIn ? (
-        <form action="/api/cc/signout" method="post" className="mlo-signout">
-          <button type="submit">{mloContent.nav.signOut}</button>
-        </form>
-      ) : null}
-    </nav>
-  );
+/**
+ * D43: the menu moved to Command Center's own top bar (CcTopBar, from
+ * app/mlo/nav.ts). Pages still call MloNav; it renders nothing now.
+ */
+export function MloNav(_props: { current: NavKey; tenantId: string; admin?: boolean; signedIn?: boolean }) {
+  return null;
 }
 
 export function TenantPicker({ tenants, current, base, extra = "" }: { tenants: Tenant[]; current: string; base: string; extra?: string }) {
