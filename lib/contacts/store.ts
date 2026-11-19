@@ -36,6 +36,12 @@ export type Contact = Omit<ImportRecord, "attestedOptIns"> & {
   locked: boolean;
   /** D4: the last do-not-call check of their phone (national, state or vendor scrub). */
   dnc?: { onList: boolean; checkedAt: string; source: string } | null;
+  /**
+   * D21: the FCC Reassigned Numbers Database answer for this number. "yes"
+   * means it was permanently disconnected after `since`, so old permission
+   * may now reach someone else.
+   */
+  rnd?: { result: "no" | "yes" | "no_data"; since: string; checkedAt: string; source: string } | null;
   /** D4: line type from Twilio Lookup. */
   line?: { type: string; carrier: string | null; checkedAt: string } | null;
   /** D10: the client's say-so for their agent to hear how the loan is going (revocable). */

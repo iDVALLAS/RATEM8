@@ -4,6 +4,7 @@ import { MemoryContactStore, setContactStoreForTests } from "./store";
 import { importBatch, recordConsent, summarize } from "./service";
 import { MemoryAccountStore, setAccountStoreForTests, type User } from "@/lib/accounts/store";
 import { decide } from "@/lib/send-gate/gate";
+import { recordRndBulk, rndNeeded } from "@/lib/messaging/service";
 
 const NOW = new Date("2026-11-19T18:00:00Z");
 const me: User = { id: "lo1", email: "lo1@x.com", name: "Pat", role: "lo", mloId: "mlo-001", status: "active", createdAt: "", createdBy: "" };
@@ -50,5 +51,15 @@ describe("Recording permission for past clients (D12.2)", () => {
     expect(await recordBulkConsent(me, { ...ok, channels: ["ai_call"] }, NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/AI voice/) });
     expect(await recordBulkConsent(me, { ...ok, channels: ["ai_call"], confirms: { ...ok.confirms, coversAiVoice: true } }, NOW)).toMatchObject({ ok: true, people: 1 });
     expect(await recordBulkConsent({ ...me, role: "assistant" }, ok, NOW)).toMatchObject({ ok: false });
+  });
+
+  it("D21: lists the numbers that need a reassigned-number check, and takes the results in bulk", async () => {
+    await importBatch(me, "contacts", [rec()], "a.csv", "personal", NOW);
+    await recordBulkConsent(me, ok, NOW);
+    const need = await rndNeeded(me, NOW);
+    expect(need).toEqual([{ phone: "+12065551234", since: "2023-05-01", name: "Ann Lee" }]);
+    const r = await recordRndBulk(me, "(206) 555-1234, 2023-05-01, no\n(999) 555-0000, 2023-05-01, no\nnot a line", "FCC RND", NOW);
+    expect(r).toEqual({ updated: 1, skipped: 2 });
+    expect(await rndNeeded(me, NOW)).toEqual([]);
   });
 });

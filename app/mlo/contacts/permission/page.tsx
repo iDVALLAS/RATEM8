@@ -5,8 +5,9 @@ import { decodeFlash } from "@/lib/mlo/flash";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { previewBulk } from "@/lib/contacts/bulk-consent";
+import { rndNeeded } from "@/lib/messaging/service";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { bulkConsentAction } from "./actions";
+import { bulkConsentAction, rndBulkAction } from "./actions";
 import "../../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
   const me = v.user;
   const since = Number(sp.since) >= 1990 && Number(sp.since) <= 2100 ? Number(sp.since) : null;
   const p = me ? await previewBulk(me, since) : null;
+  const need = me ? await rndNeeded(me) : [];
 
   return (
     <PageShell>
@@ -68,6 +70,17 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
               <label className="mlo-check"><input type="checkbox" name="coversAiVoice" /> <span>For M8 calls: it covers calls made with an artificial, prerecorded or AI voice.</span></label>
               <p className="mlo-note">Texts and M8 calls still follow everything else in your contact rules: do-not-call checks, daily limits, quiet hours and your licensed states. A client can still say stop at any time, and it ends texts and calls at once.</p>
               <div><button type="submit" className="mlo-btn">Record permission for {p.eligible.length} {p.eligible.length === 1 ? "client" : "clients"}</button></div>
+            </form>
+
+            <form action={rndBulkAction} className="mlo-section mlo-grid" id="rnd">
+              <h2>Then: check for reassigned numbers</h2>
+              <p className="mlo-note">Permission from an old application counts from when the loan closed. Before texts or M8 calls go to a number whose permission is more than 90 days old, check the FCC Reassigned Numbers Database (reassigned.us, or your vendor) from that date. Upload your list there, then paste the results here: one line each, <code>phone, date checked from, answer</code> (yes = disconnected since, no, or no data). A check is good for 30 days.</p>
+              {need.length ? (
+                <details className="mlo-note"><summary>{need.length} {need.length === 1 ? "number needs" : "numbers need"} a check: copy this list to upload</summary><pre style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{need.map((n) => `${n.phone},${n.since}`).join("\n")}</pre></details>
+              ) : <p className="mlo-note">No numbers need a check right now.</p>}
+              <label className="mlo-field"><span>Results</span><textarea name="rows" rows={4} placeholder={"(206) 555-1234, 2021-04-01, no\n(425) 555-2222, 2022-03-02, yes"} /></label>
+              <label className="mlo-field"><span>Checked with</span><input name="source" maxLength={120} placeholder="FCC Reassigned Numbers Database" /></label>
+              <div><button type="submit" className="mlo-btn">Record results</button></div>
             </form>
           </>
         )}

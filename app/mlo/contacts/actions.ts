@@ -3,7 +3,7 @@
 import { debrief } from "@/lib/concierge/debrief";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { checkLine, recordDnc, sendText } from "@/lib/messaging/service";
+import { checkLine, recordDnc, sendText, recordRnd } from "@/lib/messaging/service";
 import { z } from "zod";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
@@ -110,4 +110,14 @@ export async function debriefAction(contactId: string, note: string) {
   const u = await currentUser();
   if (!u) return { ok: false as const, error: "Sign in again." };
   return debrief(u, contactId, note);
+}
+
+/** D21: a Reassigned Numbers Database result. */
+export async function rndAction(fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const contactId = String(fd.get("contactId") ?? "");
+  const r = String(fd.get("result") ?? "no");
+  const ok = await recordRnd(actor, contactId, r === "yes" ? "yes" : r === "no_data" ? "no_data" : "no", String(fd.get("since") ?? ""), String(fd.get("source") ?? ""));
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok, lines: [ok ? "Reassigned-number check recorded. It's good for 30 days." : "Pick the date you checked from."] })}#phone-checks`);
 }

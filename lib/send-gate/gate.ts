@@ -34,7 +34,11 @@ export type GateInput = {
     areaState?: string | null;
     /** D13: when they last said no to a sales call (WA: no sales calls for a year after). */
     declinedCallAt?: string | null;
+    /** D21: the latest of when permission was given and their last message to us. */
+    lastConfirmedOn?: string | null;
   };
+  /** D21: the Reassigned Numbers Database answer, if checked. */
+  rnd?: { result: "no" | "yes" | "no_data"; since: string; checkedAt: string } | null;
   /**
    * D13: state rules that stay closed until the owner records counsel's
    * clearance (ledger §B): Texas telephone-solicitor registration (Bus. &
@@ -153,6 +157,14 @@ export function decide(i: GateInput): GateDecision {
     else if (!PROOF.includes(ev!)) reasons.push("Calls from M8 need proof of permission, not just your word.");
     else if (marketing && !WRITTEN.includes(ev!)) reasons.push("Marketing calls from M8 need written permission (a signed form, a web form or a texted yes).");
     else basis = `AI call permission (${ev})${when}`;
+  }
+  // D21: reassigned numbers (47 CFR 64.1200(m)). A number disconnected since permission was given may belong to
+  // someone else now. For texts and AI calls (which rest on permission), permission or a two-way conversation older
+  // than 90 days needs a check of the database first, done on or after that date and in the last 30 days.
+  if (phone && i.rnd?.result === "yes") reasons.push(`This number was permanently disconnected after ${i.rnd.since.slice(0, 10)} (Reassigned Numbers Database), so it may belong to someone else now. Get their current number.`);
+  else if ((i.channel === "text" || i.channel === "ai_call") && c.lastConfirmedOn && i.now.getTime() - Date.parse(c.lastConfirmedOn) > 90 * 24 * 3600 * 1000) {
+    const fresh = i.rnd && i.rnd.result !== "yes" && i.now.getTime() - Date.parse(i.rnd.checkedAt) <= 30 * 24 * 3600 * 1000 && i.rnd.since.slice(0, 10) <= c.lastConfirmedOn.slice(0, 10);
+    if (!fresh) reasons.push(`Their permission (or last message) is from ${c.lastConfirmedOn.slice(0, 10)}, more than 90 days ago. Check the Reassigned Numbers Database for this number since that date first.`);
   }
   // D13: state switches that stay closed until counsel clears them.
   if (marketing && phone && states.includes("TX") && !clear.tx302) reasons.push("Texas: sales calls and texts need telephone-solicitor registration (Bus. & Com. ch. 302) or a confirmed exemption. The owner turns this on once counsel confirms.");

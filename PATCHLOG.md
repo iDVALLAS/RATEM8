@@ -2376,3 +2376,39 @@ Concierge, Ask, Tell, notes after a call, call scripts and the AUS reader.
   - Then the public chat can't use up Command Center's budget or share its
     prompt cache.
 - **Verified:** all tests pass, and they clear both keys.
+
+## D21 — Reassigned numbers (2026-11-19)
+
+From ledger §A and items 9 and 25 (47 CFR 64.1200(m), the Reassigned
+Numbers Database safe harbor). A number given years ago may now belong to
+someone else, and their old permission doesn't cover the new owner.
+
+- **The rule** (`lib/send-gate/gate.ts`):
+  - **Texts and M8 AI calls** (the channels that rest on permission): when
+    the later of the permission date and their last message to us is more
+    than 90 days old, they need a database check. The check must be from
+    that date or earlier and done in the last 30 days.
+  - **Bulk-recorded permission** from old applications (D12.2) counts from
+    the loan's closing date, not the day it was recorded.
+  - **A "disconnected since" answer** blocks every phone channel, even
+    hand-dialed calls, with "get their current number".
+- **Recording results:**
+  - One at a time on the contact page (Phone checks: answer, the date
+    checked from, and the source).
+  - In bulk on Record permission → "Then: check for reassigned numbers".
+    It lists the numbers that need a check with the date to check from,
+    ready to upload to the FCC portal (reassigned.us) or a vendor, and takes
+    the results back pasted as `phone, date, answer`. Only the user's own
+    contacts are updated.
+- **Verified:**
+  - Gate tests: old permission is blocked; a check from the right date in
+    the last 30 days clears it; a check from too late a date or too long
+    ago doesn't; "disconnected since" blocks even hand-dialed calls; recent
+    permission needs no check.
+  - Bulk test: the need list, results recorded, others' and bad lines
+    skipped.
+  - `npm run verify` passes.
+- **Owner:** register for the FCC Reassigned Numbers Database at
+  reassigned.us (pay per query), or use a vendor that resells it. After
+  recording permission for past clients in bulk, run their list through it
+  before texting.

@@ -25,7 +25,7 @@ import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { checkLineAction, consentAction, deleteContactAction, dncAction, sendTextAction } from "../actions";
+import { checkLineAction, consentAction, deleteContactAction, dncAction, rndAction, sendTextAction } from "../actions";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
 
@@ -310,7 +310,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
         </section>
 
         <section className="mlo-section">
-          <h2>Phone checks</h2>
+          <h2 id="phone-checks">Phone checks</h2>
           <form action={checkLineAction} className="mlo-row-form">
             <input type="hidden" name="contactId" value={c.id} />
             <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={!c.phone}>Check line type (mobile or landline)</button>
@@ -325,6 +325,18 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
             <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Record check</button>
           </form>
           <p className="mlo-note">A check is good for 31 days. Marketing by phone needs one.</p>
+          <form action={rndAction} className="mlo-row-form" style={{ marginTop: 12 }}>
+            <input type="hidden" name="contactId" value={c.id} />
+            <select name="result" className="mlo-select" aria-label="Reassigned Numbers Database result" defaultValue="no">
+              <option value="no">Not disconnected since</option>
+              <option value="yes">Disconnected since (may be someone else now)</option>
+              <option value="no_data">No data for this number</option>
+            </select>
+            <label className="mlo-note">since <input type="date" name="since" className="mlo-input" defaultValue={c.rnd?.since ?? ""} required /></label>
+            <input name="source" placeholder="Checked with (the FCC database or your vendor)" className="mlo-input" style={{ flex: "1 1 200px" }} />
+            <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Record check</button>
+          </form>
+          <p className="mlo-note">{c.rnd ? `Reassigned Numbers Database: ${c.rnd.result === "yes" ? "disconnected" : c.rnd.result === "no" ? "not disconnected" : "no data"} since ${c.rnd.since} (${c.rnd.source}, checked ${fmt(c.rnd.checkedAt)}).` : "Reassigned Numbers Database: not checked."} Texts and M8 calls need a check when their permission or last message is more than 90 days old: check from that date. It&apos;s good for 30 days.</p>
         </section>
 
         {v.user.role !== "assistant" ? (

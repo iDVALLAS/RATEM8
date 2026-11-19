@@ -127,4 +127,19 @@ describe("send gate (D3)", () => {
     expect(decide(base({ ...hand, ...lic, contact: { ...base().contact, declinedCallAt: "2026-06-01T00:00:00Z" } })).reasons[0]).toMatch(/Washington doesn't allow another sales call for a year/);
     expect(decide(base({ ...hand, ...lic, contact: { ...base().contact, declinedCallAt: "2025-06-01T00:00:00Z" } })).allowed).toBe(true);
   });
+
+  it("D21: texts on permission older than 90 days need a fresh Reassigned Numbers Database check from that date", () => {
+    const txt = { consent: consent(["text", "marketing", "written"]) };
+    const old = { contact: { ...base().contact, lastConfirmedOn: "2026-01-10T00:00:00Z" } };
+    expect(decide(base({ ...txt, ...old })).reasons[0]).toMatch(/Check the Reassigned Numbers Database/);
+    // A check from the permission date, in the last 30 days, clears it.
+    expect(decide(base({ ...txt, ...old, rnd: { result: "no", since: "2026-01-10", checkedAt: "2026-11-15T00:00:00Z" } })).allowed).toBe(true);
+    // Checked from too late a date, or too long ago: not enough.
+    expect(decide(base({ ...txt, ...old, rnd: { result: "no", since: "2026-06-01", checkedAt: "2026-11-15T00:00:00Z" } })).allowed).toBe(false);
+    expect(decide(base({ ...txt, ...old, rnd: { result: "no", since: "2026-01-10", checkedAt: "2026-09-01T00:00:00Z" } })).allowed).toBe(false);
+    // Disconnected since: no phone contact at all, even by hand.
+    expect(decide(base({ channel: "call", manual: true, consent: consent(), rnd: { result: "yes", since: "2026-01-10", checkedAt: "2026-11-15T00:00:00Z" } })).reasons[0]).toMatch(/may belong to someone else/);
+    // Recent permission: no check needed.
+    expect(decide(base({ ...txt, contact: { ...base().contact, lastConfirmedOn: "2026-10-01T00:00:00Z" } })).allowed).toBe(true);
+  });
 });

@@ -8,6 +8,7 @@ import { accountStore, type User } from "@/lib/accounts/store";
 import { redactChatInput } from "@/lib/m8/redact";
 import { canSee, recordConsent, summarize } from "@/lib/contacts/service";
 import { contactStore, type Channel, type Contact, type Purpose } from "@/lib/contacts/store";
+import { toE164 } from "@/lib/contacts/normalize";
 import { decide, type GateDecision } from "@/lib/send-gate/gate";
 import { licensedStatesFor } from "@/lib/send-gate/for-contact";
 import { areaCodeState } from "@/lib/send-gate/rules";
@@ -34,13 +35,20 @@ export async function gateFor(actor: User, c: Contact, channel: Channel, purpose
   const sameNumber = c.phone ? (await contactStore().findByPhone(c.phone)).map((x) => x.id) : [];
   const ids = [...new Set([c.id, ...sameNumber])];
   const recent = (await Promise.all(ids.map((id) => ts.sentSince(id, week)))).flat();
-  const declined = (await ts.forContact(c.id, 200)).find((t) => t.channel === "call" && t.direction === "out" && (t.note ?? "").includes("declined a sales call"));
+  const history = await ts.forContact(c.id, 200);
+  const lastIn = history.find((t) => t.direction === "in")?.at ?? null;
+  const declined = history.find((t) => t.channel === "call" && t.direction === "out" && (t.note ?? "").includes("declined a sales call"));
+  // D21: when permission for this channel was given (a bulk record from old applications counts from the loan's closing), or their last message.
+  const p = consent[channel === "ai_call" ? "ai_call" : "text"][purpose];
+  const givenOn = p.granted && p.at ? ((p.proof ?? "").includes("(recorded for past clients by") && c.loan?.closedOn ? c.loan.closedOn : p.at) : null;
+  const lastConfirmedOn = [givenOn, lastIn].filter((x): x is string => !!x).sort().pop() ?? null;
   const count = (chs: Channel[], since: string) => recent.filter((t) => chs.includes(t.channel) && t.at >= since).length;
   return decide({
     channel,
     purpose,
     manual: channel === "call",
-    contact: { locked: c.locked, state: c.state, hasPhone: !!c.phone, hasEmail: !!c.email, relationship: c.relationship, ebrClosedOn: await ebrDate(c), areaState: areaCodeState(c.phone), declinedCallAt: declined?.at ?? null },
+    contact: { locked: c.locked, state: c.state, hasPhone: !!c.phone, hasEmail: !!c.email, relationship: c.relationship, ebrClosedOn: await ebrDate(c), areaState: areaCodeState(c.phone), declinedCallAt: declined?.at ?? null, lastConfirmedOn },
+    rnd: c.rnd ?? null,
     clearances: stateClearances(),
     consent,
     licensedStates: licensedStatesFor(actor),
@@ -147,4 +155,67 @@ export async function recordDnc(actor: User, contactId: string, onList: boolean,
   await store.put({ ...c, dnc: { onList, checkedAt: now.toISOString(), source: source.trim().slice(0, 120) || "not given" }, updatedAt: now.toISOString() });
   await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "dnc.record", detail: { contactId, onList } });
   return true;
+}
+
+/** D21: records a Reassigned Numbers Database result (from the FCC database or a vendor that resells it). */
+export async function recordRnd(actor: User, contactId: string, result: "no" | "yes" | "no_data", since: string, source: string, now = new Date()): Promise<boolean> {
+  const store = contactStore();
+  const c = await store.get(contactId);
+  if (!c || !canSee(actor, c) || !/^\d{4}-\d{2}-\d{2}$/.test(since)) return false;
+  await store.put({ ...c, rnd: { result, since, checkedAt: now.toISOString(), source: source.trim().slice(0, 120) || "not given" }, updatedAt: now.toISOString() });
+  await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "rnd.record", detail: { contactId, result } });
+  return true;
+}
+
+/**
+ * D21: results for many numbers at once (the FCC portal and vendors answer a
+ * list). Each line: phone, the date you checked from (YYYY-MM-DD), and the
+ * answer (yes = disconnected since, no, or "no data"). Only numbers in the
+ * user's own book are updated.
+ */
+export async function recordRndBulk(actor: User, text: string, source: string, now = new Date()): Promise<{ updated: number; skipped: number }> {
+  const store = contactStore();
+  let updated = 0;
+  let skipped = 0;
+  for (const line of text.split(/\r?\n/).slice(0, 5000)) {
+    if (!line.trim()) continue;
+    const [rawPhone, rawSince, rawResult] = line.split(/[,\t;]/).map((x) => x.trim());
+    const phone = toE164(rawPhone);
+    const since = /^\d{4}-\d{2}-\d{2}$/.test(rawSince ?? "") ? rawSince : null;
+    const r = (rawResult ?? "").toLowerCase();
+    const result = /^(y|yes|disconnected|true)$/.test(r) ? "yes" : /^(n|no|false|not disconnected)$/.test(r) ? "no" : /no ?data/.test(r) ? "no_data" : null;
+    if (!phone || !since || !result) {
+      skipped++;
+      continue;
+    }
+    const mine = (await store.findByPhone(phone)).filter((c) => canSee(actor, c) && c.ownerUserId === actor.id);
+    if (!mine.length) {
+      skipped++;
+      continue;
+    }
+    for (const c of mine) await store.put({ ...c, rnd: { result, since, checkedAt: now.toISOString(), source: source.trim().slice(0, 120) || "bulk upload" }, updatedAt: now.toISOString() });
+    updated += mine.length;
+  }
+  await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "rnd.bulk", detail: { updated, skipped } });
+  return { updated, skipped };
+}
+
+/** D21: this user's numbers that need a Reassigned Numbers Database check before texts or M8 calls, with the date to check from. */
+export async function rndNeeded(actor: User, now = new Date()): Promise<{ phone: string; since: string; name: string }[]> {
+  const store = contactStore();
+  const { contacts } = await store.list({ ownerUserId: actor.id, kind: "contact", limit: 5000 });
+  const consents = await store.consentsFor(contacts.map((c) => c.id));
+  const out: { phone: string; since: string; name: string }[] = [];
+  for (const c of contacts) {
+    if (!c.phone || c.locked) continue;
+    const s = summarize(consents.filter((e) => e.contactId === c.id));
+    const given = [s.text.marketing, s.text.service, s.ai_call.marketing, s.ai_call.service].filter((x) => x.granted && x.at);
+    if (!given.length || Object.values(s).some((x) => x.service.evidence === "revoked" || x.marketing.evidence === "revoked")) continue;
+    const dates = given.map((x) => ((x.proof ?? "").includes("(recorded for past clients by") && c.loan?.closedOn ? c.loan.closedOn : x.at!.slice(0, 10)));
+    const since = dates.sort()[0];
+    if (now.getTime() - Date.parse(`${since}T12:00:00Z`) <= 90 * 86_400_000) continue;
+    const fresh = c.rnd && now.getTime() - Date.parse(c.rnd.checkedAt) <= 30 * 86_400_000 && c.rnd.since <= since;
+    if (!fresh) out.push({ phone: c.phone, since, name: `${c.firstName} ${c.lastName}`.trim() });
+  }
+  return out;
 }
