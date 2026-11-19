@@ -3117,3 +3117,9 @@ loan.
     `/mlo/team` at 390px. Two different pages points to something shared
     by every page rather than one page. Still logged as "watch"; next
     step is a dev-mode run to get the unminified diff.
+- **Fix (D38):** four templates signed off with "{company}, NMLS
+  #{myNmls}", which put the loan officer's NMLS number next to the
+  company's name. Caught in a screenshot. They now read "{myName}, NMLS
+  #{myNmls}" and "{company}, NMLS #{companyNmls}", and the sign-in
+  sheet's consent line names both. A test now fails if any template
+  pairs the company with the loan officer's number.

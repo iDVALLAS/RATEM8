@@ -28,6 +28,8 @@ describe("Templates (D38)", () => {
     expect(new Set(LIBRARY.map((t) => t.id)).size).toBe(LIBRARY.length);
     // Anything printed or posted carries the licensing line.
     for (const t of LIBRARY.filter((x) => x.channel === "print" || x.channel === "social")) expect(t.body, t.id).toMatch(/NMLS #\{myNmls\}/);
+    // The company is always paired with its own NMLS number, never the loan officer's.
+    for (const t of LIBRARY) expect(t.body, t.id).not.toMatch(/\{company\}, NMLS #\{myNmls\}/);
   });
 
   it("fills your details from config and shows what's still missing", () => {
