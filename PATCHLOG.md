@@ -2579,3 +2579,23 @@ From the research spec's "consent passport" and "the client's own view"
   officer can't draft it. `npm run verify` passes.
 - **Counsel:** the opt-in wording, and adding the client page to the
   privacy notice.
+
+## D27 — The weekly report (2026-11-19)
+
+- **`/mlo/report`** (nav: Weekly report): the last 7 days next to the 7
+  before, for the signed-in loan officer's own book. Counts only:
+  - texts sent (not failed or blocked)
+  - replies from clients
+  - people who said stop
+  - calls logged, and calls where you talked
+  - new leads and new contacts
+  - loan stage changes, and loans closed or funded
+  - drafts approved and sent, and drafts dismissed
+- **Email:** Monday mornings (Pacific), once a week, to those who turn
+  it on in Concierge settings. It's sent by the morning run, after the
+  morning email.
+- **Plumbing:** `touchStore().since(owner, date)`, memory and Neon (the
+  owner and time index exists).
+- **Verified:** `lib/report/weekly.test.ts` (2): counts per category,
+  only this loan officer, the week before separate; the email goes on
+  Mondays only, once, and only when on. `npm run verify` passes (414 tests).

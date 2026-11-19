@@ -14,7 +14,7 @@ const me = async () => (await currentUser()) ?? redirect("/sign-in");
 
 export async function settingsAction(fd: FormData): Promise<void> {
   const u = await me();
-  await saveSettings(u, { enabled: fd.get("enabled") === "on", memory: fd.get("memory") === "on", tasks: fd.get("tasks") === "on", digest: fd.get("digest") === "on", voice: String(fd.get("voice") ?? "") });
+  await saveSettings(u, { enabled: fd.get("enabled") === "on", memory: fd.get("memory") === "on", tasks: fd.get("tasks") === "on", digest: fd.get("digest") === "on", weekly: fd.get("weekly") === "on", voice: String(fd.get("voice") ?? "") });
   back(true, ["Saved."]);
 }
 

@@ -55,6 +55,8 @@ export interface TouchStore extends OptOutStore {
   threads(ownerUserId: string | undefined, limit?: number): Promise<Touch[]>;
   /** Marketing touches out to this contact since a time, by channel. */
   sentSince(contactId: string, since: string): Promise<Touch[]>;
+  /** D27: everything in or out for one loan officer's book since a time (for the weekly report). */
+  since(ownerUserId: string, since: string): Promise<Touch[]>;
   /** D6: loan officers who have texted this phone from this sender number. */
   ownersWhoTexted(phone: string, sender: string): Promise<string[]>;
 }
@@ -91,6 +93,9 @@ export class MemoryTouchStore implements TouchStore {
   }
   async sentSince(id: string, since: string) {
     return this.rows.filter((r) => r.contactId === id && r.direction === "out" && r.purpose === "marketing" && r.status !== "blocked" && r.at >= since);
+  }
+  async since(owner: string, since: string) {
+    return this.rows.filter((r) => r.ownerUserId === owner && r.at >= since).map((r) => ({ ...r }));
   }
 }
 
@@ -162,6 +167,10 @@ export class NeonTouchStore implements TouchStore {
   async sentSince(id: string, since: string) {
     await this.init();
     return (await this.q(`SELECT * FROM cc_touches WHERE contact_id = $1 AND direction = 'out' AND purpose = 'marketing' AND status <> 'blocked' AND at >= $2`, [id, since])).map(toTouch);
+  }
+  async since(owner: string, since: string) {
+    await this.init();
+    return (await this.q(`SELECT * FROM cc_touches WHERE owner_user_id = $1 AND at >= $2 ORDER BY at DESC LIMIT 5000`, [owner, since])).map(toTouch);
   }
 }
 

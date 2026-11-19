@@ -4,7 +4,7 @@
  */
 export const mloContent = {
   title: "MLO admin",
-  nav: { home: "Home", concierge: "Concierge", scripts: "Call scripts", calls: "Call session", automations: "Automations", refi: "Refi watch", inbox: "Inbox", pipeline: "Pipeline", contacts: "Contacts", rules: "Contact rules", team: "Team", signOut: "Sign out", setup: "Setup", texting: "Texting setup", pricing: "Pricing snapshots", voice: "M8 voice", training: "M8 training", rates: "View /rates" },
+  nav: { home: "Home", concierge: "Concierge", scripts: "Call scripts", calls: "Call session", automations: "Automations", refi: "Refi watch", report: "Weekly report", inbox: "Inbox", pipeline: "Pipeline", contacts: "Contacts", rules: "Contact rules", team: "Team", signOut: "Sign out", setup: "Setup", texting: "Texting setup", pricing: "Pricing snapshots", voice: "M8 voice", training: "M8 training", rates: "View /rates" },
   tenantLabel: "Sponsoring brokerage",
   setup: {
     heading: "Setup",

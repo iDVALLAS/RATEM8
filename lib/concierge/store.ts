@@ -24,6 +24,8 @@ export type ConciergeSettings = {
   voice: string;
   /** D11: email a morning summary (names and counts only). */
   digest?: boolean;
+  /** D27: email the weekly report on Monday mornings. */
+  weekly?: boolean;
   updatedAt: string;
 };
 
@@ -112,7 +114,7 @@ export class MemoryConciergeStore implements ConciergeStore {
     return [...this.s.values()].filter((x) => x.enabled).map((x) => x.ownerUserId);
   }
   async digestOwners() {
-    return [...this.s.values()].filter((x) => x.digest).map((x) => x.ownerUserId);
+    return [...this.s.values()].filter((x) => x.digest || x.weekly).map((x) => x.ownerUserId);
   }
   async putProposal(x: Proposal) {
     this.p.set(x.id, structuredClone(x));
@@ -212,7 +214,7 @@ export class NeonConciergeStore implements ConciergeStore {
   }
   async digestOwners() {
     await this.init();
-    return (await this.q(`SELECT owner_user_id FROM cc_concierge_settings WHERE (body->>'digest')::boolean IS TRUE`)).map((r) => r.owner_user_id as string);
+    return (await this.q(`SELECT owner_user_id FROM cc_concierge_settings WHERE (body->>'digest')::boolean IS TRUE OR (body->>'weekly')::boolean IS TRUE`)).map((r) => r.owner_user_id as string);
   }
   async putProposal(x: Proposal) {
     await this.init();

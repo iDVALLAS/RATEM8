@@ -5,6 +5,7 @@ import { sweep } from "@/lib/concierge/agent";
 import { report } from "@/lib/monitoring";
 import { runDaily } from "@/lib/automations/engine";
 import { sendDigest } from "@/lib/digest";
+import { sendWeekly } from "@/lib/report/weekly";
 import { automationStore } from "@/lib/automations/store";
 
 /**
@@ -31,6 +32,8 @@ export async function GET(req: Request) {
       if (r.errors) failed++;
       // D11: after the run, so the email counts this morning's drafts.
       if ((await sendDigest(user)) === "failed") failed++;
+      // D27: Monday mornings, the weekly report.
+      if ((await sendWeekly(user)) === "failed") failed++;
       done++;
     } catch (e) {
       // D8.1: a failed run is recorded, never mistaken for a quiet day.

@@ -56,7 +56,7 @@ export async function closeTask(actor: User, taskId: string): Promise<void> {
   if (t) await store.putTask({ ...t, done: true });
 }
 
-export async function saveSettings(actor: User, change: Partial<Pick<ConciergeSettings, "enabled" | "memory" | "tasks" | "voice" | "digest">>, now = new Date()): Promise<void> {
+export async function saveSettings(actor: User, change: Partial<Pick<ConciergeSettings, "enabled" | "memory" | "tasks" | "voice" | "digest" | "weekly">>, now = new Date()): Promise<void> {
   const store = conciergeStore();
   const s = await store.settings(actor.id);
   if (change.voice) {
