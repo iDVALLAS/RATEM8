@@ -12,7 +12,8 @@ import { toE164 } from "@/lib/contacts/normalize";
 import { decide, type GateDecision } from "@/lib/send-gate/gate";
 import { licensedStatesFor } from "@/lib/send-gate/for-contact";
 import { areaCodeState } from "@/lib/send-gate/rules";
-import { isOptIn, isOptOut, lookupLineType, sendSms, twilioConfig } from "./twilio";
+import { isOptIn, isOptOut, lookupLineType, sendSms, serviceForCompany, twilioConfig } from "./twilio";
+import { companyOfMlo, singleCompany } from "@/lib/accounts/company";
 import { touchStore, type Touch } from "./store";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { conciergeStore } from "@/lib/concierge/store";
@@ -88,6 +89,10 @@ export async function sendText(actor: User, contactId: string, rawBody: string, 
   if (!text) return { ok: false, error: "Write a message first." };
   if (text.length > MAX_TEXT) return { ok: false, error: `Keep it under ${MAX_TEXT} characters.` };
   if (!twilioConfig()) return { ok: false, error: "Texting isn't connected yet. Add the Twilio keys in Vercel." };
+  // D23: the sender registered for this loan officer's sponsoring company.
+  const owner = c.ownerUserId === actor.id ? actor : await accountStore().userById(c.ownerUserId);
+  const service = serviceForCompany(companyOfMlo(owner?.mloId ?? actor.mloId), singleCompany());
+  if (!service) return { ok: false, error: "Texting isn't registered for this loan officer's sponsoring company yet (its own Twilio Messaging Service)." };
   const d = await gateFor(actor, c, "text", purpose, now);
   const audit = accountStore();
   if (!d.allowed) {
@@ -97,8 +102,8 @@ export async function sendText(actor: User, contactId: string, rawBody: string, 
   const first = !(await touchStore().forContact(c.id, 500)).some((t) => t.direction === "out" && t.channel === "text");
   const sig = signature(actor);
   const body = purpose === "marketing" || first ? (text.includes("STOP") ? text : `${text}\n\n${sig}`) : text;
-  const res = await sendSms(c.phone!, body, statusCallback);
-  await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose, direction: "out", body, status: res.ok ? res.status : "failed", providerId: res.ok ? res.sid : null, note: d.basis, at: now.toISOString(), actor: actor.email, phone: c.phone, sender: twilioConfig()!.service, origin: opts.origin ?? "human" });
+  const res = await sendSms(c.phone!, body, statusCallback, service);
+  await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose, direction: "out", body, status: res.ok ? res.status : "failed", providerId: res.ok ? res.sid : null, note: d.basis, at: now.toISOString(), actor: actor.email, phone: c.phone, sender: service, origin: opts.origin ?? "human" });
   await audit.audit({ at: now.toISOString(), actor: actor.email, action: "gate.send.text", detail: { contactId, purpose, basis: d.basis, ok: res.ok } });
   return res.ok ? { ok: true } : { ok: false, error: res.error };
 }

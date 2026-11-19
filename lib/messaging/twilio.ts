@@ -13,7 +13,8 @@ const env = (k: string) => process.env[k]?.trim() || undefined;
 export function twilioConfig(): { sid: string; token: string; service: string } | null {
   const sid = env("TWILIO_ACCOUNT_SID");
   const token = env("TWILIO_AUTH_TOKEN");
-  const service = env("TWILIO_MESSAGING_SERVICE_SID");
+  // D23: any Messaging Service counts as "connected"; which one sends is chosen per company.
+  const service = env("TWILIO_MESSAGING_SERVICE_SID") ?? Object.entries(process.env).find(([k, v]) => k.startsWith("TWILIO_MESSAGING_SERVICE_SID_") && v?.trim())?.[1]?.trim();
   return sid && token && service ? { sid, token, service } : null;
 }
 
@@ -21,10 +22,23 @@ const auth = (c: { sid: string; token: string }) => `Basic ${Buffer.from(`${c.si
 
 export type SendResult = { ok: true; sid: string; status: string; from: string | null } | { ok: false; error: string };
 
-export async function sendSms(to: string, body: string, statusCallback: string | null): Promise<SendResult> {
+/**
+ * D23: the Messaging Service (one 10DLC brand and campaign) for a sponsoring
+ * company, by the sponsor's NMLS number: TWILIO_MESSAGING_SERVICE_SID_<NMLS>.
+ * With one sponsor on the platform, TWILIO_MESSAGING_SERVICE_SID works too.
+ * With more than one, a company without its own service can't text (one
+ * company's texts never go out under another's registration).
+ */
+export function serviceForCompany(company: string | null, single: boolean): string | null {
+  const own = company ? env(`TWILIO_MESSAGING_SERVICE_SID_${company.replace(/\D/g, "")}`) : undefined;
+  if (own) return own;
+  return single ? (env("TWILIO_MESSAGING_SERVICE_SID") ?? null) : null;
+}
+
+export async function sendSms(to: string, body: string, statusCallback: string | null, service?: string): Promise<SendResult> {
   const c = twilioConfig();
   if (!c) return { ok: false, error: "Texting isn't connected yet (Twilio)." };
-  const form = new URLSearchParams({ To: to, Body: body, MessagingServiceSid: c.service });
+  const form = new URLSearchParams({ To: to, Body: body, MessagingServiceSid: service ?? c.service });
   if (statusCallback) form.set("StatusCallback", statusCallback);
   try {
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${c.sid}/Messages.json`, {

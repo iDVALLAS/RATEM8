@@ -2439,3 +2439,36 @@ companies (GLBA and Reg P; Safeguards 314.4(c)(1)).
 - **Before a second sponsor joins:** give each sponsor its own texting
   sender (D23) and confirm with counsel how the owner's oversight role is
   described to clients (privacy notice).
+
+## D23 — A texting registration per sponsoring company (2026-11-19)
+
+From ledger item 14 and the D9 plan (10DLC per sponsor).
+
+- **Sending:** every text goes out through the Messaging Service of the
+  loan officer's sponsoring company: `TWILIO_MESSAGING_SERVICE_SID_<NMLS>`
+  (`serviceForCompany`, `lib/messaging/twilio.ts`).
+  - While there's one sponsor, the shared `TWILIO_MESSAGING_SERVICE_SID`
+    works too.
+  - With more than one, a company without its own service can't text, so
+    no company's texts go out under another's registration.
+  - Inbound texts already route by the sending number (D6).
+- **`/mlo/texting`** (admin nav: Texting setup): per sponsor, the exact
+  wording Twilio's 10DLC registration asks for.
+  - The brand is the sponsor itself.
+  - The first campaign is Customer Care, registered first because mortgage
+    marketing campaigns are often refused and a refusal is final; check-ins
+    go by email until marketing is approved.
+  - Also a campaign description, how people opt in, sample messages (from
+    the journey), opt-out and HELP wording, and the opt-out confirmation
+    that only confirms (FCC 26-67, by 2026-11-25).
+  - It shows the webhook addresses to set and whether each company's
+    service is in Vercel.
+- **Verified:**
+  - `lib/messaging/senders.test.ts` (2): own service; shared only with one
+    sponsor; connected with per-company services only.
+  - Clicked through locally: texting setup for Adcom Group Inc dba Home
+    Trust Financial (NMLS 1761573), Team "Books" counts, a past-due Loan
+    Estimate on Today with "Open the journey", "Your next steps" on
+    Pipeline, and the reassigned-number section. No console errors, no
+    overflow at 390px.
+  - `npm run verify` passes (404 tests).
