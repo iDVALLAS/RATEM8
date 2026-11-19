@@ -86,3 +86,12 @@
 .nw-meter { height: 10px; border-radius: 999px; background: var(--bg-sunken); border: 1px solid var(--rule); overflow: hidden; margin-top: 10px; }
 .nw-meter span { display: block; height: 100%; background: var(--accent); }
 .nw-meter span.nw-meter--over { background: var(--muted); }
+
+/* D42: the one-drop import. */
+.im-drop { position: relative; display: grid; gap: 8px; place-items: center; text-align: center; min-height: 160px; margin-top: 14px; padding: 24px 18px; border: 2px dashed var(--rule-strong); border-radius: 16px; background: var(--bg-sunken); cursor: pointer; transition: border-color 150ms ease-out; }
+.im-drop:hover, .im-drop:focus-within, .im-drop--on { border-color: var(--accent); }
+.im-drop__input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.im-drop__title { font-size: 18px; color: var(--fg); }
+.im-files { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.mlo-scroll { overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) { .im-drop { transition: none; } }

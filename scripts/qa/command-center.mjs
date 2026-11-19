@@ -31,6 +31,20 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.getByRole('button', { name: /^Import \d+ people/ }).click();
     await page.getByRole('heading', { name: 'Imported' }).waitFor();
   });
+  await step('import: Excel + phone contacts + CSV at once', async () => {
+    await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
+    await page.setInputFiles('input[type=file]', [
+      { name: 'Past clients.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: fs.readFileSync(path.join(process.cwd(), 'fixtures/contacts/sample.xlsx')) },
+      { name: 'phone.vcf', mimeType: 'text/vcard', buffer: Buffer.from('BEGIN:VCARD\nFN:Ann Lee\nTEL;TYPE=CELL:(206) 555-1234\nEMAIL:ann@example.com\nEND:VCARD\n') },
+    ]);
+    await page.locator('h2', { hasText: 'people ready' }).waitFor({ timeout: 20000 });
+    const ready = await page.locator('h2', { hasText: 'people ready' }).innerText();
+    console.log('bulk ready:', ready);
+    if (!/^5 people ready/.test(ready)) problems.push('[import bulk] expected 5 people after merging, got: ' + ready);
+    await page.getByText('My own relationships').click();
+    await page.getByRole('button', { name: /^Import \d+ people/ }).click();
+    await page.getByRole('heading', { name: 'Imported' }).waitFor();
+  });
   let key = '';
   await step('pipeline key + loan + lead', async () => {
     await page.goto(B + '/mlo/pipeline');

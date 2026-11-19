@@ -3203,3 +3203,79 @@ loan.
   All feature tests still pass through their test seams.
 - **Next:** run the overnight Concierge through the Batch API (half price)
   once usage data shows where the cost goes.
+
+## D42 — Bulk import: drop any files, and Command Center does the rest (2026-11-19)
+
+The owner asked for the simplest possible import, where the AI handles
+the matching and cleanup, converts Excel, and does everything for the
+loan officer.
+
+- **`/mlo/contacts/import` is now one screen.** Drop any number of files,
+  or paste rows from a spreadsheet. It handles:
+  - Excel `.xlsx` (every sheet)
+  - CSV, tab-separated or semicolon text
+  - phone contact cards (`.vcf` from iPhone, Android, Google, Outlook)
+  Old `.xls`, `.numbers` and `.ods` files get a "save it as .xlsx or
+  .csv" message. Up to 20 files and 25 MB each, 50,000 people at once,
+  imported 500 at a time with progress.
+- **Excel without a library** (`lib/contacts/xlsx.ts`):
+  - It reads the ZIP's central directory and inflates parts with the
+    browser's own DecompressionStream; tests use Node's zlib.
+  - It reads the workbook, shared strings (rich text included), styles
+    (which number cells are dates, returned as YYYY-MM-DD) and every
+    sheet.
+  - The file never leaves the device; only cleaned rows are sent, as
+    before.
+- **Smart cleanup** (`lib/contacts/smart.ts`):
+  - **Finding the table:** title and blank rows above the header are
+    skipped, and headers are made ("Column 1…") when a file has none.
+  - **Matching columns:** by header name (the D2 synonyms), then by
+    content (emails, phones, states, ZIPs, dates, amounts, rates, full
+    names) for anything unmatched.
+  - **Excel dates stored as plain numbers** ("44287") become dates, and
+    years outside 1900–2100 are rejected.
+  - **A default relationship** comes from the file or sheet name ("Past
+    clients 2021.xlsx" → past client). The loan officer can change it.
+  - **Duplicates across all files** (same phone or email) are merged,
+    with gaps filled from the other copy and tags combined. Everyone is
+    sorted by last name.
+  - **"Download cleaned CSV"** saves the converted, cleaned list. Cells
+    that would run as spreadsheet formulas are quoted.
+  - **Phone contacts never read birthdays.**
+- **M8 matching** (`lib/contacts/ai-map.ts`, route `import`, metered by
+  D41):
+  - **What M8 sees:** for client lists, the file name, each header, and
+    up to three value *shapes* (letters as A/a, digits as 9: "Aaa Aaa",
+    "(999) 999-9999"). Never a name, number, email or address; any
+    "shape" that still looks like a real value is dropped before
+    sending.
+  - **Checks on the answer:** each field is used once, columns must be in
+    range, and M8 is told never to map SSNs, birthdates, account numbers
+    or credit scores. M8's matches come first; the name and content
+    matches fill the gaps.
+  - **Agent lists never go to the AI** (RETR's terms).
+  - **Without the key or allowance,** the name and content matching
+    alone does it.
+- **The screen:** "N people ready", lists merged and rows skipped (with an
+  example), then each list with its matches (in column order), its
+  default relationship, "Change matches" and "Remove this list". Then a
+  preview, the source question (unchanged: compliance decides what may be
+  done with a list), Import, and Download. The result links to "Record
+  the permission you hold".
+- **Verified:** `lib/contacts/smart.test.ts` (8) covers:
+  - a real openpyxl workbook with a title row, date cells, rich text and
+    two sheets, all the way to clean records (states from ZIPs,
+    relationship from the sheet name)
+  - vCard parsing, without birthdays
+  - generated headers and content matching
+  - shapes that never contain values
+  - merging across files, sorting, and the CSV formula escape
+  - 10,000 rows cleaned and merged in under 3 seconds
+  - M8 matching from shapes only, a leaked value dropped, agent lists
+    refused, and bad JSON handled
+  The fixture is `fixtures/contacts/sample.xlsx`.
+- **Browser test:** dropping the Excel file (2 sheets), iPhone contacts,
+  a CSV and an old .xls at once gave 4 lists, 9 rows → 7 people with 2
+  duplicates merged, the .xls message, a working cleaned-CSV download
+  and a successful import, with no page errors. The QA sweep adds this
+  as a step.

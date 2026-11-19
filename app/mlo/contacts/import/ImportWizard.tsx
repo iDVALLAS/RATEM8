@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { parseCsv, MAX_ROWS, type Csv } from "@/lib/contacts/csv";
-import { autoMap, buildRecords, fieldsFor, RELATIONSHIP_LABELS, type Field, type ImportKind, type Mapping } from "@/lib/contacts/mapping";
+import { buildRecords, fieldsFor, RELATIONSHIP_LABELS, type Field, type ImportKind, type ImportRecord, type Mapping, type RowProblem } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
-import { importBatchAction } from "../actions";
+import { mergeRecords, parseVcf, relationshipFromName, shapes, smartMap, toCleanCsv, toTable } from "@/lib/contacts/smart";
+import { browserInflate, readXlsx } from "@/lib/contacts/xlsx";
+import { aiMapAction, importBatchAction } from "../actions";
 import type { Provenance } from "@/lib/contacts/store";
 
 const SOURCES: [Provenance, string][] = [
@@ -17,53 +19,136 @@ const SOURCES: [Provenance, string][] = [
 ];
 
 const BATCH = 500;
+const MAX_TOTAL = 50_000;
+const MAX_FILE = 25 * 1024 * 1024;
+
+type Item = { id: string; name: string; table: Csv; mapping: Mapping; rel: string | null; by: "names" | "m8" };
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** A table from any file the loan officer drops. Everything is read here, in the browser. */
+async function readFile(f: File): Promise<{ name: string; table: Csv }[] | string> {
+  const lower = f.name.toLowerCase();
+  if (f.size > MAX_FILE) return `${f.name} is over 25 MB. Split it into smaller files.`;
+  if (/\.(xls|numbers|ods)$/.test(lower)) return `${f.name}: open it and save it as .xlsx or .csv first (this older format can't be read in the browser).`;
+  try {
+    if (lower.endsWith(".xlsx") || lower.endsWith(".xlsm")) {
+      const sheets = await readXlsx(new Uint8Array(await f.arrayBuffer()), browserInflate);
+      const out = sheets.filter((s) => s.rows.length > 1).map((s) => ({ name: sheets.length > 1 ? `${f.name} · ${s.name}` : f.name, table: toTable(s.rows) }));
+      return out.length ? out : `${f.name} has no rows.`;
+    }
+    const text = await f.text();
+    if (lower.endsWith(".vcf") || /^BEGIN:VCARD/im.test(text.slice(0, 200))) {
+      const t = parseVcf(text);
+      return t.rows.length ? [{ name: f.name, table: t }] : `${f.name} has no contact cards.`;
+    }
+    const c = parseCsv(text);
+    const t = toTable([c.headers, ...c.rows]);
+    return t.rows.length ? [{ name: f.name, table: t }] : `${f.name} has no rows.`;
+  } catch {
+    return `${f.name} couldn't be read. If it's a spreadsheet, save it as .xlsx or .csv and try again.`;
+  }
+}
 
 /**
- * The import wizard (D2): pick the file → check the column matches →
- * import. The file is read here in the browser; only the cleaned rows are
- * sent, in batches, and the file itself is never uploaded or kept.
+ * The one-drop import (D42): drop any number of files (Excel with every
+ * sheet, CSV, tab-separated text, phone contact cards), or paste rows.
+ * Columns are matched by their names and contents, and by M8 from headers
+ * and value shapes only. Duplicates across files are merged. Files are
+ * read in the browser; only the cleaned rows are sent, in batches.
  */
 export default function ImportWizard({ initialKind }: { initialKind: ImportKind }) {
   const [kind, setKind] = useState<ImportKind>(initialKind);
   const [provenance, setProvenance] = useState<Provenance | "">(initialKind === "agents" ? "agent_partner" : "");
-  const [csv, setCsv] = useState<Csv | null>(null);
-  const [fileName, setFileName] = useState("");
-  const [mapping, setMapping] = useState<Mapping>({});
+  const [items, setItems] = useState<Item[]>([]);
+  const [reading, setReading] = useState(false);
+  const [paste, setPaste] = useState("");
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [result, setResult] = useState<{ created: number; merged: number; skipped: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [drag, setDrag] = useState(false);
 
-  const built = useMemo(() => (csv ? buildRecords(csv, mapping, kind) : null), [csv, mapping, kind]);
   const fields = fieldsFor(kind);
+  const built = useMemo(() => {
+    const per = items.map((it) => ({ it, ...buildRecords(it.table, it.mapping, kind, { defaultRelationship: it.rel }) }));
+    const merged = mergeRecords(per.map((p) => p.records));
+    const problems: (RowProblem & { file: string })[] = per.flatMap((p) => p.problems.map((x) => ({ ...x, file: p.it.name })));
+    return { per, records: merged.records.slice(0, MAX_TOTAL), merged: merged.merged, problems, over: merged.records.length > MAX_TOTAL };
+  }, [items, kind]);
 
-  const onFile = async (f: File | undefined) => {
-    setError(null);
+  const addTables = async (tables: { name: string; table: Csv }[]) => {
+    const next: Item[] = [];
+    for (const t of tables) {
+      const base: Item = { id: uid(), name: t.name, table: { headers: t.table.headers, rows: t.table.rows.slice(0, MAX_ROWS) }, mapping: smartMap(t.table, kind), rel: kind === "agents" ? null : relationshipFromName(t.name), by: "names" };
+      if (kind === "contacts") {
+        // M8 sees headers and value shapes only ("Aaa Aaa", "(999) 999-9999"), never the values.
+        const ai = await aiMapAction({ fileName: t.name, kind, columns: shapes(base.table) }).catch(() => null);
+        if (ai?.ok) {
+          const m: Mapping = { ...ai.mapping };
+          const used = new Set(Object.values(m));
+          for (const [f, col] of Object.entries(base.mapping) as [Field, number][]) if (m[f] === undefined && !used.has(col)) m[f] = col;
+          if (m.firstName !== undefined && m.lastName !== undefined) delete m.fullName;
+          next.push({ ...base, mapping: m, rel: base.rel ?? ai.relationship, by: "m8" });
+          continue;
+        }
+      }
+      next.push(base);
+    }
+    setItems((cur) => [...cur, ...next]);
+  };
+
+  const onFiles = async (list: FileList | File[] | null) => {
+    if (!list || !list.length) return;
     setResult(null);
-    if (!f) return;
-    if (f.size > 10 * 1024 * 1024) return setError("That file is over 10 MB. Split it into smaller files.");
-    const parsed = parseCsv(await f.text());
-    if (!parsed.headers.length || !parsed.rows.length) return setError("That file has no rows. Export it as CSV with a header row.");
-    setCsv(parsed);
-    setFileName(f.name);
-    setMapping(autoMap(parsed.headers, kind));
+    setReading(true);
+    const errs: string[] = [];
+    const tables: { name: string; table: Csv }[] = [];
+    for (const f of Array.from(list).slice(0, 20)) {
+      const r = await readFile(f);
+      if (typeof r === "string") errs.push(r);
+      else tables.push(...r);
+    }
+    await addTables(tables);
+    setErrors(errs);
+    setReading(false);
+  };
+
+  const onPaste = async () => {
+    const c = parseCsv(paste);
+    const t = toTable([c.headers, ...c.rows]);
+    if (!t.rows.length) return setErrors(["Paste at least a header row and one row of people (copy the cells straight from Excel or Google Sheets)."]);
+    setReading(true);
+    await addTables([{ name: "Pasted rows", table: t }]);
+    setPaste("");
+    setReading(false);
   };
 
   const switchKind = (k: ImportKind) => {
     setKind(k);
-    if (csv) setMapping(autoMap(csv.headers, k));
+    setItems((cur) => cur.map((it) => ({ ...it, mapping: smartMap(it.table, k), rel: k === "agents" ? null : relationshipFromName(it.name), by: "names" })));
+  };
+
+  const download = () => {
+    const blob = new Blob([toCleanCsv(built.records)], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `loanm8-contacts-cleaned-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   };
 
   const run = async () => {
-    if (!built) return;
-    if (!provenance) return setError("Pick where this list came from first.");
-    setError(null);
-    const total = built.records.length;
-    const sum = { created: 0, merged: 0, skipped: built.problems.length };
+    if (!provenance) return setErrors(["Pick where these lists came from first."]);
+    setErrors([]);
+    const records: ImportRecord[] = built.records;
+    const total = records.length;
+    const sum = { created: 0, merged: built.merged, skipped: built.problems.length };
     setProgress({ done: 0, total });
+    const source = items.length === 1 ? items[0].name : `${items.length} files`;
     for (let i = 0; i < total; i += BATCH) {
-      const res = await importBatchAction({ kind, source: fileName, provenance, records: built.records.slice(i, i + BATCH) });
+      const res = await importBatchAction({ kind, source, provenance, records: records.slice(i, i + BATCH) });
       if (!res.ok) {
-        setError(res.error);
+        setErrors([res.error]);
         setProgress(null);
         return;
       }
@@ -74,26 +159,19 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
     }
     setProgress(null);
     setResult(sum);
-    setCsv(null);
+    setItems([]);
   };
 
   if (result) {
     return (
       <section className="mlo-section" role="status">
         <h2>Imported</h2>
-        <p className="mlo-note">
-          {result.created} new · {result.merged} merged into people you already had · {result.skipped} skipped (no way to reach them).
-        </p>
-        <p className="mlo-note">
-          Everyone starts as <strong>relationship only</strong>: you can call them yourself, but M8 won&apos;t text or call anyone until their permission is recorded with proof.
-        </p>
-        {provenance === "prior_employer" ? (
-          <p className="mlo-note">
-            Because this list came from a previous employer&apos;s system, these people are <strong>on hold</strong>: nothing will be sent to them until you confirm on the Contacts page that you&apos;re allowed to use the list.
-          </p>
-        ) : null}
-        <p style={{ marginTop: 12 }}>
-          <Link href={kind === "agents" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn">See them</Link>
+        <p className="mlo-note">{result.created.toLocaleString("en-US")} new · {result.merged.toLocaleString("en-US")} merged (duplicates in your files, or people you already had) · {result.skipped.toLocaleString("en-US")} skipped (no way to reach them).</p>
+        <p className="mlo-note">Everyone starts as <strong>relationship only</strong>: you can call them yourself, but M8 won&apos;t text or call anyone until their permission is recorded with proof.</p>
+        {provenance === "prior_employer" ? <p className="mlo-note">Because these came from a previous employer&apos;s system, they&apos;re <strong>on hold</strong> until you confirm on the Contacts page that you&apos;re allowed to use the list.</p> : null}
+        <p style={{ marginTop: 12 }} className="mlo-row-form">
+          <Link href={kind === "agents" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn" style={{ marginTop: 0 }}>See them</Link>
+          {kind === "contacts" ? <Link href="/mlo/contacts/permission" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Record the permission you hold</Link> : null}
         </p>
       </section>
     );
@@ -102,32 +180,96 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
   return (
     <>
       <section className="mlo-section">
-        <h2>1 · What are you importing?</h2>
         <div className="mlo-row-form" role="radiogroup" aria-label="Import type">
           {(["contacts", "agents"] as const).map((k) => (
             <label key={k} className="mlo-check">
               <input type="radio" name="kind" checked={kind === k} onChange={() => switchKind(k)} />
-              <span>{k === "contacts" ? "Clients and contacts (from Bonzo, Total Expert, Jungo, Salesforce, Google, Outlook or a spreadsheet)" : "Real estate agents (a RETR export or any agent list)"}</span>
+              <span>{k === "contacts" ? "Clients and contacts" : "Real estate agents"}</span>
             </label>
           ))}
         </div>
-        <label className="mlo-field" style={{ marginTop: 12 }}>
-          <span>CSV file (up to {MAX_ROWS.toLocaleString("en-US")} rows). It stays on this computer; only the cleaned rows are sent.</span>
-          <input type="file" accept=".csv,text/csv" onChange={(e) => onFile(e.target.files?.[0])} className="mlo-input" />
+        <label
+          className={`im-drop ${drag ? "im-drop--on" : ""}`}
+          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); void onFiles(e.dataTransfer.files); }}
+        >
+          <input type="file" multiple accept=".xlsx,.xlsm,.csv,.tsv,.txt,.vcf,text/csv,text/vcard" onChange={(e) => { void onFiles(e.target.files); e.target.value = ""; }} className="im-drop__input" />
+          <span className="im-drop__title">{reading ? "Reading your files…" : "Drop your contact files here, or tap to choose"}</span>
+          <span className="mlo-note">Excel (every sheet), CSV, or phone contacts (.vcf). Exports from Bonzo, Total Expert, Jungo, Salesforce, Google, Outlook, iPhone or Android all work. As many files as you like; they&apos;re combined and duplicates merged. Your files stay on this device; only the cleaned rows are sent.</span>
         </label>
-        {kind === "agents" ? (
-          <p className="mlo-note" style={{ marginTop: 8 }}>
-            RETR&apos;s terms (updated September 2026) don&apos;t allow its data to be used with AI or automated tools. Command Center only shows an agent&apos;s production to you on their page; M8 and Today&apos;s suggestions never use it.
-          </p>
-        ) : null}
-        {error ? <div className="mlo-flash mlo-flash--err" role="alert">{error}</div> : null}
+        <details className="mlo-details">
+          <summary>Or paste rows from a spreadsheet</summary>
+          <textarea className="mlo-textarea" rows={5} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Copy the cells (with the header row) and paste them here" />
+          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={onPaste} disabled={reading || paste.trim().length < 5}>Use these rows</button>
+        </details>
+        {kind === "agents" ? <p className="mlo-note" style={{ marginTop: 8 }}>RETR&apos;s terms (updated September 2026) don&apos;t allow its data to be used with AI or automated tools, so agent lists are matched without M8, and M8 never sees agents&apos; production.</p> : null}
+        {errors.map((e, i) => <div key={i} className="mlo-flash mlo-flash--err" role="alert">{e}</div>)}
       </section>
 
-      {csv && built ? (
+      {items.length ? (
         <>
+          <section className="mlo-section" aria-live="polite">
+            <h2>{built.records.length.toLocaleString("en-US")} people ready</h2>
+            <p className="mlo-note">
+              From {items.length} {items.length === 1 ? "list" : "lists"} · {built.merged.toLocaleString("en-US")} duplicates merged (same phone or email) · {built.problems.length.toLocaleString("en-US")} rows skipped
+              {built.problems.length ? ` (for example ${built.problems[0].file}, row ${built.problems[0].row}: ${built.problems[0].reason})` : ""}. Phones, emails, states and dates are cleaned; names are split; people are sorted by last name.
+              {built.over ? ` Only the first ${MAX_TOTAL.toLocaleString("en-US")} are imported at once; import the rest after.` : ""}
+            </p>
+            <ol className="im-files">
+              {built.per.map(({ it, records, problems }) => (
+                <li key={it.id} className="cc-card">
+                  <p className="cc-card__title">{it.name} · {records.length.toLocaleString("en-US")} {records.length === 1 ? "person" : "people"}{problems.length ? ` · ${problems.length} skipped` : ""} · matched by {it.by === "m8" ? "M8 (from column names and shapes only)" : "column names and contents"}</p>
+                  <p className="mlo-note">{(Object.entries(it.mapping) as [Field, number][]).filter(([f]) => f in fields).sort((a, b) => a[1] - b[1]).map(([f, col]) => `${it.table.headers[col]} → ${fields[f as keyof typeof fields]}`).join(" · ") || "Nothing matched yet."}</p>
+                  {kind === "contacts" ? (
+                    <label className="mlo-field" style={{ maxWidth: 360, marginTop: 6 }}>
+                      <span>Anyone the file doesn&apos;t label is a</span>
+                      <select className="mlo-select" value={it.rel ?? ""} onChange={(e) => setItems((cur) => cur.map((x) => (x.id === it.id ? { ...x, rel: e.target.value || null } : x)))}>
+                        <option value="">Other / not sure</option>
+                        {(["past_client", "lead", "sphere", "agent"] as const).map((r) => <option key={r} value={r}>{RELATIONSHIP_LABELS[r]}</option>)}
+                      </select>
+                    </label>
+                  ) : null}
+                  <details className="mlo-details">
+                    <summary>Change matches</summary>
+                    <div className="mlo-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))" }}>
+                      {(Object.entries(fields) as [Field, string][]).map(([f, label]) => (
+                        <label key={f} className="mlo-field">
+                          <span>{label}</span>
+                          <select className="mlo-select" value={it.mapping[f] ?? ""} onChange={(e) => setItems((cur) => cur.map((x) => (x.id === it.id ? { ...x, mapping: { ...x.mapping, [f]: e.target.value === "" ? undefined : Number(e.target.value) } } : x)))}>
+                            <option value="">Not in this file</option>
+                            {it.table.headers.map((h, i) => <option key={i} value={i}>{h}</option>)}
+                          </select>
+                        </label>
+                      ))}
+                    </div>
+                  </details>
+                  <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setItems((cur) => cur.filter((x) => x.id !== it.id))}>Remove this list</button>
+                </li>
+              ))}
+            </ol>
+            <div className="mlo-scroll">
+              <table className="mlo-table" style={{ marginTop: 12 }}>
+                <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>State</th><th>{kind === "agents" ? "Brokerage" : "Relationship"}</th></tr></thead>
+                <tbody>
+                  {built.records.slice(0, 8).map((r, i) => (
+                    <tr key={i}>
+                      <th scope="row">{`${r.firstName} ${r.lastName}`.trim() || "(no name)"}</th>
+                      <td>{formatPhone(r.phone)}</td>
+                      <td>{r.email ?? ""}</td>
+                      <td>{r.state ?? ""}</td>
+                      <td>{kind === "agents" ? r.agent?.brokerage ?? "" : RELATIONSHIP_LABELS[r.relationship]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {kind === "contacts" && built.records.some((r) => r.attestedOptIns.length) ? <p className="mlo-note" style={{ marginTop: 8 }}>Some files have opt-in columns. Those are recorded as <strong>your word</strong> that they opted in, not as proof.</p> : null}
+          </section>
+
           <section className="mlo-section">
-            <h2>2 · Where did this list come from?</h2>
-            <p className="mlo-note">This decides what Command Center may do with it. Lists exported from a previous employer&apos;s system are put on hold until you confirm you&apos;re allowed to use them.</p>
+            <h2>Where did these lists come from?</h2>
+            <p className="mlo-note">This decides what Command Center may do with them. Lists exported from a previous employer&apos;s system are put on hold until you confirm you&apos;re allowed to use them.</p>
             <div className="mlo-grid">
               {SOURCES.map(([k, label]) => (
                 <label key={k} className="mlo-check">
@@ -136,57 +278,12 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
                 </label>
               ))}
             </div>
-          </section>
-
-          <section className="mlo-section">
-            <h2>3 · Check the matches</h2>
-            <p className="mlo-note">We matched what we could from {fileName}. Fix anything that&apos;s wrong; leave a field as “Not in my file” to skip it.</p>
-            <div className="mlo-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
-              {(Object.entries(fields) as [Field, string][]).map(([f, label]) => (
-                <label key={f} className="mlo-field">
-                  <span>{label}</span>
-                  <select
-                    className="mlo-select"
-                    value={mapping[f] ?? ""}
-                    onChange={(e) => setMapping((m) => ({ ...m, [f]: e.target.value === "" ? undefined : Number(e.target.value) }))}
-                  >
-                    <option value="">Not in my file</option>
-                    {csv.headers.map((h, i) => (
-                      <option key={i} value={i}>{h || `Column ${i + 1}`}</option>
-                    ))}
-                  </select>
-                </label>
-              ))}
+            <div className="mlo-row-form" style={{ marginTop: 12 }}>
+              <button type="button" className="mlo-btn" style={{ marginTop: 0 }} disabled={!built.records.length || !!progress || !provenance} onClick={run}>
+                {progress ? `Importing… ${progress.done.toLocaleString("en-US")} of ${progress.total.toLocaleString("en-US")}` : `Import ${built.records.length.toLocaleString("en-US")} people`}
+              </button>
+              <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={!built.records.length} onClick={download}>Download cleaned CSV</button>
             </div>
-          </section>
-
-          <section className="mlo-section">
-            <h2>4 · Preview</h2>
-            <p className="mlo-note">
-              {built.records.length.toLocaleString("en-US")} people ready · {built.problems.length} rows will be skipped
-              {built.problems.length ? ` (for example row ${built.problems[0].row}: ${built.problems[0].reason})` : ""}. Duplicates of people you already have are merged, by phone or email.
-            </p>
-            <table className="mlo-table">
-              <tbody>
-                {built.records.slice(0, 5).map((r, i) => (
-                  <tr key={i}>
-                    <th scope="row">{`${r.firstName} ${r.lastName}`.trim() || "(no name)"}</th>
-                    <td>{formatPhone(r.phone)}</td>
-                    <td>{r.email ?? ""}</td>
-                    <td>{r.state ?? ""}</td>
-                    <td>{kind === "agents" ? r.agent?.brokerage ?? "" : RELATIONSHIP_LABELS[r.relationship]}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {kind === "contacts" && built.records.some((r) => r.attestedOptIns.length) ? (
-              <p className="mlo-note" style={{ marginTop: 8 }}>
-                Your file has opt-in columns. Those are recorded as <strong>your word</strong> that they opted in, not as proof. M8 calls and marketing texts still need proof (a signed form, a recording or a text reply).
-              </p>
-            ) : null}
-            <button type="button" className="mlo-btn" disabled={!built.records.length || !!progress || !provenance} onClick={run}>
-              {progress ? `Importing… ${progress.done.toLocaleString("en-US")} of ${progress.total.toLocaleString("en-US")}` : `Import ${built.records.length.toLocaleString("en-US")} people`}
-            </button>
           </section>
         </>
       ) : null}

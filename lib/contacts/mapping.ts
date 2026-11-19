@@ -150,7 +150,8 @@ export function relationshipOf(raw: string | undefined, kind: ImportKind): strin
 export const RELATIONSHIP_LABELS: Record<string, string> = { past_client: "Past client", lead: "Lead", sphere: "Sphere", agent: "Agent", other: "Other" };
 
 /** Turns mapped rows into records. Rows with no name and no way to reach them are skipped with a reason. */
-export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind): { records: ImportRecord[]; problems: RowProblem[] } {
+export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts: { defaultRelationship?: string | null; firstRow?: number } = {}): { records: ImportRecord[]; problems: RowProblem[] } {
+  const rowNo = (i: number) => i + (opts.firstRow ?? 2);
   const records: ImportRecord[] = [];
   const problems: RowProblem[] = [];
   const get = (row: string[], f: Field) => (mapping[f] !== undefined ? (row[mapping[f]!] ?? "").trim() : "");
@@ -162,8 +163,8 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind): { re
     const email = cleanEmail(get(row, "email"));
     const phone = toE164(get(row, "phone"));
     const phone2 = toE164(get(row, "phone2"));
-    if (!first && !last && !email) return problems.push({ row: i + 2, reason: "no name or email" });
-    if (!email && !phone && !phone2) return problems.push({ row: i + 2, reason: "no valid phone or email" });
+    if (!first && !last && !email) return problems.push({ row: rowNo(i), reason: "no name or email" });
+    if (!email && !phone && !phone2) return problems.push({ row: rowNo(i), reason: "no valid phone or email" });
     const zip = get(row, "zip") || null;
     const state = cleanState(get(row, "state")) ?? stateFromZip(zip ?? undefined);
     const tags = get(row, "tags").split(/[;,|]/).map((t) => t.trim()).filter(Boolean).slice(0, 20);
@@ -180,7 +181,8 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind): { re
       city: get(row, "city").slice(0, 60) || null,
       state,
       zip,
-      relationship: relationshipOf(get(row, "relationship"), kind),
+      // D42: a file named "Past clients…" makes "past client" the default when a row doesn't say.
+      relationship: get(row, "relationship") || !opts.defaultRelationship || kind === "agents" ? relationshipOf(get(row, "relationship"), kind) : opts.defaultRelationship,
       tags,
       notes: get(row, "notes").slice(0, 2000) || null,
       loan: kind === "contacts" && (closedOn || amount || noteRate) ? { closedOn, amount, noteRate: noteRate !== null && noteRate > 0 && noteRate < 20 ? noteRate : null } : null,

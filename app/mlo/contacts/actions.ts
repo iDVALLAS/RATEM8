@@ -151,3 +151,11 @@ export async function rotateClientLinkAction(contactId: string): Promise<void> {
   if (c && c.ownerUserId === actor.id) await rotateLink(c);
   redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: !!c, lines: [c ? "New link made. The old one no longer works." : "No such contact."] })}#their-page`);
 }
+
+/** D42: M8 matches columns from headers and value shapes only (never values; never agent lists). */
+export async function aiMapAction(input: { fileName: string; kind: string; columns: { header: string; shapes: string[] }[] }): Promise<import("@/lib/contacts/ai-map").AiMapResult> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in first." };
+  const { aiMapColumns } = await import("@/lib/contacts/ai-map");
+  return aiMapColumns(actor, input);
+}

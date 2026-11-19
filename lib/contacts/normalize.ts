@@ -70,7 +70,14 @@ export function splitName(raw: string | undefined): [string, string] {
 export function isoDate(raw: string | undefined): string | null {
   const s = (raw ?? "").trim();
   if (!s) return null;
+  // D42: an Excel date stored as a plain number (days since 1899-12-30).
+  if (/^\d{5}(\.\d+)?$/.test(s)) {
+    const n = Number(s);
+    return n >= 2_000 && n <= 80_000 ? new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86_400_000).toISOString().slice(0, 10) : null;
+  }
   const us = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(s);
   const d = us ? new Date(Date.UTC(Number(us[3].length === 2 ? `20${us[3]}` : us[3]), Number(us[1]) - 1, Number(us[2]))) : new Date(s);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getUTCFullYear();
+  return y >= 1900 && y <= 2100 ? d.toISOString().slice(0, 10) : null;
 }
