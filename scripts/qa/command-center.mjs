@@ -40,7 +40,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
   // Every page, both widths.
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {
@@ -130,6 +130,21 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     const code = String((((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1e6).padStart(6, '0');
     await page.locator('input[name=code]').fill(code); await page.getByRole('button', { name: 'Turn it on' }).click();
     await page.locator('.mlo-codes').waitFor(); console.log('recovery codes shown:', (await page.locator('.mlo-codes').innerText()).split('\n').length);
+  });
+  await step('expenses: tell, confirm, receipt, report, csv', async () => {
+    await page.goto(B + '/mlo/expenses');
+    await page.locator('#tell textarea').fill("$84 lunch with an agent at Daniel's yesterday\nDrove 32 miles to a closing in Bellevue");
+    await page.locator('#tell').getByRole('button', { name: 'Add', exact: true }).click();
+    await page.locator('#tell [role=status]').waitFor(); console.log('tell:', await page.locator('#tell [role=status]').innerText());
+    await page.waitForFunction(() => document.querySelectorAll('#drafts .cc-card').length >= 2);
+    await page.locator('#drafts .cc-card').first().getByRole('button', { name: 'Confirm' }).click(); await page.waitForURL(/f=/); console.log('confirm:', await flash());
+    await page.goto(B + '/mlo/expenses');
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+    await page.locator('#tell input[type=file]').setInputFiles({ name: 'receipt.png', mimeType: 'image/png', buffer: png });
+    await page.locator('#tell [role=status]').waitFor(); console.log('receipt:', await page.locator('#tell [role=status]').innerText());
+    await page.goto(B + '/mlo/expenses/report');
+    console.log('report:', (await page.locator('.ex-report h2').allInnerTexts()).join(' / '));
+    const r = await page.request.get(B + '/api/cc/expenses/csv'); console.log('csv:', r.status(), (await r.text()).split('\n').length - 2, 'rows');
   });
   console.log('\nPROBLEMS:', problems.length ? '\n' + problems.join('\n') : 'none');
   await b.close();

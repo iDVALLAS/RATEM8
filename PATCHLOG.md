@@ -2867,3 +2867,82 @@ to see where it goes and have a say in local allocation.
   officer under a sponsor, the co-op structure, and any securities or
   franchise question. Nothing is usable until `RECRUIT_REWARDS="true"`.
 - **Next up:** D37, the expense tracker for 1099 loan officers.
+
+## D37 — Expenses: tax-ready books for 1099 loan officers (2026-11-19)
+
+The owner asked for this because most loan officers under a broker are
+paid on a 1099. It's an expense tracker where they can talk to M8 or
+upload receipts, so the year ends with one printout for their CPA.
+
+- **`/mlo/expenses`** (nav: Expenses). It's private: entries, receipts
+  and the report are read and written by owner id only. No role sees
+  another person's, not even the company owner.
+  - **Tell M8** what you spent, earned or drove, typed or by voice
+    (D16's mic, "Say it"). Or **snap a receipt**: a phone opens the
+    camera; JPEG, PNG, WebP, GIF or PDF up to 5 MB.
+  - **With the Command Center AI key:** M8 sorts each item onto its
+    Schedule C line. Receipts are read as images or PDFs. Card, account
+    and Social Security numbers are removed first, and the text goes in a
+    nonce data block.
+  - **Without the key:** `lib/expenses/parse.ts` finds amounts, miles,
+    dates ("yesterday", "last Tuesday", "11/12", "Nov 3"), vendors and
+    categories. Receipts are kept for you to fill in.
+  - **Everything is a draft until confirmed.** The page shows tiles
+    (income, expenses that count, miles, next estimated tax date), the
+    totals by line and the entries, with edit, delete and add-by-hand.
+- **Categories:** `lib/expenses/categories.ts` holds a loan officer's
+  Schedule C lines:
+  - 8 advertising, 9 car (miles), 11 contract labor, 15 E&O and liability
+    insurance, 17 CPA and attorney, 18 office, 20b desk rent, 22 supplies
+  - 23 NMLS and state licenses
+  - 24a travel, 24b meals, 25 phone and internet
+  - 27a software (including the membership), CE, dues, client gifts, bank
+    fees, other
+  - 30 the home office
+  Line 10 is left out on purpose: a loan officer can't pay for loan
+  referrals (RESPA section 8).
+- **The figures applied** (`lib/expenses/tax.ts`, with sources):
+  - Mileage at the IRS business rate for the trip's date: 70¢ (2025),
+    72.5¢ (2026), and 76¢ from July 1, 2026. The 76¢ rate is reported as
+    Announcement 2026-11; **confirm on irs.gov**.
+  - Meals at 50% (IRC 274(n)).
+  - Gifts capped at $25 per recipient per year (IRC 274(b)).
+  - The simplified home office: $5 a square foot, up to 300 (Rev. Proc.
+    2013-13).
+  - Estimated tax dates: April 15, June 15, September 15 and January 15,
+    moved off weekends.
+- **The LoanM8 membership** the owner records (D35) is added to line 27a
+  on its own, so it's never typed twice.
+- **Year-end report** (`/mlo/expenses/report?year=`), with "Print or save
+  as PDF" (a print stylesheet: letter paper, no site chrome). It has:
+  - a summary (gross receipts, expenses that count, net)
+  - income by payer
+  - expenses by Schedule C line with spent and counted amounts
+  - the mileage log with each trip's purpose
+  - meals and gifts tables
+  - every expense with its numbered receipt (R-001…)
+  - a flag for expenses of $75 or more without a receipt
+  - the home office, the estimated tax dates, and notes for the CPA
+  It says it's an organizer, not tax advice.
+- **CSV** (`/api/cc/expenses/csv`): every confirmed entry with its line,
+  business %, counted amount, miles, gift recipient and receipt number.
+  Cells that start with `= + - @` are quoted so they can't run as
+  spreadsheet formulas.
+- **Receipts:** `/api/cc/expenses/receipt/:id` returns your own only,
+  with `no-store` and `nosniff`.
+- **Under the tester lock:** `/api/cc/expenses/` is open there, because
+  those routes have their own sign-in check.
+- **Store:** `lib/expenses/store.ts` (Neon `cc_expenses`,
+  `cc_expense_receipts`, `cc_tax_profiles`).
+- **Verified:** `lib/expenses/expenses.test.ts` (8):
+  - dates
+  - parsing without AI
+  - the IRS figures
+  - drafts don't count until confirmed
+  - the AI path with card numbers removed, plus the fallback
+  - receipts: file type and size, privacy
+  - the year by line, covering 50% meals, the $25 gift cap, business %,
+    miles at the March rate and the home office
+  - the membership flowing in, and CSV formula escaping
+  The QA sweep adds the Expenses page and report, and runs tell, confirm,
+  receipt, report and CSV.

@@ -1,0 +1,29 @@
+/* D37: the expense tracker. */
+.ex-tiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); margin-top: 14px; }
+.ex-tile { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid var(--rule-strong); border-radius: 12px; background: var(--bg-sunken); }
+.ex-tile__k { font-family: var(--font-jetbrains), monospace; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.ex-tile__v { font-size: 22px; font-weight: 400; color: var(--fg); font-variant-numeric: tabular-nums; }
+.ex-fields { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); }
+.ex-wide { grid-column: 1 / -1; }
+.ex-drafts { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+
+/* The year-end report prints clean on letter paper. */
+.ex-report { color: var(--fg); }
+.ex-report table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.ex-report th, .ex-report td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.ex-report td.num, .ex-report th.num { text-align: right; white-space: nowrap; }
+.ex-report h2 { margin-top: 28px; }
+.ex-report .ex-total td { font-weight: 600; border-top: 2px solid var(--rule-strong); }
+.ex-report .ex-scroll { overflow-x: auto; }
+@media print {
+  @page { size: letter; margin: 0.6in; }
+  html, body { background: #fff !important; color: #000 !important; }
+  .site-nav, header, footer, .mlo-nav, .ex-noprint, .site-footer { display: none !important; }
+  .ex-report, .ex-report * { color: #000 !important; background: transparent !important; }
+  .ex-report .ex-name { -webkit-text-fill-color: #000 !important; background: none !important; }
+  .ex-report table { font-size: 11px; }
+  .ex-report th, .ex-report td { border-color: #bbb !important; padding: 3px 6px; }
+  .ex-report h2 { break-after: avoid; }
+  .ex-report tr { break-inside: avoid; }
+  .ex-report .ex-scroll { overflow: visible; }
+}
