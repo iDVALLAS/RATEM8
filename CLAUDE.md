@@ -84,6 +84,12 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     client's say-so (`Contact.partnerUpdates`). D11 morning email (`lib/digest.ts`,
     names and counts only) and call session (`/mlo/calls`, hand-dialed, gated).
     D12 refi watch (`/mlo/refi`, estimates for the LO only).
+    D13–D28 (PATCHLOG): state gate rows and switches, lead intake, Tell your
+    Concierge, call notes, the Loan Journey (`/mlo/pipeline/[id]`, AUS document
+    checklist, TRID clocks), per-company texting senders, reassigned numbers,
+    company lines, setup guide, message review, each client's own page
+    (`/my/<token>`), weekly report. Value-carrying submit buttons use bound
+    server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
   - Second Look still needs `SECOND_LOOK_LIVE`.
   - The owner reported counsel approval of everything on 2026-10-31.
@@ -694,6 +700,7 @@ node scripts/qa/overflow.mjs    # horizontal-overflow + h1 + console audit, 390p
 node scripts/qa/fonts.mjs       # fallback fonts, synthesized bold/italic, sub-10px text
 node scripts/qa/footer.mjs      # scroll to the footer; nothing may cover the state chips
 node scripts/qa/about.mjs       # nav "About" lands on #about clear of the sticky nav
+node scripts/qa/command-center.mjs  # D28: every /mlo page at 390/1280 plus each screen's main flow (start the server with CC_DEV_LOGIN=1 CC_LINK_SECRET=qa-secret MLO_OWNER_EMAIL=owner@example.com)
 ```
 
 The QA scripts need Playwright available to Node (`npm i -D playwright`

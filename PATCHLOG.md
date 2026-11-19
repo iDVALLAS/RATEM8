@@ -2599,3 +2599,31 @@ From the research spec's "consent passport" and "the client's own view"
 - **Verified:** `lib/report/weekly.test.ts` (2): counts per category,
   only this loan officer, the week before separate; the email goes on
   Mondays only, once, and only when on. `npm run verify` passes (414 tests).
+
+## D28 — A click-through of every Command Center screen (2026-11-19)
+
+- **The script:** `scripts/qa/command-center.mjs` (listed in CLAUDE.md
+  §7). It builds a small book: an imported CSV, a loan through the
+  loan-system webhook, and a lead through the lead webhook.
+- **Every page:** all 22 Command Center pages at 390px and 1280px,
+  checking the status, console errors, HTTP 500s, horizontal overflow and
+  exactly one h1.
+- **Every main flow:**
+  - consent form fields; DNC and reassigned-number checks; script build;
+    a call note; the client's own link
+  - bulk permission; bulk reassigned-number results; a call-session
+    outcome
+  - Concierge settings, run and dismiss; Tell without a key
+  - automations save
+  - journey: dates, the 14A draft after intent to proceed, Lock, adding a
+    document, the request without a portal link
+  - a practice script; refi watch; inviting an assistant; the client page
+    "Stop email"
+- **Result:** no problems; the script exits 0. Two stale-flash readings in
+  the first draft of the script were confirmed correct with targeted waits:
+  the 14A draft lands on the desk (waiting for texting permission), and
+  the document request asks for the portal link first. The D25 button fix
+  holds everywhere.
+- **Running it:** like the other QA scripts, it needs Playwright
+  available to Node (`npm i -D playwright` locally). In the cloud sandbox,
+  run a CommonJS copy, since ES-module imports don't see the global install.
