@@ -2184,3 +2184,32 @@ Bankrate and others), with our consent rules.
 - **Verified:** `lib/leads/leads.test.ts` (2): vendor shapes; no
   contact, no lead; consent naming us recorded, partners-only not; merge
   and tags; the Today card. `npm run verify` passes.
+
+## D15 — Tell your Concierge (2026-11-19)
+
+From Viato's Super Agent ("text Maria her pre-approval and set a follow-up
+for Thursday"), with our rules. The Concierge page has a new "Tell your
+Concierge" box (`lib/concierge/tell.ts`, `app/mlo/concierge/Tell.tsx`).
+Type a request in plain English; drafts and reminders land on the desk.
+Nothing is sent.
+
+- **The model can only use three tools:**
+  - `find_clients`: the loan officer's own book, filtered by name,
+    relationship, years closed, state, tag, or days since the last
+    conversation. It returns first name, relationship, state, year closed
+    and tags as nonce-tagged data, never phones, emails, amounts or rates.
+  - `draft_text`: one client from that search.
+  - `add_reminder`: titles from the fixed list.
+- **Every draft:**
+  - passes the Concierge guard (rates, dates, dollars, links, phones,
+    promises, protected topics, rewards)
+  - skips people who said stop or are paused for a personal reply
+  - is one per person, at most 15 per request
+  - gets the send gate's current answer attached, and waits for approval
+- **Never trusted:** made-up client ids are refused, and the model's final
+  answer is checked too.
+- **Verified:** `lib/concierge/tell.test.ts` (2): only this LO's 2021 past
+  clients come back, with no phone or rate. The good draft is saved; the
+  draft quoting a rate is refused; the person who said stop is skipped; the
+  invented id and the reminder carrying a phone number are refused. The
+  no-key message works. `npm run verify` passes.

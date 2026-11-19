@@ -8,10 +8,12 @@ import { conciergeStore } from "@/lib/concierge/store";
 import { contactStore } from "@/lib/contacts/store";
 import { FlashBox, MloNav } from "../MloChrome";
 import Ask from "./Ask";
+import Tell from "./Tell";
 import { approveAction, dismissAction, forgetFromDeskAction, keepAction, settingsAction, sweepAction, taskDoneAction } from "./actions";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 export const metadata: Metadata = { title: "Concierge", robots: { index: false, follow: false } };
 
 /** /mlo/concierge — the loan officer's AI Concierge: settings, drafts to approve, reminders, and questions (D8). */
@@ -115,6 +117,11 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                   </tbody>
                 </table>
               )}
+            </section>
+
+            <section className="mlo-section" id="tell">
+              <h2>Tell your Concierge</h2>
+              <Tell />
             </section>
 
             <section className="mlo-section">

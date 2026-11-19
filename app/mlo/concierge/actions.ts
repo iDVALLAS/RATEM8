@@ -7,6 +7,7 @@ import { encodeFlash } from "@/lib/mlo/flash";
 import { sweep } from "@/lib/concierge/agent";
 import { approve, ask, closeTask, dismiss, keepMemory, saveSettings } from "@/lib/concierge/desk";
 import { conciergeStore } from "@/lib/concierge/store";
+import { tell } from "@/lib/concierge/tell";
 
 const back = (ok: boolean, lines: string[], hash = "") => redirect(`/mlo/concierge?f=${encodeFlash({ ok, lines })}${hash}`);
 const me = async () => (await currentUser()) ?? redirect("/sign-in");
@@ -70,4 +71,11 @@ export async function askAction(question: string): Promise<string> {
   const u = await currentUser();
   if (!u) return "Sign in again.";
   return ask(u, question);
+}
+
+/** D15: "Tell your Concierge". Returns what was prepared; nothing is sent. */
+export async function tellAction(request: string): Promise<{ answer: string; drafts: number; reminders: number; skipped: string[] }> {
+  const u = await currentUser();
+  if (!u) return { answer: "Sign in again.", drafts: 0, reminders: 0, skipped: [] };
+  return tell(u, request);
 }
