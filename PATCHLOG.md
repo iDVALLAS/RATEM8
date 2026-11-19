@@ -3558,3 +3558,22 @@ on pages only loan officers use.
     own heading, and has no public footer.
   - The only console errors are the Vercel Analytics script, which the
     local site lock redirects. It's served on Vercel.
+
+## D46.1 — The server log says why a sign-in email didn't arrive (2026-11-19)
+
+The owner asked for a sign-in link on the preview and nothing came. The
+sign-in page always gives the same answer, on purpose (it never reveals
+whether an account exists), and nothing was logged, so the reason
+couldn't be seen.
+
+- `lib/accounts/auth.ts` now logs one line each time:
+  - **"sign-in link sent"** when Resend accepted it.
+  - **"Resend refused a sign-in email"** with Resend's status and error
+    name, and its message with any address replaced by `[address]`.
+  - **"Couldn't reach Resend"** on a network failure.
+  - **"no active account for that email"** when no account matches,
+    adding "(MLO_OWNER_EMAIL isn't set here)" when it isn't.
+- The log never holds the address, the link or the email body.
+- `lib/pilot/service.ts` logs Resend refusals the same way, for reports,
+  sign-up emails and triage notes.
+- **Verified:** `npm run verify`.

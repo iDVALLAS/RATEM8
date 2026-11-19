@@ -47,6 +47,10 @@ export const resendMail: Mailer = async (m) => {
       headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from: `LoanM8 Command Center <${cfg.from}>`, to: [m.to], subject: m.subject, text: m.text, ...(m.replyTo ? { reply_to: m.replyTo } : {}) }),
     });
+    if (!res.ok) {
+      const err = (await res.json().catch(() => null)) as { name?: string; message?: string } | null;
+      console.error(`[cc-email] Resend refused an email: ${res.status} ${err?.name ?? ""} ${(err?.message ?? "").replace(/[^\s@]+@[^\s@]+/g, "[address]").slice(0, 160)}`);
+    }
     return res.ok;
   } catch {
     return false;

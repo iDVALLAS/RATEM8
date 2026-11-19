@@ -71,8 +71,14 @@ async function sendLink(to: string, link: string, subject: string, lead: string)
         text: `${lead}\n\n${link}\n\nThe link works once and expires in 15 minutes. If you didn't ask for it, ignore this email.`,
       }),
     });
+    if (!res.ok) {
+      // D46.1: say why in the server log (never the address, the link or the body), so a missing email can be traced.
+      const err = (await res.json().catch(() => null)) as { name?: string; message?: string } | null;
+      console.error(`[cc-email] Resend refused a sign-in email: ${res.status} ${err?.name ?? ""} ${(err?.message ?? "").replace(/[^\s@]+@[^\s@]+/g, "[address]").slice(0, 160)}`);
+    }
     return res.ok;
-  } catch {
+  } catch (e) {
+    console.error(`[cc-email] Couldn't reach Resend for a sign-in email: ${e instanceof Error ? e.name : "error"}`);
     return false;
   }
 }
@@ -93,6 +99,10 @@ export async function requestSignIn(emailRaw: string, origin: string, ipHash: st
     await store.putLoginToken(sha256(t), user.id, iso(now + LINK_TTL_MS));
     const sent = await sendLink(email, `${origin}/api/cc/verify?t=${encodeURIComponent(t)}`, "Your LoanM8 sign-in link", "Here's your link to sign in to LoanM8 Command Center:");
     await store.audit({ at: iso(now), actor: user.email, action: "signin.link_sent", detail: { sent } });
+    if (sent) console.log("[cc-signin] sign-in link sent");
+  } else {
+    // D46.1: the page never says whether an account exists; the log does, without the address.
+    console.warn(`[cc-signin] no active account for that email${process.env.MLO_OWNER_EMAIL?.trim() ? "" : " (MLO_OWNER_EMAIL isn't set here)"}`);
   }
   return { ok: true };
 }
