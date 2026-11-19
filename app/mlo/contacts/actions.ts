@@ -1,5 +1,6 @@
 "use server";
 
+import { debrief } from "@/lib/concierge/debrief";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { checkLine, recordDnc, sendText } from "@/lib/messaging/service";
@@ -102,4 +103,11 @@ export async function dncAction(fd: FormData): Promise<void> {
   const contactId = String(fd.get("contactId") ?? "");
   const ok = await recordDnc(actor, contactId, fd.get("onList") === "yes", String(fd.get("source") ?? ""));
   redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok, lines: [ok ? "Do-not-call check recorded. It's good for 31 days." : "Couldn't record that."] })}`);
+}
+
+/** D16: the loan officer's own note after a call. */
+export async function debriefAction(contactId: string, note: string) {
+  const u = await currentUser();
+  if (!u) return { ok: false as const, error: "Sign in again." };
+  return debrief(u, contactId, note);
 }

@@ -19,6 +19,8 @@ import ScriptView from "../../scripts/ScriptView";
 import { BuildButton } from "../../scripts/Buttons";
 import { buildScriptAction } from "../../scripts/actions";
 import { partnerUpdatesAction } from "../../automations/actions";
+import Debrief from "./Debrief";
+import { listenOn } from "@/lib/voice/google";
 import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
@@ -161,6 +163,13 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                 {agents.length === 0 ? <p className="mlo-note">Import your agents first (Contacts → Import → Agents).</p> : null}
               </form>
             ) : null}
+          </section>
+        ) : null}
+
+        {v.user.id === c.ownerUserId && c.kind === "contact" ? (
+          <section className="mlo-section" id="debrief">
+            <h2>After a call</h2>
+            <Debrief contactId={c.id} micOn={listenOn()} />
           </section>
         ) : null}
 

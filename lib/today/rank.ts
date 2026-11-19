@@ -62,7 +62,7 @@ export function cardsFor(f: TodayFacts, now: Date, ref: RateRef): TodayCard[] {
   // D14: a new lead nobody has contacted yet. Speed matters most in the first hours.
   if (c.source.startsWith("lead:") && !f.last && now.getTime() - Date.parse(c.createdAt) < 2 * DAY) {
     const hrs = Math.max(0, Math.round((now.getTime() - Date.parse(c.createdAt)) / 3_600_000));
-    out.push({ kind: "new_lead", contactId: c.id, name: n, title: `New lead: ${n}`, reason: `From ${c.source.slice(6)}, ${hrs < 1 ? "just now" : `${hrs} hours ago`}. ${anyPermission(f.consent) ? "Their form gave you permission." : "Their form didn't name you, so there's no permission on file yet: check their page before you reach out."}`, score: 99 - Math.min(hrs, 40) / 4, next: "call" });
+    out.push({ kind: "new_lead", contactId: c.id, name: n, title: `New lead: ${n}`, reason: `From ${c.source.slice(6)}, ${hrs < 1 ? "just now" : `${hrs} hours ago`}. ${anyPermission(f.consent) ? "Their form gave you permission." : "Their form didn't name you, so there's no permission on file yet: check their page before you reach out."}`, score: 99 - Math.min(hrs, 40) / 4, next: anyPermission(f.consent) ? "call" : "open" });
   }
 
   // D6: agents aren't ranked. RETR's terms (2026-09-17) bar using its data

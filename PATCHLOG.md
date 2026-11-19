@@ -2213,3 +2213,43 @@ Nothing is sent.
   draft quoting a rate is refused; the person who said stop is skipped; the
   invented id and the reminder carrying a phone number are refused. The
   no-key message works. `npm run verify` passes.
+
+## D16 — Notes after a call, typed or dictated (2026-11-19)
+
+From Viato's call intelligence ("every call is transcribed, summarized and
+turned into tasks"), without recording anyone. A new "After a call" box
+sits on each client's page (`lib/concierge/debrief.ts`,
+`app/mlo/contacts/[id]/Debrief.tsx`).
+
+- **How it works:** the loan officer types their own note, or taps
+  Dictate. The mic uses the existing speech-to-text and puts the words in
+  the box; nothing is saved until Save, and no client audio is ever
+  captured, so no all-party recording consent is needed (spec §4.6).
+- **On save:**
+  - The note goes on the contact as "Call note (date): …", redacted and with
+    sentences about protected topics left out. The loan officer sees how
+    many were left out.
+  - With the Anthropic key, structured output turns it into a one-line
+    summary and needs. Each need is a note to keep or forget, and its words
+    must appear in the note.
+  - It also makes reminders (fixed titles; a reason carrying a phone number
+    is refused) and at most one follow-up text, as a draft on the desk with
+    the gate's answer.
+  - The model gets only the cleaned note, inside a nonce data block.
+  - Without the key, the note is still saved.
+- **Also in this patch:** a new lead without permission now shows "Open" on
+  Today, not a call button.
+- **Verified:** `lib/concierge/debrief.test.ts` (2): the note saved
+  without the personal sentence, with no AI; too short or another loan
+  officer refused. With the stand-in model: one valid need, the
+  protected-topic need and the made-up quote refused; the phone-number
+  reminder refused; the follow-up drafted and waiting for a DNC check; the
+  model never saw the personal sentence.
+- **Clicked through locally, D13–D16:**
+  - a lead posted to the webhook (a bad key gets 401) lands with "No
+    permission yet" and tops Today
+  - the call note saved with "1 sentence about personal topics left out"
+  - the state switches showing on the rules page
+  - the Tell box on the Concierge page
+  - no console errors and no overflow at 390px
+  - `npm run verify` passes (391 tests)
