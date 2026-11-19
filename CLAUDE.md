@@ -92,7 +92,13 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     problem on every page (masked, `cc_reports`, emailed to `MLO_OWNER_EMAIL`),
     `/mlo/pilot` triage, Your first day on Home, `/mlo/welcome`; `CC_PILOT`
     shows the Pilot label. Owner reported counsel approval through D44 on
-    2026-11-19. Value-carrying submit buttons use bound
+    2026-11-19. D45 sign-up (`/sign-up`, `/mlo/signups`, `lib/registry/*`):
+    loan officers in any of the 51 sign up; a person checks the NMLS record
+    (never fetched; RETR later); approval makes a database record, so
+    `mloById`/`ccAllMlos` include them (public site: `ALL_MLOS` only), and
+    `companyDetails()` puts their own sponsor on emails, texts, templates.
+    `ensureRegistry()` loads them; company counts fail closed until loaded.
+    Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
   - Second Look still needs `SECOND_LOOK_LIVE`.

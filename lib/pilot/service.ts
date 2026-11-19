@@ -36,7 +36,11 @@ export type Mailer = (m: Mail) => Promise<boolean>;
 
 export const resendMail: Mailer = async (m) => {
   const cfg = emailConfig();
-  if (!cfg) return false;
+  if (!cfg) {
+    // LOCAL TESTING ONLY (same guard as /api/cc/dev-login): show the email in the server log so QA can follow links. Never on Vercel.
+    if (process.env.CC_DEV_LOGIN === "1" && !process.env.VERCEL) console.log(`[dev-mail] ${JSON.stringify({ to: m.to, subject: m.subject, text: m.text })}`);
+    return false;
+  }
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -178,7 +182,7 @@ export async function firstDay(user: User, setup?: SetupItem[]): Promise<{ steps
   const is = (id: string) => !!items.find((i) => i.id === id)?.done;
   const steps: FirstDayStep[] = [
     { id: "mfa", label: "Turn on a code from your phone", why: "Your book holds real client details, so sign-in asks for a second step.", done: !!mfa?.enabledAt, href: "/mlo/security" },
-    { id: "details", label: "Check your license, booking and application links", why: "They go on every message you send. The owner sets them; say so if anything is wrong.", done: is("record") && is("booking") && is("portal"), href: "/mlo/welcome#details" },
+    { id: "details", label: "Check your license, booking and application links", why: "They go on every message you send. Fix your links on Getting started; report anything else.", done: is("record") && is("booking") && is("portal"), href: "/mlo/welcome#details" },
     { id: "contacts", label: "Import your contacts", why: "Drop an Excel, CSV or phone export. Command Center matches and cleans it.", done: is("contacts"), href: "/mlo/contacts/import" },
     { id: "permission", label: "Record the permission you already hold", why: "Texts and calls only go to people who said yes.", done: is("permission"), href: "/mlo/contacts/permission" },
     { id: "concierge", label: "Turn on your Concierge and say how you sound", why: "It drafts check-ins in your voice each morning. You approve every one.", done: is("concierge"), href: "/mlo/concierge" },

@@ -22,7 +22,7 @@ import { accountStore, type User } from "@/lib/accounts/store";
 import { canSee } from "@/lib/contacts/service";
 import { contactStore, type Purpose } from "@/lib/contacts/store";
 import { mloById } from "@/lib/config";
-import { SPONSOR } from "@/config/licensing";
+import { companyDetails } from "@/lib/accounts/company";
 import { checkDraft } from "@/lib/concierge/guard";
 import { recordPromises } from "@/lib/concierge/promises";
 import { clientLink } from "@/lib/clientpage/link";
@@ -52,11 +52,12 @@ export function checkSubject(raw: string): { ok: true; text: string } | { ok: fa
 export function emailFooter(actor: User, stopLink: string | null): string {
   const mlo = mloById(actor.mloId);
   const who = mlo ? `${mlo.name}, NMLS #${mlo.nmls}` : actor.name || "Your loan officer";
+  const co = companyDetails(mlo);
   return [
     "--",
     `${who}`,
-    `${SPONSOR.legalName} dba ${SPONSOR.dba}, NMLS #${SPONSOR.nmls}`,
-    SPONSOR.address,
+    `${co.name}, NMLS #${co.nmls}`,
+    co.address,
     "Equal Housing Opportunity.",
     stopLink ? `Don't want these emails? Stop them here: ${stopLink}` : `Don't want these emails? Reply "unsubscribe" and I'll take you off.`,
   ].join("\n");

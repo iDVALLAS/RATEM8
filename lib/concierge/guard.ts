@@ -16,7 +16,7 @@
  */
 import { guardReply } from "@/lib/m8/guard";
 import { redactChatInput } from "@/lib/m8/redact";
-import { ALL_MLOS, CONFIG } from "@/lib/config";
+import { ccAllMlos, CONFIG } from "@/lib/config";
 import { SPONSOR } from "@/config/licensing";
 
 /** Bump when the rules change; recorded on every approval. */
@@ -65,8 +65,8 @@ const digits = (s: string) => s.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
 
 /** The only links and numbers a draft may carry: the loan officers' own booking and application links, the site, and their lines. */
 export function allowedLinks(): { urls: string[]; phones: string[] } {
-  const urls = [CONFIG.siteUrl, ...ALL_MLOS.flatMap((m) => [m.calendly, m.applicationUrl])].filter((u) => /^https:\/\/[^\s[\]]+$/.test(u ?? "")).map((u) => u.replace(/\/$/, "").toLowerCase());
-  const phones = [SPONSOR.phone, ...ALL_MLOS.map((m) => m.phone)].filter(Boolean).map((p) => digits(String(p)));
+  const urls = [CONFIG.siteUrl, ...ccAllMlos().flatMap((m) => [m.calendly, m.applicationUrl])].filter((u) => /^https:\/\/[^\s[\]]+$/.test(u ?? "")).map((u) => u.replace(/\/$/, "").toLowerCase());
+  const phones = [SPONSOR.phone, ...ccAllMlos().map((m) => m.phone)].filter(Boolean).map((p) => digits(String(p)));
   return { urls, phones };
 }
 

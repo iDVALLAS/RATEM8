@@ -3425,3 +3425,102 @@ what they and the owner need during that test.
 - **Next up (D45):** loan officers add themselves with their NMLS ID.
   Command Center cross-checks it and fills in the sponsoring company, and
   their record moves from the licensing file into the database.
+
+## D45 — Loan officers sign themselves up, in any state, under any sponsor (2026-11-19)
+
+The owner: loan officers "sign up with their credentials and we can use
+RETR later to verify, or a human can verify"; Command Center works in
+all 50 states and DC "because it's just a CRM"; and it "can be a product
+CRM sold on its own".
+
+- **Before:** invite only. Each loan officer's record (name, NMLS, state
+  licenses, sponsor) had to be typed into `config/licensing.ts` and
+  deployed, with their links as two Vercel variables each, before the
+  owner could invite them on Team.
+- **`/sign-up`** (public in stealth and while the site is locked, noindex;
+  linked from Sign in):
+  - **Who they are:** full name as on their NMLS record, work email,
+    phone, NMLS ID.
+  - **Their sponsoring company:** its name, NMLS ID and mailing address
+    (CAN-SPAM wants the address in email footers).
+  - **Their licenses:** any of the 50 states and DC, each with a license
+    number (blank where the state uses the NMLS ID).
+  - **Optional:** booking and application links, and who told them about
+    LoanM8.
+  - **Two statements:** "My sponsor allows client contacts in an outside
+    system" (yes, or no/not sure), and that their details are accurate.
+  - **Safeguards:** a hidden field catches bots; limits are 5 sign-ups
+    per hour per IP and 3 per email. The answer never reveals whether an
+    email has an account (existing accounts get a "sign in instead"
+    email).
+  - **The form keeps what they typed** when something's wrong.
+- **Confirm the email:** a 24-hour link opens a page with one "Confirm my
+  email" button, so link scanners can't confirm for them. The owner is
+  then emailed (Reply-To the applicant) with the NMLS record link and
+  `/mlo/signups`.
+- **`/mlo/signups`** (owner only):
+  - **Each sign-up** shows their details, their NMLS record and the
+    company's record (links a person opens; NMLS Consumer Access forbids
+    automated lookups, so Command Center never fetches it), and their
+    licenses.
+  - **"I opened their NMLS record and it matches"** must be ticked before
+    approving. The record keeps `verifiedBy: "human"`; `"retr"` is
+    reserved for a RETR check later.
+  - **Approval is refused when their sponsor doesn't allow outside
+    systems.** The card says to talk to the company about a company-wide
+    plan, and the decline note is pre-filled.
+  - **Approving** creates their loan officer record (`mlo-s…`) in the
+    database, their account (role Loan officer), and emails their sign-in
+    link (the normal invite). It's audited.
+  - **Decline** emails them a note.
+  - The page lists who hasn't confirmed yet and everything decided.
+- **Records in the database** (`lib/registry/*`, table `cc_signups`):
+  - **Lookups:** `mloById()` now also finds approved sign-ups, and
+    `ccAllMlos()` is every loan officer Command Center knows. The public
+    site keeps using `ALL_MLOS`, the file's loan officers only.
+  - **Loading:** `ensureRegistry()` runs on every signed-in request
+    (`userForSession`) and in every route without a session: the morning
+    run, Twilio, lead and loan intake, and client pages and their actions.
+    It refreshes each minute.
+  - **Fails closed:** until a server has loaded them (with a database
+    set), Command Center assumes more than one sponsoring company, so the
+    owner never sees a book from another company.
+  - **A loan officer at a different sponsor** makes it two companies:
+    their book and the owner's are kept apart, as built in D22. Someone at
+    the owner's own sponsor (same NMLS ID) stays one company.
+- **Each loan officer's own company on what clients get**
+  (`companyDetails()` in `lib/accounts/company.ts`):
+  - **Email footer:** their company's name, NMLS ID and mailing address.
+  - **Text signature:** "Riley at Sunrise Mortgage Brokers LLC, NMLS
+    #…".
+  - **Templates:** `{company}`.
+  - **Lead consent check:** does it name them or their company.
+  - **The guard** allows their own links and phone.
+  - Loan officers in the licensing file are unchanged (Home Trust, "at
+    LoanM8").
+- **Getting started:** a signed-up loan officer edits their own booking
+  link, application link and phone. Name, NMLS, licenses and sponsor go
+  through a report to the owner.
+- **Nav:** "Sign-ups" (Platform). The Pilot page links to Sign-ups.
+- **Local testing only:** with `CC_DEV_LOGIN=1`, never on Vercel, emails
+  that can't be sent are printed to the server log so QA can follow the
+  links.
+- **Verified:**
+  - 15 new tests (`lib/registry/service.test.ts`), including the company
+    split, fail-closed, reload on a fresh server and links validation.
+  - `npm run verify`.
+  - **A browser run with stealth and the site lock on:** sign up at 390px
+    (an error kept every field), confirm from the logged link, then
+    approve as the owner at 1280px. The new loan officer appeared on
+    Team, and signed in to see their Florida and New York licenses under
+    their own sponsor, saved a booking link, and saw their company in
+    Templates.
+- **Known:**
+  - **Payment isn't built.** Membership payments are still recorded by
+    hand; that's a later patch (owner, 2026-11-19).
+  - **Sign-in and sign-up use the public site's frame,** so the LoanM8
+    licensing footer shows under them. They need their own Command
+    Center look before it's sold on its own.
+  - **The root layout's search-engine data and the site-wide "not found"
+    page** name the platform's sponsor in every page's hidden payload
+    (not visible).

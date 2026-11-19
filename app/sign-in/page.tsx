@@ -41,7 +41,7 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
             <input type="email" name="email" required autoComplete="email" className="mlo-input" />
           </label>
           <button type="submit" className="mlo-btn">Email me a sign-in link</button>
-          <p className="mlo-note" style={{ marginTop: 12 }}>No password to remember. Accounts are added by the owner or a team lead.</p>
+          <p className="mlo-note" style={{ marginTop: 12 }}>No password to remember. New loan officer? <a href="/sign-up">Sign up</a>.</p>
         </form>
         <p className="mlo-note" style={{ marginTop: 16 }}>
           Still on the shared admin login? <a href="/mlo?basic=1">Use it here</a>.

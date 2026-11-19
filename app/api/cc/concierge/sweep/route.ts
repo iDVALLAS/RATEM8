@@ -7,6 +7,7 @@ import { runDaily } from "@/lib/automations/engine";
 import { sendDigest } from "@/lib/digest";
 import { sendWeekly } from "@/lib/report/weekly";
 import { automationStore } from "@/lib/automations/store";
+import { ensureRegistry } from "@/lib/registry/cache";
 
 /**
  * GET /api/cc/concierge/sweep — the morning run for every loan officer who
@@ -16,6 +17,7 @@ import { automationStore } from "@/lib/automations/store";
 export const maxDuration = 300;
 
 export async function GET(req: Request) {
+  await ensureRegistry(); // D45: signed-up loan officers' records
   const secret = process.env.CRON_SECRET;
   const given = (req.headers.get("authorization") ?? "").replace(/^Bearer /, "");
   if (!secret || given.length !== secret.length || !timingSafeEqual(Buffer.from(given), Buffer.from(secret))) return new Response("Not found", { status: 404 });

@@ -21,7 +21,7 @@ import { neon } from "@neondatabase/serverless";
 import { databaseUrl } from "@/lib/m8/server";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { mloById } from "@/lib/config";
-import { SPONSOR } from "@/config/licensing";
+import { companyDetails } from "@/lib/accounts/company";
 import { checkDraft } from "@/lib/concierge/guard";
 import { cleanData, dataRule, newNonce } from "@/lib/concierge/data";
 
@@ -160,7 +160,7 @@ export async function allTemplates(user: User): Promise<(Template & { mine?: boo
 export function myValues(user: User): Record<string, string> {
   const m = mloById(user.mloId);
   const name = m?.name ?? user.name ?? "";
-  return { myName: name, myFirst: name.split(/\s+/)[0] ?? "", myNmls: m?.nmls ?? "", myPhone: m?.phone ?? "", company: SPONSOR.dba, companyNmls: SPONSOR.nmls, bookingLink: m?.calendly ?? "" };
+  return { myName: name, myFirst: name.split(/\s+/)[0] ?? "", myNmls: m?.nmls ?? "", myPhone: m?.phone ?? "", company: companyDetails(m).short, companyNmls: companyDetails(m).nmls, bookingLink: m?.calendly ?? "" };
 }
 
 export function render(user: User, t: Template, typed: Record<string, string>): { subject: string; body: string; missing: string[] } {

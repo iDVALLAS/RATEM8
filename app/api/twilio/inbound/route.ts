@@ -1,5 +1,6 @@
 import { handleInbound } from "@/lib/messaging/service";
 import { fromNumber, readTwilio } from "@/lib/messaging/webhook";
+import { ensureRegistry } from "@/lib/registry/cache";
 
 /**
  * POST /api/twilio/inbound — a text to our Twilio Messaging Service (D4).
@@ -7,6 +8,7 @@ import { fromNumber, readTwilio } from "@/lib/messaging/webhook";
  * nothing (Twilio's own opt-out handling answers STOP and HELP).
  */
 export async function POST(req: Request) {
+  await ensureRegistry(); // D45: signed-up loan officers' records
   const p = await readTwilio(req);
   if (!p) return new Response("Forbidden", { status: 403 });
   const from = fromNumber(p);

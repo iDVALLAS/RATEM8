@@ -6,6 +6,7 @@ import { loansForClient } from "@/lib/clientpage/loan";
 import "./my.css";
 import { forgetNoteAction, optInAction, stopAction } from "./actions";
 import "../../mlo/mlo.css";
+import { ensureRegistry } from "@/lib/registry/cache";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Your page", robots: { index: false, follow: false } };
@@ -15,6 +16,7 @@ const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-
 
 /** /my/[token] — a client's own page: who has their information, permission, stop, and what was noted (D26). */
 export default async function ClientPage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ m?: string; ok?: string }> }) {
+  await ensureRegistry(); // D45: signed-up loan officers' records
   const [{ token }, { m, ok }] = await Promise.all([params, searchParams]);
   const v = await loadClient(token);
   if (!v) {

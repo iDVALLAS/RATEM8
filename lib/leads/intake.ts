@@ -22,7 +22,7 @@ import { contactStore, type Contact } from "@/lib/contacts/store";
 import { cleanEmail, cleanState, splitName, stateFromZip, toE164 } from "@/lib/contacts/normalize";
 import { redactChatInput } from "@/lib/m8/redact";
 import { mloById } from "@/lib/config";
-import { SPONSOR } from "@/config/licensing";
+import { companyDetails } from "@/lib/accounts/company";
 
 export type Lead = {
   externalId: string | null;
@@ -102,7 +102,7 @@ export function readLead(raw: unknown, sourceHint = ""): Lead | null {
 export function consentNamesUs(text: string, user: User): boolean {
   const t = text.toLowerCase();
   const mlo = mloById(user.mloId);
-  const names = [SPONSOR.legalName, SPONSOR.dba, "LoanM8", mlo?.name].filter((n): n is string => !!n && n.length >= 4).map((n) => n.toLowerCase());
+  const names = [...companyDetails(mlo).names, "LoanM8", mlo?.name].filter((n): n is string => !!n && n.length >= 4).map((n) => n.toLowerCase());
   return names.some((n) => t.includes(n));
 }
 

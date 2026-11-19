@@ -15,7 +15,8 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
-import { ALL_MLOS } from "@/lib/config";
+import { ALL_MLOS, ccAllMlos } from "@/lib/config";
+import { ensureRegistry } from "@/lib/registry/cache";
 import { emailConfig } from "@/lib/m8/server";
 import { incr } from "@/lib/m8/kv";
 import { accountStore, ROLES, type Role, type User } from "./store";
@@ -120,6 +121,8 @@ export async function openSession(user: User, now = Date.now()): Promise<string>
 
 export async function userForSession(session: string | undefined, now = Date.now()): Promise<User | null> {
   if (!session) return null;
+  // D45: signed-up loan officers' records, before anything reads them.
+  await ensureRegistry();
   const store = accountStore();
   const id = await store.sessionUser(sha256(session), iso(now));
   if (!id) return null;
@@ -159,7 +162,7 @@ export async function inviteUser(actor: User, input: InviteInput, origin: string
   if (!name) return { ok: false, error: "Enter their name." };
   if (!(ROLES as readonly string[]).includes(role)) return { ok: false, error: "Pick a role." };
   if (!canManage(actor, role)) return { ok: false, error: "Your role can't add that kind of account." };
-  const mloId = input.mloId && ALL_MLOS.some((m) => m.id === input.mloId) ? input.mloId : null;
+  const mloId = input.mloId && ccAllMlos().some((m) => m.id === input.mloId) ? input.mloId : null;
   const store = accountStore();
   if (await store.userByEmail(email)) return { ok: false, error: "That email already has an account." };
   const assistsUserId = role === "assistant" ? await validAssist(input.assistsUserId, mloId ?? actor.mloId) : null;

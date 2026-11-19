@@ -2,6 +2,7 @@ import { accountStore } from "@/lib/accounts/store";
 import { ingestLead, readLead } from "@/lib/leads/intake";
 import { ownerForKey } from "@/lib/pipeline/keys";
 import { incr } from "@/lib/m8/kv";
+import { ensureRegistry } from "@/lib/registry/cache";
 
 /**
  * POST /api/leads/inbound — new leads from a lead vendor or web form (D14).
@@ -13,6 +14,7 @@ import { incr } from "@/lib/m8/kv";
 const json = (status: number, b: Record<string, unknown>) => new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json" } });
 
 export async function POST(req: Request) {
+  await ensureRegistry(); // D45: signed-up loan officers' records
   const url = new URL(req.url);
   const owner = await ownerForKey(req.headers.get("x-cc-key") ?? url.searchParams.get("key"));
   if (!owner) return json(401, { ok: false, error: "Unknown key." });

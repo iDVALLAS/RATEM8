@@ -9,6 +9,10 @@ import { REPORT_KINDS, REPORT_STATUS } from "@/lib/pilot/store";
 import FirstDay from "../FirstDay";
 import { ReportForm } from "../ReportProblem";
 import { firstDayAction } from "../pilot-actions";
+import { linksAction } from "../signups/actions";
+import { companyDetails } from "@/lib/accounts/company";
+import { decodeFlash } from "@/lib/mlo/flash";
+import { FlashBox } from "../MloChrome";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +21,8 @@ export const metadata: Metadata = { title: "Getting started", robots: { index: f
 const when = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
 
 /** /mlo/welcome — the first-day guide for a new loan officer (D44). */
-export default async function Welcome() {
+export default async function Welcome({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
+  const { f } = await searchParams;
   const v = await requireViewer();
   const me = v.user;
   if (!me) {
@@ -37,6 +42,7 @@ export default async function Welcome() {
       <div className="mlo-wrap">
         <p className="eyebrow">LoanM8 Command Center</p>
         <h1 className="tagline text-4xl">{pilot ? "Welcome to the pilot" : "Getting started"}</h1>
+        <FlashBox flash={decodeFlash(f)} />
         <section className="mlo-section">
           <p className="mlo-note">
             {pilot
@@ -58,7 +64,7 @@ export default async function Welcome() {
             <p className="mlo-note">Your account isn&apos;t linked to a loan officer record yet, so nothing can be sent in your name. Ask the owner to link it; until then you can look around and import your contacts.</p>
           ) : (
             <>
-              <p className="mlo-note">These go on every email and text you send. If anything is wrong, report it and the owner will fix it.</p>
+              <p className="mlo-note">These go on every email and text you send{mlo.source === "signup" ? `, with ${companyDetails(mlo).name} and its address in every email footer` : ""}. If your name, NMLS ID, licenses or sponsor are wrong, report it and the owner will fix it.</p>
               <table className="mlo-table" style={{ marginTop: 10 }}>
                 <tbody>
                   <tr><th scope="row">Name</th><td>{mlo.name}</td></tr>
@@ -70,6 +76,14 @@ export default async function Welcome() {
                   <tr><th scope="row">Application link</th><td>{hasApplicationUrl(mlo) ? <a href={mlo.applicationUrl} target="_blank" rel="noopener noreferrer">{mlo.applicationUrl}</a> : "Not set yet"}</td></tr>
                 </tbody>
               </table>
+              {mlo.source === "signup" ? (
+                <form action={linksAction} className="mlo-grid" style={{ marginTop: 14 }}>
+                  <label className="mlo-field"><span>Booking link (https://)</span><input name="calendly" type="url" maxLength={300} defaultValue={mlo.calendly} className="mlo-input" /></label>
+                  <label className="mlo-field"><span>Secure application or document upload link (https://)</span><input name="applicationUrl" type="url" maxLength={300} defaultValue={hasApplicationUrl(mlo) ? mlo.applicationUrl : ""} className="mlo-input" /></label>
+                  <label className="mlo-field"><span>Phone</span><input name="phone" type="tel" maxLength={30} defaultValue={mlo.phone ?? ""} className="mlo-input" /></label>
+                  <button type="submit" className="mlo-btn">Save my links</button>
+                </form>
+              ) : null}
             </>
           )}
         </section>

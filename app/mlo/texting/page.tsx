@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import PageShell from "@/app/mlo/CcShell";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireAdminPage } from "@/lib/mlo/page-auth";
-import { ALL_MLOS } from "@/lib/config";
+import { ccAllMlos } from "@/lib/config";
 import { singleCompany } from "@/lib/accounts/company";
 import { serviceForCompany, twilioConfig } from "@/lib/messaging/twilio";
 import { STEPS } from "@/lib/journey/steps";
@@ -24,7 +24,7 @@ export default async function TextingSetup() {
   const tenant = listTenants()[0];
   const h = await headers();
   const base = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
-  const companies = [...new Map(ALL_MLOS.flatMap((m) => m.licenses.map((l) => [l.sponsor.idNumber, l.sponsor] as const))).values()];
+  const companies = [...new Map(ccAllMlos().flatMap((m) => m.licenses.map((l) => [l.sponsor.idNumber, l.sponsor] as const))).values()];
   const single = singleCompany();
   const connected = !!twilioConfig();
   const sample = (key: string) => STEPS.find((s) => s.key === key)?.message?.({ first: "Ann", me: "Pat", portal: null }) ?? "";

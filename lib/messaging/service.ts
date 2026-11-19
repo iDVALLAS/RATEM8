@@ -79,7 +79,7 @@ async function ebrDate(c: Contact): Promise<string | null> {
 /** Who the text is from, and how to stop, on the first text and every marketing text. */
 export function signature(actor: User): string {
   const mlo = mloById(actor.mloId);
-  return mlo ? `${mlo.firstName} at LoanM8, NMLS #${mlo.nmls}. Reply STOP to opt out.` : "LoanM8. Reply STOP to opt out.";
+  return mlo ? `${mlo.firstName} at ${mlo.brand ?? "LoanM8"}, NMLS #${mlo.nmls}. Reply STOP to opt out.` : "LoanM8. Reply STOP to opt out.";
 }
 
 export type SendOutcome = { ok: true } | { ok: false; error: string; reasons?: string[]; retryAt?: string | null };

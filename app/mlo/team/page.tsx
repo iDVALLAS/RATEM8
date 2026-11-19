@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import PageShell from "@/app/mlo/CcShell";
-import { ALL_MLOS } from "@/lib/config";
+import { ccAllMlos } from "@/lib/config";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { listTenants } from "@/lib/pricing/tenants";
 import { canManage, ROLE_LABELS } from "@/lib/accounts/auth";
@@ -66,7 +66,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
                     <span>Loan officer record (for loan officers)</span>
                     <select name="mloId" className="mlo-select" defaultValue="">
                       <option value="">None</option>
-                      {ALL_MLOS.map((m) => <option key={m.id} value={m.id}>{m.name} · NMLS #{m.nmls}</option>)}
+                      {ccAllMlos().map((m) => <option key={m.id} value={m.id}>{m.name} · NMLS #{m.nmls}</option>)}
                     </select>
                   </label>
                   <label className="mlo-field">

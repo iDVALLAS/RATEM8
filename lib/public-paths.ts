@@ -27,6 +27,9 @@ export const STEALTH_PUBLIC_FILES = [
   "/sign-in",
   // D34: the code step after the emailed link.
   "/sign-in/code",
+  // D45: loan officers sign themselves up (noindex).
+  "/sign-up",
+  "/sign-up/confirm",
   "/robots.txt",
   "/sitemap.xml",
   "/favicon.ico",

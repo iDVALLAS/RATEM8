@@ -43,6 +43,9 @@ const OPEN_EXACT = new Set([
   "/sign-in",
   // D34: the code step after the emailed link.
   "/sign-in/code",
+  // D45: loan officer sign-up has its own checks.
+  "/sign-up",
+  "/sign-up/confirm",
   "/api/cc/verify",
   "/api/cc/signout",
   "/api/cc/dev-login",

@@ -113,6 +113,12 @@ export type Mlo = {
    */
   applicationUrl: string;
   licenses: MloLicense[];
+  /** D45: who texts are signed from ("Name at {brand}"). Loan officers in this file: LoanM8. */
+  brand?: string;
+  /** D45: the sponsoring company's mailing address for email footers (signed-up loan officers). */
+  sponsorAddress?: string;
+  /** D45: "config" (this file) or "signup" (approved in Command Center, kept in the database). */
+  source?: "config" | "signup";
 };
 
 /**
@@ -519,8 +525,28 @@ export const AI_PLANS = {
 } as const satisfies Record<string, { label: string; allowanceCents: number; models: Record<(typeof AI_ROUTES)[number], string> }>;
 export type AiPlan = keyof typeof AI_PLANS;
 
+/**
+ * D45: loan officers who signed up in Command Center live in the database,
+ * not this file. The server loads them (lib/registry/cache.ts) and hands
+ * them here; the public site only ever uses ALL_MLOS.
+ */
+let extraMlos: Mlo[] = [];
+let extraLoaded = false;
+export function setExtraMlos(list: Mlo[]): void {
+  extraMlos = list.filter((m) => !ALL_MLOS.some((a) => a.id === m.id));
+  extraLoaded = true;
+}
+export function resetExtraMlosForTests(): void {
+  extraMlos = [];
+  extraLoaded = false;
+}
+/** True once the database loan officers have been loaded on this server. */
+export const extraMlosLoaded = () => extraLoaded;
+/** Every loan officer Command Center knows: this file's, plus approved sign-ups. */
+export const ccAllMlos = (): Mlo[] => [...ALL_MLOS, ...extraMlos];
+
 export function mloById(id: string | null | undefined): Mlo | undefined {
-  return id ? ALL_MLOS.find((m) => m.id === id) : undefined;
+  return id ? ALL_MLOS.find((m) => m.id === id) ?? extraMlos.find((m) => m.id === id) : undefined;
 }
 
 /** The MLOs holding a license in this state. */

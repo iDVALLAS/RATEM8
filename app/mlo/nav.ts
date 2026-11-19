@@ -59,6 +59,7 @@ export const DESTS: Dest[] = [
   { key: "team", href: "/mlo/team", label: "Team", icon: "team", group: "settings", desc: "People, roles and books." },
   { key: "welcome", href: "/mlo/welcome", label: "Getting started", icon: "help", group: "settings", desc: "Your first day, what works right now, and how to report a problem.", account: true },
   { key: "security", href: "/mlo/security", label: "Sign-in security", icon: "lock", group: "settings", desc: "A code from your phone at sign-in.", account: true },
+  { key: "signups", href: "/mlo/signups", label: "Sign-ups", icon: "lead", group: "admin", desc: "Loan officers who signed up. Check each NMLS record and approve.", admin: true },
   { key: "pilot", href: "/mlo/pilot", label: "Pilot", icon: "flag", group: "admin", desc: "Who has signed in, how far each person is, and every problem reported.", admin: true },
   { key: "launch", href: "/mlo/launch", label: "Launch checklist", icon: "rocket", group: "admin", desc: "Every account and setting, in order, and which are done.", admin: true },
   { key: "texting", href: "/mlo/texting", label: "Texting setup", icon: "message", group: "admin", desc: "Your company's registered texting service and its wording.", admin: true },
