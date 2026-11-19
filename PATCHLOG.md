@@ -2497,3 +2497,42 @@ why it matters and links to where to do it.
   memory).
 - **Verified:** `lib/setup/checklist.test.ts` (2): real state read;
   owner-only items; permission and DNC counts. `npm run verify` passes.
+
+## D25 — What clients see, what each text costs, and a fix for multi-button forms (2026-11-19)
+
+- **Text segments** (`lib/messaging/segments.ts`):
+  - Every text is sent with typographic punctuation swapped for plain
+    characters (curly quotes, long dashes, ellipses, odd spaces). One such
+    character switches a text to UCS-2: 70 characters a segment instead of
+    160, so a 150-character text bills as 3 segments instead of 1
+    (ledger item 13).
+  - Concierge draft cards now show the segment count, with the sign-off
+    when it's added, and say which character makes a text bill at UCS-2.
+- **`/mlo/messages`** ("See every message clients can get from you", on
+  the home page): every message Command Center can draft, exactly as a
+  client would get it, with the sign-off where it applies. That's the
+  Loan Journey steps, automations, the document request (once your portal
+  link is set) and the Concierge's plain drafts. Each shows "about their
+  loan" or "offer or check-in", segments, characters and encoding, and
+  whether it passes the checks.
+- **Copy:** the step 8 earnest-money text was shortened to fit 2 segments
+  with the sign-off (the wire-fraud line stays). Step 2 reads properly when
+  no portal link is set.
+- **Bug fixed (found in the click-through).** Buttons that carried a value
+  with `name=`/`value=` lost it: React's form actions here didn't pass the
+  clicked button to the server action. Affected:
+  - D10: "Stop updates" to an agent
+  - D11: call outcomes
+  - D17: "Doesn't apply", Reopen, Lock and Float
+  - D24: "I've done this"
+  Each now uses a bound server action (`action.bind(null, value)` with
+  `formAction`); every action still validates its value. No
+  value-carrying submit buttons remain.
+- **Verified:**
+  - `lib/messaging/segments.test.ts` (3): GSM-7 and UCS-2 counts as
+    carriers bill them; the swaps; every template stays GSM-7 and within
+    2 segments with the sign-off.
+  - Clicked through: setup mark saved (2 of 19); journey "Doesn't apply",
+    Done and Float recorded; the message review rendered; no console
+    errors.
+  - `npm run verify` passes (409 tests).

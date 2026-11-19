@@ -43,14 +43,13 @@ export type Step = {
 
 const hi = (f: string) => (f ? `Hi ${f}` : "Hi");
 const sig = (me: string) => (me ? ` -${me}` : "");
-const portalLine = (p: string | null, what: string) => (p ? ` ${what}: ${p}` : ` I'll send you the secure link to ${what.toLowerCase()}.`);
 
 export const STEPS: Step[] = [
   { key: "1", phase: "start", title: "Initial consultation with the loan officer", who: "you", duties: ["Talk through goals, timing and the kind of loan that fits."], autoStage: "application" },
   {
     key: "2", phase: "start", title: "Borrower completes the secure loan application online", who: "borrower", autoStage: "application",
     duties: ["Review the loan type.", "Collect every document the AUS findings call for (read the findings into the document checklist)."],
-    message: ({ first, me, portal }) => `${hi(first)}, thanks for talking with me.${portalLine(portal, "Here's your secure application")} Reply here with any questions.${sig(me)}`,
+    message: ({ first, me, portal }) => `${hi(first)}, thanks for talking with me.${portal ? ` Here's your secure application: ${portal}` : " I'll send you the link to your secure application."} Reply here with any questions.${sig(me)}`,
     rules: ["Loan Estimate clock: once you have their name, income, SSN, property address, estimated value and loan amount, the Loan Estimate is due within 3 business days (12 CFR 1026.19(e)(1)(iii))."],
   },
   {
@@ -65,7 +64,7 @@ export const STEPS: Step[] = [
   {
     key: "8", phase: "home", title: "Home buyer sends earnest money to escrow", who: "borrower",
     duties: ["Remind the borrower that earnest money is due per the contract.", "Collect the receipt by upload."],
-    message: ({ first, me, portal }) => `${hi(first)}, congratulations on the accepted offer! Your earnest money is due to escrow per your contract. Before you wire anything, call the escrow office at a number you already know to confirm the instructions.${portal ? ` Then upload the receipt here: ${portal}` : " Then send me the receipt through your secure portal."}${sig(me)}`,
+    message: ({ first, me, portal }) => `${hi(first)}, congrats on the accepted offer! Earnest money is due to escrow per your contract. Before you wire it, call escrow at a number you already know to confirm the instructions.${portal ? ` Receipt upload: ${portal}` : " Then upload the receipt to your secure portal."}${sig(me)}`,
     rules: ["Wire fraud: tell them to confirm wiring instructions by phone with escrow, at a known number. We never send wiring instructions."],
   },
   {

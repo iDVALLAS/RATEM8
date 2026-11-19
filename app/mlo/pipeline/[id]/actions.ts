@@ -10,11 +10,10 @@ import type { DocItem, StepState } from "@/lib/journey/store";
 const me = async () => (await currentUser()) ?? redirect("/sign-in");
 const back = (loanId: string, ok: boolean, line: string, hash = "") => redirect(`/mlo/pipeline/${encodeURIComponent(loanId)}?f=${encodeFlash({ ok, lines: [line] })}${hash}`);
 
-export async function stepAction(fd: FormData): Promise<void> {
+export async function stepAction(status: StepState["status"], fd: FormData): Promise<void> {
   const u = await me();
   const loanId = String(fd.get("loanId") ?? "");
   const key = String(fd.get("key") ?? "");
-  const status = String(fd.get("status") ?? "done") as StepState["status"];
   const r = await markStep(u, loanId, key, ["todo", "done", "na"].includes(status) ? status : "done", String(fd.get("note") ?? ""));
   back(loanId, r.ok, r.ok ? `Step ${key}: ${status === "done" ? "done" : status === "na" ? "doesn't apply" : "reopened"}.` : r.error, `#s-${key}`);
 }
@@ -34,10 +33,10 @@ export async function datesAction(fd: FormData): Promise<void> {
   back(loanId, true, "Dates saved.", "#clocks");
 }
 
-export async function lockAction(fd: FormData): Promise<void> {
+export async function lockAction(decision: "lock" | "float", fd: FormData): Promise<void> {
   const u = await me();
   const loanId = String(fd.get("loanId") ?? "");
-  const r = await setLock(u, loanId, fd.get("decision") === "lock" ? "lock" : "float");
+  const r = await setLock(u, loanId, decision === "lock" ? "lock" : "float");
   back(loanId, r.ok, r.ok ? "Recorded." : r.error, "#s-13");
 }
 

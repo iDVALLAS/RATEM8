@@ -9,6 +9,7 @@ import { redactChatInput } from "@/lib/m8/redact";
 import { canSee, recordConsent, summarize } from "@/lib/contacts/service";
 import { contactStore, type Channel, type Contact, type Purpose } from "@/lib/contacts/store";
 import { toE164 } from "@/lib/contacts/normalize";
+import { toGsm } from "./segments";
 import { decide, type GateDecision } from "@/lib/send-gate/gate";
 import { licensedStatesFor } from "@/lib/send-gate/for-contact";
 import { areaCodeState } from "@/lib/send-gate/rules";
@@ -101,7 +102,8 @@ export async function sendText(actor: User, contactId: string, rawBody: string, 
   }
   const first = !(await touchStore().forContact(c.id, 500)).some((t) => t.direction === "out" && t.channel === "text");
   const sig = signature(actor);
-  const body = purpose === "marketing" || first ? (text.includes("STOP") ? text : `${text}\n\n${sig}`) : text;
+  // D25: plain punctuation keeps the text in GSM-7 (160 characters a segment, not 70).
+  const body = toGsm(purpose === "marketing" || first ? (text.includes("STOP") ? text : `${text}\n\n${sig}`) : text);
   const res = await sendSms(c.phone!, body, statusCallback, service);
   await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose, direction: "out", body, status: res.ok ? res.status : "failed", providerId: res.ok ? res.sid : null, note: d.basis, at: now.toISOString(), actor: actor.email, phone: c.phone, sender: service, origin: opts.origin ?? "human" });
   await audit.audit({ at: now.toISOString(), actor: actor.email, action: "gate.send.text", detail: { contactId, purpose, basis: d.basis, ok: res.ok } });

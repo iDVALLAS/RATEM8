@@ -23,9 +23,9 @@ export default function SetupGuide({ items }: { items: SetupItem[] }) {
                     <p>{i.href && !i.done ? <Link href={i.href}>{i.label}</Link> : i.label}{i.detail ? <span className="mlo-note"> · {i.detail}</span> : null}<span className="sr-only">{i.done ? " (done)" : " (to do)"}</span></p>
                     {!i.done ? <p className="mlo-note">{i.why}</p> : null}
                     {i.manual ? (
-                      <form action={setupMarkAction}>
+                      <form action={setupMarkAction.bind(null, i.done ? "no" : "yes")}>
                         <input type="hidden" name="id" value={i.id} />
-                        <button type="submit" name="done" value={i.done ? "no" : "yes"} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 4 }}>{i.done ? "Not done yet" : "I've done this"}</button>
+                        <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 4 }}>{i.done ? "Not done yet" : "I've done this"}</button>
                       </form>
                     ) : null}
                   </div>

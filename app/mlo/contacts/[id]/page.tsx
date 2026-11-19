@@ -145,7 +145,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                 : `Off. Their agent only hears how the loan is going if ${c.firstName || "they"} said so. Record it here when they do.`}
             </p>
             {v.user.id === c.ownerUserId ? (
-              <form action={partnerUpdatesAction} className="mlo-grid">
+              <form action={partnerUpdatesAction.bind(null, "yes")} className="mlo-grid">
                 <input type="hidden" name="contactId" value={c.id} />
                 <div className="mlo-grid mlo-grid--2">
                   <label className="mlo-field"><span>Their agent</span>
@@ -157,8 +157,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                   <label className="mlo-field"><span>How they told you</span><input name="proof" maxLength={300} placeholder="Said yes by text, Nov 18" defaultValue={c.partnerUpdates?.allowed ? c.partnerUpdates.proof : ""} /></label>
                 </div>
                 <div className="mlo-row-form">
-                  <button type="submit" name="allowed" value="yes" className="mlo-btn" style={{ marginTop: 0 }}>Their agent may get updates</button>
-                  {c.partnerUpdates?.allowed ? <button type="submit" name="allowed" value="no" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Stop updates</button> : null}
+                  <button type="submit" formAction={partnerUpdatesAction.bind(null, "yes")} className="mlo-btn" style={{ marginTop: 0 }}>Their agent may get updates</button>
+                  {c.partnerUpdates?.allowed ? <button type="submit" formAction={partnerUpdatesAction.bind(null, "no")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Stop updates</button> : null}
                 </div>
                 {agents.length === 0 ? <p className="mlo-note">Import your agents first (Contacts → Import → Agents).</p> : null}
               </form>

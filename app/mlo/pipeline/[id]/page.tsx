@@ -95,22 +95,22 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
                     {s.rules?.length ? <details className="jr-rules"><summary>Rules for this step</summary><ul>{s.rules.map((r, i) => <li key={i}>{r}</li>)}</ul></details> : null}
                     <div className="mlo-row-form">
                       {s.key === "13" ? (
-                        <form action={lockAction} className="mlo-row-form">
+                        <form action={lockAction.bind(null, "lock")} className="mlo-row-form">
                           <input type="hidden" name="loanId" value={loan.id} />
                           <span className="mlo-note">{j.lock ? `${j.lock.decision === "lock" ? "Locked" : "Floating"} (confirmed by ${j.lock.by})` : "Your call:"}</span>
-                          <button type="submit" name="decision" value="lock" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Lock</button>
-                          <button type="submit" name="decision" value="float" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Float</button>
+                          <button type="submit" formAction={lockAction.bind(null, "lock")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Lock</button>
+                          <button type="submit" formAction={lockAction.bind(null, "float")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Float</button>
                         </form>
                       ) : (
-                        <form action={stepAction} className="mlo-row-form">
+                        <form action={stepAction.bind(null, "done")} className="mlo-row-form">
                           <input type="hidden" name="loanId" value={loan.id} />
                           <input type="hidden" name="key" value={s.key} />
                           {isDone || st?.status === "na" ? (
-                            <button type="submit" name="status" value="todo" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Reopen</button>
+                            <button type="submit" formAction={stepAction.bind(null, "todo")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Reopen</button>
                           ) : (
                             <>
-                              <button type="submit" name="status" value="done" className="mlo-btn" style={{ marginTop: 0 }}>Done</button>
-                              <button type="submit" name="status" value="na" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Doesn&apos;t apply</button>
+                              <button type="submit" formAction={stepAction.bind(null, "done")} className="mlo-btn" style={{ marginTop: 0 }}>Done</button>
+                              <button type="submit" formAction={stepAction.bind(null, "na")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Doesn&apos;t apply</button>
                             </>
                           )}
                         </form>

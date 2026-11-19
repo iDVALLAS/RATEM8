@@ -8,6 +8,8 @@ import { conciergeStore } from "@/lib/concierge/store";
 import { contactStore } from "@/lib/contacts/store";
 import { FlashBox, MloNav } from "../MloChrome";
 import Ask from "./Ask";
+import { segmentLabel } from "@/lib/messaging/segments";
+import { signature } from "@/lib/messaging/service";
 import Tell from "./Tell";
 import { approveAction, dismissAction, forgetFromDeskAction, keepAction, settingsAction, sweepAction, taskDoneAction } from "./actions";
 import "../mlo.css";
@@ -27,6 +29,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
   // D8.1: "reply personally" first.
   const tasks = [...openTasks.filter((t) => t.lane === "personal"), ...openTasks.filter((t) => t.lane !== "personal")];
   const people = await Promise.all([...new Set([...drafts.map((d) => d.contactId), ...tasks.map((t) => t.contactId), ...toKeep.map((m) => m.contactId)])].map((id) => contactStore().get(id)));
+  const sig = me ? signature(me) : "";
   const nameOf = (id: string) => {
     const c = people.find((p) => p?.id === id);
     return c ? `${c.firstName} ${c.lastName}`.trim() || c.email || "Someone" : "Someone";
@@ -66,7 +69,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                   {drafts.map((d) => (
                     <li key={d.id} className="cc-card">
                       <p className="cc-card__title"><Link href={`/mlo/contacts/${d.contactId}#conversation`}>{nameOf(d.contactId)}</Link> · {d.purpose === "service" ? "about their loan" : "a check-in"}{d.source === "template" ? " · template" : d.source === "automation" ? ` · loan update` : " · drafted by AI"}</p>
-                      <p className="mlo-note">Why: {d.why}</p>
+                      <p className="mlo-note">Why: {d.why} · {segmentLabel(d.purpose === "marketing" ? `${d.body}\n\n${sig}` : d.body)}{d.purpose === "marketing" ? " with your sign-off" : ""}</p>
                       {!d.gate.allowed ? <p className="mlo-note">Not sendable right now: {d.gate.reason}</p> : null}
                       <form action={approveAction} className="mlo-grid">
                         <input type="hidden" name="id" value={d.id} />

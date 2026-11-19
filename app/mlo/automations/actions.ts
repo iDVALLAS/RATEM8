@@ -20,10 +20,10 @@ export async function runNowAction(): Promise<void> {
   redirect(`/mlo/automations?f=${encodeFlash({ ok: true, lines: [`Checked your book: ${r.drafted} draft${r.drafted === 1 ? "" : "s"} and ${r.reminders} reminder${r.reminders === 1 ? "" : "s"} for your Concierge desk.`, ...r.skipped.slice(0, 4).map((x) => `Skipped: ${x}`)] })}#recent`);
 }
 
-export async function partnerUpdatesAction(fd: FormData): Promise<void> {
+export async function partnerUpdatesAction(choice: "yes" | "no", fd: FormData): Promise<void> {
   const u = await me();
   const contactId = String(fd.get("contactId") ?? "");
-  const allowed = fd.get("allowed") === "yes";
+  const allowed = choice === "yes";
   const r = await setPartnerUpdates(u, contactId, { allowed, agentContactId: String(fd.get("agentId") ?? "") || null, proof: String(fd.get("proof") ?? "") });
   redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: r.ok, lines: [r.ok ? (allowed ? "Saved: their agent can get loan updates." : "Stopped: their agent won't get loan updates.") : r.error] })}#partner`);
 }

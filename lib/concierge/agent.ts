@@ -291,21 +291,28 @@ async function runModel(call: ModelCall, user: User, b: Brief, s: ConciergeSetti
   }
 }
 
+/** D25: the Concierge's plain drafts (also listed on the message review page). */
+export const CONCIERGE_TEMPLATES = {
+  reply: (first: string) => `Thanks, ${first}. I got your message and I'll get back to you today.`,
+  anniversary: (first: string) => `Hi ${first}, happy home anniversary! Hope the house is treating you well. If anything's changed with your plans for it, I'm happy to help.`,
+  check_in: (first: string) => `Hi ${first}, just checking in. How's everything with the house? If you're thinking about any projects or changes this year, I'm here to help.`,
+};
+
 /** Rule-based drafts when no model is available, so the desk still works. */
 async function runTemplates(user: User, b: Brief, s: ConciergeSettings, now: Date, out: SweepResult): Promise<void> {
   const card = b.card;
   if (!card) return;
   const first = b.contact.firstName || "there";
   if (card.kind === "reply" && b.allowed.service.ok) {
-    if (await propose(user, b, "service", `Thanks, ${first}. I got your message and I'll get back to you today.`, "They're waiting for a reply.", "template", now, out.refused)) out.proposals++;
+    if (await propose(user, b, "service", CONCIERGE_TEMPLATES.reply(first), "They're waiting for a reply.", "template", now, out.refused)) out.proposals++;
     return;
   }
   if (card.kind === "anniversary" && b.allowed.marketing.ok) {
-    if (await propose(user, b, "marketing", `Hi ${first}, happy home anniversary! Hope the house is treating you well. If anything's changed with your plans for it, I'm happy to help.`, "Their home anniversary is coming up.", "template", now, out.refused)) out.proposals++;
+    if (await propose(user, b, "marketing", CONCIERGE_TEMPLATES.anniversary(first), "Their home anniversary is coming up.", "template", now, out.refused)) out.proposals++;
     return;
   }
   if (card.kind === "check_in" && b.allowed.marketing.ok) {
-    if (await propose(user, b, "marketing", `Hi ${first}, just checking in. How's everything with the house? If you're thinking about any projects or changes this year, I'm here to help.`, "It's been a while since you were in touch.", "template", now, out.refused)) out.proposals++;
+    if (await propose(user, b, "marketing", CONCIERGE_TEMPLATES.check_in(first), "It's been a while since you were in touch.", "template", now, out.refused)) out.proposals++;
     return;
   }
   if (s.tasks && ["anniversary", "rate_gap", "check_in", "ask_permission", "loan_late", "lock", "closing"].includes(card.kind)) {

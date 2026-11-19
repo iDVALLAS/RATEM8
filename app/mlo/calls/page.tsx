@@ -64,13 +64,13 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                 </div>
                 {ruleForStates([next.contact.state, areaCodeState(next.contact.phone)]).allPartyRecording ? <p className="mlo-note">{usStateName(next.contact.state)} requires everyone&apos;s consent to record. Ask first, or don&apos;t record.</p> : null}
                 {ruleForStates([next.contact.state, areaCodeState(next.contact.phone)]).opening ? <p className="mlo-note">{ruleForStates([next.contact.state, areaCodeState(next.contact.phone)]).opening}</p> : null}
-                <form action={logCallAction} className="mlo-grid" style={{ marginTop: 12 }}>
+                <form action={logCallAction.bind(null, "reached")} className="mlo-grid" style={{ marginTop: 12 }}>
                   <input type="hidden" name="contactId" value={next.contact.id} />
                   <input type="hidden" name="purpose" value={next.purpose} />
                   <label className="mlo-field"><span>A note (optional; no account numbers or SSNs)</span><input name="note" maxLength={400} /></label>
                   <div className="mlo-row-form">
                     {CALL_RESULTS.map((r) => (
-                      <button key={r} type="submit" name="result" value={r} className={r === "reached" || r === "booked" ? "mlo-btn" : "mlo-btn mlo-btn--ghost"} style={{ marginTop: 0 }}>{CALL_RESULT_LABELS[r]}</button>
+                      <button key={r} type="submit" formAction={logCallAction.bind(null, r)} className={r === "reached" || r === "booked" ? "mlo-btn" : "mlo-btn mlo-btn--ghost"} style={{ marginTop: 0 }}>{CALL_RESULT_LABELS[r]}</button>
                     ))}
                   </div>
                   <p className="mlo-note">Logging moves you to the next person. “Asked not to be contacted” and “Wrong number” record a stop for calls and texts.</p>

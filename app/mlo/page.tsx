@@ -46,6 +46,7 @@ export default async function CommandCenterHome() {
           )}
         </section>
         {setup ? <SetupGuide items={setup} /> : null}
+        {v.user ? <p className="mlo-note" style={{ marginTop: 8 }}><Link href="/mlo/messages">See every message clients can get from you</Link></p> : null}
         {today ? (
           <section className="mlo-section">
             <h2>Today</h2>
