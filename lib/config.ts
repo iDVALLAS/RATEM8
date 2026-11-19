@@ -477,6 +477,16 @@ export const MEMBERSHIP = {
   marketingShare: 0.2,
   /** ...of which this part is national (the LoanM8 brand, seen by every member); the rest stays in the member's own area, where members have a say. */
   nationalPart: 0.6,
+  /**
+   * D40: production share, the NEXA-style override (NEXA reportedly pays
+   * 10 basis points on each loan a loan officer's direct recruit closes).
+   * Basis points of each recruit's closed loan amounts, one number per
+   * level (level 1 = the people you brought in). Paid by the sponsoring
+   * brokerage under its written compensation plan, never by LoanM8, and
+   * off until PRODUCTION_OVERRIDE="true" after counsel and the sponsor
+   * approve. Never based on a rate or any other loan term.
+   */
+  productionBps: [10] as readonly number[],
 } as const;
 
 export function mloById(id: string | null | undefined): Mlo | undefined {

@@ -40,7 +40,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
   // Every page, both widths.
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {
@@ -145,6 +145,31 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.goto(B + '/mlo/expenses/report');
     console.log('report:', (await page.locator('.ex-report h2').allInnerTexts()).join(' / '));
     const r = await page.request.get(B + '/api/cc/expenses/csv'); console.log('csv:', r.status(), (await r.text()).split('\n').length - 2, 'rows');
+  });
+  await step('templates: answer, use, make', async () => {
+    await page.goto(B + '/mlo/templates');
+    await page.locator('#answer textarea').fill("I'm just going to use my bank.");
+    await page.getByRole('button', { name: 'Help me answer' }).click();
+    await page.locator('#answer [role=status]').first().waitFor(); console.log('answer:', (await page.locator('#answer [role=status]').first().innerText()).slice(0, 90).replace(/\n/g, ' | '));
+    await page.locator('#list .cc-card').first().getByText('Use it').click();
+    console.log('use it fields:', await page.locator('#list .cc-card').first().locator('.tp-fields input').count());
+    await page.locator('#make input[name=title]').fill('My coffee ask'); await page.locator('#make textarea[name=body]').fill('Hi {agentFirst}, could I buy you a coffee and hear how you like to work with lenders?');
+    await page.getByRole('button', { name: 'Save template' }).click(); await page.waitForURL(/f=/); console.log('save:', await flash());
+    await page.goto(B + '/mlo/templates'); await page.locator('#make input[name=title]').fill('Bad'); await page.locator('#make textarea[name=body]').fill('Rates at 5.5% this week, {first}!');
+    await page.getByRole('button', { name: 'Save template' }).click(); await page.waitForURL(/f=/); console.log('save bad:', await flash());
+  });
+  await step('training: numbers, quiz, practice', async () => {
+    await page.goto(B + '/mlo/academy');
+    await page.locator('input[name=goal]').fill('4'); await page.locator('#numbers input[name=conversations]').first().fill('10'); await page.locator('#numbers input[name=meetings]').first().fill('2');
+    await page.getByRole('button', { name: 'Save targets' }).click(); await page.waitForURL(/f=/); console.log('targets:', await flash());
+    await page.goto(B + '/mlo/academy/p1');
+    const qs = page.locator('.ac-q'); const n = await qs.count();
+    for (let i = 0; i < n; i++) await qs.nth(i).locator('input[type=radio]').nth(1).check();
+    await page.getByRole('button', { name: 'Check my answers' }).click(); await page.locator('#quiz [role=status]').waitFor(); console.log('quiz:', await page.locator('#quiz [role=status]').innerText());
+    await page.goto(B + '/mlo/academy/p5');
+    await page.locator('#practice textarea').fill("Hi Jordan, I saw your listing on Elm. Could I buy you a coffee and hear how you work with lenders?");
+    await page.getByRole('button', { name: 'Say it' }).click(); await page.waitForFunction(() => document.querySelectorAll('#practice .mlo-msg').length >= 3);
+    await page.getByRole('button', { name: 'Coach me' }).click(); await page.locator('#practice .cc-card').waitFor(); console.log('coach:', (await page.locator('#practice .cc-card').innerText()).slice(0, 90).replace(/\n/g, ' | '));
   });
   console.log('\nPROBLEMS:', problems.length ? '\n' + problems.join('\n') : 'none');
   await b.close();

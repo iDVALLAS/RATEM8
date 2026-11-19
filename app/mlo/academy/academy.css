@@ -1,0 +1,13 @@
+/* D39: training. */
+.ac-sessions { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.ac-session { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; min-height: 52px; padding: 8px 14px; border: 1px solid var(--rule-strong); border-radius: 12px; color: var(--fg); text-decoration: none; }
+.ac-session:hover, .ac-session:focus-visible { border-color: var(--accent); }
+.ac-session__n { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); font-family: var(--font-jetbrains), monospace; font-size: 14px; }
+.ac-session__t { min-width: 0; }
+.ac-block { margin-top: 16px; }
+.ac-quiz { display: grid; gap: 14px; }
+.ac-q { border: 1px solid var(--rule); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+.ac-q legend { padding: 0 6px; color: var(--fg); }
+.ac-right { color: var(--accent); }
+.ac-wrong { color: var(--fg); }
+.ac-under { color: var(--muted); }

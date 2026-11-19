@@ -9,6 +9,7 @@ import { accountStore } from "@/lib/accounts/store";
 import { isAdmin } from "@/lib/accounts/auth";
 import { areaPlan, CHANNEL_LABELS, coopBudget, creditBalance, PAID_AD_CHANNELS, rewardsOn, statementFor } from "@/lib/membership/service";
 import { areaKey, COOP_CHANNELS, membershipStore, NATIONAL } from "@/lib/membership/store";
+import { productionOn, shareFor, sponsorStatement } from "@/lib/membership/production";
 import { FlashBox, MloNav } from "../MloChrome";
 import { answerIdeaAction, ideaAction, paymentAction, prefAction, setMemberAction, spendAction } from "./actions";
 import "../mlo.css";
@@ -36,6 +37,12 @@ export default async function Membership({ searchParams }: { searchParams: Promi
   const areas = admin ? [...new Map(members.map((m) => [areaKey(m.area), m.area])).values()] : [];
   const areaBudgets = admin ? await Promise.all(areas.map(async (a) => ({ ...(await coopBudget(a)), plan: await areaPlan(a) }))) : [];
   const allIdeas = admin ? (await membershipStore().ideas(null)).filter((i) => i.status === "open" || i.status === "approved") : [];
+  const thisMonth = month();
+  const lastMonth = (() => { const d = new Date(`${thisMonth}-15T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
+  const myShare = me ? [...(await shareFor(me.id, thisMonth)).map((l) => ({ ...l, month: thisMonth })), ...(await shareFor(me.id, lastMonth)).map((l) => ({ ...l, month: lastMonth }))] : [];
+  const sponsorThis = me ? await sponsorStatement(me, thisMonth) : null;
+  const nameOfAny = async (id: string) => (await accountStore().userById(id))?.name?.split(/\s+/)[0] ?? "A member";
+  const shareNames = Object.fromEntries(await Promise.all([...new Set([...myShare.map((l) => l.recruitUserId), ...(sponsorThis?.lines ?? []).flatMap((l) => [l.recruitUserId, l.recruiterUserId])])].map(async (id) => [id, await nameOfAny(id)] as const)));
   const nationalShare = MEMBERSHIP.marketingShare * MEMBERSHIP.nationalPart;
   const areaShare = MEMBERSHIP.marketingShare - nationalShare;
   return (
@@ -54,9 +61,11 @@ export default async function Membership({ searchParams }: { searchParams: Promi
               <ul className="mlo-list">
                 <li><strong>Bring in loan officers you know.</strong> For each one, {pct(MEMBERSHIP.recruitRate)} of the membership fee they pay comes back to you as credit on your own membership, rising to {pct(MEMBERSHIP.recruitTenureRate)} once they&apos;ve been a member {MEMBERSHIP.tenureMonths} months. Credit only, one level, and never based on anyone&apos;s loans.</li>
                 <li><strong>Market your area together.</strong> {pct(MEMBERSHIP.marketingShare)} of every fee goes to marketing: {pct(nationalShare)} of the fee to national LoanM8 marketing and {pct(areaShare)} to your own area, where the members there decide how it&apos;s split and suggest local ideas.</li>
+                <li><strong>Share in their production.</strong> When a loan officer you brought in (including an agent you helped get licensed) closes loans, you get {MEMBERSHIP.productionBps.map((b, i) => `${b} basis points of their closed loan amounts${MEMBERSHIP.productionBps.length > 1 ? ` at level ${i + 1}` : ""}`).join(", ")}, paid by the sponsoring company through its compensation plan. It&apos;s based only on loan amounts, never rates or terms.</li>
                 <li><strong>See every dollar.</strong> Each spend is listed with what it was, where it ran and its receipt.</li>
               </ul>
               {!rewardsOn() ? <p className="mlo-note" style={{ marginTop: 8 }}>Recruiting credit is being tracked and held. It becomes usable once counsel approves the plan.</p> : null}
+              {!productionOn() ? <p className="mlo-note" style={{ marginTop: 4 }}>The production share is tracked, not owed, until counsel and the sponsoring company approve it.</p> : null}
             </section>
 
             <section className="mlo-section">
@@ -77,6 +86,16 @@ export default async function Membership({ searchParams }: { searchParams: Promi
                 <table className="mlo-table">
                   <thead><tr><th>Who</th><th>Member since</th><th>Rate now</th><th>Credit so far</th></tr></thead>
                   <tbody>{st.recruits.map((r) => <tr key={r.userId}><td>{r.name}{r.active ? "" : " (left)"}</td><td>{r.joinedOn}</td><td>{pct(r.rateNow)}</td><td>{$(r.creditCents)}</td></tr>)}</tbody>
+                </table>
+              )}
+            </section>
+
+            <section className="mlo-section" id="production">
+              <h2>Your production share</h2>
+              {myShare.length === 0 ? <p className="mlo-note">No closed loans from loan officers you brought in, this month or last.</p> : (
+                <table className="mlo-table">
+                  <thead><tr><th>Month</th><th>Who</th><th>Closed loans</th><th>Volume</th><th>Share</th></tr></thead>
+                  <tbody>{myShare.map((l) => <tr key={`${l.month}-${l.recruitUserId}`}><td>{l.month}</td><td>{shareNames[l.recruitUserId]}{l.level > 1 ? ` (level ${l.level})` : ""}</td><td>{l.loans}</td><td>{$(l.volume * 100)}</td><td>{$(l.cents)}{productionOn() ? "" : " (tracked)"}</td></tr>)}</tbody>
                 </table>
               )}
             </section>
@@ -205,6 +224,18 @@ export default async function Membership({ searchParams }: { searchParams: Promi
                     <label className="mlo-check"><input type="checkbox" name="locationOnly" value="yes" /> <span>For {PAID_AD_CHANNELS.map((c) => CHANNEL_LABELS[c].toLowerCase()).join(" and ")}: the ad uses the housing ad category and targets by location only (no age, gender, family status or ZIP exclusions), and shows the loan officer&apos;s NMLS number and Equal Housing Opportunity.</span></label>
                     <button type="submit" className="mlo-btn">Record spend</button>
                   </form>
+                </section>
+
+                <section className="mlo-section" id="sponsor">
+                  <h2>Production share statement for the sponsor ({thisMonth})</h2>
+                  <p className="mlo-note">The sponsoring company pays the production share through its payroll under its written compensation plan; LoanM8 never pays it. {productionOn() ? "The plan is on." : "The plan isn't approved yet, so this is for tracking only."}</p>
+                  {sponsorThis && sponsorThis.lines.length ? (
+                    <table className="mlo-table">
+                      <thead><tr><th>Recruiter</th><th>Recruit</th><th>Level</th><th>Volume</th><th>Share</th></tr></thead>
+                      <tbody>{sponsorThis.lines.map((l) => <tr key={`${l.recruiterUserId}-${l.recruitUserId}`}><td>{shareNames[l.recruiterUserId]}</td><td>{shareNames[l.recruitUserId]}</td><td>{l.level}</td><td>{$(l.volume * 100)}</td><td>{$(l.cents)}</td></tr>)}</tbody>
+                    </table>
+                  ) : <p className="mlo-note">Nothing this month yet.</p>}
+                  <p className="mlo-note" style={{ marginTop: 8 }}><a href={`/api/cc/override/csv?month=${thisMonth}`}>Download this month&apos;s statement (CSV)</a> · <a href={`/api/cc/override/csv?month=${lastMonth}`}>last month</a></p>
                 </section>
 
                 <section className="mlo-section" id="ideas">

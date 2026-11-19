@@ -200,6 +200,14 @@ Recruiting credit (10%, 15% after a year, one level, credit on the recruiter's o
 | --- | --- | --- |
 | `RECRUIT_REWARDS` (optional) | No | Set to "true" once approved. |
 
+### Production share (only after counsel and the sponsor approve it)
+
+The NEXA-style share (10 basis points of each recruit's closed loan amounts, from lib/config.ts) is tracked until this is on. The sponsoring company pays it through its written compensation plan; ask counsel about Reg Z loan originator pay (12 CFR 1026.36(d)), state rules for any levels beyond the first, and how agents who get licensed are paid on their own deals.
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `PRODUCTION_OVERRIDE` (optional) | No | Set to "true" once approved. |
+
 ## 6. Go live
 
 ### Open the site

@@ -46,6 +46,7 @@ export const LAUNCH: LaunchStep[] = [
   { phase: 5, title: "Questions for counsel", detail: "The client-page opt-in wording; whether AI-drafted texts need a disclosure; the Connecticut existing-customer reading; the RESPA wording on asking for introductions; how long call notes and Concierge notes are kept; adding the client page and the Concierge to the privacy notice." },
   { phase: 5, title: "State switches (only after counsel clears them)", detail: "Each stays closed until set to exactly \"true\".", env: [{ name: "GATE_TX_302_CLEARED", sensitive: false, note: "Texas sales calls and texts (ch. 302).", optional: true }, { name: "GATE_AZ_PHONE_CLEARED", sensitive: false, note: "Arizona sales calls and texts.", optional: true }, { name: "GATE_CA_AI_VOICE_CLEARED", sensitive: false, note: "M8 AI-voice calls to California.", optional: true }] },
   { phase: 5, title: "Membership plan (only after counsel clears it)", detail: "Recruiting credit (10%, 15% after a year, one level, credit on the recruiter's own membership, never from loans) is tracked and held until this is on. Ask counsel about the plan, the co-op budget and whether the plan needs any securities or franchise filing.", env: [{ name: "RECRUIT_REWARDS", sensitive: false, note: 'Set to "true" once approved.', optional: true }] },
+  { phase: 5, title: "Production share (only after counsel and the sponsor approve it)", detail: "The NEXA-style share (10 basis points of each recruit's closed loan amounts, from lib/config.ts) is tracked until this is on. The sponsoring company pays it through its written compensation plan; ask counsel about Reg Z loan originator pay (12 CFR 1026.36(d)), state rules for any levels beyond the first, and how agents who get licensed are paid on their own deals.", env: [{ name: "PRODUCTION_OVERRIDE", sensitive: false, note: 'Set to "true" once approved.', optional: true }] },
   // 6. Go live
   { phase: 6, title: "Open the site", detail: "When the public site is ready: lift the tester password and stealth, and turn on loan officer routing.", env: [{ name: "SITE_LOCK", sensitive: false, note: 'Set to "false".' }, { name: "NEXT_PUBLIC_STEALTH_MODE", sensitive: false, note: 'Set to "false".' }, { name: "MLO_ROUTING", sensitive: false, note: 'Set to "true".' }] },
 ];
@@ -59,7 +60,7 @@ export function envStatus(name: string): boolean {
   if (name === "MLO_BASIC_AUTH") return process.env.MLO_BASIC_AUTH === "false";
   if (name === "SITE_LOCK" || name === "NEXT_PUBLIC_STEALTH_MODE") return process.env[name] === "false";
   if (name === "MLO_ROUTING") return process.env.MLO_ROUTING === "true";
-  if (name === "CC_REQUIRE_MFA" || name === "RECRUIT_REWARDS") return process.env[name] === "true";
+  if (name === "CC_REQUIRE_MFA" || name === "RECRUIT_REWARDS" || name === "PRODUCTION_OVERRIDE") return process.env[name] === "true";
   if (name.startsWith("GATE_")) return process.env[name] === "true";
   return !!process.env[name]?.trim();
 }

@@ -2961,3 +2961,159 @@ upload receipts, so the year ends with one printout for their CPA.
     phrases make a charity draft. The AI path has the same type.
 - **Verified:** `lib/expenses/expenses.test.ts` covers parsing a charity
   drive and keeping 50 charity miles ($7.00) out of the business totals.
+
+## D38 — Templates, the open house kit, objections and M8's answers (2026-11-19)
+
+The owner asked for open house templates for loan officers and agents, a
+quick way to make templates, and AI-generated responses and rebuttals.
+The call scripts (D9) had objections per contact; this is the general
+library.
+
+- **`/mlo/templates`** (nav: Templates):
+  - **Help me answer:** paste what a client or agent said and M8 offers
+    two or three honest replies, each with why it works.
+  - **The library:** filtered by kind. Each template has a "Use it" panel
+    that fills in the fields: yours come from config, and the rest you
+    type (agent, address, date, time). Unfilled fields stay visible as
+    [field], and there's a Copy button.
+  - **Make your own:** type a template, or "Write it with M8" and edit.
+    Owners and team leads can share one with the whole team.
+- **The library** (`lib/templates/library.ts`), 29 templates:
+  - **Open houses (7):** offering to co-host with an agent; flyer copy;
+    a sign-in sheet with a separate consent line for calls and texts
+    (written permission, "not a condition", STOP); inviting past
+    clients; thank-you text and email; a recap to the agent.
+  - **Agent outreach (4):** first note, after the meeting, check-in, and
+    a loan update (only with the buyer's OK).
+  - **Borrower follow-ups (4):** shopping around, pre-approval, documents,
+    home anniversary.
+  - **Social (2):** co-hosting post, buyer tip.
+  - **Objections (12):** waiting for rates, using their bank, an online
+    lender's quote, fees, needing to think, credit worries, down payment,
+    not ready, a relative who's a lender, already pre-approved, an agent
+    who has lenders, refinance not worth it.
+  - **Rules** are attached where they apply: the RESPA fair-share rule
+    for co-marketing, the advertising line (NMLS numbers and Equal
+    Housing Opportunity), fair housing wording, and texting consent.
+- **Checks** (`checkTemplate`): every paragraph passes the Concierge's
+  draft guard, so there are no rates, payments, dollar figures, typed
+  dates, promises, urgency, protected topics or someone else's contact
+  details.
+  - **New: a fair housing word list** for anything that describes who a
+    home is for ("families", "young couples", "adults only", places of
+    worship…), from HUD's advertising rule (24 CFR 100.75).
+  - Every built-in template must pass (a test), and everything printed or
+    posted must carry the NMLS line.
+  - M8's drafts and answers that fail are dropped. Without the AI key,
+    the library's closest match is offered.
+- **Store:** `cc_templates`.
+- **Verified:** `lib/templates/templates.test.ts` (6) covers:
+  - library compliance
+  - filling fields from config
+  - refusing rates, dollars, typed dates, promises and fair-housing
+    wording
+  - sharing rights
+  - M8 answers filtered, plus the fallback
+  - M8 templates filtered
+
+## D39 — Training: agent partnerships the CORE way, and inviting agents into lending (2026-11-19)
+
+- **Research:** the owner asked for the CORE method; NFM Lending was
+  dropped at their request. "The CORE" is The CORE Training, founded by
+  Rick Ruby in 2001; NFM Lending has said many of its employees follow
+  it. Its curriculum is paid and private.
+  - **What's public:** systems, accountability and execution over
+    motivation; goals and tracking your numbers; time blocking; the
+    initial contact; mastering the close.
+  - **So the sessions are LoanM8's own material** built on those
+    principles, credited on the page and not presented as The CORE's.
+    The owner (a member, say) can add their own coaching notes to every
+    session.
+- **`/mlo/academy`** (nav: Training) has two tracks:
+  - **Agent partnerships, the CORE way (8 sessions):** why agents and the
+    RESPA line; goals and your numbers; time blocking; building your
+    list; the first contact; the meeting; the close and the first file;
+    accountability and the next 30 days.
+  - **Inviting an agent into lending (5 sessions):** who might want to
+    originate; what licensing takes (the SAFE Act's 20 hours, the test,
+    background check, sponsorship, yearly CE); holding both licenses
+    (state and company rules, disclosure, RESPA); the conversation, with
+    no income claims; their first 90 days.
+- **Each session** has the learning, "do this week" actions, the
+  loan officer's own notes, and a quiz: 80% passes, and the best score
+  and first pass date are kept.
+  - **Practice with M8** (sessions on the first contact, the meeting, the
+    first file and the licensing conversation): M8 plays the agent, then
+    "Coach me" gives what worked, what to try next and a score.
+  - **Referral flag:** offering anything of value for referrals is
+    flagged by a fixed rule as well as by M8.
+  - **Without the AI key,** practice shows what a strong answer includes.
+- **Your numbers:** a monthly purchase goal and weekly targets for agent
+  conversations and meetings, and a Friday log of conversations,
+  meetings, follow-ups and buyers introduced. Weeks under target are
+  dimmed.
+- **Team view:** the owner and team leads see each person's sessions
+  passed and last logged week.
+- **Store:** `cc_academy_progress`, `cc_academy_numbers`,
+  `cc_academy_weeks`, `cc_academy_notes`.
+- **Verified:** `lib/academy/academy.test.ts` (5) covers:
+  - content completeness and valid answers, with RESPA taught where it
+    applies
+  - passing at 80% with the best score kept
+  - numbers and the weekly log, team view rights, coaching-note rights
+  - the referral-value flag with and without the AI
+  - persona lines checked, and the no-key path
+
+## D40 — Production share for loan officers you bring in (2026-11-19)
+
+The owner asked for a share of the production of loan officers a member
+recruits (including agents they help get licensed), similar to NEXA.
+NEXA reportedly pays 10 basis points each time a direct recruit closes a
+loan.
+
+- **The share** (`lib/membership/production.ts`):
+  - basis points of each recruit's **closed** loan amounts
+  - `MEMBERSHIP.productionBps` in `lib/config.ts`, default `[10]`: level
+    1 only. Each added number adds a level.
+  - only loans closed after the recruit joined, not dead, while the
+    recruiter is active
+  - **never based on a rate or any other term:** only the amount and
+    whether it closed are read (12 CFR 1026.36(d) allows pay based on
+    loan amount, not terms). The D35 credit stays separate.
+- **Who pays:** the sponsoring brokerage, through its payroll under its
+  written compensation plan. **LoanM8 never pays it.** The owner gets a
+  monthly statement for the sponsor (`/api/cc/override/csv?month=`, owner
+  and team leads only).
+- **Off until approved:** off until `PRODUCTION_OVERRIDE="true"`, after
+  counsel and the sponsor approve. Until then it's shown as "tracked",
+  and the statement says "tracked only; not approved".
+- **Membership page:**
+  - "How it works" explains the share.
+  - Each member sees their share for this month and last.
+  - The owner sees the sponsor statement and CSV links.
+- **Launch checklist:** a counsel item with `PRODUCTION_OVERRIDE`. It
+  covers Reg Z loan originator pay, state rules for any levels beyond
+  the first, and how licensed agents are paid on their own deals.
+- **Verified:** `lib/membership/production.test.ts` (2) covers:
+  - 10 bps of two closed loans in the month ($800 on $800,000), ignoring
+    open, dead and other-month loans and the note rate; level 2 unpaid by
+    default
+  - only after joining; owner-only statement; tracked vs approved; a
+    disabled recruiter gets nothing
+- **For counsel:**
+  - whether a production share paid to a loan officer on other loan
+    officers' volume fits the sponsor's comp plan and Reg Z
+  - whether levels beyond the first are acceptable in each state
+  - how it interacts with the D35 credit and with any securities or
+    franchise question about the membership plan
+- **QA (D38–D40):** the sweep adds `/mlo/templates` (all and
+  objections), `/mlo/academy`, `/mlo/academy/p5` and `/mlo/academy/l2`.
+  It runs "Help me answer" (the library fallback, no key), "Use it" field
+  filling, saving a template, refusing one with a rate, saving targets,
+  passing a quiz, and a practice turn with "Coach me". All pass.
+  - **The intermittent React #418 was seen a second time,** now on
+    `/mlo/scripts` at 390px, once. It didn't reproduce in 60 targeted
+    loads across `/mlo/scripts`, `/mlo/pricing`, `/mlo/calls` and
+    `/mlo/team` at 390px. Two different pages points to something shared
+    by every page rather than one page. Still logged as "watch"; next
+    step is a dev-mode run to get the unminified diff.
