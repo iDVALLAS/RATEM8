@@ -319,7 +319,9 @@ async function runTemplates(user: User, b: Brief, s: ConciergeSettings, now: Dat
     return;
   }
   if (s.tasks && ["anniversary", "rate_gap", "check_in", "ask_permission", "loan_late", "lock", "closing"].includes(card.kind)) {
-    const title = card.kind === "rate_gap" ? TASK_TITLE.price_scenario(first) : card.kind === "ask_permission" ? TASK_TITLE.ask_permission(first) : `Call ${first}: ${CARD_BRIEF[card.kind].replace(/\.$/, "").toLowerCase()}`;
+    // Written to the loan officer (CARD_BRIEF is written for the model and says "the MLO").
+    const WHY: Partial<Record<string, string>> = { anniversary: "their home anniversary is coming up", check_in: "it's been a while since you were in touch", loan_late: "their loan is moving slower than usual", lock: "their rate lock needs attention", closing: "their closing is coming up" };
+    const title = card.kind === "rate_gap" ? TASK_TITLE.price_scenario(first) : card.kind === "ask_permission" ? TASK_TITLE.ask_permission(first) : `Call ${first}: ${WHY[card.kind] ?? CARD_BRIEF[card.kind].replace(/\.$/, "").toLowerCase()}`;
     // The reason is the loan officer's own Today text (it may carry the rate): it stays on their screen, never goes to a model.
     await conciergeStore().putTask({ id: id("k"), ownerUserId: user.id, contactId: b.contact.id, title, why: card.reason.slice(0, 400), due: now.toISOString().slice(0, 10), done: false, createdAt: now.toISOString() });
     out.tasks++;

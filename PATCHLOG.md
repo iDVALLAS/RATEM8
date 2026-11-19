@@ -3279,3 +3279,15 @@ loan officer.
   duplicates merged, the .xls message, a working cleaned-CSV download
   and a successful import, with no page errors. The QA sweep adds this
   as a step.
+
+## D42.1 — Reminder wording, and a visual tour (2026-11-19)
+
+- **Fix:** template-path reminders reused the model-facing card text,
+  which reads "the MLO", lowercased: "Call Dee: it's been a while since
+  the mlo was in touch". Reminder titles now have their own wording
+  addressed to the loan officer: "it's been a while since you were in
+  touch", "their closing is coming up" and so on
+  (`lib/concierge/agent.ts`). Found while capturing the tour.
+- **Tour:** 32 screenshots of every Command Center screen with a sample
+  book, captured from a local production build. They're published as a
+  private page for the owner (outside the repo).
