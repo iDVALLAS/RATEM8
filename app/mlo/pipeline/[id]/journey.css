@@ -1,0 +1,22 @@
+/* D17 Loan Journey. */
+.jr-progress { height: 8px; border-radius: 999px; background: var(--bg-sunken); overflow: hidden; margin: 10px 0 6px; }
+.jr-progress span { display: block; height: 100%; background: var(--accent); }
+.jr-clocks { display: grid; gap: 8px; }
+.jr-clock { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--rule); color: var(--fg-soft); line-height: 1.5; }
+.jr-clock--stop { border-color: var(--accent); border-left: 4px solid var(--accent); color: var(--fg); }
+.jr-clock--warn { border-left: 4px solid var(--rule-strong); }
+.jr-steps { display: grid; gap: 10px; }
+.jr-step { padding: 12px 14px; border: 1px solid var(--rule); border-radius: 12px; min-width: 0; }
+.jr-step--now { border-color: var(--accent); }
+.jr-step--done, .jr-step--na { opacity: 0.62; }
+.jr-step__head { display: flex; gap: 10px; align-items: flex-start; }
+.jr-num { flex: none; min-width: 34px; height: 28px; padding: 0 6px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-jetbrains), monospace; font-size: 12px; border: 1px solid var(--rule-strong); color: var(--fg); }
+.jr-step--done .jr-num { background: var(--accent); color: var(--accent-text, var(--bg)); border-color: var(--accent); }
+.jr-title { color: var(--fg); font-weight: 500; line-height: 1.4; }
+.jr-duties { margin: 8px 0 6px 44px; padding-left: 1em; list-style: disc; color: var(--fg-soft); line-height: 1.5; }
+.jr-rules { margin: 4px 0 8px 44px; color: var(--muted); font-size: 0.9rem; }
+.jr-rules summary { cursor: pointer; }
+.jr-rules ul { padding-left: 1em; list-style: disc; display: grid; gap: 4px; margin-top: 6px; }
+.jr-sub { font-size: 0.95rem; color: var(--fg); font-weight: 500; margin-bottom: 6px; }
+.jr-copy { white-space: pre-wrap; padding: 10px; border: 1px solid var(--rule); border-radius: 10px; background: var(--bg-sunken); color: var(--fg-soft); font-size: 0.85rem; }
+@media (max-width: 640px) { .jr-duties, .jr-rules { margin-left: 0; } }

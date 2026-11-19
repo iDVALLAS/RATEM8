@@ -51,8 +51,8 @@ export default async function Pipeline() {
                       const days = Math.floor((now.getTime() - Date.parse(l.milestoneAt)) / 86_400_000);
                       return (
                         <tr key={l.id}>
-                          <th scope="row">{l.contactId ? <Link href={`/mlo/contacts/${l.contactId}`}>{l.borrowerName}</Link> : l.borrowerName}<br /><span className="mlo-note">#{l.externalId} · {[l.purpose, l.loanType, money(l.amount)].filter(Boolean).join(" · ")}</span></th>
-                          <td>{l.milestone}<br /><span className="mlo-note">{days} day{days === 1 ? "" : "s"} in this stage</span></td>
+                          <th scope="row"><Link href={`/mlo/pipeline/${l.id}`}>{l.borrowerName}</Link><br /><span className="mlo-note">#{l.externalId} · {[l.purpose, l.loanType, money(l.amount)].filter(Boolean).join(" · ")}</span></th>
+                          <td>{l.milestone}<br /><span className="mlo-note">{days} day{days === 1 ? "" : "s"} in this stage · <Link href={`/mlo/pipeline/${l.id}`}>journey</Link></span></td>
                           <td className="mlo-note">{[l.keyDates.lockExpires ? `lock ${l.keyDates.lockExpires}` : "", l.keyDates.closing ? `closing ${l.keyDates.closing}` : ""].filter(Boolean).join(" · ")}</td>
                           <td>{alerts.map((a) => <span key={a.kind} className="mlo-pill" style={{ marginRight: 4 }}>{a.kind === "late" ? "Running long" : a.kind === "lock" ? "Lock expiring" : "Closing without CTC"}</span>)}</td>
                         </tr>

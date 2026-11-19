@@ -2253,3 +2253,87 @@ sits on each client's page (`lib/concierge/debrief.ts`,
   - the Tell box on the Concierge page
   - no console errors and no overflow at 390px
   - `npm run verify` passes (391 tests)
+
+## D17–D18 — The Loan Journey: the owner's 30-step roadmap in every loan (2026-11-19)
+
+The owner sent "Your Home Loan Journey, Step-by-Step Roadmap" (steps 1–30
+plus 14A–C) with the team's duties at each step. Each active loan now has
+a journey page: Pipeline → the borrower → `/mlo/pipeline/[id]`.
+
+### D17: steps, clocks and confirmations
+
+- **The steps** (`lib/journey/steps.ts`): the sheet's titles in six
+  phases, with who does each step and the owner's duties.
+  - **Checked off by the loan system:** application, disclosures,
+    appraisal, underwriting, conditions, clear to close and funded.
+  - **Done, "doesn't apply" or reopen:** the team marks every other step.
+  - **Borrower texts drafted for approval** at steps 2, 8, 9, 14B, 14A, 17,
+    20, 22 and 26. All pass the Concierge guard (tested), give no dates,
+    amounts, rates or promises, and carry the portal link where it fits.
+  - **Wire-fraud warnings** at steps 8 and 26.
+- **Step order changed: 14 → 14B → 14A → 14C.** Under TRID no fee except
+  the credit report may be charged until the borrower has the Loan Estimate
+  and says they intend to proceed (12 CFR 1026.19(e)(2)(i)). The appraisal
+  fee text (14A) stays locked until "They said they intend to proceed" is
+  recorded.
+- **Step 13 (lock or float)** is confirmed by the loan officer only;
+  assistants can't.
+- **Clocks** (`lib/journey/timing.ts`). Federal holidays are computed,
+  actual and observed. Both kinds of Reg Z business day are handled, each
+  in the direction that can't make us late.
+  - The Loan Estimate is due within 3 general business days of the
+    application. It warns at day 2 and stops past due.
+  - The appraisal fee is on hold.
+  - The Closing Disclosure needs 3 specific business days before signing:
+    the earliest signing date is shown, it stops if signing is too soon,
+    and it warns if signing is set with no CD recorded.
+  - It warns when the employment re-verification is more than 10 business
+    days before signing.
+- **Rules per step** cite their source:
+  - the safe-harbor options (1026.36(e))
+  - LO compensation for the broker demand (1026.36(d))
+  - Reg B incompleteness and adverse action notices on the 20A path (1002.9)
+  - Fannie's 10-day VOE
+
+### D18: the AUS document checklist (`lib/journey/docs.ts`)
+
+- **Reading the findings:** upload the DU or LPA findings PDF (5 MB, under
+  the 6 MB server-action limit) or paste their text. It is read once with
+  structured output into generic document names, why, and phase (to submit
+  or for final approval), then discarded. No account numbers, names,
+  amounts or employers are kept; an item carrying a phone number or link is
+  refused (checked on the raw text).
+- **The list:** add items by hand, and track each one: needed, requested,
+  received, reviewed or not needed. A copy-ready list is there to paste
+  into the loan system's borrower portal.
+- **The borrower's request** is a draft text giving how many items wait in
+  their secure portal, plus the link, never the document names. Some are
+  personal, and the portal is where they belong. It needs the loan
+  officer's application or portal link on file.
+
+### Verified
+
+- `lib/journey/journey.test.ts` (6):
+  - holidays; both business-day counts across Thanksgiving
+  - all four clocks
+  - every borrower message passing the guard
+  - automatic check-offs from the loan system; the appraisal-fee lock;
+    lock-or-float by the loan officer only; another loan officer can't see
+    the loan
+  - AUS reading: not-a-PDF refused, a phone-number item refused, the count
+    and portal wording, and no draft without a portal link
+- Clicked through locally (a loan posted through `/api/pipeline/inbound`):
+  - "3 of 33 steps done, next step 3"
+  - the fee-hold and "no Closing Disclosure yet" clocks
+  - 14A disabled
+  - the step 8 text drafted, with the gate's reason
+  - documents added by hand
+  - no console errors and no overflow at 390px
+- `npm run verify` passes (397 tests).
+- **Owner:**
+  - set `APPLICATION_URL_MLO_001` (your ARIVE borrower portal link) so
+    application and document texts can carry it
+  - confirm the business-day reading with compliance
+- **Next:**
+  - journey clocks on Today and in the morning email
+  - a per-step "who's on it" assignment for a processor
