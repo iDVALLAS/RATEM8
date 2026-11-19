@@ -2057,3 +2057,47 @@ Owner decision: "hard dialed calls to past clients are fine."
     ledger's planned CT gate row should confirm which past clients count
     as existing customers.
   - The Virginia and Florida rows are still to come (D13).
+
+## D12.2 — Record the permission you already hold, for all past clients at once (2026-11-19)
+
+Owner: "texts and calls from M8 to past clients are okay". When asked about
+the Washington text law, the FCC AI-voice rule and carrier opt-in rules,
+they answered: "i have permission".
+
+So the gate keeps requiring permission for texts and M8 calls. That
+permission now goes on file in one step, instead of the rules being
+switched off.
+
+- **What was built:** `lib/contacts/bulk-consent.ts` and
+  `/mlo/contacts/permission`, linked from Contacts as "Record permission for
+  past clients". The loan officer picks what the permission covers (texts
+  and/or M8 AI-voice calls; loan updates and/or check-ins), how it was given
+  (signed, or a web form or online application checkbox), and where the
+  proof is.
+- **Required confirmations:**
+  - the permission names them or their current company and covers the
+    number
+  - they can produce a copy
+  - for M8 calls, separately, that it covers an artificial or AI voice
+- **Guardrails:**
+  - Only the loan officer's own past clients, optionally only loans closed
+    from a given year.
+  - Never anyone who said stop, contacts on hold, or prior-employer lists
+    (permission given to another company doesn't carry over).
+  - Assistants can't record it.
+  - Each client gets consent-log entries with the proof text and who
+    recorded it, plus one audit entry with the counts.
+- **Verified:** `lib/contacts/bulk-consent.test.ts` (2): the eligibility
+  rules; a stop still wins; the gate then allows a marketing text;
+  confirmations and the AI-voice yes are required; assistants refused.
+  Clicked through locally: refused without the confirmations, then
+  recorded for 2 past clients. `npm run verify` passes (382 tests).
+- **Still applies to every text and M8 call:**
+  - do-not-call checks
+  - daily limits
+  - quiet hours where they live
+  - licensed states
+  - one-tap stop
+- **Counsel:** confirm the application's consent language covers
+  marketing texts (Washington RCW 19.190.060 needs clear affirmative
+  consent) and, for M8 calls, artificial or AI voice (FCC 24-17).

@@ -54,6 +54,7 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
               <Link href="/mlo/contacts" aria-current={kind === "contact" ? "page" : undefined}>Clients and contacts</Link>
               <Link href="/mlo/contacts?kind=agent" aria-current={kind === "agent" ? "page" : undefined}>Agents</Link>
               <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`}>Import a CSV</Link>
+              {kind === "contact" ? <Link href="/mlo/contacts/permission">Record permission for past clients</Link> : null}
             </nav>
             {held ? (
               <form action={unlockAction} className="mlo-section">
