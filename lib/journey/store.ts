@@ -17,6 +17,8 @@ export type Journey = {
   dates: { leSentOn: string | null; intentToProceedOn: string | null; cdSentOn: string | null; signingOn: string | null; voeOn: string | null };
   lock: { decision: "lock" | "float"; by: string; at: string } | null;
   docs: DocItem[];
+  /** D19: who handles the processor steps (an account that works this loan officer's book). */
+  processorUserId?: string | null;
   updatedAt: string;
 };
 

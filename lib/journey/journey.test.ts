@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { addBusinessDays, clocks, federalHolidays } from "./timing";
 import { STEPS } from "./steps";
-import { draftStepMessage, markStep, setDate, setLock, view, loanFor } from "./engine";
+import { draftStepMessage, markStep, myNextSteps, setDate, setLock, setProcessor, view, loanFor } from "./engine";
+import { todayFor } from "@/lib/today/facts";
 import { docRequestBody, readFindings, requestDocs, type AusCall } from "./docs";
 import { MemoryJourneyStore, setJourneyStoreForTests } from "./store";
 import { checkDraft } from "@/lib/concierge/guard";
@@ -99,5 +100,25 @@ describe("Loan Journey (D17, D18)", () => {
     const body = docRequestBody("Ann", 2, "initial", "https://loanm8.com/apply", "Pat");
     expect(body).toBe("Hi Ann, I've posted the 2 items your file needs in your secure portal: https://loanm8.com/apply Please upload them there (not by text or email). Reply here with any questions. -Pat");
     expect(checkDraft(body, { names: ["Ann", "Pat"] })).toMatchObject({ ok: true });
+  });
+
+  it("D19: puts the journey's deadlines on Today and hands processor steps to the named processor", async () => {
+    const loan = await sync("Application Taken", { applicationDate: "2026-11-13" });
+    const today = await todayFor(me, NOW);
+    const card = today.cards.find((c) => c.kind === "journey");
+    expect(card).toMatchObject({ loanId: loan.id, title: "Ann Lee: Loan Estimate deadline" });
+    expect(card!.reason).toMatch(/was due by 2026-11-18/);
+    expect(today.cards.some((c) => c.reason.includes("appraisal fee"))).toBe(false);
+    const asst: User = { ...me, id: "a1", email: "a1@x.com", name: "Sam", role: "assistant", assistsUserId: "lo1" };
+    const outsider: User = { ...me, id: "a2", email: "a2@x.com", name: "Lee", role: "assistant", assistsUserId: "lo9" };
+    const accounts = new MemoryAccountStore();
+    setAccountStoreForTests(accounts);
+    for (const u of [me, asst, outsider]) await accounts.putUser(u);
+    expect(await setProcessor(asst, loan.id, asst.id, NOW)).toMatchObject({ ok: false });
+    expect(await setProcessor(me, loan.id, outsider.id, NOW)).toMatchObject({ ok: false });
+    expect(await setProcessor(me, loan.id, asst.id, NOW)).toEqual({ ok: true });
+    const theirs = await myNextSteps(asst, NOW);
+    expect(theirs[0]).toMatchObject({ loan: { id: loan.id }, step: { key: "4" } }); // step 3 is the borrower's
+    expect((await myNextSteps(me, NOW))[0]?.step.key).toBe("5");
   });
 });

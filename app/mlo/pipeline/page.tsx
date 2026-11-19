@@ -9,6 +9,7 @@ import { pipelineStore } from "@/lib/pipeline/store";
 import { alertsFor, learnPace } from "@/lib/pipeline/guardian";
 import { MloNav } from "../MloChrome";
 import KeyMaker from "./KeyMaker";
+import { myNextSteps } from "@/lib/journey/engine";
 import { deleteKeyAction } from "./actions";
 import "../mlo.css";
 
@@ -29,6 +30,7 @@ export default async function Pipeline() {
   const now = new Date();
   const active = loans.filter((l) => !l.closed && !l.dead);
   const keys = me ? await pipelineStore().keys(me.id) : [];
+  const mine = me ? await myNextSteps(me, now) : [];
   return (
     <PageShell>
       <div className="mlo-wrap">
@@ -39,6 +41,16 @@ export default async function Pipeline() {
           <section className="mlo-section"><p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to see your loans.</p></section>
         ) : (
           <>
+            {mine.length ? (
+              <section className="mlo-section">
+                <h2>Your next steps ({mine.length})</h2>
+                <ol className="cc-today">
+                  {mine.map(({ loan, step }) => (
+                    <li key={loan.id} className="cc-card"><p className="cc-card__title"><Link href={`/mlo/pipeline/${loan.id}#s-${step.key}`}>{loan.borrowerName}: step {step.key}</Link></p><p className="mlo-note">{step.title}. {step.duties[0]}</p></li>
+                  ))}
+                </ol>
+              </section>
+            ) : null}
             <section className="mlo-section">
               <h2>Active loans ({active.length})</h2>
               {active.length === 0 ? (

@@ -8,7 +8,7 @@
 import type { ConsentSummary } from "@/lib/contacts/service";
 import type { Contact } from "@/lib/contacts/store";
 
-export type CardKind = "new_lead" | "reply" | "anniversary" | "rate_gap" | "check_in" | "ask_permission" | "agent" | "loan_late" | "lock" | "closing";
+export type CardKind = "journey" | "new_lead" | "reply" | "anniversary" | "rate_gap" | "check_in" | "ask_permission" | "agent" | "loan_late" | "lock" | "closing";
 
 export type TodayCard = {
   kind: CardKind;
@@ -19,6 +19,8 @@ export type TodayCard = {
   score: number;
   /** What the loan officer can do in one tap. */
   next: "reply" | "call" | "text" | "record_permission" | "open" | "pipeline";
+  /** D19: the loan this card is about, for "Open the journey". */
+  loanId?: string;
 };
 
 export type TodayFacts = {

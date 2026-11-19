@@ -2337,3 +2337,24 @@ a journey page: Pipeline → the borrower → `/mlo/pipeline/[id]`.
 - **Next:**
   - journey clocks on Today and in the morning email
   - a per-step "who's on it" assignment for a processor
+
+## D19 — The journey on Today, in the morning email, and a named processor (2026-11-19)
+
+- **On Today and in the morning email:** the journey's clocks are new
+  "journey" cards (`lib/today/facts.ts`), with "Open the journey". They
+  cover the Loan Estimate deadline (stop past due, warn at day 2), a
+  Closing Disclosure that's too late or missing for the signing date, and
+  an employment re-verification older than 10 business days. The general
+  appraisal-fee hold stays on the journey page; it would crowd Today. Loan
+  guardian cards (running long, lock, closing) also link to their journey.
+- **Processor:** each loan has one (`Journey.processorUserId`, set on the
+  journey page). Only the loan officer or owner assigns it, and only to
+  someone who works that book (the loan officer or their assistant).
+  Processor steps go to them; without one, the loan officer.
+- **Your next steps:** the Pipeline page lists, for whoever is signed in,
+  the next open step that's theirs on each loan.
+- **Verified:** a journey card on Today for a past-due Loan Estimate,
+  with no fee-hold card; processor assignment refused for an assistant
+  and for an outsider, allowed for the loan officer's own assistant;
+  "next steps" for the processor (step 4) and the loan officer (step 5).
+  `npm run verify` passes.

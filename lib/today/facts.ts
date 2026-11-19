@@ -11,6 +11,7 @@ import { tenantForState } from "@/lib/pricing/tenants";
 import { rankToday, type RateRef, type TodayCard } from "./rank";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { alertsFor, learnPace } from "@/lib/pipeline/guardian";
+import { view as journeyView } from "@/lib/journey/engine";
 
 /** Today's lowest priced example for the standard rate-and-term refinance, if fresh. Loan officer's eyes only. */
 export async function refinanceReference(): Promise<RateRef> {
@@ -36,8 +37,15 @@ export async function todayFor(user: User, now = new Date(), opts: { ownOnly?: b
   const loans = await pipelineStore().list(scope);
   const pace = learnPace(loans);
   const loanCards: TodayCard[] = loans.flatMap((l) =>
-    alertsFor(l, pace, now).map((a) => ({ kind: a.kind === "late" ? "loan_late" : a.kind, contactId: l.contactId ?? "", name: l.borrowerName, title: a.title, reason: a.reason, score: a.score, next: l.contactId ? "text" : "pipeline" }) as TodayCard),
+    alertsFor(l, pace, now).map((a) => ({ kind: a.kind === "late" ? "loan_late" : a.kind, contactId: l.contactId ?? "", name: l.borrowerName, title: a.title, reason: a.reason, score: a.score, next: l.contactId ? "text" : "pipeline", loanId: l.id }) as TodayCard),
   );
-  const cards = [...loanCards, ...rankToday(facts, now, ref, 24)].sort((a, b) => b.score - a.score).slice(0, 15);
+  // D19: the Loan Journey's clocks (Loan Estimate due, Closing Disclosure wait, old VOE). The general appraisal-fee
+  // hold is left to the journey page: it applies to every new loan and would crowd Today.
+  const journeyCards: TodayCard[] = [];
+  for (const l of loans.filter((x) => !x.closed && !x.dead)) {
+    const v = await journeyView(l, now);
+    for (const c of v.clocks.filter((x) => x.level !== "ok" && x.key !== "fee_hold")) journeyCards.push({ kind: "journey", contactId: l.contactId ?? "", name: l.borrowerName, title: `${l.borrowerName}: ${c.key === "le_due" ? "Loan Estimate deadline" : c.key === "cd_wait" ? "Closing Disclosure timing" : "employment re-verification"}`, reason: c.text, score: c.level === "stop" ? 97 : 82, next: "pipeline", loanId: l.id });
+  }
+  const cards = [...journeyCards, ...loanCards, ...rankToday(facts, now, ref, 24)].sort((a, b) => b.score - a.score).slice(0, 15);
   return { cards, people: contacts.length + loans.length, ref };
 }

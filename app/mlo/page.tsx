@@ -64,7 +64,8 @@ export default async function CommandCenterHome() {
                         {card.next === "reply" || card.next === "text" ? <Link className="mlo-btn" href={`${href}#conversation`}>{card.next === "reply" ? "Reply" : "Text"}</Link> : null}
                         {card.next === "call" && tel ? <a className="mlo-btn" href={tel}>Call {formatPhone(phones[i])}</a> : null}
                         {card.next === "record_permission" ? <Link className="mlo-btn" href={`${href}#permission`}>Record what they said</Link> : null}
-                        {card.contactId ? <Link className="mlo-btn mlo-btn--ghost" href={href}>Open</Link> : <Link className="mlo-btn mlo-btn--ghost" href="/mlo/pipeline">Open pipeline</Link>}
+                        {card.loanId ? <Link className="mlo-btn mlo-btn--ghost" href={`/mlo/pipeline/${card.loanId}${card.kind === "journey" ? "#clocks" : ""}`}>Open the journey</Link> : null}
+                        {card.contactId ? <Link className="mlo-btn mlo-btn--ghost" href={href}>Open</Link> : card.loanId ? null : <Link className="mlo-btn mlo-btn--ghost" href="/mlo/pipeline">Open pipeline</Link>}
                       </div>
                     </li>
                   );

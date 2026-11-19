@@ -151,3 +151,34 @@ export async function draftStepMessage(user: User, loanId: string, key: string, 
   await accountStore().audit({ at: now.toISOString(), actor: user.email, action: "journey.message", detail: { loanId: loan.id, step: key } });
   return { ok: true, gateOk: g.allowed, reason: g.reasons[0] ?? null };
 }
+
+/** D19: names the processor for a loan. Only the loan officer (or the owner) assigns; the processor must work this book. */
+export async function setProcessor(user: User, loanId: string, processorUserId: string | null, now = new Date()): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (user.role === "assistant") return { ok: false, error: "The loan officer assigns the processor." };
+  const loan = await loanFor(user, loanId);
+  if (!loan) return { ok: false, error: "No such loan." };
+  if (processorUserId) {
+    const p = await accountStore().userById(processorUserId);
+    const book = p ? bookOf(p) : null;
+    if (!p || p.status !== "active" || !(book === undefined || book === loan.ownerUserId)) return { ok: false, error: "Pick someone who works this loan officer's book (the loan officer, or their assistant)." };
+  }
+  await save(user, loan, (j) => {
+    j.processorUserId = processorUserId;
+  }, now, "journey.processor", { set: !!processorUserId });
+  return { ok: true };
+}
+
+export type MyStep = { loan: Loan; step: Step };
+
+/** D19: the next open step on each loan that's this person's to do. */
+export async function myNextSteps(user: User, now = new Date()): Promise<MyStep[]> {
+  const loans = (await pipelineStore().list(bookOf(user))).filter((l) => !l.closed && !l.dead);
+  const out: MyStep[] = [];
+  for (const l of loans) {
+    const v = await view(l, now);
+    const processor = v.journey.processorUserId ?? l.ownerUserId;
+    const mine = v.steps.find((s) => (!s.state || s.state.status === "todo") && ((s.who === "processor" && processor === user.id) || (s.who === "you" && l.ownerUserId === user.id)));
+    if (mine) out.push({ loan: l, step: mine });
+  }
+  return out;
+}

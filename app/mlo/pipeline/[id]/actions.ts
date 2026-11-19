@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
-import { DATE_FIELDS, draftStepMessage, markStep, setDate, setLock, type DateField } from "@/lib/journey/engine";
+import { DATE_FIELDS, draftStepMessage, markStep, setDate, setLock, setProcessor, type DateField } from "@/lib/journey/engine";
 import { addDocs, readFindings, requestDocs, setDocStatus } from "@/lib/journey/docs";
 import type { DocItem, StepState } from "@/lib/journey/store";
 
@@ -71,4 +71,11 @@ export async function requestDocsAction(fd: FormData): Promise<void> {
   const loanId = String(fd.get("loanId") ?? "");
   const r = await requestDocs(u, loanId, fd.get("phase") === "final" ? "final" : "initial");
   back(loanId, r.ok, r.ok ? `Drafted the request for ${r.count} item${r.count === 1 ? "" : "s"} on your Concierge desk. Post the same list in your loan system's borrower portal.` : r.error, "#docs");
+}
+
+export async function processorAction(fd: FormData): Promise<void> {
+  const u = await me();
+  const loanId = String(fd.get("loanId") ?? "");
+  const r = await setProcessor(u, loanId, String(fd.get("processor") ?? "") || null);
+  back(loanId, r.ok, r.ok ? "Processor saved." : r.error);
 }

@@ -18,7 +18,7 @@ import { conciergeStore } from "@/lib/concierge/store";
 import { automationStore } from "@/lib/automations/store";
 import { contactStore } from "@/lib/contacts/store";
 
-const LOAN_KINDS = new Set(["loan_late", "lock", "closing"]);
+const LOAN_KINDS = new Set(["journey", "loan_late", "lock", "closing"]);
 const pacificDate = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(d);
 
 export type Digest = { subject: string; text: string; people: number; drafts: number; personal: number; notes: number; loans: number };

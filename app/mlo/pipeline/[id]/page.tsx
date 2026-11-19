@@ -8,7 +8,9 @@ import { requireViewer } from "@/lib/mlo/page-auth";
 import { loanFor, view } from "@/lib/journey/engine";
 import { PHASE_LABELS, PHASES, WHO_LABELS } from "@/lib/journey/steps";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { addDocsAction, datesAction, docStatusAction, findingsAction, lockAction, messageAction, requestDocsAction, stepAction } from "./actions";
+import { addDocsAction, datesAction, docStatusAction, findingsAction, lockAction, messageAction, processorAction, requestDocsAction, stepAction } from "./actions";
+import { accountStore } from "@/lib/accounts/store";
+import { bookOf } from "@/lib/contacts/service";
 import "../../mlo.css";
 import "./journey.css";
 
@@ -31,6 +33,8 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
   const j = jv.journey;
   const signingDefault = j.dates.signingOn ?? loan.keyDates.closing ?? "";
   const docsBy = (phase: "initial" | "final") => j.docs.filter((d) => d.phase === phase);
+  const team = (await accountStore().listUsers()).filter((u) => u.status === "active" && (bookOf(u) === undefined || bookOf(u) === loan.ownerUserId));
+  const processor = team.find((u) => u.id === (j.processorUserId ?? loan.ownerUserId));
 
   return (
     <PageShell>
@@ -43,6 +47,16 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
         <section className="mlo-section">
           <p className="mlo-note">#{loan.externalId} · {[loan.purpose, loan.loanType].filter(Boolean).join(" · ")} · in “{loan.milestone}”{loan.contactId ? <> · <Link href={`/mlo/contacts/${loan.contactId}`}>their page</Link></> : null}</p>
           <div className="jr-progress" role="img" aria-label={`${jv.done} of ${jv.total} steps done`}><span style={{ width: `${Math.round((jv.done / jv.total) * 100)}%` }} /></div>
+          <form action={processorAction} className="mlo-row-form" style={{ margin: "6px 0" }}>
+            <input type="hidden" name="loanId" value={loan.id} />
+            <label className="mlo-note" htmlFor="processor">Processor:</label>
+            <select id="processor" name="processor" defaultValue={j.processorUserId ?? ""} className="mlo-select">
+              <option value="">The loan officer</option>
+              {team.filter((u) => u.id !== loan.ownerUserId).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Save</button>
+            <span className="mlo-note">Processor steps go to {processor?.name ?? "the loan officer"}.</span>
+          </form>
           <p className="mlo-note">{jv.done} of {jv.total} steps done{jv.current ? <>. Next: <a href={`#s-${jv.current.key}`}>step {jv.current.key}, {jv.current.title}</a> ({WHO_LABELS[jv.current.who]})</> : ". All done."}</p>
         </section>
 
