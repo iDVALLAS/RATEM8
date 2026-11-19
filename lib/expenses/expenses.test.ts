@@ -35,6 +35,7 @@ describe("Expense parsing and tax figures (D37)", () => {
     expect(parseLine("just a note", "2026-11-19")).toBeNull();
     expect(parseText("NMLS renewal $30; postcards $220\nDrove 12 mi to an appraisal", "2026-11-19").map((d) => d.category)).toEqual(["taxes_licenses", "advertising", "car"]);
     expect(guessCategory("Bonzo subscription")).toBe("software");
+    expect(parseLine("Drove 18 miles volunteering at the food bank", "2026-11-19")).toMatchObject({ kind: "charity", miles: 18 });
   });
 
   it("uses the IRS figures for the date", () => {
@@ -119,6 +120,7 @@ describe("Expense tracker (D37)", () => {
     expect(await saveEntry(me, null, { kind: "mileage", date: "2026-03-01", dollars: 0, miles: 10, vendor: "", category: "car", businessPct: 100, purpose: "", recipient: "" }, NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/business purpose/) });
     expect(await add("expense", "2026-12-01", 10, "office")).toMatchObject({ ok: false }); // future
     await saveProfile(me, 2026, 150, "Home office is the spare bedroom", NOW);
+    await saveEntry(me, null, { kind: "charity", date: "2026-08-01", dollars: 0, miles: 50, vendor: "Habitat for Humanity", category: "other", businessPct: 100, purpose: "Build day", recipient: "" }, NOW);
     const s = await yearSummary(me, 2026);
     expect(s.incomeCents).toBe(1_200_000);
     expect(s.income).toEqual([{ payer: "Home Trust Financial", cents: 1_200_000, n: 2 }]);
@@ -130,6 +132,8 @@ describe("Expense tracker (D37)", () => {
     expect(line("9")).toBe(7250); // 100 mi × 72.5¢ (March)
     expect(line("30")).toBe(75000);
     expect(s.lines.map((l) => l.line)).toEqual(["9", "23", "24b", "25", "27a", "30"]);
+    // Charity miles: 14¢, kept out of the business totals.
+    expect(s.charity).toEqual({ trips: 1, miles: 50, cents: 700 });
     expect(s.expenseCents).toBe(5000 + 2500 + 6000 + 3000 + 7250 + 75000);
     const csv = await yearCsv(me, 2026);
     expect(csv.split("\n")[0]).toMatch(/^Date,Type,Schedule C line/);

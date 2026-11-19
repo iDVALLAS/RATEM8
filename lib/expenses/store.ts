@@ -13,7 +13,8 @@ import type { Category } from "./categories";
 export type Entry = {
   id: string;
   ownerUserId: string;
-  kind: "expense" | "income" | "mileage";
+  /** "charity": miles driven for a charity, kept apart from the business books (Schedule A, not Schedule C). */
+  kind: "expense" | "income" | "mileage" | "charity";
   date: string;
   /** Expenses and income; for miles, worked out from the rate on the trip's date. */
   amountCents: number;

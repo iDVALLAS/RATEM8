@@ -55,7 +55,8 @@ describe("Tell your Concierge (D15)", () => {
     const r = await tell(me, "Draft a check-in to my 2021 past clients", { now: NOW, call });
     // Only this loan officer's 2021 past clients came back, as data, with no phone numbers or rates.
     expect(ids).toHaveLength(3);
-    expect(seen[1]).not.toMatch(/206555|7\.1|400000|Ed/);
+    // "Ed" as a whole word only: random contact ids can contain those two letters.
+    expect(seen[1]).not.toMatch(/206555|7\.1|400000|(?<![\w-])Ed(?![\w-])/);
     expect(r).toMatchObject({ drafts: 1, reminders: 0 });
     expect(r.skipped.join(" ")).toMatch(/Bo: draft refused/);
     expect(r.skipped.join(" ")).toMatch(/Cy: said stop/);

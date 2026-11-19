@@ -2946,3 +2946,18 @@ upload receipts, so the year ends with one printout for their CPA.
   - the membership flowing in, and CSV formula escaping
   The QA sweep adds the Expenses page and report, and runs tell, confirm,
   receipt, report and CSV.
+
+## D37.1 — The July mileage rate confirmed, and charity miles (2026-11-19)
+
+- **Mileage rate:** the owner looked it up: the business rate is 76¢ a
+  mile from July 1, 2026 (72.5¢ January to June). `lib/expenses/tax.ts`
+  no longer marks it "confirm on irs.gov".
+- **Charity miles:** a new entry type, "Charity miles", at 14¢ a mile.
+  That rate is set by statute (26 U.S.C. 170(i)), as the owner noted.
+  - **Kept out of the business books:** these miles aren't in the Schedule
+    C totals. The report lists them under Other information as a
+    Schedule A item (if you itemize), and the CSV marks them "Sch. A".
+  - **Recognized by M8:** "volunteering at the food bank" and similar
+    phrases make a charity draft. The AI path has the same type.
+- **Verified:** `lib/expenses/expenses.test.ts` covers parsing a charity
+  drive and keeping 50 charity miles ($7.00) out of the business totals.

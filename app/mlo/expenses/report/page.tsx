@@ -118,6 +118,7 @@ export default async function Report({ searchParams }: { searchParams: Promise<{
         <h2>Other information</h2>
         <table><tbody>
           <tr><td>Home office (simplified method)</td><td>{s.homeOffice.sqft ? `${s.homeOffice.sqft} sq ft, ${$(s.homeOffice.cents)}` : "None entered"}</td></tr>
+          <tr><td>Charity miles (Schedule A if you itemize; not business)</td><td>{s.charity.trips ? `${plural(s.charity.trips, "trip", "trips")}, ${plural(s.charity.miles, "mile", "miles")}, ${$(s.charity.cents)} at 14¢ a mile` : "None entered"}</td></tr>
           <tr><td>Estimated tax payment dates for {year}</td><td>{estimatedTaxDates(year).join(", ")}</td></tr>
           {s.profile?.notes ? <tr><td>Notes</td><td>{s.profile.notes}</td></tr> : null}
         </tbody></table>

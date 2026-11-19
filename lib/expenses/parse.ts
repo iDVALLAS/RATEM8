@@ -7,7 +7,7 @@
 import { guessCategory, type Category } from "./categories";
 
 export type Draft = {
-  kind: "expense" | "income" | "mileage";
+  kind: "expense" | "income" | "mileage" | "charity";
   date: string;
   amountCents: number | null;
   miles: number | null;
@@ -67,12 +67,13 @@ export function parseLine(line: string, today: string): Draft | null {
   const at = text.match(/\b(?:at|from|to)\s+([A-Z][\w'&.-]*(?:\s+[A-Z][\w'&.-]*){0,3})/);
   // "Home Trust paid me $6,200": the payer comes first.
   const payer = text.match(/^([A-Z][\w'&.-]*(?:\s+[A-Z][\w'&.-]*){0,3})\s+(?:paid me|sent me|deposited)\b/);
-  const kind: Draft["kind"] = milesM ? "mileage" : income ? "income" : "expense";
+  const charity = /\b(charit\w*|volunteer\w*|non-?profit|church|food bank|habitat for humanity|donat\w*)\b/i.test(text);
+  const kind: Draft["kind"] = milesM ? (charity ? "charity" : "mileage") : income ? "income" : "expense";
   const category = milesM ? "car" : guessCategory(text);
   return {
     kind,
     date: parseDate(text, today),
-    amountCents: kind === "mileage" ? null : amountCents,
+    amountCents: milesM ? null : amountCents,
     miles: milesM ? Number(milesM[1]) : null,
     vendor: (payer?.[1] ?? at?.[1])?.slice(0, 80) ?? "",
     category,

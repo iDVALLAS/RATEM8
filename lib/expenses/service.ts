@@ -28,7 +28,7 @@ import { membershipStore } from "@/lib/membership/store";
 import { CATEGORIES, CATEGORY_KEYS, LINE_NAMES, LINE_ORDER, type Category } from "./categories";
 import { parseDate, parseText, type Draft } from "./parse";
 import { expenseStore, type Entry, type TaxProfile } from "./store";
-import { GIFT_CAP_CENTS, homeOfficeCents, MEALS_SHARE, mileageRate } from "./tax";
+import { CHARITY_CENTS_PER_MILE, GIFT_CAP_CENTS, homeOfficeCents, MEALS_SHARE, mileageRate } from "./tax";
 
 export const MAX_RECEIPT_BYTES = 5 * 1024 * 1024; // the server-action body limit is 6 MB (next.config.ts)
 export const RECEIPT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"] as const;
@@ -38,7 +38,7 @@ const pacificToday = (d = new Date()) => new Intl.DateTimeFormat("en-CA", { time
 // ---- M8 reads what you said, or a receipt ----
 
 export const EXPENSE_SYSTEM = `You help a self-employed mortgage loan officer keep their business books for their CPA. You get what they said, or a receipt. Return each business expense, income payment or business drive as an item:
-- kind: "expense", "income" (money they were paid, such as from their sponsoring brokerage) or "mileage" (a business drive; give miles, not dollars).
+- kind: "expense", "income" (money they were paid, such as from their sponsoring brokerage), "mileage" (a business drive; give miles, not dollars) or "charity" (miles driven volunteering for a charity; give miles).
 - date (YYYY-MM-DD; use today's date given below when none is said or shown).
 - amount in dollars (0 for mileage), miles (0 unless mileage).
 - vendor: the business paid or paying (short).
@@ -58,7 +58,7 @@ const SCHEMA = {
         type: "object",
         additionalProperties: false,
         properties: {
-          kind: { type: "string", enum: ["expense", "income", "mileage"] },
+          kind: { type: "string", enum: ["expense", "income", "mileage", "charity"] },
           date: { type: "string" },
           amount: { type: "number" },
           miles: { type: "number" },
@@ -79,7 +79,7 @@ const Out = z.object({
   items: z
     .array(
       z.object({
-        kind: z.enum(["expense", "income", "mileage"]),
+        kind: z.enum(["expense", "income", "mileage", "charity"]),
         date: z.string(),
         amount: z.number().min(0).max(1_000_000),
         miles: z.number().min(0).max(5_000),
@@ -121,8 +121,9 @@ const cleanText = (s: string, n: number) => redactChatInput(s).text.replace(/\s+
 
 function toEntry(user: User, d: Draft & { recipient?: string }, source: Entry["source"], receiptId: string | null, now: Date): Entry {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? d.date : pacificToday(now);
-  const miles = d.kind === "mileage" ? Math.max(0, Math.round((d.miles ?? 0) * 10) / 10) : null;
-  const rate = miles !== null ? mileageRate(date) : null;
+  const byMile = d.kind === "mileage" || d.kind === "charity";
+  const miles = byMile ? Math.max(0, Math.round((d.miles ?? 0) * 10) / 10) : null;
+  const rate = d.kind === "charity" ? { cents: CHARITY_CENTS_PER_MILE } : miles !== null ? mileageRate(date) : null;
   return {
     id: id("x"),
     ownerUserId: user.id,
@@ -131,7 +132,7 @@ function toEntry(user: User, d: Draft & { recipient?: string }, source: Entry["s
     amountCents: miles !== null ? Math.round(miles * (rate?.cents ?? 0)) : Math.max(0, d.amountCents ?? 0),
     miles,
     vendor: cleanText(d.vendor, 80),
-    category: d.kind === "mileage" ? "car" : d.category,
+    category: byMile ? "car" : d.category,
     businessPct: Math.max(1, Math.min(100, Math.round(d.businessPct || 100))),
     purpose: cleanText(d.purpose, 200),
     recipient: d.category === "gifts" && d.recipient ? cleanText(d.recipient, 40) : null,
@@ -148,7 +149,7 @@ function fromModel(json: string | null, today: string): (Draft & { recipient: st
   try {
     const p = Out.safeParse(JSON.parse(json));
     if (!p.success) return null;
-    return p.data.items.map((i) => ({ kind: i.kind, date: /^\d{4}-\d{2}-\d{2}$/.test(i.date) ? i.date : today, amountCents: Math.round(i.amount * 100), miles: i.kind === "mileage" ? i.miles : null, vendor: i.vendor, category: i.category, businessPct: i.businessPct, purpose: i.purpose, recipient: i.recipient }));
+    return p.data.items.map((i) => ({ kind: i.kind, date: /^\d{4}-\d{2}-\d{2}$/.test(i.date) ? i.date : today, amountCents: Math.round(i.amount * 100), miles: i.kind === "mileage" || i.kind === "charity" ? i.miles : null, vendor: i.vendor, category: i.category, businessPct: i.businessPct, purpose: i.purpose, recipient: i.recipient }));
   } catch {
     return null;
   }
@@ -214,15 +215,17 @@ export type EntryInput = { kind: string; date: string; dollars: number; miles: n
 
 /** Confirm (or fix and confirm) a draft, or edit a confirmed entry. */
 export async function saveEntry(user: User, entryId: string | null, input: EntryInput, now = new Date()): Promise<{ ok: true } | { ok: false; error: string }> {
-  const kind = input.kind === "income" || input.kind === "mileage" ? input.kind : "expense";
+  const kind = input.kind === "income" || input.kind === "mileage" || input.kind === "charity" ? input.kind : "expense";
+  const byMile = kind === "mileage" || kind === "charity";
   const category = (CATEGORY_KEYS as string[]).includes(input.category) ? (input.category as Category) : "other";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return { ok: false, error: "Pick the date." };
   if (input.date > pacificToday(now)) return { ok: false, error: "That date is in the future." };
-  if (kind === "mileage" ? !(input.miles > 0 && input.miles <= 5000) : !(input.dollars > 0 && input.dollars <= 1_000_000)) return { ok: false, error: kind === "mileage" ? "Enter the miles." : "Enter the amount." };
+  if (byMile ? !(input.miles > 0 && input.miles <= 5000) : !(input.dollars > 0 && input.dollars <= 1_000_000)) return { ok: false, error: byMile ? "Enter the miles." : "Enter the amount." };
   if (kind === "mileage" && cleanText(input.purpose, 200).length < 3) return { ok: false, error: "Say where you drove and why (the IRS asks for the business purpose of each trip)." };
+  if (kind === "charity" && cleanText(`${input.vendor} ${input.purpose}`, 200).length < 3) return { ok: false, error: "Name the charity and what you drove for." };
   const before = entryId ? await expenseStore().get(user.id, entryId) : null;
   if (entryId && !before) return { ok: false, error: "That entry is gone." };
-  const draft: Draft & { recipient: string } = { kind, date: input.date, amountCents: Math.round(input.dollars * 100), miles: kind === "mileage" ? input.miles : null, vendor: input.vendor, category, businessPct: kind === "income" ? 100 : input.businessPct, purpose: input.purpose, recipient: input.recipient };
+  const draft: Draft & { recipient: string } = { kind, date: input.date, amountCents: Math.round(input.dollars * 100), miles: byMile ? input.miles : null, vendor: input.vendor, category, businessPct: kind === "income" || kind === "charity" ? 100 : input.businessPct, purpose: input.purpose, recipient: input.recipient };
   const e = toEntry(user, draft, before?.source ?? "typed", before?.receiptId ?? null, now);
   await expenseStore().put({ ...e, id: before?.id ?? e.id, createdAt: before?.createdAt ?? e.createdAt, status: "confirmed" });
   return { ok: true };
@@ -250,6 +253,7 @@ export type YearSummary = {
   lines: LineTotal[];
   expenseCents: number;
   miles: { trips: number; miles: number; cents: number };
+  charity: { trips: number; miles: number; cents: number };
   homeOffice: { sqft: number; cents: number };
   membership: { months: number; cents: number };
   drafts: number;
@@ -279,7 +283,9 @@ export async function yearSummary(user: User, year: number): Promise<YearSummary
     incomeBy.set(k, { cents: v.cents + e.amountCents, n: v.n + 1 });
   }
 
-  const spend = entries.filter((x) => x.kind !== "income");
+  // Charity miles are a personal (Schedule A) item: shown apart, never in the business totals.
+  const spend = entries.filter((x) => x.kind === "expense" || x.kind === "mileage");
+  const charityTrips = entries.filter((x) => x.kind === "charity");
   // Gifts: $25 per recipient per year.
   const giftUsed = new Map<string, number>();
   const countedOf = new Map<string, number>();
@@ -324,6 +330,7 @@ export async function yearSummary(user: User, year: number): Promise<YearSummary
     lines,
     expenseCents: lines.reduce((s, l) => s + l.cents, 0),
     miles: { trips: trips.length, miles: Math.round(trips.reduce((s, e) => s + (e.miles ?? 0), 0) * 10) / 10, cents: trips.reduce((s, e) => s + e.amountCents, 0) },
+    charity: { trips: charityTrips.length, miles: Math.round(charityTrips.reduce((s, e) => s + (e.miles ?? 0), 0) * 10) / 10, cents: charityTrips.reduce((s, e) => s + e.amountCents, 0) },
     homeOffice: { sqft: Math.min(profile?.homeOfficeSqFt ?? 0, 300), cents: homeCents },
     membership: { months: fees.length, cents: membershipCents },
     drafts: all.filter((e) => e.status === "draft").length,
@@ -347,8 +354,8 @@ export async function yearCsv(user: User, year: number): Promise<string> {
   const rows = [["Date", "Type", "Schedule C line", "Category", "Vendor or payer", "Business purpose", "Amount", "Business %", "Counted", "Miles", "Gift recipient", "Receipt"]];
   for (const e of s.entries) {
     const meta = CATEGORIES[e.category];
-    const cnt = e.kind === "income" ? e.amountCents : s.countedById.get(e.id) ?? counted(e);
-    rows.push([e.date, e.kind, e.kind === "income" ? "1" : meta.line, e.kind === "income" ? "Gross receipts" : meta.label, e.vendor, e.purpose, (e.amountCents / 100).toFixed(2), String(e.businessPct), (cnt / 100).toFixed(2), e.miles === null ? "" : String(e.miles), e.recipient ?? "", e.receiptId ? s.receiptNo.get(e.receiptId) ?? "" : ""].map(String));
+    const cnt = e.kind === "income" || e.kind === "charity" ? e.amountCents : s.countedById.get(e.id) ?? counted(e);
+    rows.push([e.date, e.kind, e.kind === "income" ? "1" : e.kind === "charity" ? "Sch. A" : meta.line, e.kind === "income" ? "Gross receipts" : e.kind === "charity" ? "Charity miles (not business)" : meta.label, e.vendor, e.purpose, (e.amountCents / 100).toFixed(2), String(e.businessPct), (cnt / 100).toFixed(2), e.miles === null ? "" : String(e.miles), e.recipient ?? "", e.receiptId ? s.receiptNo.get(e.receiptId) ?? "" : ""].map(String));
   }
   return rows.map((r) => r.map(q).join(",")).join("\n") + "\n";
 }

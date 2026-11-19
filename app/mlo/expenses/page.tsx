@@ -30,11 +30,12 @@ function EntryFields({ e, today }: { e: Partial<Entry> & { kind: Entry["kind"] }
         <select name="kind" defaultValue={e.kind} className="mlo-select">
           <option value="expense">Expense</option>
           <option value="mileage">Business miles</option>
+          <option value="charity">Charity miles</option>
           <option value="income">Income</option>
         </select>
       </label>
       <label className="mlo-field"><span>Date</span><input type="date" name="date" defaultValue={e.date ?? today} max={today} className="mlo-input" required /></label>
-      <label className="mlo-field"><span>Amount $</span><input type="number" name="dollars" min={0} step="0.01" defaultValue={e.kind === "mileage" || !e.amountCents ? "" : (e.amountCents / 100).toFixed(2)} className="mlo-input" inputMode="decimal" /></label>
+      <label className="mlo-field"><span>Amount $</span><input type="number" name="dollars" min={0} step="0.01" defaultValue={e.kind === "mileage" || e.kind === "charity" || !e.amountCents ? "" : (e.amountCents / 100).toFixed(2)} className="mlo-input" inputMode="decimal" /></label>
       <label className="mlo-field"><span>Miles</span><input type="number" name="miles" min={0} step="0.1" defaultValue={e.miles ?? ""} className="mlo-input" inputMode="decimal" /></label>
       <label className="mlo-field"><span>Vendor or payer</span><input name="vendor" defaultValue={e.vendor ?? ""} maxLength={80} className="mlo-input" /></label>
       <label className="mlo-field"><span>Category</span>
@@ -139,7 +140,7 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
                     {recent.map((e) => (
                       <tr key={e.id}>
                         <td>{e.date}</td>
-                        <td>{e.kind === "income" ? "Income" : CATEGORIES[e.category].label}{e.vendor ? ` · ${e.vendor}` : ""}<br /><span className="mlo-note">{e.purpose}{e.miles !== null ? ` · ${e.miles} mi` : ""}{e.businessPct < 100 ? ` · ${e.businessPct}% business` : ""}{e.receiptId ? " · receipt" : ""}</span></td>
+                        <td>{e.kind === "income" ? "Income" : e.kind === "charity" ? "Charity miles" : CATEGORIES[e.category].label}{e.vendor ? ` · ${e.vendor}` : ""}<br /><span className="mlo-note">{e.purpose}{e.miles !== null ? ` · ${e.miles} mi` : ""}{e.businessPct < 100 ? ` · ${e.businessPct}% business` : ""}{e.receiptId ? " · receipt" : ""}</span></td>
                         <td>{$(e.amountCents)}</td>
                         <td><form action={removeEntryAction.bind(null, e.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} aria-label={`Delete ${e.date} ${e.vendor}`}>Delete</button></form></td>
                       </tr>

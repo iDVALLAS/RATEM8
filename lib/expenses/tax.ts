@@ -8,9 +8,12 @@
 export const MILEAGE_RATES: { from: string; cents: number; source: string }[] = [
   { from: "2025-01-01", cents: 70, source: "IRS Notice 2025-5" },
   { from: "2026-01-01", cents: 72.5, source: "IRS IR-2025-128 (Notice 2026-10)" },
-  // Reported as IRS Announcement 2026-11 (fuel prices), effective July 1, 2026. Confirm on irs.gov.
-  { from: "2026-07-01", cents: 76, source: "IRS Announcement 2026-11, as reported; confirm on irs.gov" },
+  // The mid-year change for fuel prices, July 1 to December 31, 2026 (confirmed by the owner, 2026-11-19).
+  { from: "2026-07-01", cents: 76, source: "IRS mid-year change, from July 1, 2026" },
 ];
+
+/** Miles driven for a charity, cents per mile: set by statute (26 U.S.C. 170(i)), unchanged for years. A Schedule A item, not business. */
+export const CHARITY_CENTS_PER_MILE = 14;
 
 export function mileageRate(date: string): { cents: number; source: string } | null {
   const r = [...MILEAGE_RATES].reverse().find((x) => date >= x.from);
