@@ -40,7 +40,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
   // Every page, both widths.
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/messages', '/mlo/texting', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {
@@ -89,6 +89,15 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     console.log('client page h1:', await p2.locator('h1').innerText());
     await p2.getByRole('button', { name: 'Stop email' }).click(); await p2.waitForURL(/m=/); console.log('client stop email:', (await p2.locator('.mlo-flash').innerText()).slice(0, 80));
     await p2.close();
+  });
+  await step('client page: where is my loan', async () => {
+    await openContact('Bo Park'); const link = (await page.locator('#their-page code').innerText().catch(() => '')).trim();
+    if (!link) return;
+    const p3 = await ctx.newPage(); await p3.goto(link.replace(/^https?:\/\/[^/]+/, B));
+    const t = await p3.locator('.mlo-wrap').innerText();
+    if (!t.includes("Where's my loan?")) problems.push('[client page] no Where\'s my loan section for a borrower with a loan');
+    console.log('where is my loan:', (await p3.locator('.mlo-section').first().innerText()).replace(/\n/g, ' | ').slice(0, 220));
+    await p3.close();
   });
   console.log('\nPROBLEMS:', problems.length ? '\n' + problems.join('\n') : 'none');
   await b.close();

@@ -2683,3 +2683,29 @@ From the research spec §1.1 ("Promises ledger").
   false promise in "Rates moved today"; once only; on Today when due and
   marked late after. The D16 test was updated, since its note promises a
   call back. `npm run verify` passes.
+
+## D32 — The launch checklist (2026-11-19)
+
+- **`/mlo/launch`** (admin nav: Launch checklist): every outside account
+  and Vercel setting Command Center uses, in order, in six phases:
+  1. accounts
+  2. Command Center settings
+  3. texting
+  4. before you contact anyone
+  5. counsel
+  6. go live
+- **Each variable** shows whether it's Sensitive, a note, and whether
+  it's set in this deployment. The page checks presence only, never values
+  (`lib/setup/launch.ts`).
+- **`docs/COMMAND_CENTER_LAUNCH.md`** is generated from the same data,
+  so the two can't drift.
+- **Config:** `BOOKING_ENV` in `lib/config.ts` names each loan officer's
+  booking variable, so no loan officer's name is typed outside config.
+- **QA:** `/mlo/launch` and the client page's "Where's my loan?" are
+  added to `scripts/qa/command-center.mjs`.
+  - **First run:** one hydration error (React #418) on `/mlo/pricing` at
+    390px. It didn't reproduce in 48 targeted loads at both widths or in a
+    second full run (clean, exit 0), and no client component on that page
+    renders time-dependent text. It's recorded here as intermittent, to
+    watch.
+- **Verified:** `npm run verify` passes (419 tests); the sweep is clean.

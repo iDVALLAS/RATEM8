@@ -453,6 +453,9 @@ export type Config = typeof CONFIG;
 /** All MLOs, principal (the operator) first. */
 export const ALL_MLOS: Mlo[] = [CONFIG.principalMlo, ...CONFIG.team];
 
+/** D32: the Vercel variable holding each loan officer's booking link (for the launch checklist). */
+export const BOOKING_ENV: Record<string, string> = { "mlo-001": "NEXT_PUBLIC_CALENDLY_BORROWER", "mlo-002": "NEXT_PUBLIC_CALENDLY_RYDER" };
+
 export function mloById(id: string | null | undefined): Mlo | undefined {
   return id ? ALL_MLOS.find((m) => m.id === id) : undefined;
 }

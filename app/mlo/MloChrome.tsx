@@ -29,6 +29,7 @@ export function MloNav({ current, tenantId, admin = true, signedIn = false }: { 
         <>
           {link("setup", `/mlo/setup${q}`, mloContent.nav.setup)}
           <Link href="/mlo/texting">{mloContent.nav.texting}</Link>
+          <Link href="/mlo/launch">{mloContent.nav.launch}</Link>
           {link("pricing", `/mlo/pricing${q}`, mloContent.nav.pricing)}
           {link("voice", `/mlo/voice${q}`, mloContent.nav.voice)}
           {link("training", `/mlo/training${q}`, mloContent.nav.training)}
