@@ -143,7 +143,7 @@ export default function PartnerMenu({ variant = "bar", active = false, sheetOpen
       <div id={menuId} className="nav-partner__panel" hidden={!open}>
         <ul className="nav-partner__list">
           {p.items.map((item, i) => (
-            <li key={item.href}>
+            <li key={item.href} className={"signIn" in item && item.signIn ? "nav-partner__row" : undefined}>
               <Link
                 ref={(el) => {
                   itemRefs.current[i] = el;
@@ -157,6 +157,11 @@ export default function PartnerMenu({ variant = "bar", active = false, sheetOpen
                 <span className="nav-partner__label">{item.label}</span>
                 <span className="nav-partner__desc">{item.description}</span>
               </Link>
+              {"signIn" in item && item.signIn ? (
+                <Link href={item.signIn.href} className="nav-partner__signin" aria-label={item.signIn.aria} onClick={() => setOpen(false)} tabIndex={tab} prefetch={false}>
+                  {item.signIn.label}
+                </Link>
+              ) : null}
             </li>
           ))}
         </ul>

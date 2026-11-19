@@ -25,7 +25,8 @@ import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { checkLineAction, consentAction, deleteContactAction, dncAction, draftClientLinkAction, rndAction, rotateClientLinkAction, sendTextAction } from "../actions";
+import { checkLineAction, consentAction, deleteContactAction, dncAction, draftClientLinkAction, rndAction, rotateClientLinkAction, sendEmailAction, sendTextAction } from "../actions";
+import { emailOn } from "@/lib/messaging/email";
 import { clientLink } from "@/lib/clientpage/link";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
@@ -219,7 +220,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               {thread.map((t) => (
                 <li key={t.id} className={`mlo-msg mlo-msg--${t.direction}`}>
                   <p style={{ whiteSpace: "pre-wrap" }}>{t.body}</p>
-                  <span className="mlo-note">{t.direction === "in" ? "They texted" : t.channel === "call" ? `Call logged by ${t.actor}` : `Text from ${t.actor}`} · {new Date(t.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {t.status}{t.note && t.direction === "in" ? ` · ${t.note}` : ""}</span>
+                  <span className="mlo-note">{t.direction === "in" ? "They texted" : t.channel === "call" ? `Call logged by ${t.actor}` : t.channel === "email" ? `Email from ${t.actor}` : `Text from ${t.actor}`} · {new Date(t.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {t.status}{t.note && t.direction === "in" ? ` · ${t.note}` : ""}</span>
                 </li>
               ))}
             </ol>
@@ -242,6 +243,27 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
             </div>
             <p className="mlo-note">Your first text, and every offer, ends with who it&apos;s from and “Reply STOP to opt out.”</p>
           </form>
+          {c.email ? (
+            <form action={sendEmailAction} className="mlo-grid" style={{ marginTop: 18 }} id="email">
+              <input type="hidden" name="contactId" value={c.id} />
+              <label className="mlo-field">
+                <span>Email {c.firstName || "them"} ({c.email})</span>
+                <input name="subject" className="mlo-input" maxLength={78} placeholder="Subject" required />
+              </label>
+              <label className="mlo-field">
+                <span>Message</span>
+                <textarea name="body" rows={5} maxLength={4000} className="mlo-textarea" required />
+              </label>
+              <div className="mlo-row-form">
+                <select name="purpose" className="mlo-select" aria-label="What it's about" defaultValue="service">
+                  <option value="service">About their loan or account ({gate.email.service.allowed ? "allowed now" : "not now"})</option>
+                  <option value="marketing">An offer or check-in ({gate.email.marketing.allowed ? "allowed now" : "not now"})</option>
+                </select>
+                <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={!emailOn()}>Send email</button>
+              </div>
+              <p className="mlo-note">{emailOn() ? "Sent from your name; replies come to your own inbox. Every email ends with your NMLS number, the company's name and address, and a one-click way to stop email." : "Email to clients turns on with the Resend keys in Vercel."}</p>
+            </form>
+          ) : null}
         </section>
 
         <section className="mlo-section">

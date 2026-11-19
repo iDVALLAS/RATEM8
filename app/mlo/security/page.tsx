@@ -1,0 +1,77 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import PageShell from "@/components/PageShell";
+import { decodeFlash } from "@/lib/mlo/flash";
+import { listTenants } from "@/lib/pricing/tenants";
+import { requireViewer } from "@/lib/mlo/page-auth";
+import { accountStore } from "@/lib/accounts/store";
+import { mfaRequired, pendingEnroll } from "@/lib/accounts/mfa";
+import { FlashBox, MloNav } from "../MloChrome";
+import Confirm from "./Confirm";
+import { disableAction, startAction } from "./actions";
+import "../mlo.css";
+
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Sign-in security", robots: { index: false, follow: false } };
+
+/** /mlo/security — the second sign-in step, per person (D34). */
+export default async function Security({ searchParams }: { searchParams: Promise<{ f?: string; required?: string; recovery?: string }> }) {
+  const { f, required, recovery } = await searchParams;
+  const v = await requireViewer({ allowWithoutMfa: true });
+  const tenant = listTenants()[0];
+  const me = v.user;
+  const rec = me ? await accountStore().getMfa(me.id) : null;
+  const on = !!rec?.enabledAt;
+  const pending = me && !on ? await pendingEnroll(me) : null;
+  const left = recovery !== undefined ? Number(recovery) : null;
+  return (
+    <PageShell>
+      <div className="mlo-wrap">
+        <p className="eyebrow">LoanM8 Command Center</p>
+        <h1 className="tagline text-4xl">Sign-in security</h1>
+        <MloNav current="security" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
+        <FlashBox flash={decodeFlash(f)} />
+        {required && !on ? <div className="mlo-flash mlo-flash--err" role="alert">The owner requires a second sign-in step for everyone. Set it up here to continue.</div> : null}
+        {left !== null && Number.isFinite(left) ? <div className={`mlo-flash ${left <= 3 ? "mlo-flash--err" : "mlo-flash--ok"}`} role="status">You signed in with a recovery code. {left} left.{left <= 3 ? " Turn this off and on again to get a fresh set (you'll need your phone)." : ""}</div> : null}
+        {!me ? (
+          <section className="mlo-section"><p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to set this up. The shared admin login can&apos;t have a second step; turn it off once your own sign-in works.</p></section>
+        ) : (
+          <>
+            <section className="mlo-section">
+              <h2>A code from your phone</h2>
+              <p className="mlo-note">Your client files hold personal financial information, so the FTC&apos;s Safeguards Rule asks for a second sign-in step. After the emailed link, you&apos;ll type a 6-digit code from an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy or similar). It takes a minute to set up.</p>
+              <p style={{ marginTop: 10 }}><span className={`mlo-pill ${on ? "" : "mlo-pill--off"}`}>{on ? "On" : "Off"}</span> <span className="mlo-note">{on ? `Since ${new Date(rec!.enabledAt!).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${rec!.recoveryHashes.length} recovery codes left` : mfaRequired() ? "Required by the owner" : "Recommended"}</span></p>
+            </section>
+            {!on ? (
+              <section className="mlo-section" id="setup">
+                <h2>Set it up</h2>
+                {!pending ? (
+                  <form action={startAction}><button type="submit" className="mlo-btn">Start</button></form>
+                ) : (
+                  <ol className="mlo-steps">
+                    <li>
+                      <p>On your phone, open the authenticator app and add an account. On this phone, <a href={pending.uri}>tap here to add it</a>. Otherwise choose &ldquo;enter a setup key&rdquo; and type:</p>
+                      <p className="mlo-key" aria-label="Setup key">{pending.key}</p>
+                      <p className="mlo-note">Account: LoanM8 Command Center · Time based. Keep this key private.</p>
+                    </li>
+                    <li><Confirm /></li>
+                  </ol>
+                )}
+              </section>
+            ) : (
+              <section className="mlo-section">
+                <h2>Turn it off or move it to a new phone</h2>
+                {mfaRequired() ? <p className="mlo-note">The owner requires it. If you lost your phone, use a recovery code, or ask the owner to reset it on Team.</p> : (
+                  <form action={disableAction} className="mlo-row-form">
+                    <input name="code" required inputMode="numeric" autoComplete="one-time-code" maxLength={11} className="mlo-input" aria-label="A current code or a recovery code" placeholder="Current code" />
+                    <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Turn off</button>
+                  </form>
+                )}
+              </section>
+            )}
+          </>
+        )}
+      </div>
+    </PageShell>
+  );
+}

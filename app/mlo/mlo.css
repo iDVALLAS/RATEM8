@@ -65,3 +65,19 @@
 .cc-setup__summary { cursor: pointer; }
 .jr-progress { height: 8px; border-radius: 999px; background: var(--bg-sunken); overflow: hidden; }
 .jr-progress span { display: block; height: 100%; background: var(--accent); }
+
+/* D33: a quiet disclosure inside a form (send as email instead). */
+.mlo-details { margin-top: 8px; }
+.mlo-details > summary { cursor: pointer; color: var(--fg-soft); font-size: 14px; min-height: 44px; display: flex; align-items: center; }
+.mlo-details[open] { display: grid; gap: 8px; }
+
+/* D34: sign-in security. */
+.mlo-steps { margin: 0; padding-left: 1.2rem; display: grid; gap: 18px; }
+.mlo-key { margin: 10px 0 6px; font-family: var(--font-jetbrains, ui-monospace), monospace; font-size: 18px; letter-spacing: 0.08em; word-break: break-all; color: var(--fg); }
+.mlo-codes { margin: 10px 0; padding: 12px 14px; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--bg-sunken); font-family: var(--font-jetbrains, ui-monospace), monospace; font-size: 15px; line-height: 1.7; white-space: pre; overflow-x: auto; }
+
+/* D36: a member's split, channel by channel. */
+.mlo-split { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); align-items: end; }
+.mlo-split__row .mlo-input { max-width: 110px; }
+.mlo-split > .mlo-btn { grid-column: 1 / -1; justify-self: start; }
+.mlo-list { margin: 8px 0 0; padding-left: 1.2rem; display: grid; gap: 8px; line-height: 1.55; }

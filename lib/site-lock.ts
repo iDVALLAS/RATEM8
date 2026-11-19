@@ -41,6 +41,8 @@ const OPEN_EXACT = new Set([
   "/favicon.png",
   // D1: Command Center sign-in has its own checks.
   "/sign-in",
+  // D34: the code step after the emailed link.
+  "/sign-in/code",
   "/api/cc/verify",
   "/api/cc/signout",
   "/api/cc/dev-login",

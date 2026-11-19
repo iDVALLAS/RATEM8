@@ -12,7 +12,7 @@ import { contactStore } from "@/lib/contacts/store";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { conciergeStore } from "@/lib/concierge/store";
 import { FlashBox, MloNav } from "../MloChrome";
-import { inviteAction, updateAction } from "./actions";
+import { inviteAction, resetMfaAction, updateAction } from "./actions";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +26,8 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
   const me = v.user;
   const store = accountStore();
   const [users, audit] = me ? await Promise.all([store.listUsers(), store.recentAudit(20)]) : [[], []];
+  // D34: who has the second sign-in step on.
+  const mfa = new Set((await Promise.all(users.map(async (u) => ((await store.getMfa(u.id))?.enabledAt ? u.id : null)))).filter(Boolean));
   const addable = me ? ROLES.filter((r) => canManage(me, r)) : [];
   // D22: per-book counts for the owner, never client details.
   const bookUsers = me?.role === "owner" ? users.filter((u) => u.role !== "assistant" && u.status === "active") : [];
@@ -93,6 +95,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
                       <td>
                         <span className={`mlo-pill ${u.status === "disabled" ? "mlo-pill--off" : ""}`}>{u.status === "disabled" ? "Disabled" : ROLE_LABELS[u.role]}</span>
                         {u.role === "assistant" ? <><br /><span className="mlo-note">Works for {nameOf(u.assistsUserId)}</span></> : null}
+                        <br /><span className="mlo-note">{mfa.has(u.id) ? "Code from phone: on" : "Code from phone: off"}</span>
                       </td>
                       <td>
                         {canManage(me, u.role) && u.id !== me.id ? (
@@ -112,6 +115,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
                               <option value="disabled">Disabled</option>
                             </select>
                             <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Save</button>
+                            {mfa.has(u.id) ? <button type="submit" formAction={resetMfaAction.bind(null, u.id)} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Reset phone code</button> : null}
                           </form>
                         ) : (
                           <span className="mlo-note">{u.id === me.id ? "You" : ""}</span>

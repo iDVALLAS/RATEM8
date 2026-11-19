@@ -28,6 +28,9 @@ export type User = {
   createdBy: string;
 };
 
+/** D34: a second sign-in step. The secret is stored encrypted; recovery codes only as hashes. */
+export type MfaRecord = { userId: string; secretEnc: string; enabledAt: string | null; lastStep: number; recoveryHashes: string[]; createdAt: string };
+
 export type AuditEntry = { at: string; actor: string; action: string; detail: Record<string, string | number | boolean | null> };
 
 export interface AccountStore {
@@ -39,6 +42,11 @@ export interface AccountStore {
   putLoginToken(hash: string, userId: string, expiresAt: string): Promise<void>;
   /** Marks the token used and returns its user id, or null if missing, used or expired. */
   consumeLoginToken(hash: string, now: string): Promise<string | null>;
+  /** D34: the token's user id without using it up (the code step). */
+  peekLoginToken(hash: string, now: string): Promise<string | null>;
+  getMfa(userId: string): Promise<MfaRecord | null>;
+  putMfa(r: MfaRecord): Promise<void>;
+  deleteMfa(userId: string): Promise<void>;
   putSession(hash: string, userId: string, expiresAt: string): Promise<void>;
   sessionUser(hash: string, now: string): Promise<string | null>;
   deleteSession(hash: string): Promise<void>;
@@ -53,6 +61,7 @@ export class MemoryAccountStore implements AccountStore {
   private tokens = new Map<string, { userId: string; expiresAt: string; used: boolean }>();
   private sessions = new Map<string, { userId: string; expiresAt: string }>();
   private log: AuditEntry[] = [];
+  private mfa = new Map<string, MfaRecord>();
 
   async userByEmail(email: string) {
     return [...this.users.values()].find((u) => u.email === email.toLowerCase()) ?? null;
@@ -74,6 +83,20 @@ export class MemoryAccountStore implements AccountStore {
     if (!t || t.used || t.expiresAt <= now) return null;
     t.used = true;
     return t.userId;
+  }
+  async peekLoginToken(hash: string, now: string) {
+    const t = this.tokens.get(hash);
+    return t && !t.used && t.expiresAt > now ? t.userId : null;
+  }
+  async getMfa(userId: string) {
+    const r = this.mfa.get(userId);
+    return r ? { ...r, recoveryHashes: [...r.recoveryHashes] } : null;
+  }
+  async putMfa(r: MfaRecord) {
+    this.mfa.set(r.userId, { ...r, recoveryHashes: [...r.recoveryHashes] });
+  }
+  async deleteMfa(userId: string) {
+    this.mfa.delete(userId);
   }
   async putSession(hash: string, userId: string, expiresAt: string) {
     this.sessions.set(hash, { userId, expiresAt });
@@ -124,6 +147,7 @@ export class NeonAccountStore implements AccountStore {
         await this.q(`CREATE TABLE IF NOT EXISTS cc_login_tokens (token_hash text PRIMARY KEY, user_id text NOT NULL, expires_at timestamptz NOT NULL, used_at timestamptz)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_sessions (token_hash text PRIMARY KEY, user_id text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), expires_at timestamptz NOT NULL)`);
         await this.q(`CREATE INDEX IF NOT EXISTS cc_sessions_user ON cc_sessions (user_id)`);
+        await this.q(`CREATE TABLE IF NOT EXISTS cc_mfa (user_id text PRIMARY KEY, secret_enc text NOT NULL, enabled_at timestamptz, last_step bigint NOT NULL DEFAULT -1, recovery_hashes jsonb NOT NULL DEFAULT '[]', created_at timestamptz NOT NULL)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_audit (id bigserial PRIMARY KEY, at timestamptz NOT NULL, actor text NOT NULL, action text NOT NULL, detail jsonb NOT NULL)`);
       })().catch((e) => {
         this.ready = null;
@@ -164,6 +188,30 @@ export class NeonAccountStore implements AccountStore {
     await this.init();
     const r = await this.q(`UPDATE cc_login_tokens SET used_at = $2 WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2 RETURNING user_id`, [hash, now]);
     return (r[0]?.user_id as string | undefined) ?? null;
+  }
+  async peekLoginToken(hash: string, now: string) {
+    await this.init();
+    const r = await this.q(`SELECT user_id FROM cc_login_tokens WHERE token_hash = $1 AND used_at IS NULL AND expires_at > $2`, [hash, now]);
+    return (r[0]?.user_id as string | undefined) ?? null;
+  }
+  async getMfa(userId: string) {
+    await this.init();
+    const r = await this.q(`SELECT * FROM cc_mfa WHERE user_id = $1`, [userId]);
+    if (!r[0]) return null;
+    const x = r[0];
+    return { userId: x.user_id as string, secretEnc: x.secret_enc as string, enabledAt: x.enabled_at ? new Date(x.enabled_at as string).toISOString() : null, lastStep: Number(x.last_step), recoveryHashes: (typeof x.recovery_hashes === "string" ? JSON.parse(x.recovery_hashes) : x.recovery_hashes) as string[], createdAt: new Date(x.created_at as string).toISOString() };
+  }
+  async putMfa(m: MfaRecord) {
+    await this.init();
+    await this.q(
+      `INSERT INTO cc_mfa (user_id, secret_enc, enabled_at, last_step, recovery_hashes, created_at) VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (user_id) DO UPDATE SET secret_enc = EXCLUDED.secret_enc, enabled_at = EXCLUDED.enabled_at, last_step = EXCLUDED.last_step, recovery_hashes = EXCLUDED.recovery_hashes`,
+      [m.userId, m.secretEnc, m.enabledAt, m.lastStep, JSON.stringify(m.recoveryHashes), m.createdAt],
+    );
+  }
+  async deleteMfa(userId: string) {
+    await this.init();
+    await this.q(`DELETE FROM cc_mfa WHERE user_id = $1`, [userId]);
   }
   async putSession(hash: string, userId: string, expiresAt: string) {
     await this.init();

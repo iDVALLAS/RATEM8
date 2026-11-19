@@ -40,7 +40,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
   // Every page, both widths.
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {
@@ -98,6 +98,38 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     if (!t.includes("Where's my loan?")) problems.push('[client page] no Where\'s my loan section for a borrower with a loan');
     console.log('where is my loan:', (await p3.locator('.mlo-section').first().innerText()).replace(/\n/g, ' | ').slice(0, 220));
     await p3.close();
+  });
+  await step('email: composer', async () => {
+    await openContact('Ann Lee');
+    const n = await page.locator('#email').count();
+    console.log('email composer:', n ? 'shown' : 'none (no email on file)');
+    if (n) { await page.locator('#email input[name=subject]').fill('Re: checking in'); await page.locator('#email textarea').fill('Hi Ann, just checking in.'); await page.locator('#email').getByRole('button', { name: 'Send email' }).click(); await page.waitForURL(/f=/); console.log('email (bad subject):', await flash()); }
+  });
+  await step('membership: set up, fee, say, idea, spend', async () => {
+    const go = () => page.goto(B + '/mlo/network');
+    await go(); const row = page.locator('#members tbody tr').first();
+    await row.locator('input[name=area]').fill('Eastside, WA'); await row.locator('input[name=fee]').fill('300'); await row.getByRole('button', { name: 'Save' }).click(); await page.waitForURL(/f=/); console.log('member:', await flash());
+    await go(); await page.locator('#members tbody tr').first().getByRole('button', { name: 'Fee paid' }).click(); await page.waitForURL(/f=/); console.log('fee:', await flash());
+    await go(); await page.locator('input[name=pct_social_ads]').fill('60'); await page.locator('input[name=pct_sponsorship]').fill('40'); await page.getByRole('button', { name: 'Save my split' }).click(); await page.waitForURL(/f=/); console.log('split:', await flash());
+    await go(); await page.locator('#say textarea[name=text]').fill('Sponsor the Kirkland 5K in June'); await page.getByRole('button', { name: 'Suggest it' }).click(); await page.waitForURL(/f=/); console.log('idea:', await flash());
+    await go(); await page.locator('#ideas input[name=reply]').first().fill('Yes'); await page.locator('#ideas').getByRole('button', { name: 'Approve' }).first().click(); await page.waitForURL(/f=/); console.log('answer:', await flash());
+    const fillSpend = async (tick) => { await go(); await page.locator('#coop select[name=area]').selectOption('Eastside, WA'); await page.locator('#coop input[name=dollars]').fill('20'); await page.locator('#coop select[name=channel]').selectOption('social_ads'); await page.locator('#coop input[name=what]').fill('Local housing-category ads'); await page.locator('#coop input[name=proof]').fill('INV-1'); if (tick) await page.locator('#coop input[name=locationOnly]').check(); await page.getByRole('button', { name: 'Record spend' }).click(); await page.waitForURL(/f=/); };
+    await fillSpend(false); console.log('spend without tick:', await flash());
+    await fillSpend(true); console.log('spend:', await flash());
+    console.log('area:', (await page.locator('#area').innerText()).split('\n').slice(0, 2).join(' | '));
+  });
+  await step('security: turn on the phone code', async () => {
+    await page.goto(B + '/mlo/security');
+    await page.getByRole('button', { name: 'Start' }).click(); await page.locator('.mlo-key').waitFor();
+    const key = (await page.locator('.mlo-key').innerText()).replace(/\s/g, '');
+    const { createHmac } = await import('node:crypto');
+    const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; let bits = 0, val = 0; const bytes = [];
+    for (const ch of key) { val = (val << 5) | B32.indexOf(ch); bits += 5; if (bits >= 8) { bytes.push((val >>> (bits - 8)) & 255); bits -= 8; } }
+    const msg = Buffer.alloc(8); msg.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000)));
+    const h = createHmac('sha1', Buffer.from(bytes)).update(msg).digest(); const o = h[h.length - 1] & 15;
+    const code = String((((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1e6).padStart(6, '0');
+    await page.locator('input[name=code]').fill(code); await page.getByRole('button', { name: 'Turn it on' }).click();
+    await page.locator('.mlo-codes').waitFor(); console.log('recovery codes shown:', (await page.locator('.mlo-codes').innerText()).split('\n').length);
   });
   console.log('\nPROBLEMS:', problems.length ? '\n' + problems.join('\n') : 'none');
   await b.close();

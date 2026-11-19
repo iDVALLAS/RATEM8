@@ -6,6 +6,7 @@ import { debrief } from "@/lib/concierge/debrief";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { checkLine, recordDnc, sendText, recordRnd } from "@/lib/messaging/service";
+import { sendEmail } from "@/lib/messaging/email";
 import { z } from "zod";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
@@ -87,6 +88,16 @@ export async function sendTextAction(fd: FormData): Promise<void> {
   const res = await sendText(actor, contactId, String(fd.get("body") ?? ""), purpose, `${origin}/api/twilio/status`);
   const lines = res.ok ? ["Sent."] : [res.error, ...(res.retryAt ? [`Their window opens ${new Date(res.retryAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", weekday: "short", hour: "numeric", minute: "2-digit" })} Pacific.`] : [])];
   redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: res.ok, lines })}#conversation`);
+}
+
+/** D33: send an email through the gate. */
+export async function sendEmailAction(fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const contactId = String(fd.get("contactId") ?? "");
+  const purpose = fd.get("purpose") === "marketing" ? "marketing" : "service";
+  const res = await sendEmail(actor, contactId, String(fd.get("subject") ?? ""), String(fd.get("body") ?? ""), purpose);
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: res.ok, lines: [res.ok ? "Email sent. Replies go to your inbox." : res.error] })}#conversation`);
 }
 
 /** D4: line type from Twilio Lookup. */

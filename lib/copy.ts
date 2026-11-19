@@ -50,7 +50,8 @@ export const copy = {
     partner: {
       label: "Partner",
       items: [
-        { href: "/join", label: "Mortgage loan originators", description: "Join the platform in your state" },
+        // D33: loan officers already on LoanM8 sign in to Command Center from here (/mlo picks the right sign-in).
+        { href: "/join", label: "Mortgage loan originators", description: "Join the platform in your state", signIn: { href: "/mlo", label: "Sign in", aria: "Loan officer sign-in to Command Center" } },
         { href: "/agents", label: "Real estate agents", description: "A lender partner that won't spam your buyers" },
         { href: "/investors", label: "Investors", description: "Back what we're building" },
       ],

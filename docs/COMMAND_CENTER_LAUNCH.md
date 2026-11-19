@@ -25,7 +25,7 @@ Shared limits across servers. Add it from Vercel → Storage.
 
 ### Email (Resend)
 
-Sign-in links, the morning and weekly emails, and alerts. Verify your sending domain in Resend first.
+Sign-in links, the morning and weekly emails, alerts, and your emails to clients (sent in your name, with replies to your own inbox). Verify your sending domain in Resend first, with SPF, DKIM and DMARC.
 
 | Variable | Sensitive | Note |
 | --- | --- | --- |
@@ -111,6 +111,15 @@ Application and document texts point to your secure ARIVE borrower portal; clien
 | `NEXT_PUBLIC_CALENDLY_BORROWER` | No | Your booking link. |
 | `NEXT_PUBLIC_CALENDLY_RYDER` (optional) | No | Your team loan officer's (mlo-002) booking link. |
 
+### A code from your phone at sign-in
+
+Turn it on for yourself at Sign-in security (an authenticator app, a minute to set up). When everyone on the team has it, require it for all. The Safeguards Rule asks for this wherever client files are reached.
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `CC_REQUIRE_MFA` | No | Set to "true" to require it for everyone. |
+| `CC_MFA_KEY` (optional) | Yes | Any long random value; encrypts the phone keys (otherwise one derived from CC_LINK_SECRET). |
+
 ### Retire the shared admin login
 
 Once your own sign-in works, turn off the old shared login.
@@ -182,6 +191,14 @@ Each stays closed until set to exactly "true".
 | `GATE_TX_302_CLEARED` (optional) | No | Texas sales calls and texts (ch. 302). |
 | `GATE_AZ_PHONE_CLEARED` (optional) | No | Arizona sales calls and texts. |
 | `GATE_CA_AI_VOICE_CLEARED` (optional) | No | M8 AI-voice calls to California. |
+
+### Membership plan (only after counsel clears it)
+
+Recruiting credit (10%, 15% after a year, one level, credit on the recruiter's own membership, never from loans) is tracked and held until this is on. Ask counsel about the plan, the co-op budget and whether the plan needs any securities or franchise filing.
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `RECRUIT_REWARDS` (optional) | No | Set to "true" once approved. |
 
 ## 6. Go live
 

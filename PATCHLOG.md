@@ -2709,3 +2709,161 @@ From the research spec §1.1 ("Promises ledger").
     renders time-dependent text. It's recorded here as intermittent, to
     watch.
 - **Verified:** `npm run verify` passes (419 tests); the sweep is clean.
+
+## D33 — Email to clients, and a sign-in button on the site (2026-11-19)
+
+- **Why:** the research's channel plan puts proactive check-ins on email
+  first. Washington's text law and the carriers make marketing texts hard;
+  texts are for replies and loan status.
+- **`lib/messaging/email.ts` `sendEmail`:** through the same send gate as
+  texts (`gateFor(…, "email", …)`; "unsubscribed" blocks it).
+  - **Sending:** through Resend, from the loan officer's name at
+    `LOANM8_FROM_EMAIL`, with Reply-To set to the loan officer's own inbox.
+  - **Footer on every email:** the loan officer and their NMLS number; the
+    sponsor, its NMLS number and street address; Equal Housing
+    Opportunity; and a one-click stop through the client's own page (D26
+    "Stop email"). This covers CAN-SPAM 15 U.S.C. 7704(a)(3)–(5).
+  - **Subject checker:** no fake Re:/Fwd:, no "approved", "your rate",
+    "locked" or promises, no urgency, no rates or dollar amounts, no
+    all-caps, no "!!" (CAN-SPAM 7704(a)(2); RCW 19.190.020).
+  - **Body:** goes through the Concierge draft guard like every other
+    draft.
+  - **Logged:** as an email touch, with D31 promises recorded from the
+    body.
+- **Contact page:** an email composer under the text box, with
+  allowed-now hints for each purpose. The conversation shows "Email from …".
+- **Concierge desk:** each draft can go as an email instead, with a
+  subject. The option opens on its own when texting isn't allowed but the
+  person has an email address.
+- **Site nav:** Partner ▾ → "Mortgage loan originators" now has a "Sign
+  in" button on the right, on desktop and in the phone menu. The owner
+  asked for this spot, with a screenshot.
+  - The button goes to `/mlo`, which sends each person to the right
+    sign-in: the email link, or the shared login while that's still on.
+  - `/login` and `/mlo-login` redirect there too, for a bookmark.
+- **Launch checklist:** the Resend item now mentions client email and
+  SPF, DKIM and DMARC.
+- **Verified:** `lib/messaging/email.test.ts` (4) covers the subject
+  checker, the footer contents, a send through the gate with Reply-To and
+  logging, and the refusals:
+  - a bad subject
+  - a dollar amount in the body
+  - another loan officer's client
+  - an unsubscribed client
+  - no keys
+- **QA:** screenshots of the menu at 1440px and 390px; `/login` lands on
+  `/mlo`.
+
+## D34 — A code from your phone at sign-in (2026-11-19)
+
+- **Why:** client files hold personal financial information. The FTC
+  Safeguards Rule asks for multi-factor authentication for anyone
+  reaching it (16 CFR 314.4(c)(5)). The emailed link is one factor; an
+  authenticator app is the second.
+- **`lib/accounts/totp.ts`:** RFC 6238 codes (SHA-1, 30 seconds, 6
+  digits), base32 setup keys, and an `otpauth://` link that opens the app
+  on a phone. It passes the RFC's test values.
+- **`lib/accounts/mfa.ts`:**
+  - **Setup:** setup proves the app works before it turns on.
+  - **Recovery codes:** ten one-time codes, shown once and stored as
+    hashes.
+  - **Storage:** the secret is sealed with AES-256-GCM (under
+    `CC_MFA_KEY`, else a key derived from `CC_LINK_SECRET` or the database
+    address).
+  - **Replays:** a code can't be used twice.
+  - **Clock drift:** one step either side is accepted.
+- **Sign-in:** with the app on, the emailed link opens `/sign-in/code`
+  instead of a session.
+  - The ticket rides in an httpOnly cookie scoped to `/sign-in`, for 5
+    minutes.
+  - After five wrong codes the link is spent.
+  - A recovery code works once, and the page then says how many are left.
+- **`/mlo/security`** (nav: Sign-in security): turn it on (key, link and
+  first code), or turn it off with a current code.
+  - **Require it for everyone:** `CC_REQUIRE_MFA="true"`. Anyone without
+    it is sent to set it up before any other page (`requireViewer`).
+  - **Team:** shows who has it on. "Reset phone code" (owner, or a team
+    lead for the people they manage) clears it and signs them out
+    everywhere.
+- **Launch checklist:** a new phase-2 item (`CC_REQUIRE_MFA`, and
+  `CC_MFA_KEY` as optional and Sensitive).
+- **Verified:** `lib/accounts/mfa.test.ts` (7):
+  - the RFC vectors, plus drift and replay
+  - sealing
+  - enrollment needs a real code
+  - the link opens the code step
+  - lockout and the 5-minute expiry
+  - a recovery code works once
+  - the owner's reset, and that a requirement blocks turning it off
+  The D1 tests are updated for the new return type.
+
+## D35/D36 — Membership: recruiting credit and the area marketing budget (2026-11-19)
+
+The owner asked for a "downline" where loan officers who bring in other
+loan officers get about 10%. They also asked for part of each flat
+membership fee to fund marketing in the member's area, with members able
+to see where it goes and have a say in local allocation.
+
+- **Plan terms:** `MEMBERSHIP` in `lib/config.ts`; every number on the
+  page comes from there.
+- **Recruiting credit (D35):**
+  - **The rate:** 10% of what the recruit actually paid for their
+    membership that month, 15% once they've been a member 12 months.
+  - **Paid as credit**, used first on the recruiter's own fee. Never cash.
+  - **One level.** Two people can't be each other's recruiter, and
+    assistants aren't members.
+  - **Nothing here reads a loan.** The plan follows the build brief
+    (§2.4, §4.8): rewards from platform contributions, never the
+    recruit's loans or terms. That keeps it clear of the loan officer pay
+    rules (12 CFR 1026.36(d)) and RESPA section 8. One level and
+    credit-only keep it away from multi-level structures.
+  - **Credit is recorded once,** when the payment is recorded. Only cash
+    paid counts, so credit doesn't make more credit. Once a credit exists,
+    who brought someone in can't change.
+  - **Held until counsel approves:** with `RECRUIT_REWARDS` unset, credit
+    is worked out and held (shown, not usable).
+- **Marketing (D36):**
+  - **The split:** 20% of every fee (the full fee, so a member whose fee
+    is covered by credit still funds it). 60% of that is national; 40% (8%
+    of the fee) goes to the member's own area.
+  - **Members see every spend** in both budgets: what it was, where it
+    ran, the cost and the receipt.
+  - **Members' say:** each member sets a split of their area's budget
+    across channels, and the area's plan is the average. The page shows
+    the plan next to actual spending.
+  - **Ideas:** members suggest local ideas; the owner approves, declines
+    (with a reason) or marks them done.
+  - **Recording a spend:** the owner or a team lead records it with
+    proof. It can't exceed the budget.
+  - **Paid search and social ads:** each needs a tick for the housing ad
+    category, location-only targeting, and the NMLS number and Equal
+    Housing Opportunity (Fair Housing Act).
+  - **Only loan officers' fees fund it.** No agent or other settlement
+    provider pays in, so it's not a marketing services agreement.
+- **`/mlo/network`** (nav: Membership) shows:
+  - **For each member:** how it works, their membership, the loan
+    officers they brought in, their area's budget and spending, their
+    split and ideas, and national spending.
+  - **For the owner and team leads:** set each member's area, fee, join
+    date and who brought them in; "Fee paid" per month; record spending;
+    answer ideas.
+- **Store:** `lib/membership/store.ts` (Neon tables `cc_members`,
+  `cc_member_payments`, `cc_coop_spend`, `cc_coop_prefs`,
+  `cc_coop_ideas`). Payments and spending are append-only.
+- **Launch checklist:** a counsel item with `RECRUIT_REWARDS`. It also
+  asks whether the plan needs a securities or franchise filing.
+  `docs/COMMAND_CENTER_LAUNCH.md` is now generated by
+  `lib/setup/launch-doc.ts`, and a test fails if the two drift.
+- **Verified:** `lib/membership/service.test.ts` (7):
+  - tenure months
+  - one level, and no self- or mutual recruiting
+  - held, then credited, then used
+  - the 15% rate, and credit-on-credit
+  - the 60/40 split and areas matched however they're spaced
+  - the spend checks
+  - members' plan averaging, and ideas
+- **For counsel:** the whole plan. That includes the 10%/15% rates,
+  whether the recruiter's credit is "compensation" under Reg Z for a loan
+  officer under a sponsor, the co-op structure, and any securities or
+  franchise question. Nothing is usable until `RECRUIT_REWARDS="true"`.
+- **Next up:** D37, the expense tracker for 1099 loan officers.

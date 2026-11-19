@@ -49,7 +49,7 @@ describe("Command Center accounts (D1)", () => {
     const t = linkToken();
     const res = await verifySignIn(t, T0 + 60_000);
     expect(res?.user.role).toBe("owner");
-    expect(await userForSession(res!.session, T0 + 120_000)).toMatchObject({ email: "owner@example.com" });
+    expect(await userForSession((res as { session: string }).session, T0 + 120_000)).toMatchObject({ email: "owner@example.com" });
     expect(await verifySignIn(t, T0 + 90_000)).toBeNull(); // single use
     await requestSignIn("owner@example.com", "https://loanm8.com", "ip1", T0);
     expect(await verifySignIn(linkToken(), T0 + LINK_TTL_MS + 1)).toBeNull(); // expired
@@ -89,7 +89,7 @@ describe("Command Center accounts (D1)", () => {
     await ensureOwner(T0);
     const owner = (await store.userByEmail("owner@example.com"))!;
     await inviteUser(owner, { email: "lo@example.com", name: "Lo", role: "lo", mloId: null }, "https://x", T0);
-    const s = await verifySignIn(linkToken(), T0 + 1000);
+    const s = (await verifySignIn(linkToken(), T0 + 1000)) as { session: string } | null;
     expect(await userForSession(s!.session, T0 + 2000)).not.toBeNull();
     const lo = (await store.userByEmail("lo@example.com")) as User;
     expect(await updateUser(owner, lo.id, { status: "disabled" }, T0 + 3000)).toEqual({ ok: true });

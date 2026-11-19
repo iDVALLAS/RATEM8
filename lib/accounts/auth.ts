@@ -20,8 +20,11 @@ import { emailConfig } from "@/lib/m8/server";
 import { incr } from "@/lib/m8/kv";
 import { accountStore, ROLES, type Role, type User } from "./store";
 import { companyOfMlo } from "./company";
+import { mfaOn, openCodeStep } from "./mfa";
 
 export const SESSION_COOKIE = "lm8_cc_session";
+/** D34: the 5-minute ticket between the emailed link and the authenticator code. */
+export const MFA_COOKIE = "lm8_cc_mfa";
 export const LINK_TTL_MS = 15 * 60 * 1000;
 export const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -94,17 +97,25 @@ export async function requestSignIn(emailRaw: string, origin: string, ipHash: st
 }
 
 /** The emailed link. Returns a new session token for the cookie, or null. */
-export async function verifySignIn(t: string, now = Date.now()): Promise<{ session: string; user: User } | null> {
+export async function verifySignIn(t: string, now = Date.now()): Promise<{ session: string; user: User } | { mfa: string; user: User } | null> {
   if (!t || t.length > 100) return null;
   const store = accountStore();
   const userId = await store.consumeLoginToken(sha256(t), iso(now));
   if (!userId) return null;
   const user = await store.userById(userId);
   if (!user || user.status !== "active") return null;
+  // D34: with an authenticator app on, the link opens the code step instead of a session.
+  if (await mfaOn(user.id)) return { mfa: await openCodeStep(user.id, now), user };
+  return { session: await openSession(user, now), user };
+}
+
+/** A new session for a user who has passed every sign-in step. */
+export async function openSession(user: User, now = Date.now()): Promise<string> {
+  const store = accountStore();
   const session = token();
   await store.putSession(sha256(session), user.id, iso(now + SESSION_TTL_MS));
   await store.audit({ at: iso(now), actor: user.email, action: "signin.ok", detail: {} });
-  return { session, user };
+  return session;
 }
 
 export async function userForSession(session: string | undefined, now = Date.now()): Promise<User | null> {

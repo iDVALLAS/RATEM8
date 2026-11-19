@@ -8,6 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { User } from "@/lib/accounts/store";
 import { accountStore } from "@/lib/accounts/store";
 import { sendText } from "@/lib/messaging/service";
+import { sendEmail } from "@/lib/messaging/email";
 import { todayFor } from "@/lib/today/facts";
 import { guardReply } from "@/lib/m8/guard";
 import { contactStore } from "@/lib/contacts/store";
@@ -16,7 +17,8 @@ import { CARD_BRIEF, conciergeModel, scanCtx, ccAnthropicKey } from "./agent";
 import { dataBlock, dataRule, newNonce } from "./data";
 import { conciergeStore, type ConciergeSettings } from "./store";
 
-export async function approve(actor: User, proposalId: string, editedBody: string | null, statusCallback: string | null, now = new Date()): Promise<{ ok: true } | { ok: false; error: string }> {
+/** D33: `email` sends the same draft by email instead (a subject is required), for when a text isn't allowed but email is. */
+export async function approve(actor: User, proposalId: string, editedBody: string | null, statusCallback: string | null, now = new Date(), email: { subject: string } | null = null): Promise<{ ok: true } | { ok: false; error: string }> {
   const store = conciergeStore();
   // D8.1: exactly one approval can hold a draft; a double click finds it already "sending".
   const p = await store.claimProposal(actor.id, proposalId);
@@ -30,10 +32,10 @@ export async function approve(actor: User, proposalId: string, editedBody: strin
     await release();
     return { ok: false, error: edited ? `Your edit can't be sent: it ${d.reason}.` : `This draft can't be sent under the current rules: it ${d.reason}. Edit it or dismiss it.` };
   }
-  const res = await sendText(actor, p.contactId, d.text, p.purpose, statusCallback, now, { origin: edited ? "human" : p.source === "model" ? "concierge" : "template" });
+  const res = email ? await sendEmail(actor, p.contactId, email.subject, d.text, p.purpose, now) : await sendText(actor, p.contactId, d.text, p.purpose, statusCallback, now, { origin: edited ? "human" : p.source === "model" ? "concierge" : "template" });
   if (res.ok) await store.putProposal({ ...p, body: d.text, status: "sent", decidedAt: now.toISOString(), decidedBy: actor.email });
   else await release();
-  await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: res.ok ? "concierge.approve" : "concierge.approve_blocked", detail: { proposalId, edited, guard: GUARD_VERSION } });
+  await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: res.ok ? "concierge.approve" : "concierge.approve_blocked", detail: { proposalId, edited, channel: email ? "email" : "text", guard: GUARD_VERSION } });
   return res.ok ? { ok: true } : { ok: false, error: res.error };
 }
 

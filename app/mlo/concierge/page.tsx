@@ -11,7 +11,8 @@ import Ask from "./Ask";
 import { segmentLabel } from "@/lib/messaging/segments";
 import { signature } from "@/lib/messaging/service";
 import Tell from "./Tell";
-import { approveAction, dismissAction, forgetFromDeskAction, keepAction, settingsAction, sweepAction, taskDoneAction } from "./actions";
+import { emailOn } from "@/lib/messaging/email";
+import { approveAction, approveEmailAction, dismissAction, forgetFromDeskAction, keepAction, settingsAction, sweepAction, taskDoneAction } from "./actions";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,13 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                         <div className="mlo-row-form">
                           <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Approve and send</button>
                         </div>
+                        {emailOn() && people.find((x) => x?.id === d.contactId)?.email ? (
+                          <details className="mlo-details" open={!d.gate.allowed}>
+                            <summary>{d.gate.allowed ? "Send it as an email instead" : "Texting isn't allowed now: send it as an email"}</summary>
+                            <label className="mlo-field"><span>Subject</span><input name="subject" className="mlo-input" maxLength={78} placeholder={d.purpose === "service" ? "A quick update on your loan" : "Checking in"} /></label>
+                            <button type="submit" formAction={approveEmailAction} className="mlo-btn mlo-btn--ghost">Approve and email</button>
+                          </details>
+                        ) : null}
                       </form>
                       <form action={dismissAction}><input type="hidden" name="id" value={d.id} /><button type="submit" className="mlo-btn mlo-btn--ghost">Dismiss</button></form>
                     </li>

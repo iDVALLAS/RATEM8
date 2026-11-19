@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { currentUser, inviteUser, updateUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
+import { resetFor } from "@/lib/accounts/mfa";
 
 const back = (ok: boolean, line: string) => redirect(`/mlo/team?f=${encodeFlash({ ok, lines: [line] })}`);
 
@@ -30,4 +31,12 @@ export async function updateAction(fd: FormData): Promise<void> {
     assistsUserId: fd.has("assists") ? String(fd.get("assists")) || null : undefined,
   });
   back(res.ok, res.ok ? "Saved." : res.error);
+}
+
+/** D34: reset someone's authenticator (lost phone). Bound to the user id; signs them out everywhere. */
+export async function resetMfaAction(userId: string): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const r = await resetFor(actor, userId);
+  back(r.ok, r.ok ? "Reset. They're signed out and can set up the app again after their next emailed link." : r.error);
 }

@@ -33,6 +33,13 @@ export async function approveAction(fd: FormData): Promise<void> {
   back(r.ok, [r.ok ? "Sent." : r.error], "#drafts");
 }
 
+/** D33: the same draft, by email. */
+export async function approveEmailAction(fd: FormData): Promise<void> {
+  const u = await me();
+  const r = await approve(u, String(fd.get("id") ?? ""), fd.has("body") ? String(fd.get("body")) : null, null, new Date(), { subject: String(fd.get("subject") ?? "") });
+  back(r.ok, [r.ok ? "Emailed. Replies go to your inbox." : r.error], "#drafts");
+}
+
 export async function dismissAction(fd: FormData): Promise<void> {
   const u = await me();
   await dismiss(u, String(fd.get("id") ?? ""));

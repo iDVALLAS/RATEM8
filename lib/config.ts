@@ -456,6 +456,29 @@ export const ALL_MLOS: Mlo[] = [CONFIG.principalMlo, ...CONFIG.team];
 /** D32: the Vercel variable holding each loan officer's booking link (for the launch checklist). */
 export const BOOKING_ENV: Record<string, string> = { "mlo-001": "NEXT_PUBLIC_CALENDLY_BORROWER", "mlo-002": "NEXT_PUBLIC_CALENDLY_RYDER" };
 
+/**
+ * D35/D36: membership plan terms (the owner's, 2026-11-19; counsel to confirm).
+ * Every number on the Membership page comes from here.
+ *  - Recruiting credit: a share of the recruited loan officer's membership
+ *    fee (cash paid), as credit toward the recruiter's own fee. One level
+ *    only, and never from loans, rates or terms.
+ *  - Marketing: 20% of every member's fee. 60% of that is national; 40%
+ *    (8% of the fee) is their own area's co-op budget, where the members in
+ *    that area set how it's split and suggest local ideas.
+ * Credits are held (tracked, not usable) until RECRUIT_REWARDS="true".
+ */
+export const MEMBERSHIP = {
+  recruitRate: 0.1,
+  recruitTenureRate: 0.15,
+  /** Months since the recruit joined before the higher rate applies. */
+  tenureMonths: 12,
+  levels: 1,
+  /** Share of every fee that goes to marketing... */
+  marketingShare: 0.2,
+  /** ...of which this part is national (the LoanM8 brand, seen by every member); the rest stays in the member's own area, where members have a say. */
+  nationalPart: 0.6,
+} as const;
+
 export function mloById(id: string | null | undefined): Mlo | undefined {
   return id ? ALL_MLOS.find((m) => m.id === id) : undefined;
 }

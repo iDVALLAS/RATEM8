@@ -25,6 +25,8 @@ export const STEALTH_PUBLIC_FILES = [
   "/demo",
   // D1: Command Center sign-in (not indexed; the page is noindex).
   "/sign-in",
+  // D34: the code step after the emailed link.
+  "/sign-in/code",
   "/robots.txt",
   "/sitemap.xml",
   "/favicon.ico",

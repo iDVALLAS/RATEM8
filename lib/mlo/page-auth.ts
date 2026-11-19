@@ -6,13 +6,18 @@ import { redirect } from "next/navigation";
 import { currentUser, isAdmin } from "@/lib/accounts/auth";
 import type { User } from "@/lib/accounts/store";
 import { adminActor } from "./auth";
+import { mfaOn, mfaRequired } from "@/lib/accounts/mfa";
 
 export type Viewer = { user: User | null; admin: boolean; label: string };
 
 /** Anyone signed in (any role) or the shared admin login; otherwise to /sign-in. */
-export async function requireViewer(): Promise<Viewer> {
+export async function requireViewer(opts: { allowWithoutMfa?: boolean } = {}): Promise<Viewer> {
   const user = await currentUser().catch(() => null);
-  if (user) return { user, admin: isAdmin(user), label: user.email };
+  if (user) {
+    // D34: when the owner requires a second sign-in step, set it up before anything else.
+    if (!opts.allowWithoutMfa && mfaRequired() && !(await mfaOn(user.id))) redirect("/mlo/security?required=1");
+    return { user, admin: isAdmin(user), label: user.email };
+  }
   const basic = await adminActor();
   if (basic) return { user: null, admin: true, label: basic };
   redirect("/sign-in");
