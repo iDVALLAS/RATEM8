@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import PageShell from "@/components/PageShell";
+import CcAuthShell from "@/app/mlo/CcAuthShell";
 import { MFA_COOKIE, openSession, SESSION_COOKIE, SESSION_TTL_MS } from "@/lib/accounts/auth";
 import { finishCodeStep } from "@/lib/accounts/mfa";
-import "../../mlo/mlo.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Enter your code", robots: { index: false, follow: false } };
@@ -33,10 +32,9 @@ export default async function Code({ searchParams }: { searchParams: Promise<{ e
   const { err } = await searchParams;
   if (!(await cookies()).get(MFA_COOKIE)) redirect("/sign-in?e=expired");
   return (
-    <PageShell>
-      <div className="mlo-wrap" style={{ maxWidth: "28rem" }}>
-        <p className="eyebrow">LoanM8 Command Center</p>
-        <h1 className="tagline text-4xl">Enter your code</h1>
+    <CcAuthShell>
+        <h1>Enter your code</h1>
+        <p className="cc-auth__lede">One more step: the code from your phone.</p>
         {err ? <div className="mlo-flash mlo-flash--err" role="alert">{err.slice(0, 200)}</div> : null}
         <form action={check} className="mlo-section">
           <label className="mlo-field">
@@ -46,7 +44,6 @@ export default async function Code({ searchParams }: { searchParams: Promise<{ e
           <button type="submit" className="mlo-btn">Sign in</button>
           <p className="mlo-note" style={{ marginTop: 12 }}>Lost your phone? Enter one of your recovery codes instead, or ask the owner to reset it. This step expires five minutes after you opened the link.</p>
         </form>
-      </div>
-    </PageShell>
+    </CcAuthShell>
   );
 }

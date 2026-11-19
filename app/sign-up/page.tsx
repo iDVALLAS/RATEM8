@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import PageShell from "@/components/PageShell";
+import CcAuthShell from "@/app/mlo/CcAuthShell";
 import { currentUser } from "@/lib/accounts/auth";
 import { US_STATES } from "@/lib/us-states";
 import SignUpForm from "./SignUpForm";
-import "../mlo/mlo.css";
 import "./sign-up.css";
 
 export const dynamic = "force-dynamic";
@@ -15,14 +14,11 @@ export const metadata: Metadata = { title: "Sign up", robots: { index: false, fo
 export default async function SignUp() {
   if (await currentUser().catch(() => null)) redirect("/mlo");
   return (
-    <PageShell>
-      <div className="mlo-wrap" style={{ maxWidth: "40rem" }}>
-        <p className="eyebrow">LoanM8 Command Center</p>
-        <h1 className="tagline text-4xl">Sign up</h1>
-        <p className="mlo-note">For licensed mortgage loan originators, in any state. Tell us who you are and where you&apos;re licensed. We&apos;ll confirm your email, then a person checks your NMLS record before your account opens.</p>
+    <CcAuthShell wide>
+        <h1>Sign up</h1>
+        <p className="cc-auth__lede">For licensed mortgage loan originators, in any state. Tell us who you are and where you&apos;re licensed. We&apos;ll confirm your email, then a person checks your NMLS record before your account opens.</p>
         <SignUpForm states={US_STATES.map((s) => ({ code: s.code, name: s.name }))} />
-        <p className="mlo-note" style={{ marginTop: 16 }}>Already have an account? <Link href="/sign-in">Sign in</Link>.</p>
-      </div>
-    </PageShell>
+        <p className="cc-auth__alt">Already have an account? <Link href="/sign-in">Sign in</Link>.</p>
+    </CcAuthShell>
   );
 }

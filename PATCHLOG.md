@@ -3524,3 +3524,37 @@ CRM sold on its own".
   - **The root layout's search-engine data and the site-wide "not found"
     page** name the platform's sponsor in every page's hidden payload
     (not visible).
+
+## D46 — Sign in and sign up get Command Center's own look (2026-11-19)
+
+The owner asked for it after D45: those pages still used the public
+site's frame, so the borrower menu and the LoanM8 licensing footer showed
+on pages only loan officers use.
+
+- **`app/mlo/CcAuthShell.tsx`** frames `/sign-in`, `/sign-in/code`,
+  `/sign-up` and `/sign-up/confirm`:
+  - **The bar:** the Command Center brand and the theme toggle; no menus,
+    since nobody is signed in.
+  - **A short pitch:** "Your book, your day and your business, in one
+    place", with four lines (Concierge drafts you approve, contact rules
+    for all 50 states and DC, loan journeys and deadlines, expenses for
+    your CPA) and how sign-in works. It sits beside the form on desktop
+    and under it on phones, so the form comes first.
+  - **The form** is in a card in the app's palette.
+  - **The footer:** "LoanM8 Command Center · for licensed loan officers",
+    Privacy, Terms. It has no public-site licensing footer, because
+    these pages don't advertise loans.
+- **The palette** comes from `cc-shell.css` (`.cc-auth*`) and follows
+  Night, Dim and light like every other Command Center page. Sign-up uses
+  the wide layout, with the pitch held in place as the form scrolls on
+  desktop.
+- **Sign in:** "New loan officer? Sign up" and the shared admin login
+  link sit under the form.
+- **Verified:**
+  - Types, lint, `npm run verify`.
+  - All four pages at 1280px and 390px in Night, and sign in and sign up
+    in light.
+  - Each page measures its full width with no sideways scroll, has its
+    own heading, and has no public footer.
+  - The only console errors are the Vercel Analytics script, which the
+    local site lock redirects. It's served on Vercel.

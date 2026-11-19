@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import PageShell from "@/components/PageShell";
+import CcAuthShell from "@/app/mlo/CcAuthShell";
 import { confirmAction } from "../actions";
-import "../../mlo/mlo.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Confirm your email", robots: { index: false, follow: false } };
@@ -11,10 +10,8 @@ export const metadata: Metadata = { title: "Confirm your email", robots: { index
 export default async function Confirm({ searchParams }: { searchParams: Promise<{ t?: string; done?: string; err?: string }> }) {
   const { t, done, err } = await searchParams;
   return (
-    <PageShell>
-      <div className="mlo-wrap" style={{ maxWidth: "32rem" }}>
-        <p className="eyebrow">LoanM8 Command Center</p>
-        <h1 className="tagline text-4xl">{done ? "Thanks" : "Confirm your email"}</h1>
+    <CcAuthShell>
+        <h1>{done ? "Thanks" : "Confirm your email"}</h1>
         {done ? (
           <p className="mlo-flash mlo-flash--ok" role="status">Your email is confirmed. A person will check your NMLS record next, and you&apos;ll get an email with your sign-in link when your account is ready.</p>
         ) : err ? (
@@ -30,7 +27,6 @@ export default async function Confirm({ searchParams }: { searchParams: Promise<
         ) : (
           <p className="mlo-note">Open the link from your email. <Link href="/sign-up">Sign up</Link></p>
         )}
-      </div>
-    </PageShell>
+    </CcAuthShell>
   );
 }

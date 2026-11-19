@@ -660,6 +660,10 @@ with the source screenshot. Pricing APIs and the rate sheet engine
   graphite, Paper is a pale mint wash with white cards, a mint highlight
   and Pine text. The public site, the orb and the wordmark are unchanged.
 - `MloNav` renders nothing now (kept so pages compile).
+- D46: `/sign-in`, `/sign-in/code`, `/sign-up` and `/sign-up/confirm` use
+  `app/mlo/CcAuthShell.tsx`: the Command Center bar and theme toggle (no
+  menus), a short pitch beside the form card (under it on phones), and a
+  slim footer with Privacy and Terms instead of the public licensing footer.
 
 ## 4d. Nav — `components/Nav.tsx`, `components/PartnerMenu.tsx` (v14)
 

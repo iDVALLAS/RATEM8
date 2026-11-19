@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import PageShell from "@/components/PageShell";
+import CcAuthShell from "@/app/mlo/CcAuthShell";
 import { currentUser, requestSignIn } from "@/lib/accounts/auth";
 import { hashIp } from "@/lib/m8/limits";
-import "../mlo/mlo.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Sign in", robots: { index: false, follow: false } };
@@ -29,10 +28,9 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
   const { e, err } = await searchParams;
   if (await currentUser().catch(() => null)) redirect("/mlo");
   return (
-    <PageShell>
-      <div className="mlo-wrap" style={{ maxWidth: "28rem" }}>
-        <p className="eyebrow">LoanM8 Command Center</p>
-        <h1 className="tagline text-4xl">Sign in</h1>
+    <CcAuthShell>
+        <h1>Sign in</h1>
+        <p className="cc-auth__lede">We&apos;ll email you a link. No password to remember.</p>
         {e && NOTES[e] ? <div className="mlo-flash mlo-flash--ok" role="status">{NOTES[e]}</div> : null}
         {err ? <div className="mlo-flash mlo-flash--err" role="alert">{err.slice(0, 200)}</div> : null}
         <form action={send} className="mlo-section">
@@ -41,12 +39,8 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
             <input type="email" name="email" required autoComplete="email" className="mlo-input" />
           </label>
           <button type="submit" className="mlo-btn">Email me a sign-in link</button>
-          <p className="mlo-note" style={{ marginTop: 12 }}>No password to remember. New loan officer? <a href="/sign-up">Sign up</a>.</p>
         </form>
-        <p className="mlo-note" style={{ marginTop: 16 }}>
-          Still on the shared admin login? <a href="/mlo?basic=1">Use it here</a>.
-        </p>
-      </div>
-    </PageShell>
+        <p className="cc-auth__alt">New loan officer? <a href="/sign-up">Sign up</a><br />Still on the shared admin login? <a href="/mlo?basic=1">Use it here</a>.</p>
+    </CcAuthShell>
   );
 }
