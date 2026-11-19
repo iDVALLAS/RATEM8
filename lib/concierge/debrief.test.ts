@@ -70,12 +70,14 @@ describe("After a call (D16)", () => {
       };
     };
     const r = await debrief(me, c.id, NOTE, { now: NOW, call });
-    expect(r).toMatchObject({ ok: true, needs: 1, reminders: 1, draft: true });
+    expect(r).toMatchObject({ ok: true, needs: 1, reminders: 2, draft: true }); // one from the model, one promise ("call her back next week")
     // The model never saw the personal sentence.
     expect(brief).not.toMatch(/husband|retiring/);
     const [m] = await concierge.pendingMemory("lo1", NOW.toISOString());
     expect(m).toMatchObject({ fact: "Kitchen remodel next spring", source: "your call note", status: "pending" });
-    expect((await concierge.tasks("lo1"))[0].title).toBe("Price Ann's scenario, then call");
+    const titles = (await concierge.tasks("lo1")).map((t) => t.title);
+    expect(titles).toContain("Price Ann's scenario, then call");
+    expect(titles.some((t) => t.startsWith("Your promise to Ann: price a cash-out"))).toBe(true);
     const [p] = await concierge.proposals("lo1", "pending");
     expect(p).toMatchObject({ purpose: "marketing", why: "Follow-up from your call note" });
     expect(p.gate.reason ?? "").toMatch(/do-not-call/i); // no DNC check on file yet, so it waits

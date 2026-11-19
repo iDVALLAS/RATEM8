@@ -2658,3 +2658,28 @@ From the research spec's "consent passport" and "the client's own view"
   waiting items, no rate or amount anywhere in the data, a refinance
   without "find the home", a closed loan, and another loan officer's view
   empty.
+
+## D31 — The Promises ledger (2026-11-19)
+
+From the research spec §1.1 ("Promises ledger").
+
+- **What it reads** (`lib/concierge/promises.ts`): only the loan
+  officer's own words, meaning texts they send and their call notes, never
+  the client's. It's deterministic, with no model, and finds "I'll / I
+  will / let me / I'm going to … <when>".
+  - **The "when" phrases:** today, tonight, end of day, tomorrow, a named
+    day (its next occurrence after today), next week (the coming Monday),
+    and end of week or this week (Friday).
+- **What it does:** each promise becomes a reminder, "Your promise to
+  Ann: send you numbers (tuesday)", with the sentence and date it came
+  from. It's once per source (the text's provider id, or the note) and
+  checked by the Concierge guard.
+- **Where it shows:** on Today the day it's due, marked "was due …" if
+  late (`lib/today/facts.ts`), and on the desk with a "Your promise" pill.
+- **Hooked into:** `sendText` (after a successful send) and call notes
+  (D16, with or without the AI).
+- **Verified:** `lib/concierge/promises.test.ts` (2): the date meanings
+  ("Thursday" said on a Thursday is a week out); phrase extraction; no
+  false promise in "Rates moved today"; once only; on Today when due and
+  marked late after. The D16 test was updated, since its note promises a
+  call back. `npm run verify` passes.

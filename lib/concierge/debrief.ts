@@ -27,6 +27,7 @@ import { conciergeModel, laneFor, scanCtx, TASK_ACTIONS, ccAnthropicKey } from "
 import { checkDraft, checkMemory, checkNote, protectedTopic } from "./guard";
 import { cleanData, dataRule, newNonce } from "./data";
 import { conciergeStore, MEMORY_KINDS } from "./store";
+import { recordPromises } from "./promises";
 
 const DAY = 86_400_000;
 const id = (p: string) => `${p}_${randomBytes(9).toString("base64url")}`;
@@ -103,6 +104,8 @@ export async function debrief(user: User, contactId: string, rawNote: string, op
   const clean = cleanNote(note, ctx);
   if (clean.text) await store.put({ ...c, notes: [c.notes, `Call note (${now.toISOString().slice(0, 10)}): ${clean.text}`].filter(Boolean).join("\n").slice(-4000), updatedAt: now.toISOString() });
   const result: DebriefResult = { ok: true, saved: !!clean.text, summary: null, needs: 0, reminders: 0, draft: false, leftOut: clean.leftOut };
+  // D31: "I'll call her back Tuesday" in their own note becomes a reminder, with or without the AI.
+  if (clean.text) result.reminders += await recordPromises(user, c, clean.text, `note:${c.id}:${now.toISOString()}`, now);
   const key = ccAnthropicKey();
   const call = opts.call !== undefined ? opts.call : key ? apiCall(key) : null;
   if (!call || !clean.text) return result;

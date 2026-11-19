@@ -51,7 +51,7 @@ export type Proposal = {
 };
 
 /** D8.1: lane "personal" = reply yourself; the Concierge stays out (hardship, a protected topic) and pauses marketing for 30 days. */
-export type Task = { id: string; ownerUserId: string; contactId: string; title: string; why: string; due: string | null; done: boolean; createdAt: string; lane?: "personal" };
+export type Task = { id: string; ownerUserId: string; contactId: string; title: string; why: string; due: string | null; done: boolean; createdAt: string; lane?: "personal" | "promise" };
 
 /** D8.1: "relationship" removed (it invited notes about family and partners). */
 export const MEMORY_KINDS = ["need", "plan", "preference", "timing"] as const;

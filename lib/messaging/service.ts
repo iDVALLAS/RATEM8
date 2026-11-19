@@ -18,6 +18,7 @@ import { companyOfMlo, singleCompany } from "@/lib/accounts/company";
 import { touchStore, type Touch } from "./store";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { conciergeStore } from "@/lib/concierge/store";
+import { recordPromises } from "@/lib/concierge/promises";
 
 export const MAX_TEXT = 640;
 const tid = () => `t_${randomBytes(9).toString("base64url")}`;
@@ -107,6 +108,8 @@ export async function sendText(actor: User, contactId: string, rawBody: string, 
   const res = await sendSms(c.phone!, body, statusCallback, service);
   await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose, direction: "out", body, status: res.ok ? res.status : "failed", providerId: res.ok ? res.sid : null, note: d.basis, at: now.toISOString(), actor: actor.email, phone: c.phone, sender: service, origin: opts.origin ?? "human" });
   await audit.audit({ at: now.toISOString(), actor: actor.email, action: "gate.send.text", detail: { contactId, purpose, basis: d.basis, ok: res.ok } });
+  // D31: the loan officer's own promises ("I'll send numbers Tuesday") become reminders.
+  if (res.ok) await recordPromises(actor, c, text, `text:${res.sid}`, now).catch(() => 0);
   return res.ok ? { ok: true } : { ok: false, error: res.error };
 }
 

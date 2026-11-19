@@ -123,6 +123,7 @@ const TaskIn = z.object({ action: z.enum(TASK_ACTIONS), why: z.string().max(400)
 export const CARD_BRIEF: Record<CardKind, string> = {
   new_lead: "A new lead who hasn't been contacted yet.",
   journey: "Their loan in process has a disclosure or closing deadline to watch.",
+  promise: "The MLO told them they'd do something by today.",
   reply: "They texted and are waiting for a reply.",
   anniversary: "Their home anniversary is coming up.",
   rate_gap: "Their loan may be worth a refinance review. The MLO has to price it first; say nothing about rates.",

@@ -93,7 +93,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                   <tbody>
                     {tasks.map((t) => (
                       <tr key={t.id}>
-                        <th scope="row">{t.lane === "personal" ? <span className="mlo-pill">Reply yourself</span> : null} <Link href={`/mlo/contacts/${t.contactId}#conversation`}>{t.title}</Link><br /><span className="mlo-note">{t.why}</span></th>
+                        <th scope="row">{t.lane === "personal" ? <span className="mlo-pill">Reply yourself</span> : t.lane === "promise" ? <span className="mlo-pill">Your promise</span> : null} <Link href={`/mlo/contacts/${t.contactId}#conversation`}>{t.title}</Link><br /><span className="mlo-note">{t.why}</span></th>
                         <td className="mlo-note">{t.due ? `due ${t.due}` : ""}</td>
                         <td><form action={taskDoneAction}><input type="hidden" name="id" value={t.id} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Done</button></form></td>
                       </tr>

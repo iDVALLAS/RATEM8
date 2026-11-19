@@ -12,6 +12,7 @@ import { rankToday, type RateRef, type TodayCard } from "./rank";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { alertsFor, learnPace } from "@/lib/pipeline/guardian";
 import { view as journeyView } from "@/lib/journey/engine";
+import { conciergeStore } from "@/lib/concierge/store";
 
 /** Today's lowest priced example for the standard rate-and-term refinance, if fresh. Loan officer's eyes only. */
 export async function refinanceReference(): Promise<RateRef> {
@@ -46,6 +47,9 @@ export async function todayFor(user: User, now = new Date(), opts: { ownOnly?: b
     const v = await journeyView(l, now);
     for (const c of v.clocks.filter((x) => x.level !== "ok" && x.key !== "fee_hold")) journeyCards.push({ kind: "journey", contactId: l.contactId ?? "", name: l.borrowerName, title: `${l.borrowerName}: ${c.key === "le_due" ? "Loan Estimate deadline" : c.key === "cd_wait" ? "Closing Disclosure timing" : "employment re-verification"}`, reason: c.text, score: c.level === "stop" ? 97 : 82, next: "pipeline", loanId: l.id });
   }
-  const cards = [...journeyCards, ...loanCards, ...rankToday(facts, now, ref, 24)].sort((a, b) => b.score - a.score).slice(0, 15);
+  // D31: the loan officer's own promises, due today or overdue.
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(now);
+  const promiseCards: TodayCard[] = (await conciergeStore().tasks(user.id)).filter((t) => t.lane === "promise" && t.due && t.due <= today).map((t) => ({ kind: "promise", contactId: t.contactId, name: t.title, title: t.due! < today ? `${t.title} (was due ${t.due})` : t.title, reason: t.why, score: t.due! < today ? 96 : 92, next: "open" }));
+  const cards = [...promiseCards, ...journeyCards, ...loanCards, ...rankToday(facts, now, ref, 24)].sort((a, b) => b.score - a.score).slice(0, 15);
   return { cards, people: contacts.length + loans.length, ref };
 }

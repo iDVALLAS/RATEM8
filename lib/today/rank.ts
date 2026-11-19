@@ -8,7 +8,7 @@
 import type { ConsentSummary } from "@/lib/contacts/service";
 import type { Contact } from "@/lib/contacts/store";
 
-export type CardKind = "journey" | "new_lead" | "reply" | "anniversary" | "rate_gap" | "check_in" | "ask_permission" | "agent" | "loan_late" | "lock" | "closing";
+export type CardKind = "promise" | "journey" | "new_lead" | "reply" | "anniversary" | "rate_gap" | "check_in" | "ask_permission" | "agent" | "loan_late" | "lock" | "closing";
 
 export type TodayCard = {
   kind: CardKind;
