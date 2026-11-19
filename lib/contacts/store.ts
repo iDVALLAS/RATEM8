@@ -44,6 +44,8 @@ export type Contact = Omit<ImportRecord, "attestedOptIns"> & {
   rnd?: { result: "no" | "yes" | "no_data"; since: string; checkedAt: string; source: string } | null;
   /** D4: line type from Twilio Lookup. */
   line?: { type: string; carrier: string | null; checkedAt: string } | null;
+  /** D26: the version of their own-page link (a new link raises it; old links stop working). */
+  linkVersion?: number;
   /** D10: the client's say-so for their agent to hear how the loan is going (revocable). */
   partnerUpdates?: { allowed: boolean; agentContactId: string | null; proof: string; at: string; by: string } | null;
   ownerUserId: string;

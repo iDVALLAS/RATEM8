@@ -25,7 +25,8 @@ import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { checkLineAction, consentAction, deleteContactAction, dncAction, rndAction, sendTextAction } from "../actions";
+import { checkLineAction, consentAction, deleteContactAction, dncAction, draftClientLinkAction, rndAction, rotateClientLinkAction, sendTextAction } from "../actions";
+import { clientLink } from "@/lib/clientpage/link";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
 
@@ -58,6 +59,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const texting = !!twilioConfig();
   const memory = await conciergeStore().memory(c.ownerUserId, c.id, new Date().toISOString(), { includePending: true });
   const tenant = listTenants()[0];
+  const clientUrl = clientLink(c.id, c.linkVersion ?? 0);
   // D9: possible needs and the latest call script.
   const [known, scripts, picked] = await Promise.all([gather(v.user, c, new Date()), scriptStore().forContact(v.user.id, c.id, 1), scriptId ? scriptStore().get(scriptId) : Promise.resolve(null)]);
   const shownScript = picked && picked.ownerUserId === v.user.id && picked.contactId === c.id ? picked : scripts[0] ?? null;
@@ -170,6 +172,22 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
           <section className="mlo-section" id="debrief">
             <h2>After a call</h2>
             <Debrief contactId={c.id} micOn={listenOn()} />
+          </section>
+        ) : null}
+
+        {c.kind === "contact" && v.user.id === c.ownerUserId ? (
+          <section className="mlo-section" id="their-page">
+            <h2>Their own page</h2>
+            {clientUrl ? (
+              <>
+                <p className="mlo-note">{c.firstName || "They"} can see who has their information and what permission is on file, stop texts or calls in one tap, give permission for texts themselves, and delete what your Concierge noted. It&apos;s a private link: share it only with them.</p>
+                <code className="mlo-code" style={{ display: "block", overflowWrap: "anywhere", margin: "8px 0" }}>{clientUrl}</code>
+                <div className="mlo-row-form">
+                  <form action={draftClientLinkAction.bind(null, c.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Draft a text with it</button></form>
+                  <form action={rotateClientLinkAction.bind(null, c.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Make a new link</button></form>
+                </div>
+              </>
+            ) : <p className="mlo-note">Client pages turn on with CC_LINK_SECRET (Sensitive) or the database in Vercel.</p>}
           </section>
         ) : null}
 

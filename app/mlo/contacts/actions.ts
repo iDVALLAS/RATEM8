@@ -1,5 +1,7 @@
 "use server";
 
+import { draftClientLink } from "@/lib/clientpage/draft";
+import { rotateLink } from "@/lib/clientpage/service";
 import { debrief } from "@/lib/concierge/debrief";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -120,4 +122,21 @@ export async function rndAction(fd: FormData): Promise<void> {
   const r = String(fd.get("result") ?? "no");
   const ok = await recordRnd(actor, contactId, r === "yes" ? "yes" : r === "no_data" ? "no_data" : "no", String(fd.get("since") ?? ""), String(fd.get("source") ?? ""));
   redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok, lines: [ok ? "Reassigned-number check recorded. It's good for 30 days." : "Pick the date you checked from."] })}#phone-checks`);
+}
+
+/** D26: draft a text with the client's own page link (for approval on the desk). */
+export async function draftClientLinkAction(contactId: string): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const r = await draftClientLink(actor, contactId);
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: r.ok, lines: [r.ok ? "Drafted on your Concierge desk." : r.error] })}#their-page`);
+}
+
+/** D26: a new link; the old one stops working. */
+export async function rotateClientLinkAction(contactId: string): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const c = await contactStore().get(contactId);
+  if (c && c.ownerUserId === actor.id) await rotateLink(c);
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: !!c, lines: [c ? "New link made. The old one no longer works." : "No such contact."] })}#their-page`);
 }

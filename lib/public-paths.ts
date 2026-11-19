@@ -46,6 +46,8 @@ export const STEALTH_PUBLIC_PREFIXES = [
   "/images/",
   // C1: loan officer headshots shown on the public chat.
   "/team/",
+  // D26: each client's own page (a signed link).
+  "/my/",
 ] as const;
 
 const EXACT = new Set<string>([...STEALTH_PUBLIC_PAGES, ...STEALTH_PUBLIC_FILES]);

@@ -2536,3 +2536,46 @@ why it matters and links to where to do it.
     Done and Float recorded; the message review rendered; no console
     errors.
   - `npm run verify` passes (409 tests).
+
+## D26 — Each client's own page (2026-11-19)
+
+From the research spec's "consent passport" and "the client's own view"
+(§1.2, §4.5).
+
+- **The link:** a private, signed link per client:
+  `/my/<token>` (`lib/clientpage/*`, `app/my/[token]`).
+  - The token is HMAC-SHA256 of the contact id and a link version. It uses
+    `CC_LINK_SECRET` (Sensitive), or until that's set, a key derived from
+    the database address; with neither, it's off.
+  - "Make a new link" raises the version, and the old link stops working.
+  - Public through stealth and the production lock; noindex; 20 actions a
+    minute per IP.
+- **What the client sees:**
+  - who has their information: their loan officer with NMLS and the
+    sponsoring company, "kept for your loan officer and isn't sold", and a
+    masked phone
+  - permission by channel and purpose: yes (how, when), no, or "you said
+    stop"
+- **What the client can do:**
+  - **Stop texts and calls** (every phone channel, the platform-wide stop
+    list, and their waiting drafts made stale), or **stop email**: a
+    revocation by any reasonable means.
+  - **Give permission for texts** themselves, for loan updates and/or
+    check-ins, by checking an agreement that names the company and the
+    loan officer, says it isn't a condition of any loan, and covers
+    rates, frequency and how to stop. The exact wording, time and a hash
+    are saved as web-form proof, the evidence the send gate accepts for
+    marketing texts. If they'd replied STOP to a text, they're told to
+    reply START there too.
+  - **See and delete the notes** the Concierge kept from what they said
+    (pending notes aren't shown).
+- **Loan officer side:** the contact page has "Their own page": the link,
+  "Draft a text with it" (on the desk for approval; it passes the guard)
+  and "Make a new link".
+- **Verified:** `lib/clientpage/clientpage.test.ts` (3): signing,
+  tampering and replaced links; no secret means off; opt-in proof; a stop
+  blocks the number for everyone and retires drafts; kept notes shown and
+  deleted, pending ones not; the link text passes the guard; another loan
+  officer can't draft it. `npm run verify` passes.
+- **Counsel:** the opt-in wording, and adding the client page to the
+  privacy notice.
