@@ -2627,3 +2627,34 @@ From the research spec's "consent passport" and "the client's own view"
 - **Running it:** like the other QA scripts, it needs Playwright
   available to Node (`npm i -D playwright` locally). In the cloud sandbox,
   run a CommonJS copy, since ES-module imports don't see the global install.
+
+## D29 — Do-not-call checks for the whole book (2026-11-19)
+
+- Record permission → "Do-not-call checks for your whole book"
+  (`dncNeeded`, `recordDncBulk` in `lib/messaging/service.ts`). It lists
+  every number in your book with no check or one older than 31 days, ready
+  to upload to your DNC vendor or the National Registry (include state
+  lists such as Texas).
+- Results come back pasted as `phone, yes or no` (yes = on a list). Only
+  your own contacts are updated.
+- The setup guide's do-not-call item links here.
+- **Verified:** list, update, others' and bad lines skipped, the on-list
+  flag and source saved (`lib/contacts/bulk-consent.test.ts`).
+
+## D30 — "Where's my loan?" on each client's own page (2026-11-19)
+
+- From the Loan Journey (`lib/clientpage/loan.ts`), for each active loan
+  (or one closed in the last 45 days):
+  - the phases, done / now / next (a refinance skips "Find the home")
+  - what's happening now in plain words
+  - "Waiting on you": their own open steps (application, uploads, earnest
+    money and insurance on a purchase, signing and funds, each with the
+    wire-fraud reminder) and the documents requested in their portal, by
+    name. Their page is private to them.
+  - how to reach their loan officer
+- Never a date as a promise ("your loan officer will confirm dates with
+  you"), an amount or a rate.
+- **Verified:** `lib/clientpage/loan.test.ts` (2): phases and wording,
+  waiting items, no rate or amount anywhere in the data, a refinance
+  without "find the home", a closed loan, and another loan officer's view
+  empty.

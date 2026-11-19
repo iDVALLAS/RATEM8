@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import PageShell from "@/components/PageShell";
 import { consentWording, loadClient } from "@/lib/clientpage/service";
 import { maskPhone } from "@/lib/clientpage/link";
+import { loansForClient } from "@/lib/clientpage/loan";
+import "./my.css";
 import { forgetNoteAction, optInAction, stopAction } from "./actions";
 import "../../mlo/mlo.css";
 
@@ -26,6 +28,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
     );
   }
   const c = v.contact;
+  const loans = await loansForClient(c.id, c.ownerUserId, v.mlo);
   const masked = maskPhone(c.phone);
   const row = (label: string, p: (typeof v.consent)["text"]) => {
     const say = (x: (typeof p)["service"]) => (x.evidence === "revoked" ? "You said stop" : x.granted ? `Yes (${how(x.evidence)}, ${day(x.at)})` : "No");
@@ -37,6 +40,26 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
         <p className="eyebrow">Your page</p>
         <h1 className="tagline text-4xl">{c.firstName ? `Hi, ${c.firstName}` : "Hi"}</h1>
         {m ? <div className={`mlo-flash ${ok === "1" ? "mlo-flash--ok" : "mlo-flash--err"}`} role={ok === "1" ? "status" : "alert"}><p>{m}</p></div> : null}
+
+        {loans.map((l) => (
+          <section key={l.id} className="mlo-section">
+            <h2>Where&apos;s my loan?{l.purpose ? ` (${l.purpose.toLowerCase()})` : ""}</h2>
+            <ol className="my-phases">
+              {l.phases.map((p) => <li key={p.phase} className={`my-phase my-phase--${p.state}`}><span aria-hidden>{p.state === "done" ? "✓" : ""}</span>{p.label}<span className="sr-only">{p.state === "done" ? " (done)" : p.state === "now" ? " (now)" : " (next)"}</span></li>)}
+            </ol>
+            <p style={{ color: "var(--fg)", marginTop: 8 }}>{l.now}</p>
+            {l.waiting.length || l.documents.length ? (
+              <>
+                <h3 className="my-sub">Waiting on you</h3>
+                <ul className="my-list">
+                  {l.waiting.map((w, i) => <li key={i}>{w}</li>)}
+                  {l.documents.length ? <li>Upload {l.documents.length === 1 ? "this item" : `these ${l.documents.length} items`}{l.portal ? <> in <a href={l.portal} target="_blank" rel="noopener noreferrer">your secure portal</a></> : " in your secure portal"}: {l.documents.join("; ")}.</li> : null}
+                </ul>
+              </>
+            ) : null}
+            <p className="mlo-note" style={{ marginTop: 8 }}>Questions? Reply to any text from your loan officer{v.mlo?.phone ? `, or call ${v.mlo.phone}` : ""}. Timing depends on the lender, the appraisal and title, so your loan officer will confirm dates with you.</p>
+          </section>
+        ))}
 
         <section className="mlo-section">
           <h2>Who has your information</h2>

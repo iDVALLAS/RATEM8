@@ -5,9 +5,9 @@ import { decodeFlash } from "@/lib/mlo/flash";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { previewBulk } from "@/lib/contacts/bulk-consent";
-import { rndNeeded } from "@/lib/messaging/service";
+import { dncNeeded, rndNeeded } from "@/lib/messaging/service";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { bulkConsentAction, rndBulkAction } from "./actions";
+import { bulkConsentAction, dncBulkAction, rndBulkAction } from "./actions";
 import "../../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +22,7 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
   const since = Number(sp.since) >= 1990 && Number(sp.since) <= 2100 ? Number(sp.since) : null;
   const p = me ? await previewBulk(me, since) : null;
   const need = me ? await rndNeeded(me) : [];
+  const dncNeed = me ? await dncNeeded(me) : [];
 
   return (
     <PageShell>
@@ -70,6 +71,17 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
               <label className="mlo-check"><input type="checkbox" name="coversAiVoice" /> <span>For M8 calls: it covers calls made with an artificial, prerecorded or AI voice.</span></label>
               <p className="mlo-note">Texts and M8 calls still follow everything else in your contact rules: do-not-call checks, daily limits, quiet hours and your licensed states. A client can still say stop at any time, and it ends texts and calls at once.</p>
               <div><button type="submit" className="mlo-btn">Record permission for {p.eligible.length} {p.eligible.length === 1 ? "client" : "clients"}</button></div>
+            </form>
+
+            <form action={dncBulkAction} className="mlo-section mlo-grid" id="dnc">
+              <h2>Do-not-call checks for your whole book</h2>
+              <p className="mlo-note">Marketing calls and texts need a do-not-call check from the last 31 days. Upload this list to your DNC vendor (or the National Do Not Call Registry for your subscription), then paste the results here: one line each, <code>phone, yes or no</code> (yes = on a list). Include your state lists (for example, Texas) in the scrub.</p>
+              {dncNeed.length ? (
+                <details className="mlo-note"><summary>{dncNeed.length} {dncNeed.length === 1 ? "number needs" : "numbers need"} a check: copy this list to upload</summary><pre style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{dncNeed.map((n) => n.phone).join("\n")}</pre></details>
+              ) : <p className="mlo-note">Every number in your book has a current check.</p>}
+              <label className="mlo-field"><span>Results</span><textarea name="rows" rows={4} placeholder={"(206) 555-1234, no\n(425) 555-2222, yes"} /></label>
+              <label className="mlo-field"><span>Checked with</span><input name="source" maxLength={120} placeholder="Your DNC vendor, with state lists" /></label>
+              <div><button type="submit" className="mlo-btn">Record results</button></div>
             </form>
 
             <form action={rndBulkAction} className="mlo-section mlo-grid" id="rnd">

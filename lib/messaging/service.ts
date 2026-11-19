@@ -226,3 +226,41 @@ export async function rndNeeded(actor: User, now = new Date()): Promise<{ phone:
   }
   return out;
 }
+
+/** D29: this user's numbers whose do-not-call check is missing or older than 31 days. */
+export async function dncNeeded(actor: User, now = new Date()): Promise<{ phone: string; name: string }[]> {
+  const { contacts } = await contactStore().list({ ownerUserId: actor.id, limit: 5000 });
+  return contacts
+    .filter((c) => c.phone && !c.locked && !(c.dnc && now.getTime() - Date.parse(c.dnc.checkedAt) <= 31 * 86_400_000))
+    .map((c) => ({ phone: c.phone!, name: `${c.firstName} ${c.lastName}`.trim() }));
+}
+
+/**
+ * D29: do-not-call results for many numbers at once (your vendor or the
+ * registry answers a list). Each line: phone, and whether it's on a list
+ * (yes/no). Only numbers in the user's own book are updated.
+ */
+export async function recordDncBulk(actor: User, text: string, source: string, now = new Date()): Promise<{ updated: number; skipped: number }> {
+  const store = contactStore();
+  let updated = 0;
+  let skipped = 0;
+  for (const line of text.split(/\r?\n/).slice(0, 5000)) {
+    if (!line.trim()) continue;
+    const [rawPhone, rawAnswer] = line.split(/[,\t;]/).map((x) => x.trim().toLowerCase());
+    const phone = toE164(rawPhone);
+    const onList = /^(y|yes|true|on list|dnc|listed|1)$/.test(rawAnswer ?? "") ? true : /^(n|no|false|clear|not listed|ok|0)$/.test(rawAnswer ?? "") ? false : null;
+    if (!phone || onList === null) {
+      skipped++;
+      continue;
+    }
+    const mine = (await store.findByPhone(phone)).filter((c) => canSee(actor, c) && c.ownerUserId === actor.id);
+    if (!mine.length) {
+      skipped++;
+      continue;
+    }
+    for (const c of mine) await store.put({ ...c, dnc: { onList, checkedAt: now.toISOString(), source: source.trim().slice(0, 120) || "bulk upload" }, updatedAt: now.toISOString() });
+    updated += mine.length;
+  }
+  await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "dnc.bulk", detail: { updated, skipped } });
+  return { updated, skipped };
+}

@@ -4,7 +4,7 @@ import { MemoryContactStore, setContactStoreForTests } from "./store";
 import { importBatch, recordConsent, summarize } from "./service";
 import { MemoryAccountStore, setAccountStoreForTests, type User } from "@/lib/accounts/store";
 import { decide } from "@/lib/send-gate/gate";
-import { recordRndBulk, rndNeeded } from "@/lib/messaging/service";
+import { dncNeeded, recordDncBulk, recordRndBulk, rndNeeded } from "@/lib/messaging/service";
 
 const NOW = new Date("2026-11-19T18:00:00Z");
 const me: User = { id: "lo1", email: "lo1@x.com", name: "Pat", role: "lo", mloId: "mlo-001", status: "active", createdAt: "", createdBy: "" };
@@ -61,5 +61,15 @@ describe("Recording permission for past clients (D12.2)", () => {
     const r = await recordRndBulk(me, "(206) 555-1234, 2023-05-01, no\n(999) 555-0000, 2023-05-01, no\nnot a line", "FCC RND", NOW);
     expect(r).toEqual({ updated: 1, skipped: 2 });
     expect(await rndNeeded(me, NOW)).toEqual([]);
+  });
+
+  it("D29: lists numbers needing a do-not-call check and takes the results in bulk", async () => {
+    await importBatch(me, "contacts", [rec(), rec({ firstName: "Bo", phone: "+12065552222" })], "a.csv", "personal", NOW);
+    expect((await dncNeeded(me, NOW)).map((x) => x.phone).sort()).toEqual(["+12065551234", "+12065552222"]);
+    const r = await recordDncBulk(me, "(206) 555-1234, no\n206-555-2222, yes\n(999) 555-0000, no\n(206) 555-1234, maybe", "Vendor", NOW);
+    expect(r).toEqual({ updated: 2, skipped: 2 });
+    expect(await dncNeeded(me, NOW)).toEqual([]);
+    const bo = (await store.list({ q: "Bo" })).contacts[0];
+    expect(bo.dnc).toMatchObject({ onList: true, source: "Vendor" });
   });
 });
