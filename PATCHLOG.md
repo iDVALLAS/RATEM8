@@ -2412,3 +2412,30 @@ someone else, and their old permission doesn't cover the new owner.
   reassigned.us (pay per query), or use a vendor that resells it. After
   recording permission for past clients in bulk, run their list through it
   before texting.
+
+## D22 — Company lines for client data (2026-11-19)
+
+From ledger item 1 and spec §8.3: client data never crosses sponsoring
+companies (GLBA and Reg P; Safeguards 314.4(c)(1)).
+
+- **Each loan officer's company** is the sponsor on their licenses,
+  identified by NMLS (`lib/accounts/company.ts`).
+- **The owner** sees every book only while every loan officer on the
+  platform is under one sponsor, as today. When a second sponsor appears in
+  `config/licensing.ts`, `bookOf(owner)` becomes their own book on its own,
+  so every list, page, search and Concierge context follows. Nothing is
+  left to remember to switch.
+- **Assistants** can only be assigned to a loan officer in their own
+  company. A staff assistant without a loan officer record takes the
+  company of whoever invited them.
+- **Team page "Books"** (owner only): contacts, active loans and drafts
+  waiting for each loan officer. Counts only, never client details.
+- **Already company-safe:** inbound texts route by sending number (D6),
+  memory and drafts filter by owner (D8.1), and Concierge context is the
+  user's own book.
+- **Verified:** `lib/accounts/company.test.ts` (2): companies from
+  config; one company today; the owner sees another loan officer's
+  contact with one company and not with two. `npm run verify` passes.
+- **Before a second sponsor joins:** give each sponsor its own texting
+  sender (D23) and confirm with counsel how the owner's oversight role is
+  described to clients (privacy notice).

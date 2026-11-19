@@ -7,6 +7,10 @@ import { listTenants } from "@/lib/pricing/tenants";
 import { canManage, ROLE_LABELS } from "@/lib/accounts/auth";
 import { accountStore, ROLES } from "@/lib/accounts/store";
 import { requireViewer } from "@/lib/mlo/page-auth";
+import { singleCompany } from "@/lib/accounts/company";
+import { contactStore } from "@/lib/contacts/store";
+import { pipelineStore } from "@/lib/pipeline/store";
+import { conciergeStore } from "@/lib/concierge/store";
 import { FlashBox, MloNav } from "../MloChrome";
 import { inviteAction, updateAction } from "./actions";
 import "../mlo.css";
@@ -23,6 +27,9 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
   const store = accountStore();
   const [users, audit] = me ? await Promise.all([store.listUsers(), store.recentAudit(20)]) : [[], []];
   const addable = me ? ROLES.filter((r) => canManage(me, r)) : [];
+  // D22: per-book counts for the owner, never client details.
+  const bookUsers = me?.role === "owner" ? users.filter((u) => u.role !== "assistant" && u.status === "active") : [];
+  const bookCounts = await Promise.all(bookUsers.map(async (u) => ({ id: u.id, name: u.name, contacts: (await contactStore().list({ ownerUserId: u.id, limit: 1 })).total, loans: (await pipelineStore().list(u.id)).filter((l) => !l.closed && !l.dead).length, drafts: (await conciergeStore().proposals(u.id, "pending")).length })));
   const books = users.filter((u) => u.role !== "assistant" && u.status === "active");
   const nameOf = (id: string | null | undefined) => users.find((u) => u.id === id)?.name ?? "nobody yet";
 
@@ -115,6 +122,20 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
                 </tbody>
               </table>
             </section>
+            {me.role === "owner" ? (
+              <section className="mlo-section">
+                <h2>Books</h2>
+                <p className="mlo-note">{singleCompany() ? "Every loan officer is under one sponsor, so you can open any book." : "Loan officers here are under more than one sponsoring company, so client details stay inside each book: you see counts only."}</p>
+                <table className="mlo-table">
+                  <thead><tr><th>Loan officer</th><th>Contacts</th><th>Active loans</th><th>Drafts waiting</th></tr></thead>
+                  <tbody>
+                    {bookCounts.map((b) => (
+                      <tr key={b.id}><th scope="row">{b.name}</th><td>{b.contacts}</td><td>{b.loans}</td><td>{b.drafts}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            ) : null}
             {me.role === "owner" ? (
               <section className="mlo-section">
                 <h2>Recent activity</h2>

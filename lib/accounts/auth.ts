@@ -19,6 +19,7 @@ import { ALL_MLOS } from "@/lib/config";
 import { emailConfig } from "@/lib/m8/server";
 import { incr } from "@/lib/m8/kv";
 import { accountStore, ROLES, type Role, type User } from "./store";
+import { companyOfMlo } from "./company";
 
 export const SESSION_COOKIE = "lm8_cc_session";
 export const LINK_TTL_MS = 15 * 60 * 1000;
@@ -129,11 +130,13 @@ export async function signOut(): Promise<void> {
 
 export type InviteInput = { email: string; name: string; role: string; mloId: string | null; assistsUserId?: string | null };
 
-/** An assistant's loan officer must be an active account that has its own book. */
-async function validAssist(id: string | null | undefined): Promise<string | null> {
+/** An assistant's loan officer must be an active account that has its own book, in the same company (D22). */
+async function validAssist(id: string | null | undefined, assistantMloId: string | null = null): Promise<string | null> {
   if (!id) return null;
   const u = await accountStore().userById(id);
-  return u && u.status === "active" && u.role !== "assistant" ? u.id : null;
+  if (!u || u.status !== "active" || u.role === "assistant") return null;
+  if (assistantMloId && companyOfMlo(assistantMloId) !== companyOfMlo(u.mloId)) return null;
+  return u.id;
 }
 
 /** Owner and team leads add people; the new user gets a sign-in link. */
@@ -148,7 +151,7 @@ export async function inviteUser(actor: User, input: InviteInput, origin: string
   const mloId = input.mloId && ALL_MLOS.some((m) => m.id === input.mloId) ? input.mloId : null;
   const store = accountStore();
   if (await store.userByEmail(email)) return { ok: false, error: "That email already has an account." };
-  const assistsUserId = role === "assistant" ? await validAssist(input.assistsUserId) : null;
+  const assistsUserId = role === "assistant" ? await validAssist(input.assistsUserId, mloId ?? actor.mloId) : null;
   if (role === "assistant" && !assistsUserId) return { ok: false, error: "Pick the loan officer this assistant works for." };
   const user: User = { id: `u_${token().slice(0, 16)}`, email, name, role, mloId, assistsUserId, status: "active", createdAt: iso(now), createdBy: actor.email };
   await store.putUser(user);
@@ -172,7 +175,7 @@ export async function updateUser(actor: User, userId: string, change: { role?: s
     const owners = (await store.listUsers()).filter((u) => u.role === "owner" && u.status === "active");
     if (owners.length <= 1) return { ok: false, error: "There must always be an active owner." };
   }
-  const assistsUserId = role === "assistant" ? await validAssist(change.assistsUserId !== undefined ? change.assistsUserId : target.assistsUserId) : null;
+  const assistsUserId = role === "assistant" ? await validAssist(change.assistsUserId !== undefined ? change.assistsUserId : target.assistsUserId, target.mloId ?? actor.mloId) : null;
   if (role === "assistant" && !assistsUserId) return { ok: false, error: "Pick the loan officer this assistant works for." };
   await store.putUser({ ...target, role, status, assistsUserId });
   if (status === "disabled") await store.deleteSessionsFor(target.id);

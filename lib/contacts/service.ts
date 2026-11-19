@@ -14,6 +14,7 @@
  */
 import { randomBytes } from "node:crypto";
 import type { User } from "@/lib/accounts/store";
+import { singleCompany } from "@/lib/accounts/company";
 import { accountStore } from "@/lib/accounts/store";
 import type { ImportKind, ImportRecord } from "./mapping";
 import { CHANNELS, contactStore, PURPOSES, type Channel, type ConsentEntry, type Contact, type Evidence, type Provenance, type Purpose } from "./store";
@@ -25,13 +26,13 @@ const id = () => `c_${randomBytes(9).toString("base64url")}`;
 /**
  * D8.1 (research 2026-11-18, the most serious data leak): whose book a user
  * works. A loan officer and a team lead work their own; an assistant works
- * the book of the loan officer they're assigned to (none: no clients). Only
- * the owner (the platform operator, one sponsor today) sees every book.
- * Before a second sponsor joins, the owner moves to aggregates only.
+ * the book of the loan officer they're assigned to (none: no clients). The
+ * owner sees every book only while every loan officer is under one sponsor
+ * (D22, lib/accounts/company.ts); with a second sponsor, their own book.
  */
 const NO_BOOK = "__no_book__";
 export function bookOf(user: User): string | undefined {
-  if (user.role === "owner") return undefined;
+  if (user.role === "owner") return singleCompany() ? undefined : user.id;
   if (user.role === "assistant") return user.assistsUserId || NO_BOOK;
   return user.id;
 }
