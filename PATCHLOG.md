@@ -3349,3 +3349,79 @@ descriptions, brighter colors, and the light/dark toggle kept.
   - Phone pages measure 390px wide (no sideways scroll).
   - Screenshots of the home screen in Night, Paper and Dim, an open
     menu, the phone home and the More sheet.
+
+## D44 — Pilot kit: Report a problem, Your first day, Getting started and the Pilot page (2026-11-19)
+
+The owner wants to go live with a few real loan officers. This patch is
+what they and the owner need during that test.
+
+- **Report a problem**, from every Command Center page (signed-in people
+  only):
+  - **Where it is:** a floating button at the bottom right on desktop,
+    under your initials, at the top of More on phones, and on Getting
+    started. It opens a centred dialog (`app/mlo/ReportProblem.tsx`).
+  - **What you fill in:** the kind (broken, confusing, an idea) and what
+    happened. The page path (never its query), screen width and theme are
+    attached; nothing else from the page.
+  - **Masking:** phone numbers, other people's emails, SSNs, dates of
+    birth and account numbers are masked before anything is kept or
+    emailed (`maskReport`, which adds phones and emails to the chat's
+    `redactChatInput`).
+  - **Where it goes:** kept in `cc_reports` (`lib/pilot/store.ts`) and
+    emailed to `MLO_OWNER_EMAIL` (else the alert address), with Reply-To
+    set to the loan officer so the owner can answer from their inbox.
+  - **What the sender sees:** a reference like `R-68D366`.
+  - **Limit:** 8 reports per person per hour.
+- **The Pilot page** (`/mlo/pilot`, owners and team leads):
+  - **People:** everyone you manage, with their last sign-in (from the
+    audit log), first-day progress and open reports.
+  - **Reports:** open ones first. You set a status (Open, Looking into
+    it, Fixed, Not changing) and a note, and the reporter is emailed.
+  - **Who sees which reports:** a team lead sees only reports from their
+    own company, and loan officers see only their own.
+- **Your first day** (`app/mlo/FirstDay.tsx`): a card on Home with six
+  steps, each checked against the real state:
+  1. a phone code
+  2. your license, booking and application links
+  3. contacts imported
+  4. permission recorded
+  5. Concierge on, with how you sound
+  6. a first report
+  It can be hidden from Home, and shown again from Getting started.
+- **Getting started** (`/mlo/welcome`):
+  - the first-day steps
+  - **your details** as they go on every message (name, NMLS, each state
+    license and its sponsor, booking and application links)
+  - **what works right now**, read from the live settings: saving,
+    email, AI, texting, dictation, recruiting credit, production share.
+    With no database it says plainly not to import a real book yet.
+  - **who sees your work**, stated from the real rules (the owner sees
+    every book only while there's one sponsoring company; expenses are
+    yours alone)
+  - the report form, and what you've reported with each status and note
+- **`CC_PILOT`** (`"true"`, optional, not Sensitive):
+  - a Pilot label in everyone's top bar
+  - "Welcome to the pilot" on Getting started
+  - a pilot line in invite emails
+- **Launch checklist** (`lib/setup/launch.ts`, `docs/COMMAND_CENTER_LAUNCH.md`):
+  - **`MLO_NOTIFICATION_EMAIL` added to the Email step.** `emailConfig()`
+    needs it, so without it no email goes out, sign-in links included.
+    It was missing from the list before.
+  - **`CC_PILOT` added.**
+  - **The Counsel step** records the owner's report of counsel approval
+    of everything through D44 (2026-11-19). The state, recruiting and
+    production switches still stay off until the owner sets them in
+    Vercel.
+- **Nav:** "Getting started" (Settings) and "Pilot" (Platform).
+- **Verified:**
+  - 13 new tests (`lib/pilot/service.test.ts`).
+  - `npm run verify`.
+  - A click-through at 1280px and 390px: the Home card, the dialog from
+    the floating button and from More, sending (the phone number in the
+    message came back masked), Getting started, and Pilot triage ("Saved."
+    flash). Hiding the card worked; the phone pass showed it gone.
+  - No sideways scroll, and no console errors besides the Vercel
+    Analytics script, which only exists when deployed.
+- **Next up (D45):** loan officers add themselves with their NMLS ID.
+  Command Center cross-checks it and fills in the sponsoring company, and
+  their record moves from the licensing file into the database.

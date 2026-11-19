@@ -14,7 +14,9 @@ import { pipelineStore } from "@/lib/pipeline/store";
 import { academyStore, SESSION_COUNT } from "@/lib/academy/service";
 import { expenseStore } from "@/lib/expenses/store";
 import { allowanceFor } from "@/lib/ai/meter";
+import { firstDay, pilotOn } from "@/lib/pilot/service";
 import SetupGuide from "./SetupGuide";
+import FirstDay from "./FirstDay";
 import { FlashBox } from "./MloChrome";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { GROUPS, hrefOf, visibleDests, type GroupKey, type IconName } from "./nav";
@@ -35,6 +37,8 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
   const me = v.user;
   const tenant = listTenants()[0];
   const [today, setup] = me ? await Promise.all([todayFor(me), checklist(me)]) : [null, null];
+  const day1 = me && setup ? await firstDay(me, setup).catch(() => null) : null;
+  const showFirst = !!day1 && !day1.hidden && day1.done < day1.steps.length;
   const phones = today ? await Promise.all(today.cards.map((c) => (c.contactId ? contactStore().get(c.contactId).then((x) => x?.phone ?? null) : Promise.resolve(null)))) : [];
   const [drafts, loans, contacts, progress, expDrafts, ai] = me
     ? await Promise.all([
@@ -103,6 +107,8 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
             </div>
           </div>
         )}
+
+        {showFirst && day1 ? <FirstDay steps={day1.steps} done={day1.done} pilot={pilotOn()} /> : null}
 
         {today ? (
           <section>

@@ -88,7 +88,11 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     Concierge, call notes, the Loan Journey (`/mlo/pipeline/[id]`, AUS document
     checklist, TRID clocks), per-company texting senders, reassigned numbers,
     company lines, setup guide, message review, each client's own page
-    (`/my/<token>`), weekly report. Value-carrying submit buttons use bound
+    (`/my/<token>`), weekly report. D44 pilot kit (`lib/pilot/*`): Report a
+    problem on every page (masked, `cc_reports`, emailed to `MLO_OWNER_EMAIL`),
+    `/mlo/pilot` triage, Your first day on Home, `/mlo/welcome`; `CC_PILOT`
+    shows the Pilot label. Owner reported counsel approval through D44 on
+    2026-11-19. Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
   - Second Look still needs `SECOND_LOOK_LIVE`.

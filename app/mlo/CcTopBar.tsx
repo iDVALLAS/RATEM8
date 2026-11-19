@@ -6,8 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { activeKey, GROUPS, hrefOf, TABS, visibleDests, type Dest, type GroupKey } from "./nav";
 import { Icon } from "./icons";
+import { ReportDialog, openReport } from "./ReportProblem";
 
-type Props = { admin: boolean; signedIn: boolean; name: string; email: string; role: string; tenantId: string; badges: Record<string, number> };
+type Props = { admin: boolean; signedIn: boolean; pilot?: boolean; name: string; email: string; role: string; tenantId: string; badges: Record<string, number> };
 
 const initials = (name: string, email: string) => (name || email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((s) => s[0]!.toUpperCase()).join("") || "M8";
 
@@ -67,7 +68,7 @@ const MENU_ICON: Record<GroupKey, Dest["icon"]> = { day: "spark", people: "users
  * middle, and "More" for everything else. The phone sheet is rendered
  * outside the header (v20: a header's backdrop filter would trap it).
  */
-export default function CcTopBar({ admin, signedIn, name, email, role, tenantId, badges }: Props) {
+export default function CcTopBar({ admin, signedIn, pilot = false, name, email, role, tenantId, badges }: Props) {
   const path = usePathname() ?? "/mlo";
   const current = activeKey(path);
   const dests = visibleDests({ admin, signedIn });
@@ -98,6 +99,7 @@ export default function CcTopBar({ admin, signedIn, name, email, role, tenantId,
             <span className="cc-brand__orb" aria-hidden="true" />
             <span className="cc-brand__text"><span className="cc-brand__small">Loan<span className="cc-m8">M8</span></span><span className="cc-brand__big">Command Center</span></span>
           </Link>
+          {pilot ? <Link href="/mlo/welcome" className="cc-pilot" title="You're in the pilot. Tell the owner about anything odd.">Pilot</Link> : null}
           <nav className="cc-nav" aria-label="Command Center">
             <Link href="/mlo" className={`cc-nav__btn ${current === "home" ? "is-active" : ""}`} aria-current={current === "home" ? "page" : undefined}><Icon name="home" size={18} /><span>Home</span></Link>
             {groups.map(({ g, items }) => <Menu key={g} label={GROUPS[g]} icon={MENU_ICON[g]} items={items} current={current} tenantId={tenantId} badges={badges} />)}
@@ -110,6 +112,7 @@ export default function CcTopBar({ admin, signedIn, name, email, role, tenantId,
                 <div className="cc-menu__panel cc-menu__panel--end" role="menu">
                   <div className="cc-acct"><strong>{name || "Shared admin login"}</strong>{email ? <span>{email}</span> : null}{role ? <span className="mlo-pill">{role}</span> : null}</div>
                   {signedIn ? <Link role="menuitem" className="cc-menu__item" href="/mlo/security" onClick={() => setAcct(false)}><span className="cc-menu__icon"><Icon name="lock" size={18} /></span><span className="cc-menu__label">Sign-in security</span></Link> : <Link role="menuitem" className="cc-menu__item" href="/sign-in"><span className="cc-menu__icon"><Icon name="lock" size={18} /></span><span className="cc-menu__label">Sign in with your email</span></Link>}
+                  {signedIn ? <button type="button" role="menuitem" className="cc-menu__item cc-menu__item--btn" onClick={() => { setAcct(false); openReport(); }}><span className="cc-menu__icon"><Icon name="flag" size={18} /></span><span className="cc-menu__label">Report a problem</span></button> : null}
                   <a role="menuitem" className="cc-menu__item" href="/" target="_blank" rel="noopener noreferrer"><span className="cc-menu__icon"><Icon name="globe" size={18} /></span><span className="cc-menu__label">Open loanm8.com</span></a>
                   {signedIn ? (
                     <form action="/api/cc/signout" method="post">
@@ -141,10 +144,17 @@ export default function CcTopBar({ admin, signedIn, name, email, role, tenantId,
         </button>
       </nav>
 
+      {signedIn ? (
+        <>
+          <button type="button" className="cc-fab" onClick={openReport}><Icon name="flag" size={16} /><span>Report a problem</span></button>
+          <ReportDialog />
+        </>
+      ) : null}
+
       {more ? (
         <div className="cc-sheet" role="dialog" aria-modal="true" aria-label="Everything in Command Center" onClick={(e) => e.target === e.currentTarget && setMore(false)}>
           <div className="cc-sheet__panel">
-            <div className="cc-sheet__head"><strong>Everything</strong><button type="button" className="cc-sheet__close" onClick={() => setMore(false)} aria-label="Close">×</button></div>
+            <div className="cc-sheet__head"><strong>Everything</strong>{signedIn ? <button type="button" className="cc-sheet__report" onClick={() => { setMore(false); openReport(); }}><Icon name="flag" size={16} />Report a problem</button> : null}<button type="button" className="cc-sheet__close" onClick={() => setMore(false)} aria-label="Close">×</button></div>
             {groups.map(({ g, items }) => (
               <section key={g} className="cc-sheet__group">
                 <h2>{GROUPS[g]}</h2>

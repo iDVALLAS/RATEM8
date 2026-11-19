@@ -169,7 +169,7 @@ export async function inviteUser(actor: User, input: InviteInput, origin: string
   await store.audit({ at: iso(now), actor: actor.email, action: "user.invite", detail: { userId: user.id, role, mloId } });
   const t = token();
   await store.putLoginToken(sha256(t), user.id, iso(now + LINK_TTL_MS));
-  const emailed = await sendLink(email, `${origin}/api/cc/verify?t=${encodeURIComponent(t)}`, "You've been added to LoanM8 Command Center", `${actor.name} added you to LoanM8 Command Center as ${ROLE_LABELS[role]}. Sign in here:`);
+  const emailed = await sendLink(email, `${origin}/api/cc/verify?t=${encodeURIComponent(t)}`, "You've been added to LoanM8 Command Center", `${actor.name} added you to LoanM8 Command Center as ${ROLE_LABELS[role]}.${process.env.CC_PILOT?.trim() === "true" ? " You're one of the loan officers in the pilot: after you sign in, Home shows your first-day steps, and Report a problem is on every page." : ""} Sign in here:`);
   return { ok: true, emailed };
 }
 

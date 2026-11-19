@@ -31,6 +31,7 @@ Sign-in links, the morning and weekly emails, alerts, and your emails to clients
 | --- | --- | --- |
 | `RESEND_API_KEY` | Yes | From Resend → API keys. |
 | `LOANM8_FROM_EMAIL` | No | The verified address mail comes from. |
+| `MLO_NOTIFICATION_EMAIL` | No | Where chat questions and alerts go. Email (sign-in links included) only sends once this is set too. |
 
 ### AI for Command Center (Anthropic)
 
@@ -136,6 +137,14 @@ Each member's plan (Standard or Unlimited, set on Membership) picks the model fo
 | --- | --- | --- |
 | `CC_CONCIERGE_MODEL` (optional) | No | Overrides every feature's model (for testing only). |
 
+### Pilot label and reports (optional)
+
+While you test with a few loan officers: a Pilot label in everyone's top bar, a pilot line in invite emails, and the pilot welcome. Report a problem works either way and emails your sign-in address; triage on Pilot.
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `CC_PILOT` (optional) | No | Set to "true" during the pilot. |
+
 ## 3. Texting
 
 ### A Messaging Service for your sponsor
@@ -178,9 +187,9 @@ Concierge: on, how you sound, the morning and weekly emails. Automations: the lo
 
 ## 5. Counsel
 
-### Questions for counsel
+### Counsel review
 
-The client-page opt-in wording; whether AI-drafted texts need a disclosure; the Connecticut existing-customer reading; the RESPA wording on asking for introductions; how long call notes and Concierge notes are kept; adding the client page and the Concierge to the privacy notice.
+The owner reported counsel's approval of everything through D44 on 2026-11-19 (and of the launch series on 2026-10-31). Keep the written sign-off with the questions it answered: The client-page opt-in wording; whether AI-drafted texts need a disclosure; the Connecticut existing-customer reading; the RESPA wording on asking for introductions; how long call notes and Concierge notes are kept; adding the client page and the Concierge to the privacy notice.
 
 ### State switches (only after counsel clears them)
 
