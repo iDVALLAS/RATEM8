@@ -2148,3 +2148,39 @@ required" item 8.
 - **Owner:** Texas and Arizona sales calls and texts are now closed until
   you set those two variables after counsel confirms. Before this patch
   they were open.
+
+## D14 — Lead intake from vendors and web forms (2026-11-19)
+
+From Viato's lead-vendor intake (paste one link into LendingTree, Zillow,
+Bankrate and others), with our consent rules.
+
+- **Endpoint:** `POST /api/leads/inbound` with the loan officer's
+  connection key (the same key as the loan-system sync: `X-CC-Key` or
+  `?key=`). `?source=zillow` names the vendor. It takes one lead or up to
+  50, allows 300 an hour per key, and answers with counts only. It is open
+  through the production lock like `/api/pipeline/`.
+- **Reading** (`lib/leads/intake.ts` `readLead`): loose field matching
+  across common vendor shapes, flat or one level nested.
+  - Name, email, phone, state (or from the ZIP), purpose, the lead's
+    message (redacted and kept as data in their notes), and the consent
+    wording, timestamp and page URL.
+  - A bare "true" or "yes" consent flag isn't consent text.
+- **Saving** (`ingestLead`):
+  - A duplicate phone or email in this loan officer's book is merged and
+    tagged, never doubled.
+  - New leads are `relationship: lead`, `provenance: lead_vendor` and
+    tagged `lead:<vendor>`.
+- **Permission:** the vendor's consent counts only when its wording names
+  the loan officer, the sponsor (legal name or dba) or LoanM8. It is then
+  recorded as web-form permission for texts and calls, with the wording,
+  time and URL as proof. Forms that only name "partners" or other lenders
+  record nothing ("no permission yet"), since that consent isn't
+  permission to contact them from here.
+- **Speed to lead:** a new "New lead" card goes at the top of Today for 48
+  hours until anyone contacts them, saying whether their form gave
+  permission.
+- **Screens:** `/mlo/leads` (linked from Contacts) has setup instructions,
+  a key maker and recent leads with their permission status.
+- **Verified:** `lib/leads/leads.test.ts` (2): vendor shapes; no
+  contact, no lead; consent naming us recorded, partners-only not; merge
+  and tags; the Today card. `npm run verify` passes.

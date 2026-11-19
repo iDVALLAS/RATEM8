@@ -8,7 +8,7 @@
 import type { ConsentSummary } from "@/lib/contacts/service";
 import type { Contact } from "@/lib/contacts/store";
 
-export type CardKind = "reply" | "anniversary" | "rate_gap" | "check_in" | "ask_permission" | "agent" | "loan_late" | "lock" | "closing";
+export type CardKind = "new_lead" | "reply" | "anniversary" | "rate_gap" | "check_in" | "ask_permission" | "agent" | "loan_late" | "lock" | "closing";
 
 export type TodayCard = {
   kind: CardKind;
@@ -58,6 +58,12 @@ export function cardsFor(f: TodayFacts, now: Date, ref: RateRef): TodayCard[] {
     out.push({ kind: "reply", contactId: c.id, name: n, title: `${n} is waiting for a reply`, reason: `“${f.last.body.slice(0, 80)}${f.last.body.length > 80 ? "…" : ""}” · ${hours < 1 ? "just now" : `${hours} hours ago`}`, score: 100 + Math.min(hours, 48), next: "reply" });
   }
   if (stopped) return out;
+
+  // D14: a new lead nobody has contacted yet. Speed matters most in the first hours.
+  if (c.source.startsWith("lead:") && !f.last && now.getTime() - Date.parse(c.createdAt) < 2 * DAY) {
+    const hrs = Math.max(0, Math.round((now.getTime() - Date.parse(c.createdAt)) / 3_600_000));
+    out.push({ kind: "new_lead", contactId: c.id, name: n, title: `New lead: ${n}`, reason: `From ${c.source.slice(6)}, ${hrs < 1 ? "just now" : `${hrs} hours ago`}. ${anyPermission(f.consent) ? "Their form gave you permission." : "Their form didn't name you, so there's no permission on file yet: check their page before you reach out."}`, score: 99 - Math.min(hrs, 40) / 4, next: "call" });
+  }
 
   // D6: agents aren't ranked. RETR's terms (2026-09-17) bar using its data
   // in AI, rules engines or automated processes, so agent production numbers

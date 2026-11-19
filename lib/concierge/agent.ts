@@ -110,6 +110,7 @@ const TaskIn = z.object({ action: z.enum(TASK_ACTIONS), why: z.string().max(400)
 
 /** D8.1: what each Today card may tell the model. Written here; nothing from the card's own text (which can carry rates and client words). */
 export const CARD_BRIEF: Record<CardKind, string> = {
+  new_lead: "A new lead who hasn't been contacted yet.",
   reply: "They texted and are waiting for a reply.",
   anniversary: "Their home anniversary is coming up.",
   rate_gap: "Their loan may be worth a refinance review. The MLO has to price it first; say nothing about rates.",

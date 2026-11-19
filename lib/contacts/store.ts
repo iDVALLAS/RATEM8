@@ -26,7 +26,7 @@ export type Evidence = (typeof EVIDENCE)[number];
  * an attestation (wording by counsel); the send gate never contacts a
  * locked person. Poaching suits turn on lists taken from employers.
  */
-export const PROVENANCE = ["personal", "own_closings", "prior_employer", "agent_partner", "unknown"] as const;
+export const PROVENANCE = ["personal", "own_closings", "prior_employer", "agent_partner", "lead_vendor", "unknown"] as const;
 export type Provenance = (typeof PROVENANCE)[number];
 
 export type Contact = Omit<ImportRecord, "attestedOptIns"> & {

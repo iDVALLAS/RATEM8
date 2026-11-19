@@ -35,7 +35,7 @@ const CHANNEL_LABELS = { call: "Calls from you", ai_call: "Calls from M8 (AI voi
 const PURPOSE_LABELS = { service: "About their loan or account", marketing: "Offers and check-ins" } as const;
 const EVIDENCE_LABELS = { written: "Signed or written permission", recorded_call: "Said yes on a recorded call", web_form: "Web form or M8 chat checkbox", text_reply: "Texted back yes", attested: "Your word (from an import)", revoked: "Said no / stop" } as const;
 
-const PROVENANCE_LABELS = { personal: "Your own relationship", own_closings: "Your own closed loan", prior_employer: "A previous employer's system", agent_partner: "Agent you work with", unknown: "Not sure" } as const;
+const PROVENANCE_LABELS = { personal: "Your own relationship", own_closings: "Your own closed loan", prior_employer: "A previous employer's system", agent_partner: "Agent you work with", lead_vendor: "A lead vendor or web form", unknown: "Not sure" } as const;
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles" }) : "");
 const money = (n: number | null | undefined) => (n === null || n === undefined ? "" : `$${Math.round(n).toLocaleString("en-US")}`);
 

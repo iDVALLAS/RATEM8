@@ -138,7 +138,7 @@ export function decide(i: GateInput): GateDecision {
   } else if (i.channel === "call" && i.manual) {
     if (!marketing) basis = granted ? `call permission (${ev})${when}` : "a call you place yourself about their loan";
     else if (granted && (!r.salesNeedWritten || WRITTEN.includes(ev!))) basis = `call permission (${ev})${when}`;
-    else if (c.ebrClosedOn && monthsBetween(c.ebrClosedOn, i.now) <= 18) basis = "established business relationship (a loan closed with your current company in the last 18 months)";
+    else if (recentEbr) basis = "established business relationship (a loan closed with your current company in the last 18 months)";
     // D13: Connecticut: written permission, or an existing customer of your current company, for any sales call.
     else if (r.salesNeedWritten) reasons.push("Connecticut needs written permission for sales calls, except to an existing customer of your current company. Record their written permission first.");
     // Owner decision 2026-11-18: hand-dialed calls to your own past clients are fine. The do-not-call check below still applies.
@@ -173,7 +173,7 @@ export function decide(i: GateInput): GateDecision {
     const fresh = i.dnc?.checkedAt && i.now.getTime() - Date.parse(i.dnc.checkedAt) <= 31 * 24 * 3600 * 1000;
     if (!fresh) reasons.push("Do-not-call lists haven't been checked for this number in the last 31 days.");
     // On a list: written permission, or (for a call you dial yourself) a loan closed with your current company in the last 18 months (47 CFR 64.1200(f)(5)).
-    else if (i.dnc!.onList && !(granted && WRITTEN.includes(ev!)) && !(i.channel === "call" && i.manual && c.ebrClosedOn && monthsBetween(c.ebrClosedOn, i.now) <= 18))
+    else if (i.dnc!.onList && !(granted && WRITTEN.includes(ev!)) && !(i.channel === "call" && i.manual && recentEbr))
       reasons.push(i.channel === "call" && c.relationship === "past_client" ? "The number is on a do-not-call list. A past client on the list needs written permission, or a loan closed with your current company in the last 18 months." : "The number is on a do-not-call list and there's no written permission.");
   }
 

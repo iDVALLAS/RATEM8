@@ -4,8 +4,8 @@ import { useState } from "react";
 import { createKeyAction } from "./actions";
 
 /** Makes an intake key and shows it once (D6). */
-export default function KeyMaker({ endpoint }: { endpoint: string }) {
-  const [label, setLabel] = useState("ARIVE");
+export default function KeyMaker({ endpoint, what = "loan updates", defaultLabel = "ARIVE" }: { endpoint: string; what?: string; defaultLabel?: string }) {
+  const [label, setLabel] = useState(defaultLabel);
   const [key, setKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   return (
@@ -29,11 +29,11 @@ export default function KeyMaker({ endpoint }: { endpoint: string }) {
       {key ? (
         <div className="mlo-flash mlo-flash--ok" role="status">
           <p><strong>Copy this now; it won&apos;t be shown again.</strong></p>
-          <p className="mlo-note">Send loan updates (POST, JSON) to:</p>
+          <p className="mlo-note">Send {what} (POST, JSON) to:</p>
           <code className="mlo-code">{endpoint}</code>
           <p className="mlo-note">with the header <code>X-CC-Key</code> set to:</p>
           <code className="mlo-code">{key}</code>
-          <p className="mlo-note">If your loan system only takes a web address, use: <code className="mlo-code">{`${endpoint}?key=${key}`}</code></p>
+          <p className="mlo-note">If it only takes a web address, use: <code className="mlo-code">{`${endpoint}?key=${key}`}</code></p>
         </div>
       ) : null}
     </div>
