@@ -81,3 +81,8 @@
 .mlo-split__row .mlo-input { max-width: 110px; }
 .mlo-split > .mlo-btn { grid-column: 1 / -1; justify-self: start; }
 .mlo-list { margin: 8px 0 0; padding-left: 1.2rem; display: grid; gap: 8px; line-height: 1.55; }
+
+/* D41: the AI allowance meter. */
+.nw-meter { height: 10px; border-radius: 999px; background: var(--bg-sunken); border: 1px solid var(--rule); overflow: hidden; margin-top: 10px; }
+.nw-meter span { display: block; height: 100%; background: var(--accent); }
+.nw-meter span.nw-meter--over { background: var(--muted); }

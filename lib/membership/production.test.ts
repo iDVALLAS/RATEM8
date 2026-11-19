@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { shareFor, sponsorStatement, statementCsv } from "./production";
+import { shareFor, sponsorStatement, statementCsv, vestedBy } from "./production";
 import { setMember } from "./service";
 import { MemoryMembershipStore, setMembershipStoreForTests } from "./store";
 import { MemoryAccountStore, setAccountStoreForTests, type User } from "@/lib/accounts/store";
@@ -32,15 +32,18 @@ describe("Production share (D40)", () => {
     setPipelineStoreForTests(null);
   });
 
-  it("pays 10 bps of a direct recruit's closed loan amounts in the month, one level, never on rate or open loans", async () => {
+  it("pays 10 bps of recruits' closed loan amounts in the month, three levels down, never on rate or open loans", async () => {
     await pipe.put(loan(b.id, 500_000, "2026-10-12"));
     await pipe.put(loan(b.id, 300_000, "2026-10-28", { noteRate: 7.5 }));
     await pipe.put(loan(b.id, 400_000, null)); // not closed
     await pipe.put(loan(b.id, 250_000, "2026-09-30")); // another month
     await pipe.put(loan(b.id, 200_000, "2026-10-05", { dead: true }));
-    await pipe.put(loan(c.id, 600_000, "2026-10-15")); // level 2: no rate configured
+    await pipe.put(loan(c.id, 600_000, "2026-10-15")); // C is A's level 2
     const lines = await shareFor(a.id, "2026-10");
-    expect(lines).toEqual([{ recruiterUserId: "a", recruitUserId: "b", level: 1, bps: 10, loans: 2, volume: 800_000, cents: 80_000 }]); // $800
+    expect(lines).toEqual([
+      { recruiterUserId: "a", recruitUserId: "b", level: 1, bps: 10, loans: 2, volume: 800_000, cents: 80_000 }, // $800
+      { recruiterUserId: "a", recruitUserId: "c", level: 2, bps: 10, loans: 1, volume: 600_000, cents: 60_000 },
+    ]);
     // The rate doesn't matter: the same amounts at any rate give the same share.
     expect((await shareFor(b.id, "2026-10"))[0]).toMatchObject({ recruitUserId: "c", cents: 60_000 });
   });
@@ -59,6 +62,23 @@ describe("Production share (D40)", () => {
     const accounts = new MemoryAccountStore();
     for (const u of [owner, { ...a, status: "disabled" as const }, b, c]) await accounts.putUser(u);
     setAccountStoreForTests(accounts);
-    expect(await shareFor(a.id, "2026-11")).toEqual([]);
+    expect(await shareFor(a.id, "2026-11")).toEqual([]); // left before vesting
+    // Vested after three years: it keeps paying after they leave.
+    expect(vestedBy("2026-01-01", "2028-12")).toBe(false);
+    expect(vestedBy("2026-01-01", "2029-01")).toBe(true);
+    await pipe.put(loan(b.id, 100_000, "2029-02-03"));
+    expect((await shareFor(a.id, "2029-02"))[0]).toMatchObject({ recruitUserId: "b", cents: 10_000 });
+  });
+
+  it("stops after the third level", async () => {
+    const d = mk("d"), e = mk("e");
+    const accounts = new MemoryAccountStore();
+    for (const u of [owner, a, b, c, d, e]) await accounts.putUser(u);
+    setAccountStoreForTests(accounts);
+    await setMember(owner, d.id, { area: "Eastside, WA", feeDollars: 300, recruitedBy: c.id, joinedOn: "2026-03-01" }, NOW);
+    await setMember(owner, e.id, { area: "Eastside, WA", feeDollars: 300, recruitedBy: d.id, joinedOn: "2026-03-01" }, NOW);
+    await pipe.put(loan(d.id, 100_000, "2026-10-01"));
+    await pipe.put(loan(e.id, 100_000, "2026-10-01"));
+    expect((await shareFor(a.id, "2026-10")).map((l) => [l.recruitUserId, l.level])).toEqual([["d", 3]]); // E is level 4: unpaid
   });
 });

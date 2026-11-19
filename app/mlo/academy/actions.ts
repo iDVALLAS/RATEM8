@@ -16,13 +16,11 @@ export async function gradeAction(sessionId: string, answers: number[]): Promise
 }
 
 export async function practiceAction(sessionId: string, history: Turn[]): Promise<PracticeReply> {
-  await me();
-  return practiceTurn(sessionId, history);
+  return practiceTurn(sessionId, history, { user: await me() });
 }
 
 export async function coachAction(sessionId: string, history: Turn[]): Promise<CoachResult> {
-  await me();
-  return practiceCoach(sessionId, history);
+  return practiceCoach(sessionId, history, { user: await me() });
 }
 
 export async function notesAction(sessionId: string, fd: FormData): Promise<void> {

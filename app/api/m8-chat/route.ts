@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { recordChatUsage } from "@/lib/ai/meter";
 import { cookies, headers } from "next/headers";
 import { after } from "next/server";
 import { buildM8SystemPrompt, m8PromptVars } from "@/lib/prompts/m8-system";
@@ -7,7 +8,7 @@ import { nameableMlo, type MloContextValue } from "@/lib/mlo-match";
 import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
 import { M8_MAX_TOKENS, m8Model } from "@/lib/m8/server";
-import { prepareTurn, runM8Turn } from "@/lib/m8/pipeline";
+import { type TurnUsage, prepareTurn, runM8Turn } from "@/lib/m8/pipeline";
 import { checkRateLimit, countTurn, hashIp, recordUsage, underDailyBudget } from "@/lib/m8/limits";
 import { deleteSession, saveTranscript } from "@/lib/m8/store";
 import type { M8Event, M8Message } from "@/lib/m8/shared";
@@ -146,11 +147,13 @@ export async function POST(req: Request) {
 
   // After the response: the budget and the transcript. `after` must be
   // registered during the request, so it waits on the stream's outcome.
-  type Outcome = { reply: string; tokens: number; guard: string | null; error: unknown };
+  type Outcome = { reply: string; tokens: number; guard: string | null; error: unknown; usage?: TurnUsage };
   let finish: (r: Outcome) => void = () => {};
   const finished = new Promise<Outcome>((resolve) => (finish = resolve));
   after(async () => {
-    const { reply, tokens, guard, error } = await finished;
+    const { reply, tokens, guard, error, usage } = await finished;
+    // D41: the borrower chat's cost goes on the routed loan officer's meter (recorded, never limited).
+    if (usage) await recordChatUsage(mlo?.id ?? null, m8Model(), usage).catch(() => undefined);
     // C5: Sentry (when SENTRY_DSN is set). Reasons and error names only, never text.
     if (error) await report("error", error, { route: "m8-chat", stage: "model" });
     if (guard) await report("warning", new Error(`guard replaced a reply: ${guard}`), { route: "m8-chat", guard });
@@ -185,6 +188,7 @@ export async function POST(req: Request) {
       };
       let reply = "";
       let tokens = 0;
+      let turnUsage: TurnUsage | undefined;
       let guard: string | null = null;
       let error: unknown = null;
       try {
@@ -207,6 +211,7 @@ export async function POST(req: Request) {
           });
           reply = result.reply;
           tokens = result.tokens;
+          turnUsage = result.usage;
           guard = result.guard;
         }
         const tail = splitter?.flush();
@@ -220,7 +225,7 @@ export async function POST(req: Request) {
         emit({ error: "M8 couldn't reach the model. Try again in a moment." });
       } finally {
         controller.close();
-        finish({ reply, tokens, guard, error });
+        finish({ reply, tokens, guard, error, usage: turnUsage });
       }
     },
   });

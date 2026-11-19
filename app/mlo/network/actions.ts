@@ -11,7 +11,7 @@ const back = (ok: boolean, line: string, hash = "") => redirect(`/mlo/network?f=
 export async function setMemberAction(fd: FormData): Promise<void> {
   const u = await currentUser();
   if (!u) redirect("/sign-in");
-  const r = await setMember(u, String(fd.get("userId") ?? ""), { area: String(fd.get("area") ?? ""), feeDollars: Number(fd.get("fee") ?? NaN), recruitedBy: String(fd.get("recruitedBy") ?? "") || null, joinedOn: String(fd.get("joinedOn") ?? "") });
+  const r = await setMember(u, String(fd.get("userId") ?? ""), { area: String(fd.get("area") ?? ""), feeDollars: Number(fd.get("fee") ?? NaN), recruitedBy: String(fd.get("recruitedBy") ?? "") || null, joinedOn: String(fd.get("joinedOn") ?? ""), plan: String(fd.get("plan") ?? "") });
   back(r.ok, r.ok ? "Saved." : r.error, "#members");
 }
 

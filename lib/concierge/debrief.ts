@@ -17,13 +17,14 @@
  */
 import { randomBytes } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiCall, type Meter } from "@/lib/ai/meter";
 import { z } from "zod";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { contactStore } from "@/lib/contacts/store";
 import { canSee } from "@/lib/contacts/service";
 import { gateFor } from "@/lib/messaging/service";
 import { redactChatInput } from "@/lib/m8/redact";
-import { conciergeModel, laneFor, scanCtx, TASK_ACTIONS, ccAnthropicKey } from "./agent";
+import { laneFor, scanCtx, TASK_ACTIONS } from "./agent";
 import { checkDraft, checkMemory, checkNote, protectedTopic } from "./guard";
 import { cleanData, dataRule, newNonce } from "./data";
 import { conciergeStore, MEMORY_KINDS } from "./store";
@@ -70,16 +71,17 @@ const TITLE: Record<(typeof TASK_ACTIONS)[number], (f: string) => string> = {
 /** A seam so tests can stand in for the API: returns the JSON text. */
 export type DebriefCall = (system: string, brief: string) => Promise<{ json: string | null; stop: string | null }>;
 
-function apiCall(apiKey: string): DebriefCall {
-  const client = new Anthropic({ apiKey });
+function apiCall(meter: Meter): DebriefCall {
+  const client = new Anthropic({ apiKey: meter.apiKey });
   return async (system, brief) => {
     const r = await client.messages.create({
-      model: conciergeModel(),
+      model: meter.model,
       max_tokens: 4000,
       output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: brief }],
     } as unknown as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    await meter.record(r.usage);
     return { json: r.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("") || null, stop: r.stop_reason };
   };
 }
@@ -106,8 +108,7 @@ export async function debrief(user: User, contactId: string, rawNote: string, op
   const result: DebriefResult = { ok: true, saved: !!clean.text, summary: null, needs: 0, reminders: 0, draft: false, leftOut: clean.leftOut };
   // D31: "I'll call her back Tuesday" in their own note becomes a reminder, with or without the AI.
   if (clean.text) result.reminders += await recordPromises(user, c, clean.text, `note:${c.id}:${now.toISOString()}`, now);
-  const key = ccAnthropicKey();
-  const call = opts.call !== undefined ? opts.call : key ? apiCall(key) : null;
+  const call = opts.call !== undefined ? opts.call : await aiCall(user, "debrief", apiCall, now);
   if (!call || !clean.text) return result;
   const nonce = newNonce();
   const brief = `${dataRule(nonce)}\nClient's first name: <data-${nonce} kind="first_name">${cleanData(c.firstName || "(none)", 40)}</data-${nonce}>\nThe MLO's note about the call: <data-${nonce} kind="call_note">${cleanData(clean.text, 2000)}</data-${nonce}>`;

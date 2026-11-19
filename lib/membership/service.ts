@@ -69,7 +69,7 @@ const canRecruit = (u: User | null) => !!u && u.role !== "assistant";
 const ownerOrLead = (u: User) => u.status === "active" && (u.role === "owner" || u.role === "team_lead");
 
 /** Owner or team lead: a member's area, fee and who brought them in. */
-export async function setMember(actor: User, userId: string, input: { area: string; feeDollars: number; recruitedBy: string | null; joinedOn: string }, now = new Date()): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function setMember(actor: User, userId: string, input: { area: string; feeDollars: number; recruitedBy: string | null; joinedOn: string; plan?: string }, now = new Date()): Promise<{ ok: true } | { ok: false; error: string }> {
   const users = accountStore();
   const target = await users.userById(userId);
   if (!ownerOrLead(actor) || !target || (target.id !== actor.id && !canManage(actor, target.role))) return { ok: false, error: "You can't change that membership." };
@@ -89,7 +89,8 @@ export async function setMember(actor: User, userId: string, input: { area: stri
   }
   // Once credit has been worked out for a recruit, who brought them in stays put (the ledger depends on it).
   if (before && before.recruitedBy !== recruitedBy && (await store.payments({ userId })).some((p) => p.credit)) return { ok: false, error: "Credit has already been recorded for this member, so who brought them in can't change. Ask counsel before correcting it." };
-  await store.putMember({ userId, area, feeCents: Math.round(input.feeDollars * 100), recruitedBy, joinedOn: input.joinedOn, updatedAt: now.toISOString() });
+  const plan = input.plan === "unlimited" ? "unlimited" : input.plan === "capped" ? "capped" : before?.plan;
+  await store.putMember({ userId, area, feeCents: Math.round(input.feeDollars * 100), recruitedBy, joinedOn: input.joinedOn, plan, updatedAt: now.toISOString() });
   await users.audit({ at: now.toISOString(), actor: actor.email, action: "membership.set", detail: { userId, area, feeCents: Math.round(input.feeDollars * 100), recruitedBy, joinedOn: input.joinedOn } });
   return { ok: true };
 }

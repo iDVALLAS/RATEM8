@@ -15,13 +15,14 @@
  *    strong answer includes.
  */
 import Anthropic from "@anthropic-ai/sdk";
+import { aiCall, aiOffReason, type Meter } from "@/lib/ai/meter";
 import { z } from "zod";
 import { neon } from "@neondatabase/serverless";
 import { databaseUrl } from "@/lib/m8/server";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { checkNote } from "@/lib/concierge/guard";
 import { cleanData, dataRule, newNonce } from "@/lib/concierge/data";
-import { conciergeModel, ccAnthropicKey } from "@/lib/concierge/agent";
+
 import { redactChatInput } from "@/lib/m8/redact";
 import { SESSIONS, sessionById } from "./course";
 
@@ -238,16 +239,17 @@ export function ruleFlags(lines: string[]): string[] {
 export type Turn = { who: "me" | "agent"; text: string };
 export type PracticeCall = (system: string, messages: { role: "user" | "assistant"; content: string }[], schema?: object) => Promise<{ text: string | null; stop: string | null }>;
 
-function apiCall(apiKey: string): PracticeCall {
-  const client = new Anthropic({ apiKey });
+function apiCall(meter: Meter): PracticeCall {
+  const client = new Anthropic({ apiKey: meter.apiKey });
   return async (system, messages, schema) => {
     const r = await client.messages.create({
-      model: conciergeModel(),
+      model: meter.model,
       max_tokens: 1200,
       output_config: schema ? { effort: "low", format: { type: "json_schema", schema } } : { effort: "low" },
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       messages,
     } as unknown as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    await meter.record(r.usage);
     return { text: r.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("") || null, stop: r.stop_reason };
   };
 }
@@ -258,18 +260,18 @@ const COACH_SYSTEM = `You coach a mortgage loan officer after a practice convers
 const COACH_SCHEMA = { type: "object", additionalProperties: false, properties: { didWell: { type: "array", items: { type: "string" } }, tryNext: { type: "array", items: { type: "string" } }, score: { type: "integer" } }, required: ["didWell", "tryNext", "score"] } as const;
 const CoachOut = z.object({ didWell: z.array(z.string().max(400)).max(5), tryNext: z.array(z.string().max(500)).max(5), score: z.number().int().min(1).max(5) });
 
-const callFor = (c: PracticeCall | null | undefined) => (c !== undefined ? c : ccAnthropicKey() ? apiCall(ccAnthropicKey()!) : null);
+const callFor = async (c: PracticeCall | null | undefined, user: Pick<User, "id"> | null) => (c !== undefined ? c : aiCall(user, "practice", apiCall));
 
 export type PracticeReply = { ok: true; reply: string; live: boolean } | { ok: false; error: string };
 
 /** The agent's next line. */
-export async function practiceTurn(sessionId: string, history: Turn[], opts: { call?: PracticeCall | null } = {}): Promise<PracticeReply> {
+export async function practiceTurn(sessionId: string, history: Turn[], opts: { call?: PracticeCall | null; user?: Pick<User, "id"> | null } = {}): Promise<PracticeReply> {
   const s = sessionById(sessionId);
   if (!s?.practice) return { ok: false, error: "This session has no practice." };
   const turns = history.slice(-16).map((t) => ({ who: t.who, text: redactChatInput(String(t.text ?? "")).text.slice(0, 1000) }));
   if (!turns.length || turns[turns.length - 1].who !== "me" || turns[turns.length - 1].text.trim().length < 2) return { ok: false, error: "Say something first." };
-  const call = callFor(opts.call);
-  if (!call) return { ok: true, live: false, reply: `(Practice replies need the AI key in Vercel.) What a strong answer does here: ${s.practice.tryTo}` };
+  const call = await callFor(opts.call, opts.user ?? null);
+  if (!call) return { ok: true, live: false, reply: `(Practice replies need the AI, and ${await aiOffReason(opts.user ?? null)}.) What a strong answer does here: ${s.practice.tryTo}` };
   const nonce = newNonce();
   const messages = [{ role: "assistant" as const, content: s.practice.opening }, ...turns.map((t) => (t.who === "me" ? { role: "user" as const, content: `${dataRule(nonce)}\n<data-${nonce} kind="loan_officer">${cleanData(t.text, 1000)}</data-${nonce}>` } : { role: "assistant" as const, content: t.text }))];
   try {
@@ -284,13 +286,13 @@ export async function practiceTurn(sessionId: string, history: Turn[], opts: { c
 export type CoachResult = { ok: true; didWell: string[]; tryNext: string[]; score: number | null; flags: string[] } | { ok: false; error: string };
 
 /** Feedback on the practice so far. */
-export async function practiceCoach(sessionId: string, history: Turn[], opts: { call?: PracticeCall | null } = {}): Promise<CoachResult> {
+export async function practiceCoach(sessionId: string, history: Turn[], opts: { call?: PracticeCall | null; user?: Pick<User, "id"> | null } = {}): Promise<CoachResult> {
   const s = sessionById(sessionId);
   if (!s?.practice) return { ok: false, error: "This session has no practice." };
   const mine = history.filter((t) => t.who === "me").map((t) => String(t.text ?? "").slice(0, 1000));
   if (!mine.length) return { ok: false, error: "Practice a little first." };
   const flags = ruleFlags(mine);
-  const call = callFor(opts.call);
+  const call = await callFor(opts.call, opts.user ?? null);
   if (!call) return { ok: true, didWell: [], tryNext: [s.practice.tryTo], score: null, flags };
   const nonce = newNonce();
   const convo = history.slice(-20).map((t) => `${t.who === "me" ? "Loan officer" : "Agent"}: ${cleanData(redactChatInput(String(t.text ?? "")).text, 1000)}`).join("\n");

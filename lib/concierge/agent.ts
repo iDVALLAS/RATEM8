@@ -24,6 +24,7 @@
  */
 import { randomBytes } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiCall, type Meter } from "@/lib/ai/meter";
 import { z } from "zod";
 import type { User } from "@/lib/accounts/store";
 import { accountStore } from "@/lib/accounts/store";
@@ -178,17 +179,18 @@ export type ModelCall = (params: { system: string; messages: Anthropic.Messages.
  * per-client brief is never cached); the served model is returned for the
  * audit log.
  */
-export function anthropicModelCall(apiKey: string): ModelCall {
-  const client = new Anthropic({ apiKey });
+export function anthropicModelCall(meter: Meter): ModelCall {
+  const client = new Anthropic({ apiKey: meter.apiKey });
   return async ({ system, messages, tools }) => {
     const r = await client.messages.create({
-      model: conciergeModel(),
+      model: meter.model,
       max_tokens: 4000,
       output_config: { effort: "medium" },
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       tools,
       messages,
     } as unknown as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    await meter.record(r.usage);
     return { content: r.content, stop_reason: r.stop_reason, model: r.model };
   };
 }
@@ -350,8 +352,7 @@ export async function sweep(user: User, opts: { now?: Date; call?: ModelCall | n
   const out: SweepResult = { people: 0, proposals: 0, tasks: 0, remembered: 0, personal: 0, refused: [], mode: "off", models: [], errors: 0 };
   if (!s.enabled) return out;
   await conciergeStore().purgeExpired(now.toISOString());
-  const key = ccAnthropicKey();
-  const call = opts.call !== undefined ? opts.call : key ? anthropicModelCall(key) : null;
+  const call = opts.call !== undefined ? opts.call : await aiCall(user, "concierge", anthropicModelCall, now);
   out.mode = call ? "model" : "template";
   const { cards } = await todayFor(user, now, { ownOnly: true });
   const pending = new Set((await conciergeStore().proposals(user.id, "pending")).map((p) => p.contactId));

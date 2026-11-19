@@ -10,6 +10,8 @@ import { isAdmin } from "@/lib/accounts/auth";
 import { areaPlan, CHANNEL_LABELS, coopBudget, creditBalance, PAID_AD_CHANNELS, rewardsOn, statementFor } from "@/lib/membership/service";
 import { areaKey, COOP_CHANNELS, membershipStore, NATIONAL } from "@/lib/membership/store";
 import { productionOn, shareFor, sponsorStatement } from "@/lib/membership/production";
+import { allowanceFor, monthOf, usageStore } from "@/lib/ai/meter";
+import { AI_PLANS } from "@/lib/config";
 import { FlashBox, MloNav } from "../MloChrome";
 import { answerIdeaAction, ideaAction, paymentAction, prefAction, setMemberAction, spendAction } from "./actions";
 import "../mlo.css";
@@ -43,6 +45,9 @@ export default async function Membership({ searchParams }: { searchParams: Promi
   const sponsorThis = me ? await sponsorStatement(me, thisMonth) : null;
   const nameOfAny = async (id: string) => (await accountStore().userById(id))?.name?.split(/\s+/)[0] ?? "A member";
   const shareNames = Object.fromEntries(await Promise.all([...new Set([...myShare.map((l) => l.recruitUserId), ...(sponsorThis?.lines ?? []).flatMap((l) => [l.recruitUserId, l.recruiterUserId])])].map(async (id) => [id, await nameOfAny(id)] as const)));
+  const myAi = me ? await allowanceFor(me.id) : null;
+  const teamAi = admin ? await usageStore().monthAll(monthOf(new Date())) : [];
+  const ROUTE_LABELS: Record<string, string> = { concierge: "Concierge", tell: "Tell your Concierge", ask: "Questions", debrief: "Call notes", scripts: "Call scripts", templates: "Templates", docs: "AUS findings", practice: "Training practice", expenses: "Expenses", receipts: "Receipts", chat: "Borrower chat (M8)" };
   const nationalShare = MEMBERSHIP.marketingShare * MEMBERSHIP.nationalPart;
   const areaShare = MEMBERSHIP.marketingShare - nationalShare;
   return (
@@ -61,7 +66,7 @@ export default async function Membership({ searchParams }: { searchParams: Promi
               <ul className="mlo-list">
                 <li><strong>Bring in loan officers you know.</strong> For each one, {pct(MEMBERSHIP.recruitRate)} of the membership fee they pay comes back to you as credit on your own membership, rising to {pct(MEMBERSHIP.recruitTenureRate)} once they&apos;ve been a member {MEMBERSHIP.tenureMonths} months. Credit only, one level, and never based on anyone&apos;s loans.</li>
                 <li><strong>Market your area together.</strong> {pct(MEMBERSHIP.marketingShare)} of every fee goes to marketing: {pct(nationalShare)} of the fee to national LoanM8 marketing and {pct(areaShare)} to your own area, where the members there decide how it&apos;s split and suggest local ideas.</li>
-                <li><strong>Share in their production.</strong> When a loan officer you brought in (including an agent you helped get licensed) closes loans, you get {MEMBERSHIP.productionBps.map((b, i) => `${b} basis points of their closed loan amounts${MEMBERSHIP.productionBps.length > 1 ? ` at level ${i + 1}` : ""}`).join(", ")}, paid by the sponsoring company through its compensation plan. It&apos;s based only on loan amounts, never rates or terms.</li>
+                <li><strong>Share in their production.</strong> When a loan officer you brought in (including an agent you helped get licensed) closes loans, you get {MEMBERSHIP.productionBps[0]} basis points of their closed loan amounts{MEMBERSHIP.productionBps.length > 1 ? `, and the same for the people they bring in, ${MEMBERSHIP.productionBps.length} levels down` : ""}, paid by the sponsoring company through its compensation plan. After {MEMBERSHIP.productionVestYears} years as a member it&apos;s vested: it keeps paying even if you leave. It&apos;s based only on loan amounts, never rates or terms.</li>
                 <li><strong>See every dollar.</strong> Each spend is listed with what it was, where it ran and its receipt.</li>
               </ul>
               {!rewardsOn() ? <p className="mlo-note" style={{ marginTop: 8 }}>Recruiting credit is being tracked and held. It becomes usable once counsel approves the plan.</p> : null}
@@ -89,6 +94,16 @@ export default async function Membership({ searchParams }: { searchParams: Promi
                 </table>
               )}
             </section>
+
+            {myAi ? (
+              <section className="mlo-section" id="ai">
+                <h2>Your AI this month</h2>
+                <p className="mlo-note">{myAi.label} plan · {$(Math.round(myAi.usedCents))} of {$(myAi.allowanceCents)} used{myAi.over ? ` · used up: AI features use their plain versions until ${myAi.resetsOn}` : ` · resets ${myAi.resetsOn}`}</p>
+                <div className="nw-meter" role="img" aria-label={`${Math.min(100, Math.round((myAi.usedCents / myAi.allowanceCents) * 100))}% of this month's AI allowance used`}><span style={{ width: `${Math.min(100, (myAi.usedCents / myAi.allowanceCents) * 100)}%` }} className={myAi.over ? "nw-meter--over" : ""} /></div>
+                {Object.keys(myAi.byRoute).length ? <p className="mlo-note" style={{ marginTop: 8 }}>{Object.entries(myAi.byRoute).sort((a, b) => b[1] - a[1]).map(([r, c]) => `${ROUTE_LABELS[r] ?? r} ${$(Math.round(c))}`).join(" · ")}</p> : null}
+                <p className="mlo-note" style={{ marginTop: 4 }}>Borrower chat on your area&apos;s M8 is counted here but never stopped.</p>
+              </section>
+            ) : null}
 
             <section className="mlo-section" id="production">
               <h2>Your production share</h2>
@@ -175,6 +190,9 @@ export default async function Membership({ searchParams }: { searchParams: Promi
                                 <input name="area" defaultValue={m?.area ?? ""} placeholder="Service area" className="mlo-input" aria-label={`Area for ${u.name}`} required />
                                 <input name="fee" type="number" min={0} step="0.01" defaultValue={m ? (m.feeCents / 100).toFixed(2) : ""} placeholder="Fee $" className="mlo-input" style={{ maxWidth: 110 }} aria-label={`Monthly fee for ${u.name}`} required />
                                 <input name="joinedOn" type="date" defaultValue={m?.joinedOn ?? u.createdAt.slice(0, 10)} className="mlo-input" aria-label={`Joined on, ${u.name}`} required />
+                                <select name="plan" defaultValue={m?.plan ?? "capped"} className="mlo-select" aria-label={`AI plan for ${u.name}`}>
+                                  {(Object.keys(AI_PLANS) as (keyof typeof AI_PLANS)[]).map((p) => <option key={p} value={p}>{AI_PLANS[p].label} ({$(AI_PLANS[p].allowanceCents)} AI)</option>)}
+                                </select>
                                 <select name="recruitedBy" defaultValue={m?.recruitedBy ?? ""} className="mlo-select" aria-label={`Who brought ${u.name} in`}>
                                   <option value="">Joined directly</option>
                                   {users.filter((x) => x.id !== u.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
@@ -196,6 +214,7 @@ export default async function Membership({ searchParams }: { searchParams: Promi
                       })}
                     </tbody>
                   </table>
+                  {teamAi.length ? <p className="mlo-note">AI this month: {teamAi.sort((a, b) => b.costMicros - a.costMicros).map((t) => `${users.find((u) => u.id === t.userId)?.name ?? (t.userId.startsWith("mlo:") ? "Borrower chat (no account yet)" : "Someone")} ${$(Math.round(t.costMicros / 10_000))}`).join(" · ")} · total {$(Math.round(teamAi.reduce((n, t) => n + t.costMicros, 0) / 10_000))}</p> : null}
                   <p className="mlo-note">“Fee paid” uses their credit first, then sets aside the marketing shares and works out credit for whoever brought them in. Recorded payments can&apos;t be edited.</p>
                 </section>
 

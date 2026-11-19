@@ -15,6 +15,7 @@
  */
 import { randomBytes } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiCall, aiOffReason, type Meter } from "@/lib/ai/meter";
 import { z } from "zod";
 import { neon } from "@neondatabase/serverless";
 import { databaseUrl } from "@/lib/m8/server";
@@ -23,7 +24,7 @@ import { mloById } from "@/lib/config";
 import { SPONSOR } from "@/config/licensing";
 import { checkDraft } from "@/lib/concierge/guard";
 import { cleanData, dataRule, newNonce } from "@/lib/concierge/data";
-import { conciergeModel, ccAnthropicKey } from "@/lib/concierge/agent";
+
 import { CHANNELS, fill, KINDS, LIBRARY, type Channel, type Kind, type Template } from "./library";
 
 const id = (p: string) => `${p}_${randomBytes(9).toString("base64url")}`;
@@ -188,21 +189,22 @@ const AnswerOut = z.object({ replies: z.array(z.object({ reply: z.string().max(1
 /** A seam so tests can stand in for the API. */
 export type TemplateCall = (system: string, schema: object, user: string) => Promise<{ json: string | null; stop: string | null }>;
 
-function apiCall(apiKey: string): TemplateCall {
-  const client = new Anthropic({ apiKey });
+function apiCall(meter: Meter): TemplateCall {
+  const client = new Anthropic({ apiKey: meter.apiKey });
   return async (system, schema, userText) => {
     const r = await client.messages.create({
-      model: conciergeModel(),
+      model: meter.model,
       max_tokens: 2500,
       output_config: { effort: "low", format: { type: "json_schema", schema } },
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userText }],
     } as unknown as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    await meter.record(r.usage);
     return { json: r.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("") || null, stop: r.stop_reason };
   };
 }
 
-const callFor = (c: TemplateCall | null | undefined) => (c !== undefined ? c : ccAnthropicKey() ? apiCall(ccAnthropicKey()!) : null);
+const callFor = async (c: TemplateCall | null | undefined, user: Pick<User, "id"> | null) => (c !== undefined ? c : aiCall(user, "templates", apiCall));
 const words = (s: string) => new Set(s.toLowerCase().match(/[a-z']{4,}/g) ?? []);
 function closest(text: string, pool: Template[]): Template | null {
   const w = words(text);
@@ -217,10 +219,10 @@ function closest(text: string, pool: Template[]): Template | null {
 export type WriteResult = { ok: true; by: "m8" | "library"; title: string; subject: string; body: string } | { ok: false; error: string };
 
 /** "Write it with M8": a template to edit and save. */
-export async function writeWithM8(request: { what: string; kind: string; channel: string }, opts: { call?: TemplateCall | null } = {}): Promise<WriteResult> {
+export async function writeWithM8(request: { what: string; kind: string; channel: string }, opts: { call?: TemplateCall | null; user?: Pick<User, "id"> | null } = {}): Promise<WriteResult> {
   const what = request.what.trim().slice(0, 1000);
   if (what.length < 8) return { ok: false, error: "Say what the template is for, in a sentence." };
-  const call = callFor(opts.call);
+  const call = await callFor(opts.call, opts.user ?? null);
   if (call) {
     const nonce = newNonce();
     try {
@@ -232,16 +234,16 @@ export async function writeWithM8(request: { what: string; kind: string; channel
     }
   }
   const t = closest(what, LIBRARY.filter((x) => x.kind !== "rebuttal"));
-  return t ? { ok: true, by: "library", title: t.title, subject: t.subject ?? "", body: t.body } : { ok: false, error: call ? "M8 couldn't write that one within the rules. Try describing it differently." : "Writing templates needs the AI key; pick one from the library and edit it." };
+  return t ? { ok: true, by: "library", title: t.title, subject: t.subject ?? "", body: t.body } : { ok: false, error: call ? "M8 couldn't write that one within the rules. Try describing it differently." : `Writing templates needs the AI, and ${await aiOffReason(opts.user ?? null)}. Pick one from the library and edit it.` };
 }
 
 export type AnswerResult = { ok: true; by: "m8" | "library"; replies: { reply: string; why: string }[] } | { ok: false; error: string };
 
 /** "Answer this": honest replies to what someone said. */
-export async function answerWithM8(said: string, who: string, opts: { call?: TemplateCall | null } = {}): Promise<AnswerResult> {
+export async function answerWithM8(said: string, who: string, opts: { call?: TemplateCall | null; user?: Pick<User, "id"> | null } = {}): Promise<AnswerResult> {
   const text = said.trim().slice(0, 1500);
   if (text.length < 4) return { ok: false, error: "Paste or type what they said." };
-  const call = callFor(opts.call);
+  const call = await callFor(opts.call, opts.user ?? null);
   if (call) {
     const nonce = newNonce();
     try {
@@ -254,5 +256,5 @@ export async function answerWithM8(said: string, who: string, opts: { call?: Tem
     }
   }
   const t = closest(text, LIBRARY.filter((x) => x.kind === "rebuttal"));
-  return t ? { ok: true, by: "library", replies: [{ reply: t.body, why: t.why ?? `From the library: "${t.title}".` }] } : { ok: false, error: call ? "M8 couldn't answer that within the rules. Try the objections in the library." : "Answering needs the AI key; the objections in the library cover the common ones." };
+  return t ? { ok: true, by: "library", replies: [{ reply: t.body, why: t.why ?? `From the library: "${t.title}".` }] } : { ok: false, error: call ? "M8 couldn't answer that within the rules. Try the objections in the library." : `Fresh answers need the AI, and ${await aiOffReason(opts.user ?? null)}. The objections in the library cover the common ones.` };
 }

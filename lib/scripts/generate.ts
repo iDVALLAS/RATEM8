@@ -15,6 +15,7 @@
  */
 import { randomBytes } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiCall, type Meter } from "@/lib/ai/meter";
 import { z } from "zod";
 import type { User } from "@/lib/accounts/store";
 import { accountStore } from "@/lib/accounts/store";
@@ -24,7 +25,7 @@ import { gateFor } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
 import { pipelineStore, type Loan } from "@/lib/pipeline/store";
 import { conciergeStore, type MemoryNote } from "@/lib/concierge/store";
-import { conciergeModel, ccAnthropicKey } from "@/lib/concierge/agent";
+
 import { protectedTopic, type ScanContext } from "@/lib/concierge/guard";
 import { cleanData, dataBlock, dataRule, newNonce } from "@/lib/concierge/data";
 import { redactChatInput } from "@/lib/m8/redact";
@@ -98,17 +99,18 @@ const DraftIn = z.object({
 /** A seam so tests can stand in for the API. Returns the JSON text, or null. */
 export type ScriptModelCall = (system: string, brief: string) => Promise<{ json: string | null; stop: string | null }>;
 
-export function anthropicScriptCall(apiKey: string): ScriptModelCall {
-  const client = new Anthropic({ apiKey });
+export function anthropicScriptCall(meter: Meter): ScriptModelCall {
+  const client = new Anthropic({ apiKey: meter.apiKey });
   return async (system, brief) => {
     // D8.1: no automatic fallback model; the cache point sits on the system prompt only.
     const r = await client.messages.create({
-      model: conciergeModel(),
+      model: meter.model,
       max_tokens: 6000,
       output_config: { effort: "medium", format: { type: "json_schema", schema: SCRIPT_SCHEMA } },
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: brief }],
     } as unknown as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    await meter.record(r.usage);
     const text = r.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
     return { json: text || null, stop: r.stop_reason };
   };
@@ -229,8 +231,7 @@ export async function buildScript(user: User, input: { contactId: string; goal: 
   const me = firstName(user);
   const template = templateScript(goal, c.firstName, g.signals, me);
   // Agents: plain template only (RETR's terms bar its data in AI).
-  const key = ccAnthropicKey();
-  const call = c.kind === "agent" ? null : opts.call !== undefined ? opts.call : key ? anthropicScriptCall(key) : null;
+  const call = c.kind === "agent" ? null : opts.call !== undefined ? opts.call : await aiCall(user, "scripts", anthropicScriptCall, now);
   const brief = scriptBrief(g, goal, me, { voice: settings.voice, ask: input.ask ?? "" });
   const w = await writeScript(call, brief, goal, template, { names: [c.firstName, c.lastName, me], places: [c.city] });
   const comp: ComplianceInput = { goal, stateName: usStateName(c.state), allPartyRecording: ruleForStates([c.state, areaCodeState(c.phone)]).allPartyRecording, opening: ruleForStates([c.state, areaCodeState(c.phone)]).opening, callAllowed: { ok: callGate.allowed, reason: callGate.reasons[0] ?? null }, textAllowed: { ok: textGate.allowed, reason: textGate.reasons[0] ?? null } };
@@ -250,8 +251,7 @@ export async function practiceScript(user: User, input: { situation: string; goa
   const settings = await conciergeStore().settings(user.id);
   const me = firstName(user);
   const template = templateScript(goal, "", [], me);
-  const key = ccAnthropicKey();
-  const call = opts.call !== undefined ? opts.call : key ? anthropicScriptCall(key) : null;
+  const call = opts.call !== undefined ? opts.call : await aiCall(user, "scripts", anthropicScriptCall, now);
   const brief = [
     `Goal: ${GOAL_LABELS[goal]}`,
     `MLO's first name: ${me || "(not given; say \"your loan officer\")"}`,

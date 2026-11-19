@@ -478,16 +478,46 @@ export const MEMBERSHIP = {
   /** ...of which this part is national (the LoanM8 brand, seen by every member); the rest stays in the member's own area, where members have a say. */
   nationalPart: 0.6,
   /**
-   * D40: production share, the NEXA-style override (NEXA reportedly pays
-   * 10 basis points on each loan a loan officer's direct recruit closes).
+   * D40: production share, the NEXA-style override. NEXA pays 10 basis
+   * points on funded loans of loan officers you recruit, up to three levels
+   * down, fully vested after three years (owner's choice to match, D40.1).
    * Basis points of each recruit's closed loan amounts, one number per
    * level (level 1 = the people you brought in). Paid by the sponsoring
    * brokerage under its written compensation plan, never by LoanM8, and
    * off until PRODUCTION_OVERRIDE="true" after counsel and the sponsor
    * approve. Never based on a rate or any other loan term.
    */
-  productionBps: [10] as readonly number[],
+  productionBps: [10, 10, 10] as readonly number[],
+  /** After this many years as a member, the share keeps paying even if the recruiter leaves. Before that, only while they're active. */
+  productionVestYears: 3,
 } as const;
+
+/**
+ * D41: Command Center AI plans. List prices per million tokens (Anthropic
+ * first-party API, 2026-11). Cache writes cost 1.25x input; cache reads
+ * as listed. Each feature ("route") uses the model its plan names; when a
+ * member's month reaches the allowance, features fall back to their no-AI
+ * path until the 1st. The public borrower chat is metered but never
+ * stopped (a borrower shouldn't lose M8 because a loan officer used their
+ * allowance); it has its own daily token budget (C4).
+ */
+export const AI_PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
+  "claude-opus-5-5": { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 5 },
+  "claude-sonnet-5-5": { input: 2, output: 10, cacheRead: 0.1, cacheWrite: 2.5 },
+  "claude-haiku-5-5": { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
+};
+
+export const AI_ROUTES = ["concierge", "tell", "ask", "debrief", "scripts", "templates", "docs", "practice", "expenses", "receipts"] as const;
+export type AiRoute = (typeof AI_ROUTES)[number] | "chat";
+
+const OPUS = "claude-opus-5-5", SONNET = "claude-sonnet-5-5", HAIKU = "claude-haiku-5-5";
+export const AI_PLANS = {
+  /** $99: mixed models, with a monthly AI allowance. */
+  capped: { label: "Standard", allowanceCents: 1200, models: { concierge: SONNET, tell: SONNET, ask: SONNET, debrief: SONNET, scripts: SONNET, templates: SONNET, docs: SONNET, practice: SONNET, expenses: HAIKU, receipts: HAIKU } },
+  /** Unlimited: the most capable model where quality shows, with a fair-use limit. */
+  unlimited: { label: "Unlimited", allowanceCents: 6000, models: { concierge: OPUS, tell: OPUS, ask: OPUS, debrief: OPUS, scripts: OPUS, templates: SONNET, docs: OPUS, practice: SONNET, expenses: HAIKU, receipts: SONNET } },
+} as const satisfies Record<string, { label: string; allowanceCents: number; models: Record<(typeof AI_ROUTES)[number], string> }>;
+export type AiPlan = keyof typeof AI_PLANS;
 
 export function mloById(id: string | null | undefined): Mlo | undefined {
   return id ? ALL_MLOS.find((m) => m.id === id) : undefined;

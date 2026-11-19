@@ -128,13 +128,13 @@ Once your own sign-in works, turn off the old shared login.
 | --- | --- | --- |
 | `MLO_BASIC_AUTH` | No | Set to "false". |
 
-### Which AI model (optional)
+### AI plans and models (optional)
 
-Leave unset for the default.
+Each member's plan (Standard or Unlimited, set on Membership) picks the model for each feature and the monthly AI allowance (lib/config.ts AI_PLANS). Set the Anthropic workspace's own monthly spend limit as a backstop. Leave the override unset.
 
 | Variable | Sensitive | Note |
 | --- | --- | --- |
-| `CC_CONCIERGE_MODEL` (optional) | No | A model id. |
+| `CC_CONCIERGE_MODEL` (optional) | No | Overrides every feature's model (for testing only). |
 
 ## 3. Texting
 
@@ -202,7 +202,7 @@ Recruiting credit (10%, 15% after a year, one level, credit on the recruiter's o
 
 ### Production share (only after counsel and the sponsor approve it)
 
-The NEXA-style share (10 basis points of each recruit's closed loan amounts, from lib/config.ts) is tracked until this is on. The sponsoring company pays it through its written compensation plan; ask counsel about Reg Z loan originator pay (12 CFR 1026.36(d)), state rules for any levels beyond the first, and how agents who get licensed are paid on their own deals.
+The NEXA-style share (10 basis points of recruits' closed loan amounts, three levels down, vested after three years; from lib/config.ts) is tracked until this is on. The sponsoring company pays it through its written compensation plan; ask counsel about Reg Z loan originator pay (12 CFR 1026.36(d)), state rules for any levels beyond the first, and how agents who get licensed are paid on their own deals.
 
 | Variable | Sensitive | Note |
 | --- | --- | --- |

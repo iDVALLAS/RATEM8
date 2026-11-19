@@ -18,6 +18,7 @@
  */
 import { randomBytes } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiCall, aiOffReason, type Meter } from "@/lib/ai/meter";
 import { z } from "zod";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { contactStore } from "@/lib/contacts/store";
@@ -25,7 +26,7 @@ import { gateFor } from "@/lib/messaging/service";
 import { redactChatInput } from "@/lib/m8/redact";
 import { conciergeStore } from "@/lib/concierge/store";
 import { checkDraft, foreignContact } from "@/lib/concierge/guard";
-import { conciergeModel, laneFor, ccAnthropicKey } from "@/lib/concierge/agent";
+import { laneFor } from "@/lib/concierge/agent";
 import { cleanData } from "@/lib/concierge/data";
 import { hasApplicationUrl, mloById } from "@/lib/config";
 import { loanFor } from "./engine";
@@ -55,19 +56,20 @@ const Out = z.object({ system: z.enum(["DU", "LPA", "other"]), documents: z.arra
 /** A seam so tests can stand in for the API. The input is the PDF (base64) or pasted text. */
 export type AusCall = (input: { pdfBase64?: string; text?: string }) => Promise<{ json: string | null; stop: string | null }>;
 
-function apiCall(apiKey: string): AusCall {
-  const client = new Anthropic({ apiKey });
+function apiCall(meter: Meter): AusCall {
+  const client = new Anthropic({ apiKey: meter.apiKey });
   return async ({ pdfBase64, text }) => {
     const content = pdfBase64
       ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfBase64 } }, { type: "text", text: "List the documents these findings require." }]
       : [{ type: "text", text: `List the documents these findings require.\n<findings>\n${cleanData(text ?? "", 60_000)}\n</findings>` }];
     const r = await client.messages.create({
-      model: conciergeModel(),
+      model: meter.model,
       max_tokens: 6000,
       output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
       system: [{ type: "text", text: AUS_SYSTEM, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content }],
     } as unknown as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    await meter.record(r.usage);
     return { json: r.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("") || null, stop: r.stop_reason };
   };
 }
@@ -93,9 +95,8 @@ export async function readFindings(user: User, loanId: string, input: { pdf?: Ui
   if (!pdf && text.length < 40) return { ok: false, error: "Upload the findings PDF, or paste their text." };
   if (pdf && pdf.byteLength > MAX_PDF_BYTES) return { ok: false, error: "That PDF is over 5 MB. Paste the findings text instead." };
   if (pdf && !(pdf[0] === 0x25 && pdf[1] === 0x50 && pdf[2] === 0x44 && pdf[3] === 0x46)) return { ok: false, error: "That file isn't a PDF." };
-  const key = ccAnthropicKey();
-  const call = opts.call !== undefined ? opts.call : key ? apiCall(key) : null;
-  if (!call) return { ok: false, error: "Reading findings needs the Anthropic key in Vercel. You can still add documents by hand below." };
+  const call = opts.call !== undefined ? opts.call : await aiCall(user, "docs", apiCall, now);
+  if (!call) return { ok: false, error: `Reading findings needs the AI, and ${await aiOffReason(user, now)}. You can still add documents by hand below.` };
   let parsed: z.infer<typeof Out> | null = null;
   try {
     const r = await call(pdf ? { pdfBase64: Buffer.from(pdf).toString("base64") } : { text });

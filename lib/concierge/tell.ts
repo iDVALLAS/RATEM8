@@ -16,12 +16,13 @@
  */
 import { randomBytes } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiCall, aiOffReason, type Meter } from "@/lib/ai/meter";
 import { z } from "zod";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { contactStore, type Contact } from "@/lib/contacts/store";
 import { gateFor } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
-import { conciergeModel, laneFor, scanCtx, TASK_ACTIONS, ccAnthropicKey } from "./agent";
+import { laneFor, scanCtx, TASK_ACTIONS } from "./agent";
 import { checkDraft, checkNote } from "./guard";
 import { cleanData, dataRule, newNonce } from "./data";
 import { conciergeStore } from "./store";
@@ -85,17 +86,18 @@ const TITLE: Record<(typeof TASK_ACTIONS)[number], (f: string) => string> = {
 /** A seam so tests can stand in for the API. */
 export type TellCall = (p: { system: string; messages: Anthropic.Messages.MessageParam[]; tools: Anthropic.Messages.Tool[] }) => Promise<{ content: Anthropic.Messages.ContentBlock[]; stop_reason: string | null }>;
 
-function apiCall(apiKey: string): TellCall {
-  const client = new Anthropic({ apiKey });
+function apiCall(meter: Meter): TellCall {
+  const client = new Anthropic({ apiKey: meter.apiKey });
   return async ({ system, messages, tools }) => {
     const r = await client.messages.create({
-      model: conciergeModel(),
+      model: meter.model,
       max_tokens: 6000,
       output_config: { effort: "medium" },
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       tools,
       messages,
     } as unknown as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    await meter.record(r.usage);
     return { content: r.content, stop_reason: r.stop_reason };
   };
 }
@@ -133,9 +135,8 @@ export async function tell(user: User, request: string, opts: { now?: Date; call
   const out: TellResult = { answer: "", drafts: 0, reminders: 0, skipped: [] };
   const ask = request.trim().slice(0, 600);
   if (!ask) return { ...out, answer: "Tell me what you'd like done for your clients." };
-  const key = ccAnthropicKey();
-  const call = opts.call !== undefined ? opts.call : key ? apiCall(key) : null;
-  if (!call) return { ...out, answer: "This needs the Anthropic key in Vercel. Your drafts, reminders and automations still work without it." };
+  const call = opts.call !== undefined ? opts.call : await aiCall(user, "tell", apiCall, now);
+  if (!call) return { ...out, answer: `This needs the AI, and ${await aiOffReason(user, now)}. Your drafts, reminders and automations still work without it.` };
   const settings = await conciergeStore().settings(user.id);
   const nonce = newNonce();
   const found = new Map<string, Contact>();

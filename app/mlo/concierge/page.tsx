@@ -12,6 +12,7 @@ import { segmentLabel } from "@/lib/messaging/segments";
 import { signature } from "@/lib/messaging/service";
 import Tell from "./Tell";
 import { emailOn } from "@/lib/messaging/email";
+import { allowanceFor } from "@/lib/ai/meter";
 import { approveAction, approveEmailAction, dismissAction, forgetFromDeskAction, keepAction, settingsAction, sweepAction, taskDoneAction } from "./actions";
 import "../mlo.css";
 
@@ -31,6 +32,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
   const tasks = [...openTasks.filter((t) => t.lane === "personal"), ...openTasks.filter((t) => t.lane !== "personal")];
   const people = await Promise.all([...new Set([...drafts.map((d) => d.contactId), ...tasks.map((t) => t.contactId), ...toKeep.map((m) => m.contactId)])].map((id) => contactStore().get(id)));
   const sig = me ? signature(me) : "";
+  const ai = me ? await allowanceFor(me.id) : null;
   const nameOf = (id: string) => {
     const c = people.find((p) => p?.id === id);
     return c ? `${c.firstName} ${c.lastName}`.trim() || c.email || "Someone" : "Someone";
@@ -42,6 +44,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
         <h1 className="tagline text-4xl">Concierge</h1>
         <MloNav current="concierge" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
+        {ai?.over ? <div className="mlo-flash mlo-flash--err" role="status">This month&apos;s AI allowance is used, so the Concierge drafts from templates until {ai.resetsOn}. <Link href="/mlo/network#ai">See your usage</Link>.</div> : null}
         {!me || !s ? (
           <section className="mlo-section"><p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to use your Concierge.</p></section>
         ) : (

@@ -18,11 +18,12 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { aiCall, type Meter } from "@/lib/ai/meter";
 import { z } from "zod";
 import type { User } from "@/lib/accounts/store";
 import { accountStore } from "@/lib/accounts/store";
 import { redactChatInput } from "@/lib/m8/redact";
-import { conciergeModel, ccAnthropicKey } from "@/lib/concierge/agent";
+
 import { cleanData, dataRule, newNonce } from "@/lib/concierge/data";
 import { membershipStore } from "@/lib/membership/store";
 import { CATEGORIES, CATEGORY_KEYS, LINE_NAMES, LINE_ORDER, type Category } from "./categories";
@@ -96,8 +97,8 @@ const Out = z.object({
 /** A seam so tests can stand in for the API. */
 export type ExpenseCall = (input: { text?: string; file?: { type: string; base64: string } }, today: string) => Promise<{ json: string | null; stop: string | null }>;
 
-function apiCall(apiKey: string): ExpenseCall {
-  const client = new Anthropic({ apiKey });
+function apiCall(meter: Meter): ExpenseCall {
+  const client = new Anthropic({ apiKey: meter.apiKey });
   return async ({ text, file }, today) => {
     const nonce = newNonce();
     const content = file
@@ -107,12 +108,13 @@ function apiCall(apiKey: string): ExpenseCall {
         ]
       : [{ type: "text", text: `${dataRule(nonce)}\nToday is ${today}.\nWhat they said: <data-${nonce} kind="expense_note">${cleanData(text ?? "", 4000)}</data-${nonce}>` }];
     const r = await client.messages.create({
-      model: conciergeModel(),
+      model: meter.model,
       max_tokens: 3000,
       output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
       system: [{ type: "text", text: EXPENSE_SYSTEM, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content }],
     } as unknown as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    await meter.record(r.usage);
     return { json: r.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("") || null, stop: r.stop_reason };
   };
 }
@@ -163,8 +165,7 @@ export async function tellM8(user: User, text: string, opts: { now?: Date; call?
   const t = text.trim().slice(0, 4000);
   if (t.length < 3) return { ok: false, error: "Say what you spent, earned or drove." };
   const today = pacificToday(now);
-  const key = ccAnthropicKey();
-  const call = opts.call !== undefined ? opts.call : key ? apiCall(key) : null;
+  const call = opts.call !== undefined ? opts.call : await aiCall(user, "expenses", apiCall, now);
   let drafts: (Draft & { recipient?: string })[] | null = null;
   let by: "m8" | "parser" = "parser";
   if (call) {
@@ -194,8 +195,7 @@ export async function addReceipt(user: User, file: { name: string; type: string;
   const name = (file.name || "receipt").replace(/[^\w. -]/g, "").slice(0, 80) || "receipt";
   await expenseStore().putReceipt({ id: receiptId, ownerUserId: user.id, name, type: file.type, size: file.bytes.byteLength, data: base64, createdAt: now.toISOString() });
   const today = pacificToday(now);
-  const key = ccAnthropicKey();
-  const call = opts.call !== undefined ? opts.call : key ? apiCall(key) : null;
+  const call = opts.call !== undefined ? opts.call : await aiCall(user, "receipts", apiCall, now);
   let drafts: (Draft & { recipient?: string })[] | null = null;
   if (call) {
     try {

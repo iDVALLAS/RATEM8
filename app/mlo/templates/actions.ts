@@ -12,13 +12,11 @@ async function me() {
 }
 
 export async function answerAction(said: string, who: string): Promise<AnswerResult> {
-  await me();
-  return answerWithM8(said, who);
+  return answerWithM8(said, who, { user: await me() });
 }
 
 export async function writeAction(what: string, kind: string, channel: string): Promise<WriteResult> {
-  await me();
-  return writeWithM8({ what, kind, channel });
+  return writeWithM8({ what, kind, channel }, { user: await me() });
 }
 
 /** Bound to the template id (null for a new one). */

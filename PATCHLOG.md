@@ -3123,3 +3123,83 @@ loan.
   #{myNmls}" and "{company}, NMLS #{companyNmls}", and the sign-in
   sheet's consent line names both. A test now fails if any template
   pairs the company with the loan officer's number.
+
+## D40.1 — The production share, NEXA's way: three levels, vested after three years (2026-11-19)
+
+- **What NEXA does** (looked up at the owner's request): 10 basis points
+  on funded loans of loan officers you recruit, up to three levels down,
+  fully vested after three years, paid only on funded loans. Recruiting
+  is optional.
+  - Sources: National Mortgage Professional, HousingWire, and NEXA's own
+    recruiting material via third-party guides.
+  - **Washington DFI's consent order C-24-3734-25-CO01** found NEXA's
+    loan originator compensation agreements paid on loan terms, and
+    required changes in Washington. Ours reads only closed loan amounts.
+  - **NEXA's "ReLO" program** lets a dual-licensed realtor be both agent
+    and loan officer on a deal, usually with an experienced assistant.
+    Other sources warn many lenders and investors won't buy those loans,
+    and USDA is stricter.
+- **The change:** `MEMBERSHIP.productionBps` is now `[10, 10, 10]` and
+  `productionVestYears: 3`.
+  - Before vesting, the share pays only while the recruiter is active.
+  - After three years as a member (`vestedBy`), it keeps paying if they
+    leave.
+  - The Membership page and the launch checklist say so.
+- **Verified:** `lib/membership/production.test.ts` (3) covers:
+  - level 1 and level 2 at 10 bps each
+  - stopping after level 3 (level 4 unpaid)
+  - no pay after leaving before vesting, and continued pay after vesting
+- **Still off** until `PRODUCTION_OVERRIDE="true"`. For counsel, now
+  sharper: three levels in each of the five states, after Washington's
+  NEXA order.
+
+## D41 — AI metering, models by plan, and monthly allowances (2026-11-19)
+
+- **Why:** to price the platform. At $99 a month, unlimited use of the
+  most capable model doesn't pay for heavy users. Each feature now uses
+  the model its plan names, and its real cost is recorded.
+- **Plans** (`AI_PLANS` in `lib/config.ts`):
+  - **Standard ($12 AI a month):** Sonnet 5.5 for the Concierge, Tell,
+    questions, call notes, scripts, templates, AUS findings and practice;
+    Haiku 5.5 for expenses and receipts.
+  - **Unlimited (fair use, $60 a month):** Opus 5.5 for the Concierge,
+    Tell, questions, call notes, scripts and AUS findings; Sonnet for
+    templates, practice and receipts; Haiku for expenses.
+  - **Prices:** `AI_PRICES` holds list prices per million tokens: Opus
+    5.5 $4/$20 (cache read $0.20), Sonnet 5.5 $2/$10 ($0.10), Haiku 5.5
+    $0.10/$0.50. Cache writes are 1.25× input.
+- **`lib/ai/meter.ts`:**
+  - `aiMeter(user, route)` gives a feature its key, its model and a
+    `record(usage)`. It returns null without a key, or when the month's
+    allowance is used. Every AI feature already had a plain path (D9–D39),
+    so it falls back instead of failing.
+  - `aiOffReason` says why, with the reset date, in the features' own
+    messages.
+  - `CC_CONCIERGE_MODEL` still overrides every route.
+  - Usage is stored per call: tokens and cost, never text (Neon
+    `cc_ai_usage`). It's summed per member per Pacific month.
+- **Wired through the meter:** Concierge sweep, Tell, questions, call
+  notes, call scripts (both kinds), AUS findings, expenses and receipts,
+  templates and answers, and training practice and coaching.
+- **The public borrower chat** is recorded against the routed loan
+  officer's account (or "mlo:<id>" before they have one) and is never
+  stopped. A borrower doesn't lose M8 because a loan officer used their
+  allowance; the chat's own daily token budget (C4) still applies.
+- **Membership page:**
+  - **Each member:** "Your AI this month" shows the plan, used vs
+    allowance with a meter, the reset date and the cost by feature.
+  - **The owner:** sets each member's plan, and sees everyone's AI cost
+    this month with a total.
+  - **The Concierge page** shows a banner when the allowance is used.
+- **Launch checklist:** the model item now explains plans, and suggests
+  the Anthropic workspace's own monthly spend limit as a backstop.
+- **Verified:** `lib/ai/meter.test.ts` (4) covers:
+  - cost math, including cache and unknown models, and the Pacific month
+    edge
+  - models by plan and the override
+  - recording up to the allowance, then null with the reason, back next
+    month, and no key
+  - chat attributed to the routed loan officer, never blocked
+  All feature tests still pass through their test seams.
+- **Next:** run the overnight Concierge through the Batch API (half price)
+  once usage data shows where the cost goes.

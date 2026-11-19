@@ -51,7 +51,9 @@ export function fallbackFor(reason: GuardReason, name: string): string {
   return filled.replace(/(^|[.?!]\s+)([a-z])/g, (_, pre: string, c: string) => pre + c.toUpperCase());
 }
 
-export type TurnResult = { reply: string; guard: GuardReason | null; tokens: number; pricing?: PricingCard };
+/** D41: the turn's usage across tool rounds, for the per-loan-officer meter. */
+export type TurnUsage = { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number };
+export type TurnResult = { reply: string; guard: GuardReason | null; tokens: number; usage?: TurnUsage; pricing?: PricingCard };
 
 const MAX_TOOL_ROUNDS = 3;
 
@@ -78,6 +80,7 @@ export async function runM8Turn(opts: {
   const api: Anthropic.Messages.MessageParam[] = turn.messages.map((m) => ({ role: m.role, content: m.content }));
   let reply = "";
   let tokens = 0;
+  const usage: TurnUsage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
   let pricing: PricingResult | undefined;
 
   const fail = (reason: GuardReason, value?: string): TurnResult => {
@@ -85,7 +88,7 @@ export async function runM8Turn(opts: {
     emit({ replace: text });
     // The blocked percentage (a number only) says which figure tripped the guard.
     console.warn(`[m8-chat] guard replaced a reply: ${reason}${value ? ` (${value})` : ""}`);
-    return { reply: text, guard: reason, tokens };
+    return { reply: text, guard: reason, tokens, usage };
   };
 
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
@@ -122,6 +125,10 @@ export async function runM8Turn(opts: {
     }
     if (blocked) return fail(blocked, blockedValue);
     tokens += (final.usage?.input_tokens ?? 0) + (final.usage?.output_tokens ?? 0);
+    usage.input_tokens += final.usage?.input_tokens ?? 0;
+    usage.output_tokens += final.usage?.output_tokens ?? 0;
+    usage.cache_read_input_tokens += final.usage?.cache_read_input_tokens ?? 0;
+    usage.cache_creation_input_tokens += final.usage?.cache_creation_input_tokens ?? 0;
     if (roundText) reply += sep + roundText;
 
     if (final.stop_reason !== "tool_use") break;
@@ -145,5 +152,5 @@ export async function runM8Turn(opts: {
   if (card) emit({ pricing: card });
   // C19: the boxes, also only with a reply that passed the guard.
   if (actions.length) emit({ actions });
-  return { reply, guard: null, tokens, pricing: card };
+  return { reply, guard: null, tokens, usage, pricing: card };
 }

@@ -13,8 +13,10 @@
  *  - Levels follow "brought in by" on Membership: level 1 is the people you
  *    brought in, level 2 the people they brought in, and so on, only as far
  *    as productionBps has numbers.
- *  - Only loans the recruit closed after they joined, and only while the
- *    recruiter is an active member.
+ *  - Only loans the recruit closed after they joined. The recruiter must be
+ *    an active member, or vested: a member for productionVestYears (3, as
+ *    NEXA does) by that month, in which case it keeps paying after they
+ *    leave.
  *  - LoanM8 never pays it. This is a statement the sponsoring brokerage
  *    pays from, through its payroll under its written compensation plan.
  *  - Off until PRODUCTION_OVERRIDE="true", set only after counsel and the
@@ -48,12 +50,20 @@ function downline(members: Member[], rootId: string): { userId: string; level: n
   return out;
 }
 
+/** Vested by the month: a member for the full vesting period by its first day. */
+export function vestedBy(joinedOn: string, month: string): boolean {
+  const [y, m, d] = joinedOn.split("-").map(Number);
+  const vest = `${y + MEMBERSHIP.productionVestYears}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  return `${month}-01` >= vest;
+}
+
 /** One recruiter's share for a month. */
 export async function shareFor(recruiterUserId: string, month: string): Promise<ShareLine[]> {
   const members = await membershipStore().members();
   const me = members.find((m) => m.userId === recruiterUserId);
   const meUser = await accountStore().userById(recruiterUserId);
-  if (!me || !meUser || meUser.status !== "active") return [];
+  if (!me || !meUser) return [];
+  if (meUser.status !== "active" && !vestedBy(me.joinedOn, month)) return [];
   const lines: ShareLine[] = [];
   for (const d of downline(members, recruiterUserId)) {
     const recruit = members.find((m) => m.userId === d.userId)!;

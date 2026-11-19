@@ -19,6 +19,8 @@ export type Member = {
   recruitedBy: string | null;
   /** When they joined, for the tenure rate. */
   joinedOn: string;
+  /** D41: the AI plan (lib/config.ts AI_PLANS); "capped" when not set. */
+  plan?: "capped" | "unlimited";
   updatedAt: string;
 };
 
@@ -133,6 +135,7 @@ export class NeonMembershipStore implements MembershipStore {
         await this.q(`CREATE TABLE IF NOT EXISTS cc_members (user_id text PRIMARY KEY, area text NOT NULL, fee_cents integer NOT NULL, recruited_by text, joined_on date NOT NULL, updated_at timestamptz NOT NULL)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_member_payments (id text PRIMARY KEY, user_id text NOT NULL, month text NOT NULL, fee_cents integer NOT NULL, credit_used_cents integer NOT NULL, paid_cents integer NOT NULL, coop_cents integer NOT NULL, area text NOT NULL, credit jsonb, recorded_by text NOT NULL, recorded_at timestamptz NOT NULL, UNIQUE (user_id, month))`);
         await this.q(`ALTER TABLE cc_member_payments ADD COLUMN IF NOT EXISTS national_cents integer NOT NULL DEFAULT 0`);
+        await this.q(`ALTER TABLE cc_members ADD COLUMN IF NOT EXISTS plan text`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_coop_prefs (user_id text PRIMARY KEY, area text NOT NULL, split jsonb NOT NULL, updated_at timestamptz NOT NULL)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_coop_ideas (id text PRIMARY KEY, area text NOT NULL, user_id text NOT NULL, text text NOT NULL, dollars numeric, status text NOT NULL, reply text, at timestamptz NOT NULL, decided_at timestamptz, decided_by text)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_coop_spend (id text PRIMARY KEY, area text NOT NULL, month text NOT NULL, cents integer NOT NULL, what text NOT NULL, channel text NOT NULL, proof text NOT NULL, recorded_by text NOT NULL, recorded_at timestamptz NOT NULL)`);
@@ -143,7 +146,7 @@ export class NeonMembershipStore implements MembershipStore {
     }
     return this.ready;
   }
-  private toMember = (r: Row): Member => ({ userId: r.user_id as string, area: r.area as string, feeCents: Number(r.fee_cents), recruitedBy: (r.recruited_by as string | null) ?? null, joinedOn: toIso(r.joined_on).slice(0, 10), updatedAt: toIso(r.updated_at) });
+  private toMember = (r: Row): Member => ({ userId: r.user_id as string, area: r.area as string, feeCents: Number(r.fee_cents), recruitedBy: (r.recruited_by as string | null) ?? null, joinedOn: toIso(r.joined_on).slice(0, 10), plan: r.plan === "unlimited" ? "unlimited" : r.plan === "capped" ? "capped" : undefined, updatedAt: toIso(r.updated_at) });
   private toPayment = (r: Row): Payment => ({ id: r.id as string, userId: r.user_id as string, month: r.month as string, feeCents: Number(r.fee_cents), creditUsedCents: Number(r.credit_used_cents), paidCents: Number(r.paid_cents), coopCents: Number(r.coop_cents), nationalCents: Number(r.national_cents ?? 0), area: r.area as string, credit: (typeof r.credit === "string" ? JSON.parse(r.credit) : r.credit) as RecruitCredit | null, recordedBy: r.recorded_by as string, recordedAt: toIso(r.recorded_at) });
   async member(id: string) {
     await this.init();
@@ -157,9 +160,9 @@ export class NeonMembershipStore implements MembershipStore {
   async putMember(m: Member) {
     await this.init();
     await this.q(
-      `INSERT INTO cc_members (user_id, area, fee_cents, recruited_by, joined_on, updated_at) VALUES ($1,$2,$3,$4,$5,$6)
-       ON CONFLICT (user_id) DO UPDATE SET area = EXCLUDED.area, fee_cents = EXCLUDED.fee_cents, recruited_by = EXCLUDED.recruited_by, joined_on = EXCLUDED.joined_on, updated_at = EXCLUDED.updated_at`,
-      [m.userId, m.area, m.feeCents, m.recruitedBy, m.joinedOn, m.updatedAt],
+      `INSERT INTO cc_members (user_id, area, fee_cents, recruited_by, joined_on, updated_at, plan) VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (user_id) DO UPDATE SET area = EXCLUDED.area, fee_cents = EXCLUDED.fee_cents, recruited_by = EXCLUDED.recruited_by, joined_on = EXCLUDED.joined_on, updated_at = EXCLUDED.updated_at, plan = EXCLUDED.plan`,
+      [m.userId, m.area, m.feeCents, m.recruitedBy, m.joinedOn, m.updatedAt, m.plan ?? null],
     );
   }
   async addPayment(p: Payment) {
