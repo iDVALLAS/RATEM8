@@ -2358,3 +2358,21 @@ a journey page: Pipeline → the borrower → `/mlo/pipeline/[id]`.
   and for an outsider, allowed for the loan officer's own assistant;
   "next steps" for the processor (step 4) and the loan officer (step 5).
   `npm run verify` passes.
+
+## D20 — Command Center's own AI key (2026-11-19)
+
+From the research spec §8.3 and ledger item 7. Every Command Center model
+call now reads `ccAnthropicKey()` (`lib/concierge/agent.ts`): the
+Concierge, Ask, Tell, notes after a call, call scripts and the AUS reader.
+
+- It uses `CC_ANTHROPIC_API_KEY` when set, otherwise `ANTHROPIC_API_KEY`.
+- The public M8 chat, Second Look and health check keep `ANTHROPIC_API_KEY`.
+- **Owner:**
+  - In the Anthropic Console, make a separate workspace for Command Center
+    with its own monthly spend limit.
+  - Ask Anthropic for zero data retention on it (it handles client
+    messages and notes).
+  - Put its key in Vercel as `CC_ANTHROPIC_API_KEY`, marked Sensitive.
+  - Then the public chat can't use up Command Center's budget or share its
+    prompt cache.
+- **Verified:** all tests pass, and they clear both keys.

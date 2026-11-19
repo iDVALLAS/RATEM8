@@ -12,7 +12,7 @@ import { todayFor } from "@/lib/today/facts";
 import { guardReply } from "@/lib/m8/guard";
 import { contactStore } from "@/lib/contacts/store";
 import { checkDraft, checkNote, foreignContact, GUARD_VERSION, protectedTopic } from "./guard";
-import { CARD_BRIEF, conciergeModel, scanCtx } from "./agent";
+import { CARD_BRIEF, conciergeModel, scanCtx, ccAnthropicKey } from "./agent";
 import { dataBlock, dataRule, newNonce } from "./data";
 import { conciergeStore, type ConciergeSettings } from "./store";
 
@@ -71,7 +71,7 @@ export async function saveSettings(actor: User, change: Partial<Pick<ConciergeSe
 export async function ask(actor: User, question: string, now = new Date()): Promise<string> {
   const q = question.trim().slice(0, 500);
   if (!q) return "Ask me something about your clients.";
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = ccAnthropicKey();
   if (!key) return "Questions need the Anthropic key in Vercel. Your Today list and the drafts above still work without it.";
   const [today, drafts, tasks] = await Promise.all([todayFor(actor, now, { ownOnly: true }), conciergeStore().proposals(actor.id, "pending"), conciergeStore().tasks(actor.id)]);
   // D8.1: card text can carry rates and client words, so only the card kind's fixed description goes; names and drafts go as data.

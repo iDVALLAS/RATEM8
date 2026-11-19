@@ -25,6 +25,7 @@ describe("After a call (D16)", () => {
     setAccountStoreForTests(new MemoryAccountStore());
     setPipelineStoreForTests(new MemoryPipelineStore());
     delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.CC_ANTHROPIC_API_KEY;
     await importBatch(me, "contacts", [rec], "a.csv", "personal", NOW);
   });
   afterEach(() => {

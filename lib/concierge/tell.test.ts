@@ -27,6 +27,7 @@ describe("Tell your Concierge (D15)", () => {
     setAccountStoreForTests(new MemoryAccountStore());
     setPipelineStoreForTests(new MemoryPipelineStore());
     delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.CC_ANTHROPIC_API_KEY;
   });
   afterEach(() => {
     process.env = { ...saved };

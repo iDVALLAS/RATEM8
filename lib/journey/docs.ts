@@ -25,7 +25,7 @@ import { gateFor } from "@/lib/messaging/service";
 import { redactChatInput } from "@/lib/m8/redact";
 import { conciergeStore } from "@/lib/concierge/store";
 import { checkDraft, foreignContact } from "@/lib/concierge/guard";
-import { conciergeModel, laneFor } from "@/lib/concierge/agent";
+import { conciergeModel, laneFor, ccAnthropicKey } from "@/lib/concierge/agent";
 import { cleanData } from "@/lib/concierge/data";
 import { hasApplicationUrl, mloById } from "@/lib/config";
 import { loanFor } from "./engine";
@@ -93,7 +93,7 @@ export async function readFindings(user: User, loanId: string, input: { pdf?: Ui
   if (!pdf && text.length < 40) return { ok: false, error: "Upload the findings PDF, or paste their text." };
   if (pdf && pdf.byteLength > MAX_PDF_BYTES) return { ok: false, error: "That PDF is over 5 MB. Paste the findings text instead." };
   if (pdf && !(pdf[0] === 0x25 && pdf[1] === 0x50 && pdf[2] === 0x44 && pdf[3] === 0x46)) return { ok: false, error: "That file isn't a PDF." };
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = ccAnthropicKey();
   const call = opts.call !== undefined ? opts.call : key ? apiCall(key) : null;
   if (!call) return { ok: false, error: "Reading findings needs the Anthropic key in Vercel. You can still add documents by hand below." };
   let parsed: z.infer<typeof Out> | null = null;

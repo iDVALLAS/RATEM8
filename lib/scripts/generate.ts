@@ -24,7 +24,7 @@ import { gateFor } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
 import { pipelineStore, type Loan } from "@/lib/pipeline/store";
 import { conciergeStore, type MemoryNote } from "@/lib/concierge/store";
-import { conciergeModel } from "@/lib/concierge/agent";
+import { conciergeModel, ccAnthropicKey } from "@/lib/concierge/agent";
 import { protectedTopic, type ScanContext } from "@/lib/concierge/guard";
 import { cleanData, dataBlock, dataRule, newNonce } from "@/lib/concierge/data";
 import { redactChatInput } from "@/lib/m8/redact";
@@ -229,7 +229,7 @@ export async function buildScript(user: User, input: { contactId: string; goal: 
   const me = firstName(user);
   const template = templateScript(goal, c.firstName, g.signals, me);
   // Agents: plain template only (RETR's terms bar its data in AI).
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = ccAnthropicKey();
   const call = c.kind === "agent" ? null : opts.call !== undefined ? opts.call : key ? anthropicScriptCall(key) : null;
   const brief = scriptBrief(g, goal, me, { voice: settings.voice, ask: input.ask ?? "" });
   const w = await writeScript(call, brief, goal, template, { names: [c.firstName, c.lastName, me], places: [c.city] });
@@ -250,7 +250,7 @@ export async function practiceScript(user: User, input: { situation: string; goa
   const settings = await conciergeStore().settings(user.id);
   const me = firstName(user);
   const template = templateScript(goal, "", [], me);
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = ccAnthropicKey();
   const call = opts.call !== undefined ? opts.call : key ? anthropicScriptCall(key) : null;
   const brief = [
     `Goal: ${GOAL_LABELS[goal]}`,

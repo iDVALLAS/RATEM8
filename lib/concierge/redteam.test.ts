@@ -108,6 +108,7 @@ describe("Sweeps and approvals (D8.1)", () => {
     setAccountStoreForTests(new MemoryAccountStore());
     setPipelineStoreForTests(new MemoryPipelineStore());
     delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.CC_ANTHROPIC_API_KEY;
     process.env.TWILIO_ACCOUNT_SID = "AC1";
     process.env.TWILIO_AUTH_TOKEN = "t";
     process.env.TWILIO_MESSAGING_SERVICE_SID = "MG123";

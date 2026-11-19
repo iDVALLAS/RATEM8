@@ -23,7 +23,7 @@ import { contactStore } from "@/lib/contacts/store";
 import { canSee } from "@/lib/contacts/service";
 import { gateFor } from "@/lib/messaging/service";
 import { redactChatInput } from "@/lib/m8/redact";
-import { conciergeModel, laneFor, scanCtx, TASK_ACTIONS } from "./agent";
+import { conciergeModel, laneFor, scanCtx, TASK_ACTIONS, ccAnthropicKey } from "./agent";
 import { checkDraft, checkMemory, checkNote, protectedTopic } from "./guard";
 import { cleanData, dataRule, newNonce } from "./data";
 import { conciergeStore, MEMORY_KINDS } from "./store";
@@ -103,7 +103,7 @@ export async function debrief(user: User, contactId: string, rawNote: string, op
   const clean = cleanNote(note, ctx);
   if (clean.text) await store.put({ ...c, notes: [c.notes, `Call note (${now.toISOString().slice(0, 10)}): ${clean.text}`].filter(Boolean).join("\n").slice(-4000), updatedAt: now.toISOString() });
   const result: DebriefResult = { ok: true, saved: !!clean.text, summary: null, needs: 0, reminders: 0, draft: false, leftOut: clean.leftOut };
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = ccAnthropicKey();
   const call = opts.call !== undefined ? opts.call : key ? apiCall(key) : null;
   if (!call || !clean.text) return result;
   const nonce = newNonce();

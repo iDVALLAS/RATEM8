@@ -42,6 +42,17 @@ const PAUSE_DAYS = 30;
 const DAY = 86_400_000;
 const id = (p: string) => `${p}_${randomBytes(9).toString("base64url")}`;
 
+/**
+ * D20: Command Center's own Anthropic key. Set CC_ANTHROPIC_API_KEY (Sensitive)
+ * to a key from a separate Anthropic workspace, with its own spend limit and
+ * zero data retention, so the public chat can't drain its budget or share
+ * its prompt cache (research 2026-11-18, spec §8.3). Falls back to
+ * ANTHROPIC_API_KEY until it's set.
+ */
+export function ccAnthropicKey(): string | null {
+  return process.env.CC_ANTHROPIC_API_KEY?.trim() || process.env.ANTHROPIC_API_KEY?.trim() || null;
+}
+
 /** The model: CC_CONCIERGE_MODEL in Vercel, else this default. */
 export function conciergeModel(): string {
   return process.env.CC_CONCIERGE_MODEL?.trim() || "claude-opus-5-5";
@@ -331,7 +342,7 @@ export async function sweep(user: User, opts: { now?: Date; call?: ModelCall | n
   const out: SweepResult = { people: 0, proposals: 0, tasks: 0, remembered: 0, personal: 0, refused: [], mode: "off", models: [], errors: 0 };
   if (!s.enabled) return out;
   await conciergeStore().purgeExpired(now.toISOString());
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = ccAnthropicKey();
   const call = opts.call !== undefined ? opts.call : key ? anthropicModelCall(key) : null;
   out.mode = call ? "model" : "template";
   const { cards } = await todayFor(user, now, { ownOnly: true });

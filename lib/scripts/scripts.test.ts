@@ -98,6 +98,7 @@ describe("Building scripts (D9)", () => {
     setAccountStoreForTests(new MemoryAccountStore());
     setScriptStoreForTests(new MemoryScriptStore());
     delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.CC_ANTHROPIC_API_KEY;
   });
   afterEach(() => {
     process.env = { ...saved };

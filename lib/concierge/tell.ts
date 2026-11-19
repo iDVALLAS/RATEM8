@@ -21,7 +21,7 @@ import { accountStore, type User } from "@/lib/accounts/store";
 import { contactStore, type Contact } from "@/lib/contacts/store";
 import { gateFor } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
-import { conciergeModel, laneFor, scanCtx, TASK_ACTIONS } from "./agent";
+import { conciergeModel, laneFor, scanCtx, TASK_ACTIONS, ccAnthropicKey } from "./agent";
 import { checkDraft, checkNote } from "./guard";
 import { cleanData, dataRule, newNonce } from "./data";
 import { conciergeStore } from "./store";
@@ -133,7 +133,7 @@ export async function tell(user: User, request: string, opts: { now?: Date; call
   const out: TellResult = { answer: "", drafts: 0, reminders: 0, skipped: [] };
   const ask = request.trim().slice(0, 600);
   if (!ask) return { ...out, answer: "Tell me what you'd like done for your clients." };
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = ccAnthropicKey();
   const call = opts.call !== undefined ? opts.call : key ? apiCall(key) : null;
   if (!call) return { ...out, answer: "This needs the Anthropic key in Vercel. Your drafts, reminders and automations still work without it." };
   const settings = await conciergeStore().settings(user.id);
