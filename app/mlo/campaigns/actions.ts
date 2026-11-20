@@ -6,7 +6,10 @@ import { encodeFlash } from "@/lib/mlo/flash";
 import { aiCreateCampaign, createCampaign, deleteCampaign, enrollGroup, saveCampaign, setCampaignStatus, stopEnrollment } from "@/lib/campaigns/service";
 
 const me = async () => (await currentUser()) ?? redirect("/sign-in");
-const go = (path: string, ok: boolean, line: string) => redirect(`${path}?f=${encodeURIComponent(encodeFlash({ ok, lines: [line] }))}`);
+const go = (target: string, ok: boolean, line: string) => {
+  const [path, hash] = target.split("#");
+  return redirect(`${path}?f=${encodeURIComponent(encodeFlash({ ok, lines: [line] }))}${hash ? `#${hash}` : ""}`);
+};
 
 /** D51: start from a starter campaign (or blank). */
 export async function newCampaignAction(starter: string | null): Promise<void> {

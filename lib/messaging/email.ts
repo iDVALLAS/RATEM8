@@ -87,7 +87,7 @@ export async function emailReadyFor(user: Pick<User, "id">): Promise<{ ready: bo
   return { ready: !!cfg, via: cfg ? "resend" : null, from: cfg?.from ?? null, reconnect: false };
 }
 
-export async function sendEmail(actor: User, contactId: string, rawSubject: string, rawBody: string, purpose: Purpose, now = new Date(), send: (msg: { from: string; to: string; replyTo: string; subject: string; text: string }) => Promise<{ ok: boolean; id: string | null }> = resendSend, opts: { origin?: "human" | "concierge" | "template" | "campaign" } = {}): Promise<SendOutcome> {
+export async function sendEmail(actor: User, contactId: string, rawSubject: string, rawBody: string, purpose: Purpose, now = new Date(), send: (msg: { from: string; to: string; replyTo: string; subject: string; text: string }) => Promise<{ ok: boolean; id: string | null }> = resendSend, opts: { origin?: "human" | "concierge" | "template" | "campaign" | "agent" } = {}): Promise<SendOutcome> {
   const c = await contactStore().get(contactId);
   if (!c || !canSee(actor, c)) return { ok: false, error: "No such contact." };
   if (!c.email) return { ok: false, error: "There's no email address for them." };

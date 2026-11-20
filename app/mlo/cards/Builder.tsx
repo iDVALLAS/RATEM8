@@ -39,7 +39,10 @@ export default function Builder({ action, people, designs, styles, starters, sig
   });
   const selectShown = (on: boolean) => setPicked((s) => {
     const n = new Set(s);
-    for (const p of shown) if (p.mailable || !on) (on ? n.add(p.id) : n.delete(p.id));
+    for (const p of shown) {
+      if (on && p.mailable) n.add(p.id);
+      else if (!on) n.delete(p.id);
+    }
     return n;
   });
   const shownMailable = shown.filter((p) => p.mailable).length;

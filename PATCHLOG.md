@@ -4268,3 +4268,122 @@ the old logo".
     drop it.
 - **Also:** the smaller-orb change was verified (`npm run verify`) before
   this commit.
+
+## D54 — The Concierge team, part 1 (2026-11-20)
+
+The owner asked for "the concierge to be a full team of agents" to "run an
+efficient mortgage business for this independent contractor mortgage
+broker", run autonomously, and always be finding business. The owner's
+answers (2026-11-20):
+- **Sending:** approved playbooks only.
+- **Spending:** always ask.
+- **Coach:** daily top three, weekly scorecard, call practice and an income
+  goal plan.
+- **Prospecting:** all sources, plus canceled and expired listings (reach
+  the listing agent), relocation companies, new agents, and a Coach that
+  drills CORE.
+- **Gifts:** "we've always done it and UWM allows it". The gray areas the
+  owner named are holiday gifts to referring agents, lunches, and client
+  closing gifts the agent hands over.
+
+Research (sources in the 2026-11-20 chat):
+- **Expired and canceled listings:** these are the listing agent's lost
+  business. Loan officers get them from an MLS hot sheet or a vendor
+  export.
+- **Relocation:** many relocation companies own or are tied to their own
+  lender, so the realistic path is brokerage relocation desks and local
+  employers' HR.
+- **New agents:** the WA DOL has a lookup, but no bulk download was found,
+  so the agent takes a roster CSV.
+- **RESPA §8:** the CFPB's 2020 FAQs say gifts are judged on the facts, and
+  even small things of value count when tied to referrals.
+
+- **The team** (`lib/agents/*`, `/mlo/agents`, Your day → Your team):
+  - **Chief of Staff:** answers people waiting on you, keeps your promises,
+    and puts the top three first.
+  - **Business Finder:**
+    - New web leads.
+    - Home anniversaries, past clients gone quiet, refi watch (for the loan
+      officer's eyes only) and asking for permission.
+    - A monthly relocation plan.
+  - **Pipeline:** loans running late against your own pace, locks, closings
+    and Journey steps.
+  - **Partner:**
+    - A steady CORE touch every 3 weeks with agents you work with.
+    - Welcomes new agents, and reaches listing agents from the lists you
+      add.
+  - **Coach:**
+    - The income goal worked back over 48 working weeks to closings,
+      applications and conversations.
+    - The last 7 days against that plan.
+    - Links to call practice and the next CORE lesson.
+  - **Compliance** reviews every move and every send, and can't be turned
+    off:
+    - the template wording rules
+    - for agents, anything of value for referrals, gift cards, "on me",
+      referral fees, co-marketing or cost-splitting
+  - **Marketing and Business Manager** are shown as "coming next".
+- **How it runs** (`runner.ts`):
+  - **Morning:** the sweep plans the day from Today's cards, the partner
+    agents' last touch, the lists you added and the gift lanes.
+  - **Each move:** one per key while it matters, with a cooldown.
+    Compliance holds bad text as a task with its reason.
+  - **Sends:** a playbook message is a "send" if approved, else a "draft";
+    a missing email, phone or first name makes it a task.
+  - **Midday:** the campaigns tick sends due moves through
+    `sendText`/`sendEmail` (origin `agent`), within the daily cap
+    (default 20).
+    - Quiet hours wait.
+    - Other refusals become tasks with the reason.
+    - If an approval is taken back, the send becomes a draft again.
+  - **"Run now"** on the page. `CC_TEAM="false"` stops everything.
+- **Playbooks** (`playbooks.ts`): five of them (new-lead hello, home
+  anniversary, check-in, new-agent welcome, listing-agent intro). Approval
+  is tied to a hash of the exact text; changed wording needs a new
+  approval. Every playbook passes Compliance; it caught "get pre-approved
+  quickly" as a promise, which was reworded.
+- **Gifts and lunches** (the owner's practice):
+  - Pipeline suggests a closing gift for loans closed in the last 14 days.
+  - Partner suggests holiday thank-yous (Nov 15 to Dec 20) and up to two
+    monthly lunch ideas, only for agents linked to a client's loan.
+  - Each one waits for the loan officer's yes with what it was and what
+    it cost.
+    - Never a gift card or cash for an agent.
+    - An optional yearly cap per agent.
+    - Logged on the move and added to expenses (gifts, or meals for
+      lunches; the $25 gift rule applies there).
+  - The rules shown: a closing gift can't replace the agent's own gift; a
+    thank-you is never tied to referrals; lunches have a real agenda.
+- **RETR:** never read by the team (its terms bar automated use). Partner
+  moves come only from agents added through the team's lists or linked to
+  a client's loan; RETR-imported agents aren't worked automatically.
+- **Lists** (`/mlo/agents/setup`):
+  - Canceled/expired listings CSV: address plus listing agent; creates
+    agent contacts, source `team: canceled listings`.
+  - New-agents roster CSV: name plus email or phone; existing contacts
+    are skipped.
+- **Also fixed:**
+  - Flash messages on redirects that ended in `#…` (the team pages and
+    D51 campaigns `#people`): the message now goes before the anchor.
+  - A lint warning in the cards builder.
+- **Verified:**
+  - 9 new tests:
+    - playbooks pass Compliance, and the RESPA and rate lines are held
+    - off does nothing
+    - drafts until approved, then sends, with no repeats
+    - the cap, quiet hours and refusals
+    - an approval taken back
+    - the listing and new-agent lists and their playbooks
+    - a closing gift logged into expenses, and amount checks
+    - the goal math
+  - `npm run verify`.
+  - **In the browser:** set up (on, area, goals) → add a listings CSV →
+    Run now found 3 moves (two listing agents and the relocation plan),
+    with the Coach's plan "48 loans a year". 1280 and 390px, with no
+    sideways scroll and no errors.
+- **Next (part 2):**
+  - Marketing: seasonal cards priced first, a content plan, and mail to
+    new neighborhoods with a Thanks.io radius search (always asks).
+  - Business Manager.
+  - Call practice built into the Coach.
+  - The team's plan in the morning email.

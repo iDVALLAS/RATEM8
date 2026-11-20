@@ -119,6 +119,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     Tagline "Quit renting your CRM and start owning it." and pitch (`lib/content/command-center.ts`;
     no earnings or equity claims). D53.1 Download everything (`/mlo/export`,
     `lib/export/*`): own book as a zip of formula-safe CSVs, no secrets, emailed notice.
+    D54 Concierge team (`lib/agents/*`, `/mlo/agents`): rule-based agents (Chief, Finder,
+    Pipeline, Partner, Coach, Compliance) plan in the sweep, send at the tick; only
+    approved playbooks (hash of exact text) send, via the gate, daily cap; gifts/lunches
+    wait for a yes and log to expenses; RESPA lines held; never RETR data; `CC_TEAM="false"`.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

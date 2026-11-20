@@ -39,6 +39,7 @@ export type GroupKey = keyof typeof GROUPS;
 export const DESTS: Dest[] = [
   { key: "home", href: "/mlo", label: "Home", icon: "home", group: "day", desc: "Who to reach today, and everything else.", match: /^\/mlo\/?$/ },
   { key: "concierge", href: "/mlo/concierge", label: "Concierge", icon: "spark", group: "day", desc: "Drafts and reminders your AI assistant prepared. You approve every one." },
+  { key: "agents", href: "/mlo/agents", label: "Your team", icon: "users", group: "day", desc: "Your Concierge team: finding business, keeping loans moving, partners and your Coach.", account: true },
   { key: "inbox", href: "/mlo/inbox", label: "Inbox", icon: "inbox", group: "day", desc: "Every reply in one place. STOP is honored instantly." },
   { key: "calls", href: "/mlo/calls", label: "Call session", icon: "phone", group: "day", desc: "A focused calling hour: the next person, why, one tap for how it went." },
   { key: "contacts", href: "/mlo/contacts", label: "Contacts", icon: "users", group: "people", desc: "Past clients, leads, sphere and agents, with what you may do for each.", match: /^\/mlo\/contacts(?!\/import|\/permission)/ },

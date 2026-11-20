@@ -9,6 +9,8 @@ import { sendWeekly } from "@/lib/report/weekly";
 import { automationStore } from "@/lib/automations/store";
 import { ensureRegistry } from "@/lib/registry/cache";
 import { runDue } from "@/lib/campaigns/service";
+import { teamStore } from "@/lib/agents/store";
+import { runTeam, teamOn } from "@/lib/agents/runner";
 
 /**
  * GET /api/cc/concierge/sweep — the morning run for every loan officer who
@@ -23,7 +25,7 @@ export async function GET(req: Request) {
   const given = (req.headers.get("authorization") ?? "").replace(/^Bearer /, "");
   if (!secret || given.length !== secret.length || !timingSafeEqual(Buffer.from(given), Buffer.from(secret))) return new Response("Not found", { status: 404 });
   // D10: loan officers with the Concierge on, or with any after-closing / new-contact recipe on.
-  const owners = [...new Set([...(await conciergeStore().enabledOwners()), ...(await conciergeStore().digestOwners()), ...(await automationStore().owners())])];
+  const owners = [...new Set([...(await conciergeStore().enabledOwners()), ...(await conciergeStore().digestOwners()), ...(await automationStore().owners()), ...(teamOn() ? await teamStore().enabledOwners() : [])])];
   let done = 0;
   let failed = 0;
   for (const owner of owners.slice(0, 200)) {
@@ -31,6 +33,8 @@ export async function GET(req: Request) {
     if (!user || user.status !== "active") continue;
     try {
       await runDaily(user);
+      // D54: the Concierge team plans the day (its sends go out in the midday run).
+      if (teamOn()) await runTeam(user);
       const r = await sweep(user);
       if (r.errors) failed++;
       // D11: after the run, so the email counts this morning's drafts.

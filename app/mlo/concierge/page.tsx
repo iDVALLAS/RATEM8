@@ -43,6 +43,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
       <div className="mlo-wrap">
         <p className="eyebrow">LoanM8 Command Center</p>
         <h1 className="tagline text-4xl">Concierge</h1>
+        <p className="mlo-note">Your Concierge now works with a full team: a Business Finder, Pipeline, Partner, Coach and Compliance. <Link href="/mlo/agents">Open your team</Link>.</p>
         <MloNav current="concierge" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {ai?.over ? <div className="mlo-flash mlo-flash--err" role="status">This month&apos;s AI allowance is used, so the Concierge drafts from templates until {ai.resetsOn}. <Link href="/mlo/network#ai">See your usage</Link>.</div> : null}
