@@ -49,6 +49,7 @@ export const DESTS: Dest[] = [
   { key: "campaigns", href: "/mlo/campaigns", label: "Campaigns", icon: "send", group: "people", desc: "Texts, emails and reminders spaced over days, sent for you through your contact rules.", account: true },
   { key: "cards", href: "/mlo/cards", label: "Cards by mail", icon: "mail", group: "people", desc: "Pick people, or everyone, and send handwritten-style notes and holiday cards through Thanks.io.", account: true },
   { key: "videos", href: "/mlo/videos", label: "Video messages", icon: "video", group: "people", desc: "Record a short video, have its words checked, and send each person their own link. See who watched.", account: true },
+  { key: "voicemail", href: "/mlo/voicemail", label: "Voicemail drops", icon: "phone", group: "people", desc: "Record a voicemail once and leave it for people, through your contact rules. Its words are checked first.", account: true },
   { key: "templates", href: "/mlo/templates", label: "Templates", icon: "cards", group: "people", desc: "Open house kit, agent outreach, follow-ups and honest answers to objections." },
   { key: "scripts", href: "/mlo/scripts", label: "Call scripts", icon: "script", group: "people", desc: "What to say on each call, built from the client's loan and situation." },
   { key: "pipeline", href: "/mlo/pipeline", label: "Pipeline", icon: "pipeline", group: "loans", desc: "Loans from your loan system, each with its 33-step journey and clocks." },

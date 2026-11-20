@@ -153,9 +153,9 @@ export function decide(i: GateInput): GateDecision {
     else if (marketing && !WRITTEN.includes(ev!)) reasons.push("Marketing texts need written permission (a signed form, a web form or a texted yes), not just your word.");
     else basis = `text permission (${ev})${when}`;
   } else if (i.channel === "ai_call") {
-    if (!granted) reasons.push("No permission for calls from M8 (an AI voice) on file.");
-    else if (!PROOF.includes(ev!)) reasons.push("Calls from M8 need proof of permission, not just your word.");
-    else if (marketing && !WRITTEN.includes(ev!)) reasons.push("Marketing calls from M8 need written permission (a signed form, a web form or a texted yes).");
+    if (!granted) reasons.push("No permission for recorded or AI-voice calls (voicemail drops, M8) on file.");
+    else if (!PROOF.includes(ev!)) reasons.push("Recorded and AI-voice calls need proof of permission, not just your word.");
+    else if (marketing && !WRITTEN.includes(ev!)) reasons.push("Recorded and AI-voice calls with an offer need written permission (a signed form, a web form or a texted yes).");
     else basis = `AI call permission (${ev})${when}`;
   }
   // D21: reassigned numbers (47 CFR 64.1200(m)). A number disconnected since permission was given may belong to
@@ -169,7 +169,7 @@ export function decide(i: GateInput): GateDecision {
   // D13: state switches that stay closed until counsel clears them.
   if (marketing && phone && states.includes("TX") && !clear.tx302) reasons.push("Texas: sales calls and texts need telephone-solicitor registration (Bus. & Com. ch. 302) or a confirmed exemption. The owner turns this on once counsel confirms.");
   if (marketing && phone && states.includes("AZ") && !clear.azPhone) reasons.push("Arizona: sales calls and texts wait for counsel to confirm the state's telephone solicitation rules (A.R.S. 44-1271). The owner turns this on once cleared.");
-  if (i.channel === "ai_call" && states.includes("CA") && !clear.caAiVoice) reasons.push("California: calls from M8's AI voice wait for counsel (Pub. Util. Code 2871–2876).");
+  if (i.channel === "ai_call" && states.includes("CA") && !clear.caAiVoice) reasons.push("California: recorded and AI-voice calls wait for counsel (Pub. Util. Code 2871–2876).");
   // D13: Washington: after a no, no sales calls for a year.
   if (marketing && i.channel === "call" && r.noCallYearAfterNo && c.declinedCallAt && i.now.getTime() - Date.parse(c.declinedCallAt) < 365 * 24 * 3600 * 1000) reasons.push(`They said no to a call on ${c.declinedCallAt.slice(0, 10)}. Washington doesn't allow another sales call for a year (RCW 80.36.390).`);
   if (reasons.length) return out(false);

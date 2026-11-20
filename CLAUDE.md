@@ -139,6 +139,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     makes a Twilio subaccount, profiles, brand, Messaging Service, number and Customer Care
     campaign, re-checked each morning; `textSender()` picks the sender (manual env first),
     subaccount webhooks verified by their own token. Needs `TWILIO_PRIMARY_PROFILE_SID`.
+    D57 voicemail drops (`lib/voicemail/*`, `/mlo/voicemail`, `/api/twilio/voicedrop*`, `/api/twilio/voice*`):
+    8 kHz WAV recorded in the browser, word-checked, left through the gate as `ai_call` (recorded
+    voice); Command Center adds who's calling, the opt-out (toll-free `TWILIO_OPTOUT_NUMBER` for
+    offers) and the call-back number; press 9 stops calls and texts platform-wide; `CC_VOICEMAIL="false"`.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

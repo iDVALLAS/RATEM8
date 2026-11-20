@@ -317,7 +317,7 @@ export async function advance(company: string, now: Date, mail: Mailer): Promise
     }
     step = "number";
     if (!s.phoneNumberSid) {
-      const n = await tw.buyNumber(sub, i.areaCode);
+      const n = await tw.buyNumber(sub, i.areaCode, `${CONFIG.siteUrl.replace(/\/$/, "")}/api/twilio/voice`);
       s.phoneNumberSid = n.sid;
       s.phoneNumber = n.phone;
       note(s, `Got the company's texting number, ${n.phone}.`, now);

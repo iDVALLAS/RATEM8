@@ -62,6 +62,15 @@ Stores the short videos loan officers record and send (D55). In Vercel: the proj
 | --- | --- | --- |
 | `BLOB_READ_WRITE_TOKEN` (optional) | Yes | Set by Vercel when the Blob store is connected. |
 
+### Voicemail drops (Twilio, optional)
+
+Loan officers leave a recorded voicemail through their contact rules (D57). Calls come from the company's own number once Command Center registers its texting (D56), or from a number you set here. For voicemails with an offer, the law asks for a toll-free opt-out line: buy a toll-free number in Twilio and set its Voice webhook to (your site)/api/twilio/voice (HTTP POST). A number you set by hand needs the same Voice webhook. Uses the Blob store (Video messages) and the Google key (Voice and the mic).
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `TWILIO_OPTOUT_NUMBER` (optional) | No | The toll-free opt-out line (+18…). |
+| `TWILIO_CALLER_ID` (optional) | No | A Twilio number drops can come from while a company has no registered number (TWILIO_CALLER_ID_<company NMLS> for one company). |
+
 ### AI for Command Center (Anthropic)
 
 Make a separate workspace in the Anthropic Console for Command Center, with its own monthly spend limit, and ask Anthropic for zero data retention on it (it handles client messages and notes). The public chat keeps its own key.

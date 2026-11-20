@@ -55,7 +55,7 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
               <h2>What they gave permission for</h2>
               <input type="hidden" name="since" value={since ?? ""} />
               <label className="mlo-check"><input type="checkbox" name="text" defaultChecked /> <span>Texts from me</span></label>
-              <label className="mlo-check"><input type="checkbox" name="ai_call" /> <span>Calls from M8 (an AI voice)</span></label>
+              <label className="mlo-check"><input type="checkbox" name="ai_call" /> <span>Recorded or AI-voice calls (voicemail drops and M8)</span></label>
               <label className="mlo-check"><input type="checkbox" name="service" defaultChecked /> <span>About their loan or account</span></label>
               <label className="mlo-check"><input type="checkbox" name="marketing" defaultChecked /> <span>Offers and check-ins</span></label>
               <label className="mlo-field"><span>How they gave it</span>

@@ -127,11 +127,12 @@ export const createService = (c: Creds, name: string, inbound: string, status: s
   call<Sid>("POST", `${MSG}/Services`, c, { FriendlyName: name.slice(0, 64), InboundRequestUrl: inbound, InboundMethod: "POST", StatusCallback: status, StickySender: true, SmartEncoding: true, UseInboundWebhookOnNumber: false });
 
 /** The first local number with texting in the area code (or nearby when none). */
-export async function buyNumber(c: Creds, areaCode: string): Promise<{ sid: string; phone: string }> {
+export async function buyNumber(c: Creds, areaCode: string, voiceUrl?: string): Promise<{ sid: string; phone: string }> {
   const search = async (q: string) => (await call<{ available_phone_numbers?: { phone_number: string }[] }>("GET", `${API}/Accounts/${c.sid}/AvailablePhoneNumbers/US/Local.json?${q}&SmsEnabled=true&VoiceEnabled=true&PageSize=5`, c)).available_phone_numbers ?? [];
   const found = (await search(`AreaCode=${encodeURIComponent(areaCode)}`))[0] ?? (await search("")).at(0);
   if (!found) throw new TwilioError(404, null, "No numbers with texting were available.");
-  const n = await call<{ sid: string; phone_number: string }>("POST", `${API}/Accounts/${c.sid}/IncomingPhoneNumbers.json`, c, { PhoneNumber: found.phone_number });
+  // D57: calls back to this number reach the company's calling line (opt out, or the loan officer who called).
+  const n = await call<{ sid: string; phone_number: string }>("POST", `${API}/Accounts/${c.sid}/IncomingPhoneNumbers.json`, c, { PhoneNumber: found.phone_number, VoiceUrl: voiceUrl, VoiceMethod: voiceUrl ? "POST" : undefined });
   return { sid: n.sid, phone: n.phone_number };
 }
 export const attachNumber = (c: Creds, service: string, numberSid: string) => call<Sid>("POST", `${MSG}/Services/${service}/PhoneNumbers`, c, { PhoneNumberSid: numberSid });

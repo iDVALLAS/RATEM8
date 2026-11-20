@@ -4741,3 +4741,86 @@ hand in the Twilio Console and pasted its Messaging Service into Vercel
   - Replies reach Command Center at the production address, so the
     production build must include D56.
 - **Next:** D57 voicemail drops.
+
+## D57 — Voicemail drops (2026-11-20)
+
+Planned in D51: "voicemail drops come before AI calls". A loan officer
+records a voicemail once and leaves it for one person or many.
+- **Recording** (`/mlo/voicemail`, "Voicemail drops" under People):
+  - Record with the microphone or pick an audio file, up to 55 seconds.
+    The browser turns it into the phone network's own format (8 kHz mono
+    WAV, gently levelled) and plays it back as the phone will.
+  - Saving runs the **word check** (Google Speech-to-Text at 8 kHz, then
+    the same rules as texts, emails and videos). The bytes checked are the
+    bytes played. A recording that doesn't pass isn't kept, and the reason
+    and the sentence near it are shown.
+  - Stored in Vercel Blob (the store video messages use).
+- **Leaving it** (that page for up to 50 people at a time, or "Leave a
+  voicemail" on a contact's page):
+  - Each person goes through the send gate as a **recorded/AI-voice call**
+    (`ai_call`, the TCPA's "artificial or prerecorded voice"; the FCC
+    treats ringless voicemail the same way). That means: proof of
+    permission for loan updates, written permission for offers, the
+    do-not-call lists, caps per number across the platform, quiet hours
+    (nothing is left outside calling hours), licensing, reassigned
+    numbers, and California held for counsel.
+  - People who aren't allowed are skipped, with the reason.
+  - Twilio places each call with answering-machine detection that waits
+    for the beep. A person who answers hears the message too and can press
+    9.
+  - Each drop is logged in the conversation and counted toward the caps.
+    Its result is shown: voicemail left, answered, no answer, busy, failed
+    or "pressed 9".
+- **What every message says around the recording** (47 CFR 64.1200(b)),
+  added by Command Center in a neutral voice:
+  1. who's calling: "This is a recorded message from (loan officer) with
+     (company)";
+  2. for an offer, right after that, how to stop: "press 9", or on a
+     voicemail the platform's **toll-free opt-out line**
+     (`TWILIO_OPTOUT_NUMBER`). Offers by voicemail stay off until it's
+     set;
+  3. the recording;
+  4. "To reach (first name), call (their number)", and for loan updates
+     how to stop.
+- **Calls back and stopping:**
+  - Company numbers that Command Center buys (D56) now point their voice
+    line at `/api/twilio/voice`. A caller can press 9 to stop, or stay on
+    the line to be put through to the loan officer who last called them.
+  - The toll-free line offers press 9.
+  - Pressing 9 anywhere stops recorded calls and texts to that number from
+    everyone on the platform (the STOP list), and records "said stop" on
+    each matching contact.
+- **Safety:**
+  - Every Twilio webhook is signature-checked, including those from
+    company subaccounts.
+  - Before placing any call, Command Center checks that the public site
+    runs this version (`/api/twilio/voicedrop/ping`), because that's where
+    Twilio fetches the message. Calls from a preview can't hit a site
+    without it.
+  - Limits: 30 recordings and 200 drops an hour per loan officer.
+- **Wording:** the permission channel is now "Recorded or AI-voice calls
+  (voicemail drops, M8)" on contact pages, Permission, and in the gate's
+  reasons.
+- **The owner, to turn it on:**
+  - The Blob store (D55), Twilio, and the Google key.
+  - A calling number per company: it comes with D56, or set
+    `TWILIO_CALLER_ID` (or `TWILIO_CALLER_ID_<company NMLS>`) with that
+    number's Voice webhook set to `/api/twilio/voice`.
+  - For offers: a Twilio toll-free number with the same Voice webhook, as
+    `TWILIO_OPTOUT_NUMBER`.
+  - `CC_VOICEMAIL="false"` turns drops off.
+  - Counsel should confirm that the consent wording on applications covers
+    "prerecorded or artificial voice" calls.
+- **Verified:**
+  - `npm run verify` (6 new tests: the WAV format; the word check at
+    8 kHz keeping nothing that fails; the gate (no permission, quiet
+    hours, offers needing the toll-free line, the live-site check, no
+    calling number); the message order and its key press; how a drop
+    ended; press 9 stopping that number and recording it; and the calling
+    line putting a caller through to the loan officer).
+  - Browser, with a simulated microphone: record, stop, the phone-format
+    playback (3.2 seconds), saving reaches the word check; the ping
+    answers; an unsigned webhook is refused (403); no sideways scroll at
+    390px.
+- **Not verified live:** no Twilio account or Google key in this session.
+- **Next:** AI calls with written consent.

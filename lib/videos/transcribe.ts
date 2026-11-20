@@ -44,7 +44,7 @@ export function toCues(words: { word: string; start: number; end: number }[]): C
 const round = (n: number) => Math.round(n * 100) / 100;
 
 /** One piece of sound: its text and caption lines, timed from the start of the video. Throws on failure. */
-export async function transcribePart(pcm: Uint8Array, offsetSec: number, fetcher: typeof fetch = fetch): Promise<{ text: string; cues: Cue[] }> {
+export async function transcribePart(pcm: Uint8Array, offsetSec: number, fetcher: typeof fetch = fetch, sampleRate = 16_000): Promise<{ text: string; cues: Cue[] }> {
   const key = env("GOOGLE_CLOUD_API_KEY");
   if (!key) throw new Error("speech off");
   const res = await fetcher("https://speech.googleapis.com/v1/speech:recognize", {
@@ -53,7 +53,7 @@ export async function transcribePart(pcm: Uint8Array, offsetSec: number, fetcher
     body: JSON.stringify({
       config: {
         encoding: "LINEAR16",
-        sampleRateHertz: 16_000,
+        sampleRateHertz: sampleRate,
         languageCode: "en-US",
         enableAutomaticPunctuation: true,
         enableWordTimeOffsets: true,

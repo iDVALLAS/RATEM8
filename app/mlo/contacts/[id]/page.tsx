@@ -34,6 +34,9 @@ import { noMailAction } from "../../cards/actions";
 import { videoStore } from "@/lib/videos/store";
 import { DEFAULT_NOTE, NOTE_MAX, videosOn } from "@/lib/videos/service";
 import { sendVideoAction } from "../../videos/actions";
+import { voicemailStore } from "@/lib/voicemail/store";
+import { optOutLine, voicemailOn } from "@/lib/voicemail/service";
+import { dropAction } from "../../voicemail/actions";
 import { clientLink } from "@/lib/clientpage/link";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
@@ -42,7 +45,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 export const metadata: Metadata = { title: "Contact", robots: { index: false, follow: false } };
 
-const CHANNEL_LABELS = { call: "Calls from you", ai_call: "Calls from M8 (AI voice)", text: "Texts", email: "Email" } as const;
+const CHANNEL_LABELS = { call: "Calls from you", ai_call: "Recorded or AI-voice calls (voicemail drops, M8)", text: "Texts", email: "Email" } as const;
 const PURPOSE_LABELS = { service: "About their loan or account", marketing: "Offers and check-ins" } as const;
 const EVIDENCE_LABELS = { written: "Signed or written permission", recorded_call: "Said yes on a recorded call", web_form: "Web form or M8 chat checkbox", text_reply: "Texted back yes", attested: "Your word (from an import)", revoked: "Said no / stop" } as const;
 
@@ -70,6 +73,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   // D55: their video messages, and your videos ready to send.
   const [myVideos, theirVideos] = videosOn() ? await Promise.all([videoStore().videosFor(v.user.id, 50).catch(() => []), videoStore().sendsForContact(c.id, 10).catch(() => [])]) : [[], []];
   const readyVideos = myVideos.filter((x) => x.status === "ok");
+  // D57: your voicemails, and drops to this person.
+  const [myVoicemails, theirDrops] = voicemailOn() ? await Promise.all([voicemailStore().voicemailsFor(v.user.id).catch(() => []), voicemailStore().dropsForContact(c.id, 5).catch(() => [])]) : [[], []];
   const memory = await conciergeStore().memory(c.ownerUserId, c.id, new Date().toISOString(), { includePending: true });
   const tenant = listTenants()[0];
   const clientUrl = clientLink(c.id, c.linkVersion ?? 0);
@@ -327,6 +332,25 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                 <p className="mlo-note"><Link href="/mlo/videos">Record a video message</Link> to send {c.firstName || "them"} their own link.</p>
               )}
               {theirVideos.length ? <p className="mlo-note">Videos: {theirVideos.map((s) => `${new Date(s.at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })} by ${s.channel}, ${s.views ? `watched ${s.views === 1 ? "once" : `${s.views} times`}` : "not watched yet"}`).join("; ")}.</p> : null}
+            </div>
+          ) : null}
+          {voicemailOn() ? (
+            <div id="voicemail" style={{ marginTop: 18 }}>
+              {myVoicemails.length && c.phone ? (
+                <form action={dropAction} className="mlo-row-form">
+                  <input type="hidden" name="contactIds" value={c.id} />
+                  <input type="hidden" name="back" value="contact" />
+                  <select name="voicemailId" className="mlo-select" aria-label="Which voicemail">{myVoicemails.map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}</select>
+                  <select name="purpose" className="mlo-select" aria-label="What it's about" defaultValue="service">
+                    <option value="service">About their loan ({gate.ai_call.service.allowed ? "allowed now" : "not now"})</option>
+                    <option value="marketing" disabled={!optOutLine()}>An offer or check-in ({gate.ai_call.marketing.allowed ? "allowed now" : "not now"})</option>
+                  </select>
+                  <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Leave a voicemail</button>
+                </form>
+              ) : (
+                <p className="mlo-note"><Link href="/mlo/voicemail">Record a voicemail</Link> to leave {c.firstName || "them"} a message without calling.</p>
+              )}
+              {theirDrops.length ? <p className="mlo-note">Voicemails: {theirDrops.map((d) => `${new Date(d.at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })} ${d.status === "left" ? "left" : d.status === "answered" ? "answered" : d.status}${d.optedOut ? ", pressed 9 to stop" : ""}`).join("; ")}.</p> : null}
             </div>
           ) : null}
           {inCampaigns.length ? (
