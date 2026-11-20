@@ -11,6 +11,8 @@ import { ensureRegistry } from "@/lib/registry/cache";
 import { runDue } from "@/lib/campaigns/service";
 import { teamStore } from "@/lib/agents/store";
 import { runTeam, teamOn } from "@/lib/agents/runner";
+import { advanceAll } from "@/lib/texting/service";
+import { resendMail } from "@/lib/pilot/service";
 
 /**
  * GET /api/cc/concierge/sweep — the morning run for every loan officer who
@@ -55,5 +57,10 @@ export async function GET(req: Request) {
     await report("error", e, { route: "concierge-sweep", stage: "campaigns" });
     return null;
   });
-  return Response.json({ ok: failed === 0, swept: done, failed, campaigns });
+  // D56: companies being registered for texting move on as the carriers answer.
+  const texting = await advanceAll(new Date(), resendMail).catch(async (e) => {
+    await report("error", e, { route: "concierge-sweep", stage: "texting" });
+    return null;
+  });
+  return Response.json({ ok: failed === 0, swept: done, failed, campaigns, texting });
 }

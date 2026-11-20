@@ -17,7 +17,8 @@ import { conciergeStore } from "@/lib/concierge/store";
 import { automationStore } from "@/lib/automations/store";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { rndNeeded } from "@/lib/messaging/service";
-import { serviceForCompany, twilioConfig } from "@/lib/messaging/twilio";
+import { twilioConfig } from "@/lib/messaging/twilio";
+import { textSender } from "@/lib/texting/service";
 import { databaseUrl, emailConfig } from "@/lib/m8/server";
 import { signatureFor } from "@/lib/profile/signature";
 import { mailboxFor } from "@/lib/mail/service";
@@ -103,7 +104,7 @@ export async function checklist(user: User, now = new Date()): Promise<SetupItem
   const dncFresh = withPhone.filter((c) => c.dnc && now.getTime() - Date.parse(c.dnc.checkedAt) <= 31 * 86_400_000).length;
   const permitted = contacts.filter((c) => Object.values(summarize(consents.filter((e) => e.contactId === c.id))).some((p) => p.service.granted || p.marketing.granted)).length;
   const [keys, loans, s, auto, rnd, sig, box, cards] = await Promise.all([pipelineStore().keys(user.id), pipelineStore().list(user.id), conciergeStore().settings(user.id), automationStore().settings(user.id), rndNeeded(user, now), signatureFor(user).catch(() => ""), mailboxFor(user), cardsOn() ? thanksStatus(user) : Promise.resolve(null)]);
-  const service = serviceForCompany(companyOfMlo(user.mloId), singleCompany());
+  const service = (await textSender(companyOfMlo(user.mloId), singleCompany()))?.service ?? null;
   const items: SetupItem[] = [
     { id: "record", group: "you", label: "Your account is linked to your loan officer record", why: "Licensing, your NMLS number and your sponsor come from it; without it you can't market in any state.", done: !!mlo, href: "/mlo/team" },
     { id: "portal", group: "you", label: "Your secure application and upload link is set", why: "Application texts and document requests point borrowers to it (your ARIVE borrower portal).", done: !!mlo && hasApplicationUrl(mlo) },

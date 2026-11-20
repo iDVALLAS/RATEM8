@@ -3,7 +3,8 @@ import Link from "next/link";
 import PageShell from "@/app/mlo/CcShell";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { hasApplicationUrl, mloById } from "@/lib/config";
-import { singleCompany } from "@/lib/accounts/company";
+import { companyOfMlo, singleCompany } from "@/lib/accounts/company";
+import { textSender } from "@/lib/texting/service";
 import { firstDay, liveStatus, pilotOn, refOf, reportsFor } from "@/lib/pilot/service";
 import { REPORT_KINDS, REPORT_STATUS } from "@/lib/pilot/store";
 import FirstDay from "../FirstDay";
@@ -36,7 +37,7 @@ export default async function Welcome({ searchParams }: { searchParams: Promise<
   const [first, mine] = await Promise.all([firstDay(me), reportsFor(me)]);
   const own = mine.filter((r) => r.userId === me.id);
   const mlo = mloById(me.mloId);
-  const live = liveStatus(me);
+  const live = liveStatus(me, !!(await textSender(companyOfMlo(me.mloId), singleCompany())));
   return (
     <PageShell>
       <div className="mlo-wrap">

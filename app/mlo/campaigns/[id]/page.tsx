@@ -8,7 +8,8 @@ import { campaignStore } from "@/lib/campaigns/store";
 import { checkCampaign } from "@/lib/campaigns/service";
 import { contactStore } from "@/lib/contacts/store";
 import { companyOfMlo, singleCompany } from "@/lib/accounts/company";
-import { serviceForCompany, twilioConfig } from "@/lib/messaging/twilio";
+import { twilioConfig } from "@/lib/messaging/twilio";
+import { textSender } from "@/lib/texting/service";
 import { emailReadyFor } from "@/lib/messaging/email";
 import { FlashBox } from "../../MloChrome";
 import Editor from "../Editor";
@@ -31,7 +32,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const people = (await campaignStore().enrollments(c.id)).slice(0, 300);
   const names = new Map(await Promise.all(people.map(async (e) => [e.contactId, await contactStore().get(e.contactId)] as const)));
   const problem = checkCampaign(c);
-  const textReady = !!twilioConfig() && !!serviceForCompany(companyOfMlo(me.mloId), singleCompany());
+  const textReady = !!twilioConfig() && !!(await textSender(companyOfMlo(me.mloId), singleCompany()));
   const active = people.filter((e) => e.status === "active").length;
   return (
     <PageShell>

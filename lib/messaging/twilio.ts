@@ -10,12 +10,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 const env = (k: string) => process.env[k]?.trim() || undefined;
 
-export function twilioConfig(): { sid: string; token: string; service: string } | null {
+export function twilioConfig(): { sid: string; token: string; service: string | null } | null {
   const sid = env("TWILIO_ACCOUNT_SID");
   const token = env("TWILIO_AUTH_TOKEN");
-  // D23: any Messaging Service counts as "connected"; which one sends is chosen per company.
-  const service = env("TWILIO_MESSAGING_SERVICE_SID") ?? Object.entries(process.env).find(([k, v]) => k.startsWith("TWILIO_MESSAGING_SERVICE_SID_") && v?.trim())?.[1]?.trim();
-  return sid && token && service ? { sid, token, service } : null;
+  // D23: which Messaging Service sends is chosen per company. D56: Command Center can also
+  // register a company's own service, so the keys alone mean "connected".
+  const service = env("TWILIO_MESSAGING_SERVICE_SID") ?? Object.entries(process.env).find(([k, v]) => k.startsWith("TWILIO_MESSAGING_SERVICE_SID_") && v?.trim())?.[1]?.trim() ?? null;
+  return sid && token ? { sid, token, service } : null;
 }
 
 const auth = (c: { sid: string; token: string }) => `Basic ${Buffer.from(`${c.sid}:${c.token}`).toString("base64")}`;
@@ -35,13 +36,20 @@ export function serviceForCompany(company: string | null, single: boolean): stri
   return single ? (env("TWILIO_MESSAGING_SERVICE_SID") ?? null) : null;
 }
 
-export async function sendSms(to: string, body: string, statusCallback: string | null, service?: string): Promise<SendResult> {
+/**
+ * Sends through a Messaging Service. `account` is the company's own Twilio
+ * subaccount when Command Center registered it (D56); the platform's keys
+ * may act for its subaccounts.
+ */
+export async function sendSms(to: string, body: string, statusCallback: string | null, service?: string, account?: string | null): Promise<SendResult> {
   const c = twilioConfig();
   if (!c) return { ok: false, error: "Texting isn't connected yet (Twilio)." };
-  const form = new URLSearchParams({ To: to, Body: body, MessagingServiceSid: service ?? c.service });
+  const via = service ?? c.service;
+  if (!via) return { ok: false, error: "Texting isn't registered for this company yet." };
+  const form = new URLSearchParams({ To: to, Body: body, MessagingServiceSid: via });
   if (statusCallback) form.set("StatusCallback", statusCallback);
   try {
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${c.sid}/Messages.json`, {
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${account && /^AC[0-9a-f]{32}$/i.test(account) ? account : c.sid}/Messages.json`, {
       method: "POST",
       headers: { Authorization: auth(c), "Content-Type": "application/x-www-form-urlencoded" },
       body: form,
@@ -78,10 +86,10 @@ export function twilioSignature(token: string, url: string, params: Record<strin
   return createHmac("sha1", token).update(data, "utf8").digest("base64");
 }
 
-export function validTwilioRequest(url: string, params: Record<string, string>, signature: string | null): boolean {
-  const c = twilioConfig();
-  if (!c || !signature) return false;
-  const a = Buffer.from(twilioSignature(c.token, url, params));
+export function validTwilioRequest(url: string, params: Record<string, string>, signature: string | null, token?: string | null): boolean {
+  const key = token ?? twilioConfig()?.token;
+  if (!key || !signature) return false;
+  const a = Buffer.from(twilioSignature(key, url, params));
   const b = Buffer.from(signature);
   return a.length === b.length && timingSafeEqual(a, b);
 }

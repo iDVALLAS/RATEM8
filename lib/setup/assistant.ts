@@ -27,6 +27,8 @@ import { incr } from "@/lib/m8/kv";
 import { redactChatInput } from "@/lib/m8/redact";
 import { registrationWording, serviceEnvName, webhookUrls } from "@/lib/messaging/registration";
 import { serviceForCompany, twilioConfig } from "@/lib/messaging/twilio";
+import { textSender } from "@/lib/texting/service";
+import { textingStore } from "@/lib/texting/store";
 import { checklist, GROUP_LABELS, type SetupItem } from "./checklist";
 import { envStatus, LAUNCH, PHASES } from "./launch";
 import { transcribeOn, videosOn } from "@/lib/videos/service";
@@ -116,7 +118,10 @@ export async function setupFacts(user: User, origin: string): Promise<Facts> {
   if (company) {
     const w = registrationWording(company);
     const service = serviceForCompany(company.idNumber, singleCompany());
+    const reg = await textingStore().get(company.idNumber).catch(() => null);
     lines.push("", `Texting for ${company.name}:`);
+    lines.push(`- Easiest way: Command Center registers the company itself on the "Texting for your company" page (${origin}/mlo/text-setup): fill in the company's legal name, EIN, address, website and an authorized person once; the platform owner approves the fees; Command Center does the Twilio steps and the carriers review (brand in days, campaign in one to three weeks). Status now: ${reg ? reg.status + (reg.error ? ` (${reg.error})` : "") : "not started"}${(await textSender(company.idNumber, singleCompany())) ? "; texting works for this company now" : ""}.`);
+    lines.push("- The manual way, below, is for an owner who registers in the Twilio Console instead.");
     lines.push(`- Twilio keys in Vercel: ${twilioConfig() ? "set" : "not set"} (TWILIO_ACCOUNT_SID, not Sensitive; TWILIO_AUTH_TOKEN, Sensitive).`);
     lines.push(`- This company's Messaging Service SID in Vercel (${serviceEnvName(company)}${singleCompany() ? ", or TWILIO_MESSAGING_SERVICE_SID while it's the only sponsor" : ""}): ${service ? "set" : "not set"}. Not Sensitive.`);
     lines.push(`- In the Messaging Service, Integration: incoming messages webhook ${hooks.inbound} (HTTP POST), and status callback ${hooks.status}.`);

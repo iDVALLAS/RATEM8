@@ -6,7 +6,8 @@ import { decodeFlash } from "@/lib/mlo/flash";
 import { campaignsOn, summaries } from "@/lib/campaigns/service";
 import { STARTERS } from "@/lib/campaigns/library";
 import { companyOfMlo, singleCompany } from "@/lib/accounts/company";
-import { serviceForCompany, twilioConfig } from "@/lib/messaging/twilio";
+import { twilioConfig } from "@/lib/messaging/twilio";
+import { textSender } from "@/lib/texting/service";
 import { emailReadyFor } from "@/lib/messaging/email";
 import { FlashBox } from "../MloChrome";
 import { aiCampaignAction, newCampaignAction } from "./actions";
@@ -32,7 +33,7 @@ export default async function Campaigns({ searchParams }: { searchParams: Promis
     );
   }
   const list = await summaries(me);
-  const textReady = !!twilioConfig() && !!serviceForCompany(companyOfMlo(me.mloId), singleCompany());
+  const textReady = !!twilioConfig() && !!(await textSender(companyOfMlo(me.mloId), singleCompany()));
   const mail = await emailReadyFor(me);
   const emailReady = mail.ready;
   return (

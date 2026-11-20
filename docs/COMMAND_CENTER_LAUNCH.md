@@ -73,12 +73,13 @@ Make a separate workspace in the Anthropic Console for Command Center, with its 
 
 ### Texting (Twilio)
 
-Create the account; the Messaging Service comes in Texting, below.
+Create the account (upgraded, with billing). Then, so Command Center can register each company itself (D56): in Twilio, Trust Hub → Customer Profiles, create and get approved the platform's own Primary Business Profile (as the software company, ISV). Its BU… SID goes below.
 
 | Variable | Sensitive | Note |
 | --- | --- | --- |
 | `TWILIO_ACCOUNT_SID` | No | Twilio Console home. |
 | `TWILIO_AUTH_TOKEN` | Yes | Twilio Console home. |
+| `TWILIO_PRIMARY_PROFILE_SID` (optional) | No | Trust Hub → your approved Primary Business Profile (starts with BU). |
 
 ### Do-not-call scrubbing
 

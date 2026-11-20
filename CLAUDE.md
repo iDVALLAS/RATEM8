@@ -134,6 +134,11 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     the sound is transcribed (Google STT) and checked by the draft rules before it can be
     sent (held otherwise), words become captions; each person gets their own link through
     `sendText`/`sendEmail`; views counted on play, first view emailed; `CC_VIDEOS="false"`.
+    D56 texting registration (`lib/texting/*`, `/mlo/text-setup`, owner table on `/mlo/texting`):
+    a loan officer fills in the company once, the owner approves the fees, Command Center
+    makes a Twilio subaccount, profiles, brand, Messaging Service, number and Customer Care
+    campaign, re-checked each morning; `textSender()` picks the sender (manual env first),
+    subaccount webhooks verified by their own token. Needs `TWILIO_PRIMARY_PROFILE_SID`.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

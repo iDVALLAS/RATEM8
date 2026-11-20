@@ -4635,3 +4635,109 @@ The owner: "I also want to have pre-made video drops to clients", then
   (`NEXT_PUBLIC_SITE_URL`), like client pages, so they work once this is
   promoted.
 - **Next:** D56 texting set up by Command Center, D57 voicemail drops.
+
+## D56 — Command Center sets up texting for each company (2026-11-20)
+
+Planned in D51 ("Command Center sets up texting for each company"). Until
+now the owner registered every sponsoring company for business texting by
+hand in the Twilio Console and pasted its Messaging Service into Vercel
+(D23). Now Command Center does it.
+- **Texting for your company** (`/mlo/text-setup`, under Settings, any
+  loan officer):
+  - The company's details, once, with its legal name and address
+    prefilled from Command Center: legal name, EIN, legal form, ownership,
+    website, privacy page, address, an authorized person (name, email,
+    phone, title, position), and an area code for the number.
+  - "I'm allowed to register this company" is required to send it.
+  - The fees are shown before anyone approves (about $4 for the brand and
+    $15 for the campaign review, then roughly $2–$10 a month plus about
+    $1.15 a month for the number; "check Twilio's pricing page").
+  - A loan officer's request waits for the platform owner, who gets an
+    email. The owner's own request starts at once.
+  - A failed save keeps what was typed as a draft.
+  - A checklist shows each step, with "Check now" and a log.
+- **What Command Center does** (`lib/texting/service.ts`, calls in
+  `lib/texting/twilio-api.ts`), saving after every step so a failure picks
+  up where it stopped:
+  1. A Twilio **subaccount** for the company, so its number, opt-outs and
+     costs are kept apart (billed to the platform's account).
+  2. A check that Twilio's registration forms still have every field
+     Command Center sends, and that both policies exist. If not, it stops
+     before submitting anything.
+  3. The **business profile** (secondary customer profile: business
+     details, authorized person, address), linked to the platform's own
+     primary profile, checked by Twilio, then submitted.
+  4. The **A2P messaging profile**, checked, then submitted.
+  5. A **Messaging Service** whose replies and delivery reports come to
+     Command Center, and a **local number** in the area code.
+  6. The **brand** (STANDARD). Command Center waits for the carriers,
+     checking each morning.
+  7. Once the brand is approved, the **campaign**: Customer Care, from the
+     D23 wording (description, how people agree, samples, help and
+     opt-out replies), with links and phone numbers declared, lending
+     declared, and STOP keywords. Mortgage marketing campaigns are often
+     refused, and a refusal is final, so marketing waits.
+  8. When the campaign is verified, the company is **live**, and whoever
+     asked gets an email.
+  - When Twilio or the carriers say no (a profile that isn't compliant, a
+    failed brand or campaign), it stops with the reason and emails whoever
+    asked. "Save and send again" resends with the corrected details.
+  - Twilio outages are retried each morning; after five failures in a row
+    it asks a person.
+- **Owner controls** (`/mlo/texting`, new "Companies Command Center
+  registers" table): Approve and start, Check now, Send again, and Turn
+  off / Turn back on. The manual way (D23) stays below it.
+- **Sending:** `textSender()` picks the sender:
+  1. a Messaging Service the owner set by hand for the company
+     (`TWILIO_MESSAGING_SERVICE_SID_<NMLS>`) first;
+  2. then Command Center's registration, once it's live;
+  3. then the single shared service while there's only one company.
+  - Texts from a registered company go through its subaccount
+    (`sendSms(…, account)`).
+  - Until it's live, that company can't text, and nothing goes out under
+    another company's registration.
+  - The Twilio keys alone now count as "connected", so a platform with
+    only Command Center-registered companies works.
+- **Replies:** a subaccount signs its webhooks with its own token, so
+  `readTwilio` also accepts a signature made with the token of a company
+  registered here (found by `AccountSid`, stored sealed). A turned-off
+  company's replies are still read, so STOP always works.
+- **Elsewhere:**
+  - The morning run checks every registration still under way.
+  - The campaigns pages, the setup checklist, the welcome screen and the
+    setup assistant count a registered company as ready.
+  - The launch list adds `TWILIO_PRIMARY_PROFILE_SID`.
+- **The owner, once:** Twilio Console → Trust Hub → Customer Profiles:
+  create the platform's own **Primary Business Profile** (as the software
+  company, ISV) and get it approved. Then put its BU… SID in Vercel as
+  `TWILIO_PRIMARY_PROFILE_SID` (not Sensitive). The account must be
+  upgraded (billing on). `CC_TEXT_SETUP="false"` turns the registration
+  off.
+- **Verified:**
+  - `npm run verify`, with 7 new tests against a simulated Twilio:
+    - the details checks and the draft kept on error
+    - review and approval (only the owner)
+    - every step run as the subaccount, the primary profile linked, the
+      webhooks set
+    - nothing made twice
+    - waiting on the brand, then the campaign, then live (with the email)
+    - stopping on changed forms before submitting
+    - a profile that isn't compliant, sent again, then a failed brand
+    - five outages
+    - sending through the subaccount's path, and its signed replies
+    - a manual service still wins
+    - the campaign wording's lengths
+  - Browser: `/mlo/text-setup` (prefill, an error keeps what was typed,
+    no sideways scroll at 390px) and the owner's table on `/mlo/texting`.
+- **Not verified live:** no Twilio account is connected to this session,
+  and twilio.com was unreachable from it. The calls follow Twilio's
+  published OpenAPI definitions (`twilio/twilio-oai`). The Trust Hub form
+  fields and the two policy SIDs come from Twilio's ISV guide as known to
+  Command Center; they're checked against Twilio at run time before
+  anything is submitted, and the policy SIDs can be overridden
+  (`TWILIO_POLICY_SECONDARY_PROFILE`, `TWILIO_POLICY_A2P_PROFILE`).
+  - The first real registration should be the owner's own company, while
+    watching the log.
+  - Replies reach Command Center at the production address, so the
+    production build must include D56.
+- **Next:** D57 voicemail drops.

@@ -13,7 +13,8 @@ import { toGsm } from "./segments";
 import { decide, type GateDecision } from "@/lib/send-gate/gate";
 import { licensedStatesFor } from "@/lib/send-gate/for-contact";
 import { areaCodeState } from "@/lib/send-gate/rules";
-import { isOptIn, isOptOut, lookupLineType, sendSms, serviceForCompany, twilioConfig } from "./twilio";
+import { isOptIn, isOptOut, lookupLineType, sendSms, twilioConfig } from "./twilio";
+import { textSender } from "@/lib/texting/service";
 import { companyOfMlo, singleCompany } from "@/lib/accounts/company";
 import { touchStore, type Touch } from "./store";
 import { pipelineStore } from "@/lib/pipeline/store";
@@ -93,8 +94,9 @@ export async function sendText(actor: User, contactId: string, rawBody: string, 
   if (!twilioConfig()) return { ok: false, error: "Texting isn't connected yet. Add the Twilio keys in Vercel." };
   // D23: the sender registered for this loan officer's sponsoring company.
   const owner = c.ownerUserId === actor.id ? actor : await accountStore().userById(c.ownerUserId);
-  const service = serviceForCompany(companyOfMlo(owner?.mloId ?? actor.mloId), singleCompany());
-  if (!service) return { ok: false, error: "Texting isn't registered for this loan officer's sponsoring company yet (its own Twilio Messaging Service)." };
+  const sender = await textSender(companyOfMlo(owner?.mloId ?? actor.mloId), singleCompany());
+  const service = sender?.service ?? null;
+  if (!sender || !service) return { ok: false, error: "Texting isn't registered for this loan officer's sponsoring company yet (its own Twilio Messaging Service)." };
   const d = await gateFor(actor, c, "text", purpose, now);
   const audit = accountStore();
   if (!d.allowed) {
@@ -105,7 +107,7 @@ export async function sendText(actor: User, contactId: string, rawBody: string, 
   const sig = signature(actor);
   // D25: plain punctuation keeps the text in GSM-7 (160 characters a segment, not 70).
   const body = toGsm(purpose === "marketing" || first ? (text.includes("STOP") ? text : `${text}\n\n${sig}`) : text);
-  const res = await sendSms(c.phone!, body, statusCallback, service);
+  const res = await sendSms(c.phone!, body, statusCallback, service, sender.account);
   await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose, direction: "out", body, status: res.ok ? res.status : "failed", providerId: res.ok ? res.sid : null, note: d.basis, at: now.toISOString(), actor: actor.email, phone: c.phone, sender: service, origin: opts.origin ?? "human" });
   await audit.audit({ at: now.toISOString(), actor: actor.email, action: "gate.send.text", detail: { contactId, purpose, basis: d.basis, ok: res.ok } });
   // D31: the loan officer's own promises ("I'll send numbers Tuesday") become reminders.

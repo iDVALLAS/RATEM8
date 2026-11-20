@@ -221,8 +221,9 @@ export async function pilotOverview(actor: User): Promise<PilotRow[]> {
 export type LiveItem = { label: string; on: boolean; onText: string; offText: string };
 
 /** What works right now, from the live settings (never their values). */
-export function liveStatus(user: User): LiveItem[] {
-  const texting = !!twilioConfig() && !!serviceForCompany(companyOfMlo(user.mloId), singleCompany());
+export function liveStatus(user: User, companyTexting = false): LiveItem[] {
+  // D56: companyTexting is true when Command Center's own registration for their company is live.
+  const texting = !!twilioConfig() && (companyTexting || !!serviceForCompany(companyOfMlo(user.mloId), singleCompany()));
   return [
     { label: "Saving your work", on: !!databaseUrl(), onText: "Everything you enter is kept.", offText: "Nothing is kept between restarts yet. Don't import your real book until this is on." },
     { label: "Email", on: !!emailConfig(), onText: "Sign-in links, your morning email, and emails to clients in your name, with replies to your own inbox.", offText: "Not connected yet." },
