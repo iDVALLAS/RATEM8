@@ -5019,3 +5019,103 @@ toll free number from NumberBarn".
   - Browser: invite on Pilot → the emailed link (from the dev mail log) →
     a prefilled, locked sign-up → submit → shows on Sign-ups marked
     Invited.
+
+## D62 — Your Loan Officer Assistant (the ninth team member) (2026-11-20)
+
+The owner: a dedicated LOA "that the MLO can have voice conversations with
+who is fully versed on all Fannie and Freddie guidelines and lender
+overlays". It should handle:
+- the purchase agreement scan, with its dates and companies
+- initial disclosures
+- document collection
+- escrow fees
+- opening title and scanning it for encumbrances, with payoffs coordinated
+  with escrow
+- the conditional approval, and the documents for final approval
+- "clear communication to the MLO", and anything else useful from the
+  LOA job.
+
+- **The team:** "Loan Officer Assistant" is first in `lib/agents/team.ts`
+  ("Works every file, contract to close"). Its to-dos join the team's
+  daily plan (`proposeAll`), so they reach Your team and the morning
+  email.
+- **On each loan's page** (`#loa`, `app/mlo/loa/LoaPanel.tsx`): drop a PDF
+  or paste text; the LOA reads it with `lib/loa/readers.ts`.
+  - **Purchase agreement:** price, credits, earnest money, the property,
+    every contract date, the agents, escrow and title (with emails and
+    phones), and other terms the file needs.
+  - **Title commitment:** vesting, and every requirement and exception,
+    marked mortgage, lien, judgment, tax, HOA or easement. What must be
+    paid off is flagged, and a payoff email to escrow is drafted
+    automatically.
+  - **Conditional approval:** each condition, who owes it (borrower, third
+    party, the loan officer, the lender) and when, plus the expiry. The
+    borrower's items join the document checklist, so the existing upload
+    request covers them. Reading it again doesn't double anything.
+  - **Escrow fee sheet:** each line and the total.
+  - Documents are read once and discarded. SSNs, dates of birth and
+    account numbers are scrubbed; dates in date fields are kept.
+- **Deadlines** (`lib/loa/dates.ts`):
+  - the contract's dates
+  - the Loan Estimate, 3 TRID business days after application
+  - the Closing Disclosure, received 3 business days before signing, with
+    a "send by" date that allows for presumed receipt
+  - the verbal re-verification window, 10 weekdays before the note
+    (Selling Guide B3-3.1-07)
+  - the lock against closing
+  - the approval's expiry
+  - Federal holidays are as observed.
+- **An 18-point checklist**, ticked from the file when it can be and by
+  hand otherwise:
+  - contract, Loan Estimate, intent to proceed
+  - appraisal ordered and received
+  - escrow fees, title opened and reviewed, payoffs
+  - insurance binder, CPL, wire instructions verified by phone
+  - conditions, re-verification, CD, lock covers closing, signing, funded
+- **Emails to escrow and title:** drafts for fees, opening title and
+  payoffs, addressed from the parties on file.
+  - The loan officer edits and presses Send. It goes from their own
+    mailbox when it's connected, otherwise from Command Center with
+    replies to them, with their signature.
+  - Sending payoffs marks those items requested.
+- **Your LOA** (`/mlo/loa`, "Your day"):
+  - **Needs you:** what's due or past due in the next 5 days across open
+    loans, a lock running out before closing, drafts to send, conditions
+    for the loan officer, and fees or title not started.
+  - **Talk to your LOA:** type, or press Speak (it stops when you pause).
+    Talk mode reads answers aloud and listens again, so it's a
+    conversation (`/api/cc/loa/ask`, `/listen`, `/speak`; signed in only;
+    rate limits).
+    - Pick a loan to ask about its file, and a lender to check its
+      overlays.
+    - Agency answers come from a web search limited to Fannie Mae's and
+      Freddie Mac's own guide sites, with citations (only those sources
+      are shown).
+    - It says when to confirm with the investor. It's research help, not
+      an underwriting decision.
+  - **Your lenders' overlays:** upload a lender's overlay PDF or matrix
+    (or paste it) once. It's read into plain rules (kept, up to 40,000
+    characters each) and checked on every question.
+- **AI route:** a new "loa" route (Sonnet on Standard, Opus on Unlimited),
+  metered like every feature. Document reading uses the "docs" route.
+- **Fixed along the way:**
+  - `dataBlock` takes an optional length (the default stays 600).
+  - The chat's microphone hook takes another endpoint.
+  - An effect's arrow returned `scrollIntoView`'s result, which newer
+    Chromium makes a promise and React then tried to call as cleanup.
+    Fixed with a block body.
+- **Verified:**
+  - `npm run verify` (610 tests, 7 new):
+    - the team's ninth member
+    - TRID and Selling Guide business days around Thanksgiving
+    - the purchase agreement into deadlines
+    - title, the payoff draft and sending it
+    - conditions split by owner and onto the checklist, with no doubles
+    - escrow fees and the to-do list
+    - overlays and the guides in the conversation, with an SSN redacted
+  - Browser: a loan's LOA panel (deadlines from the loan system's dates,
+    a drafted escrow email), Your LOA (Needs you, the chat's plain message
+    without an AI key, the overlay form), LOA first on Your team, and no
+    sideways scroll at 390px.
+- **Not verified live:** no AI key in this session. The web search tool and
+  PDF reading follow the documented API shapes.

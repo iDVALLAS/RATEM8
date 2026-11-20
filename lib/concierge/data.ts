@@ -33,11 +33,11 @@ export function newNonce(): string {
 }
 
 /** One data block: `<data-NONCE kind="…">text</data-NONCE>`. */
-export function dataBlock(nonce: string, kind: string, text: string, attrs: Record<string, string> = {}): string {
+export function dataBlock(nonce: string, kind: string, text: string, attrs: Record<string, string> = {}, max = 600): string {
   const extra = Object.entries(attrs)
     .map(([k, v]) => ` ${k.replace(/[^a-z_]/g, "")}="${cleanData(v, 40).replace(/"/g, "'")}"`)
     .join("");
-  return `<data-${nonce} kind="${kind.replace(/[^a-z_]/g, "")}"${extra}>${cleanData(text)}</data-${nonce}>`;
+  return `<data-${nonce} kind="${kind.replace(/[^a-z_]/g, "")}"${extra}>${cleanData(text, max)}</data-${nonce}>`;
 }
 
 /** The line that tells the model what the blocks are. */

@@ -32,6 +32,7 @@ import { reviewMessage } from "./compliance";
 import { fillPlaybook, playbookById, playbookVersion, type Playbook } from "./playbooks";
 import { teamStore, type Move, type MoveKind, type Source, type TeamSettings } from "./store";
 import type { AgentKey } from "./team";
+import { loaTasks } from "@/lib/loa/service";
 
 const DAY = 86_400_000;
 
@@ -209,7 +210,9 @@ export async function proposeAll(user: User, settings: TeamSettings, now: Date):
   const listings = await teamStore().listings(user.id);
   const marketing = await marketingIdeas(ctx, task).catch(() => []);
   const business = await businessIdeas(user, now, task).catch(() => []);
-  return [...fromCards(ctx, cards), ...fromPartners(ctx, listings), ...relocationPlan(ctx), ...(await giftIdeas(ctx)), ...marketing, ...business];
+  // D62: the LOA's file work across open loans (deadlines, drafts to send, conditions for you).
+  const loa = (await loaTasks(user, now).catch(() => [])).slice(0, 12).map((t) => task("loa", `loa:${t.loanId}:${t.title}`, `${t.borrower}: ${t.title}`, t.why, t.urgent ? 70 : 40, { loanId: t.loanId, href: `/mlo/pipeline/${t.loanId}#loa`, cooldownDays: 1 }));
+  return [...loa, ...fromCards(ctx, cards), ...fromPartners(ctx, listings), ...relocationPlan(ctx), ...(await giftIdeas(ctx)), ...marketing, ...business];
 }
 
 export type RunResult = { proposed: number; added: number; held: number; sent: number; waiting: number };

@@ -15,7 +15,7 @@
 .ag-gift .mlo-input[name="dollars"] { flex: 0 1 90px; }
 .ag-tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--rule-strong); color: var(--muted); }
 .ag-badge { display: inline-block; font: 600 12px/1.6 var(--font-mono, ui-monospace, monospace); letter-spacing: .04em; padding: 1px 9px; border-radius: 999px; background: var(--bg-sunken); color: var(--fg); border: 1px solid var(--rule); white-space: nowrap; }
-.ag-badge--chief, .ag-badge--compliance { border-color: var(--accent); }
+.ag-badge--chief, .ag-badge--compliance, .ag-badge--loa { border-color: var(--accent); }
 .ag-score { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
 .ag-score div { border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
 .ag-score strong { font-size: 26px; line-height: 1.1; }

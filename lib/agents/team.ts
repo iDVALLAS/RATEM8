@@ -6,12 +6,14 @@
  * cheap, predictable); Compliance reviews every move; only playbooks the
  * loan officer approved send on their own; nothing spends money without a yes.
  */
-export const AGENT_KEYS = ["chief", "finder", "pipeline", "partner", "coach", "marketing", "business", "compliance"] as const;
+export const AGENT_KEYS = ["loa", "chief", "finder", "pipeline", "partner", "coach", "marketing", "business", "compliance"] as const;
 export type AgentKey = (typeof AGENT_KEYS)[number];
 
 export type AgentInfo = { key: AgentKey; name: string; role: string; does: string[]; ready: boolean };
 
 export const AGENTS: Record<AgentKey, AgentInfo> = {
+  // D62 (owner, 2026-11-20): a dedicated loan officer assistant, with its own showcase.
+  loa: { key: "loa", name: "Loan Officer Assistant", role: "Works every file, contract to close", does: ["Reads the purchase agreement, title commitment, conditional approval and escrow fees you drop in", "Keeps every deadline: the contract's, the Loan Estimate and Closing Disclosure clocks, re-verification, the lock", "Drafts the emails to escrow and title: fees, opening title, payoffs. You press Send", "Turns the approval into a to-do list and chases the borrower's items", "Talk to it: it knows Fannie Mae and Freddie Mac (and cites them) and your lenders' overlays"], ready: true },
   chief: { key: "chief", name: "Chief of Staff", role: "Runs your day", does: ["Plans each morning and hands work to the team", "Puts your top three first", "Answers people who are waiting on you"], ready: true },
   finder: { key: "finder", name: "Business Finder", role: "Always finding business", does: ["New web leads, answered in minutes", "Home anniversaries, past clients gone quiet, refi watch", "Canceled and expired listings: reach the listing agent", "Agents new to your area, and relocation contacts"], ready: true },
   pipeline: { key: "pipeline", name: "Pipeline", role: "Keeps loans moving", does: ["Loans running late against your own pace", "Locks about to expire, closings coming up", "The next Loan Journey step on each file"], ready: true },

@@ -1,0 +1,42 @@
+/* D62: Your LOA. Semantic tokens only. */
+.loa-hero { background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--bg-elevated); }
+.loa-hero__role { margin: 0 0 8px; font-weight: 600; color: var(--fg); font-size: 17px; }
+.loa-does { margin: 0 0 10px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.loa-does li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; color: var(--fg-soft); }
+.loa-does li::before { content: "✓"; color: var(--accent); font-weight: 700; }
+.loa-tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.loa-tasks li { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--rule); }
+.loa-tasks li.is-urgent { border-color: var(--accent); }
+.loa-tasks a { color: var(--fg); text-decoration: none; }
+.loa-chat { display: grid; gap: 12px; }
+.loa-log { display: grid; gap: 10px; max-height: 60vh; overflow: auto; padding: 4px; }
+.loa-msg { padding: 10px 14px; border-radius: 16px; max-width: 46rem; line-height: 1.55; }
+.loa-msg p { margin: 0; white-space: pre-wrap; }
+.loa-msg--user { justify-self: end; background: var(--bg-sunken); border-bottom-right-radius: 4px; }
+.loa-msg--assistant { background: var(--accent-soft); border: 1px solid var(--rule-strong); border-bottom-left-radius: 4px; }
+.loa-src { margin-top: 6px !important; display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12.5px; }
+.loa-src a { color: var(--accent); }
+.loa-hear { margin-top: 6px; background: none; border: 0; padding: 0; color: var(--fg-soft); font-size: 13px; text-decoration: underline; cursor: pointer; }
+.loa-mic.is-on { border-color: var(--accent); color: var(--accent); }
+.loa-overlays { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.loa-overlays li { display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 10px; }
+.loa-rules { white-space: pre-wrap; font-size: 12.5px; color: var(--fg-soft); max-height: 280px; overflow: auto; background: var(--bg-sunken); padding: 10px; border-radius: 10px; }
+/* The panel on each loan's page. */
+.loa-panel h3 { margin: 18px 0 8px; font-size: 15px; color: var(--fg); }
+.loa-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; }
+.loa-kv { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: 4px 12px; font-size: 14px; color: var(--fg-soft); }
+.loa-kv dt { color: var(--muted); }
+.loa-kv dd { margin: 0; color: var(--fg); }
+.loa-dl { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.loa-dl li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; border-radius: 10px; background: var(--bg-sunken); font-size: 14px; }
+.loa-dl li.is-done { opacity: .6; }
+.loa-dl li.is-soon { outline: 1px solid var(--accent); }
+.loa-checks { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; }
+.loa-checks li { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--fg-soft); }
+.loa-checks button { background: none; border: 1px solid var(--rule-strong); width: 22px; height: 22px; border-radius: 6px; color: var(--accent); flex: none; cursor: pointer; line-height: 1; }
+.loa-checks li.is-done button { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.loa-items { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.loa-items li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--rule); font-size: 14px; }
+.loa-tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--accent-soft); color: var(--fg); margin-right: 6px; }
+.loa-draft { border: 1px solid var(--rule-strong); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
+@media (max-width: 720px) { .loa-grid2, .loa-checks { grid-template-columns: minmax(0, 1fr); } .loa-kv { grid-template-columns: minmax(0, 1fr); } }

@@ -11,6 +11,8 @@ import { FlashBox, MloNav } from "../../MloChrome";
 import { addDocsAction, datesAction, docStatusAction, findingsAction, lockAction, messageAction, processorAction, requestDocsAction, stepAction } from "./actions";
 import { accountStore } from "@/lib/accounts/store";
 import { bookOf } from "@/lib/contacts/service";
+import LoaPanel from "../../loa/LoaPanel";
+import { loaStore, emptyFile } from "@/lib/loa/store";
 import "../../mlo.css";
 import "./journey.css";
 
@@ -35,6 +37,8 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
   const docsBy = (phase: "initial" | "final") => j.docs.filter((d) => d.phase === phase);
   const team = (await accountStore().listUsers()).filter((u) => u.status === "active" && (bookOf(u) === undefined || bookOf(u) === loan.ownerUserId));
   const processor = team.find((u) => u.id === (j.processorUserId ?? loan.ownerUserId));
+  // D62: the LOA's file on this loan.
+  const loaFile = (await loaStore().file(loan.id).catch(() => null)) ?? emptyFile(loan.id, loan.ownerUserId);
 
   return (
     <PageShell>
@@ -57,8 +61,10 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
             <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Save</button>
             <span className="mlo-note">Processor steps go to {processor?.name ?? "the loan officer"}.</span>
           </form>
-          <p className="mlo-note">{jv.done} of {jv.total} steps done{jv.current ? <>. Next: <a href={`#s-${jv.current.key}`}>step {jv.current.key}, {jv.current.title}</a> ({WHO_LABELS[jv.current.who]})</> : ". All done."}</p>
+          <p className="mlo-note">{jv.done} of {jv.total} steps done{jv.current ? <>. Next: <a href={`#s-${jv.current.key}`}>step {jv.current.key}, {jv.current.title}</a> ({WHO_LABELS[jv.current.who]})</> : ". All done."} · <a href="#loa">Your LOA on this file</a></p>
         </section>
+
+        <LoaPanel loan={loan} file={loaFile} journey={j} />
 
         <section className="mlo-section" id="clocks">
           <h2>Clocks</h2>

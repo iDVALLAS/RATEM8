@@ -20,8 +20,8 @@ const SPEECH_RMS = 0.02;
 const SILENCE_MS = 1300;
 const NO_SPEECH_MS = 9000;
 
-export function useMic(onText: (text: string) => void, onError: (msg: string) => void, opts: { auto?: boolean; onSilence?: () => void } = {}) {
-  const { auto = false, onSilence } = opts;
+export function useMic(onText: (text: string) => void, onError: (msg: string) => void, opts: { auto?: boolean; onSilence?: () => void; endpoint?: string } = {}) {
+  const { auto = false, onSilence, endpoint = "/api/m8-listen" } = opts;
   const [state, setState] = useState<MicState>("idle");
   const [seconds, setSeconds] = useState(0);
   const rec = useRef<{ ctx: AudioContext; stream: MediaStream; node: ScriptProcessorNode; chunks: Float32Array[]; timer: number; started: number; heard: boolean; lastLoud: number } | null>(null);
@@ -49,7 +49,7 @@ export function useMic(onText: (text: string) => void, onError: (msg: string) =>
     }
     setState("working");
     try {
-      const res = await fetch("/api/m8-listen", { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: toPcm16(samples) as BodyInit });
+      const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: toPcm16(samples) as BodyInit });
       const body = (await res.json().catch(() => null)) as { ok?: boolean; text?: string; error?: string } | null;
       if (!res.ok || !body?.ok) throw new Error(body?.error ?? "I couldn't hear that just now. Try again, or type it.");
       if (body.text) onText(body.text);
@@ -59,7 +59,7 @@ export function useMic(onText: (text: string) => void, onError: (msg: string) =>
     } finally {
       setState("idle");
     }
-  }, [onText, onError]);
+  }, [onText, onError, endpoint]);
 
   const start = useCallback(async () => {
     if (rec.current) return;

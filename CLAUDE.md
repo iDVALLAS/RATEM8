@@ -149,6 +149,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     D61: pilot invites on `/mlo/pilot` (signed 14-day sign-up links, `lib/pilot/invite.ts`; invited
     sign-ups skip email confirm, still need the NMLS check); M8 calls accept a recorded-call yes;
     toll-free opt-out line may forward from another carrier (`TWILIO_OPTOUT_RING_TO`, keyed-in number).
+    D62 LOA, the 9th team member (`lib/loa/*`, `/mlo/loa`, `#loa` on each loan): reads purchase
+    agreement, title commitment, conditional approval and escrow fees; TRID/VOE/lock deadlines
+    (`lib/loa/dates.ts`); 18-point checklist; escrow/title drafts sent by the LO; voice/text chat
+    with web search limited to Fannie/Freddie guide sites plus uploaded lender overlays.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
