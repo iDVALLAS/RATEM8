@@ -4200,3 +4200,36 @@ badge with "POWERED BY LoanM8" drawn in, and no orb).
   - 3× close-ups in night, dim and paper, plus the bar, the phone (night
     and paper) and sign-in: no sideways scroll, no errors, and the bar's
     menu still fits at full width.
+
+### D53.4 — The pulse behind the exact logo, and the "Powered by" lettering (2026-11-20)
+
+The owner:
+- "Add the pulse leave the logo as it is", and "you may want to enlarge
+  the powered by Loan mate by two pts".
+- Then: "I like the lettering for Powered by Loanm8 that you had up on
+  your mockups for the white screen better - but just a couple points
+  larger".
+
+- **Three layers** in `app/mlo/Brand.tsx`:
+  1. **An orb behind the crosshair ring** (centered on the ring),
+     breathing on a 3s cycle from 0.92 to 1.06 scale, with its glow going
+     from 25% to full. It's still under reduced motion.
+  2. **The owner's logo, unchanged**, except that its baked-in "Powered by
+     LoanM8" line is lifted out (`public/brand/mlo-command-mark*.webp`,
+     1600×680 with room at the bottom). The untouched original stays as
+     `mlo-command-logo.png`.
+  3. **"Powered by LoanM8"** as vector text in the lettering the owner
+     picked from the D53.2 mockup:
+     - "POWERED BY" in muted JetBrains Mono, wide-spaced.
+     - "Loan" in Geist 600, in the page's text color (dark on light, light
+       on dark).
+     - "M8" in M8 Green.
+     - It's right-aligned in the same corner, clear of the bottom
+       crosshair and stripes, and a couple of points larger than that
+       mockup.
+- **Size:** 64px tall on desktop and 53px on phones. A soft green glow on
+  dark and a soft shadow on light are kept.
+- **Verified:**
+  - `npm run verify`.
+  - 3× close-ups at the top of the breath in night, dim and paper, plus
+    the phone in paper: no sideways scroll and no errors.
