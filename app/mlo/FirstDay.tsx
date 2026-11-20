@@ -7,11 +7,11 @@ import { Icon } from "./icons";
 export default function FirstDay({ steps, done, pilot, canHide = true }: { steps: FirstDayStep[]; done: number; pilot: boolean; canHide?: boolean }) {
   const pct = Math.round((done / steps.length) * 100);
   return (
-    <section id="first-day" className="cc-panel cc-first" aria-labelledby="first-day-h">
-      <div className="cc-sechead">
+    <details id="first-day" className="cc-panel cc-first cc-fold" open={done < steps.length}>
+      <summary className="cc-sechead">
         <h2 id="first-day-h">Your first day <span className="mlo-note">· {done} of {steps.length}</span></h2>
-        <Link href="/mlo/welcome">{pilot ? "About the pilot" : "Getting started"}</Link>
-      </div>
+        <span className="cc-fold__arrow" aria-hidden="true" />
+      </summary>
       <div className="cc-first__bar" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={done} aria-label="First-day steps done"><span style={{ width: `${pct}%` }} /></div>
       <ol className="cc-first__steps">
         {steps.map((s) => (
@@ -27,12 +27,12 @@ export default function FirstDay({ steps, done, pilot, canHide = true }: { steps
           </li>
         ))}
       </ol>
-      <p className="mlo-note" style={{ margin: 0 }}>Stuck on a step? <Link href="/mlo/setup-help">Ask the setup assistant</Link>.</p>
+      <p className="mlo-note" style={{ margin: 0 }}>Stuck on a step? <Link href="/mlo/setup-help">Ask the setup assistant</Link>, or see <Link href="/mlo/welcome">{pilot ? "about the pilot" : "getting started"}</Link>.</p>
       {canHide ? (
         <form action={firstDayAction.bind(null, true)}>
           <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Hide this from Home</button>
         </form>
       ) : null}
-    </section>
+    </details>
   );
 }

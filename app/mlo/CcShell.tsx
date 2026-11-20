@@ -3,6 +3,7 @@ import { adminActor } from "@/lib/mlo/auth";
 import { listTenants } from "@/lib/pricing/tenants";
 import { conciergeStore } from "@/lib/concierge/store";
 import CcTopBar from "./CcTopBar";
+import Folds from "./Folds";
 import { pilotOn } from "@/lib/pilot/service";
 import "./cc-shell.css";
 
@@ -22,6 +23,7 @@ export default async function CcShell({ children }: { children: React.ReactNode;
     <div className="cc-app">
       <CcTopBar admin={admin} signedIn={!!user} pilot={pilotOn()} name={user?.name ?? (basic ? "Shared admin login" : "")} email={user?.email ?? ""} role={user ? ROLE_LABELS[user.role] : ""} tenantId={listTenants()[0]?.id ?? ""} badges={{ concierge: drafts }} />
       <main id="main" className="cc-main">{children}</main>
+      <Folds />
       <footer className="cc-foot">
         <span>MLO Command Center · for licensed loan officers</span>
         <a href="/" target="_blank" rel="noopener noreferrer">loanm8.com</a>

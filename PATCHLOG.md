@@ -5427,3 +5427,21 @@ it failed once. The owner's prompt already says "never G'day"; the model slips n
   owner's prompt is unchanged.
 - **Verified:** `npm run verify`; new tests for every spelling and for the word arriving in pieces while
   streaming; the remote red team against the D67.1 preview before promote.
+
+## D68 — Collapse arrows and friendlier sections (2026-11-20)
+
+Owner: "the 'your first day' to have a collapse arrow as well as any other lengthy section ... keep all of the
+sections very 'app' look and friendly and non-intimidating. Keep with the layout look/theme of the page."
+
+- **Files:** `app/mlo/Folds.tsx` (new), `app/mlo/CcShell.tsx`, `app/mlo/FirstDay.tsx`, `app/mlo/cc-shell.css`.
+- **Your first day** is a fold with a round arrow button: open until every step is done, one tap to fold it.
+  The "About the pilot / Getting started" link moved to the line under the steps.
+- **Every long section in Command Center** (a section taller than about a screenful, with its heading first)
+  gets the same round arrow in its heading. Tap the heading, or Enter or Space on it, to fold it to one line;
+  the choice is remembered per page and heading in that browser. Short sections are left as they are.
+  `Folds.tsx` only sets attributes on the existing elements and the arrow is drawn in CSS, so it never adds
+  elements React owns (the v24 lesson: changing React's DOM by hand caused error 418).
+- **Friendlier cards everywhere:** rounder corners (22px), more room, softer 18px headings, list rows as soft
+  pills like the first-day steps, rounder inputs.
+- **Verified:** `npm run verify`; browser in the Paper theme: the first-day card folds; a loan page has 9
+  foldable sections, one folded stays folded after a reload; no sideways scroll at 390px; no page errors.

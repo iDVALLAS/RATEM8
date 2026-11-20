@@ -166,6 +166,8 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     `GOOGLE_CLOUD_API_KEY`, which stays the public site's).
     D67 Text from my phone (`lib/messaging/phone.ts`, contact page): same gate and sign-off as a Twilio text,
     logged, then `sms:` opens Messages on the LO's own phone; "They asked to stop" records a phone STOP.
+    D68: long `.mlo-section`s (heading first, ~a screen tall) get a fold arrow from `app/mlo/Folds.tsx`
+    (attributes only, CSS arrow, remembered per page); First day is a `<details>` fold; softer cards.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.

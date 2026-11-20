@@ -340,3 +340,31 @@
 .cc-bar__in[data-fit="icons"] .cc-pilot { display: none; }
 .cc-pilot { margin-left: 4px; }
 @media (min-width: 1101px) { .cc-bar__in { padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); } }
+
+/* ---- D68: collapse arrows and a friendlier, app-like section look ---- */
+/* The arrow: a soft round button with a chevron; points down when open, right when folded. */
+.cc-fold__arrow, .cc-app .mlo-section[data-fold] > h2:first-child::after {
+  content: ""; flex: none; width: 30px; height: 30px; border-radius: 999px;
+  background: var(--bg-sunken) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237A8C84' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / 16px no-repeat;
+  transition: transform 200ms ease;
+}
+
+/* "Your first day" and other <details> folds. */
+.cc-fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; margin-bottom: 0; border-radius: 12px; }
+.cc-fold > summary::-webkit-details-marker { display: none; }
+.cc-fold > summary h2 { flex: 1; min-width: 0; }
+.cc-fold:not([open]) .cc-fold__arrow { transform: rotate(-90deg); }
+
+/* Long sections, folded by Folds.tsx (attributes only). */
+.cc-app .mlo-section[data-fold] > h2:first-child { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; border-radius: 12px; user-select: none; }
+.cc-app .mlo-section[data-fold="closed"] > h2:first-child { margin-bottom: 0; }
+.cc-app .mlo-section[data-fold="closed"] > h2:first-child::after { transform: rotate(-90deg); }
+.cc-app .mlo-section[data-fold="closed"] > :not(:first-child) { display: none !important; }
+.cc-app .mlo-section[data-fold] > h2:first-child:focus-visible, .cc-fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .cc-fold__arrow, .cc-app .mlo-section[data-fold] > h2:first-child::after { transition: none; } }
+
+/* Friendlier cards: rounder, softer, more room, rows as soft pills like the first-day steps. */
+.cc-app .mlo-section { border-radius: 22px; padding: 20px 22px; margin-top: 14px; }
+.cc-app .mlo-section h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.cc-app .loa-items li { background: var(--bg-sunken); border-color: transparent; border-radius: 14px; }
+.cc-app .mlo-input, .cc-app .mlo-select, .cc-app .mlo-textarea { border-radius: 12px; }
