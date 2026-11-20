@@ -27,6 +27,7 @@ export default function FirstDay({ steps, done, pilot, canHide = true }: { steps
           </li>
         ))}
       </ol>
+      <p className="mlo-note" style={{ margin: 0 }}>Stuck on a step? <Link href="/mlo/setup-help">Ask the setup assistant</Link>.</p>
       {canHide ? (
         <form action={firstDayAction.bind(null, true)}>
           <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Hide this from Home</button>

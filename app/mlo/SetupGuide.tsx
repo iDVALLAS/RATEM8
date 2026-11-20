@@ -21,7 +21,7 @@ export default function SetupGuide({ items, open }: { items: SetupItem[]; open?:
                   <span className="cc-setup__mark" aria-hidden>{i.done ? "✓" : ""}</span>
                   <div>
                     <p>{i.href && !i.done ? <Link href={i.href}>{i.label}</Link> : i.label}{i.detail ? <span className="mlo-note"> · {i.detail}</span> : null}<span className="sr-only">{i.done ? " (done)" : " (to do)"}</span></p>
-                    {!i.done ? <p className="mlo-note">{i.why}</p> : null}
+                    {!i.done ? <p className="mlo-note">{i.why} <Link href={`/mlo/setup-help?topic=${i.id}`}>Ask the setup assistant</Link></p> : null}
                     {i.manual ? (
                       <form action={setupMarkAction.bind(null, i.done ? "no" : "yes")}>
                         <input type="hidden" name="id" value={i.id} />

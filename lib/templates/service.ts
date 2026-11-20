@@ -25,6 +25,7 @@ import { companyDetails } from "@/lib/accounts/company";
 import { checkDraft } from "@/lib/concierge/guard";
 import { cleanData, dataRule, newNonce } from "@/lib/concierge/data";
 
+import { FAIR_HOUSING } from "@/lib/fair-housing";
 import { CHANNELS, fill, KINDS, LIBRARY, type Channel, type Kind, type Template } from "./library";
 
 const id = (p: string) => `${p}_${randomBytes(9).toString("base64url")}`;
@@ -39,7 +40,7 @@ const SAMPLE: Record<string, string> = { first: "Alex", myName: "Your Name", myF
  * (24 CFR 100.75; the Fair Housing Act's advertising rule): describe the
  * home and the loan, never the people.
  */
-const FAIR_HOUSING = /\b(famil(y|ies)|family[- ]friendly|kids?|children|young (couples?|professionals?|people)|singles|bachelors?|mature|seniors?|retirees?|adults? only|empty[- ]nesters?|newlyweds?|christian|jewish|muslim|catholic|church(es)?|synagogues?|mosques?|temples?|ethnic|integrated|exclusive (area|neighborhood|community)|handicapped|able[- ]bodied|english[- ]speaking)\b/i;
+export { FAIR_HOUSING };
 
 /** A template passes when every paragraph passes the draft checks. */
 export function checkTemplate(body: string, subject = ""): { ok: true } | { ok: false; reason: string } {

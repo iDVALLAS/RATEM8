@@ -180,13 +180,14 @@ export async function triageReport(actor: User, id: string, status: string, rawN
 
 export type FirstDayStep = { id: string; label: string; why: string; done: boolean; href: string };
 
-/** "Your first day": six steps, each checked against the real state. */
+/** "Your first day": seven steps, each checked against the real state. */
 export async function firstDay(user: User, setup?: SetupItem[]): Promise<{ steps: FirstDayStep[]; done: number; hidden: boolean }> {
   const [items, mfa, marks, mine] = await Promise.all([setup ?? checklist(user), accountStore().getMfa(user.id), setupStore().marks(user.id), reportStore().list({ userId: user.id, limit: 1 })]);
   const is = (id: string) => !!items.find((i) => i.id === id)?.done;
   const steps: FirstDayStep[] = [
     { id: "mfa", label: "Turn on a code from your phone", why: "Your book holds real client details, so sign-in asks for a second step.", done: !!mfa?.enabledAt, href: "/mlo/security" },
     { id: "details", label: "Check your license, booking and application links", why: "They go on every message you send. Fix your links on Getting started; report anything else.", done: is("record") && is("booking") && is("portal"), href: "/mlo/welcome#details" },
+    { id: "signature", label: "Add your email signature", why: "It goes under every email you send from here. Start from your details and edit it.", done: is("signature"), href: "/mlo/signature" },
     { id: "contacts", label: "Import your contacts", why: "Drop an Excel, CSV or phone export. Command Center matches and cleans it.", done: is("contacts"), href: "/mlo/contacts/import" },
     { id: "permission", label: "Record the permission you already hold", why: "Texts and calls only go to people who said yes.", done: is("permission"), href: "/mlo/contacts/permission" },
     { id: "concierge", label: "Turn on your Concierge and say how you sound", why: "It drafts check-ins in your voice each morning. You approve every one.", done: is("concierge"), href: "/mlo/concierge" },
@@ -212,7 +213,7 @@ export async function pilotOverview(actor: User): Promise<PilotRow[]> {
   for (const u of mine) {
     const fd = await firstDay(u).catch(() => null);
     const theirs = reports.filter((r) => r.userId === u.id);
-    rows.push({ user: u, lastSignIn: last.get(u.email) ?? null, firstDay: fd?.done ?? 0, steps: fd?.steps.length ?? 6, open: theirs.filter((r) => r.status === "open" || r.status === "seen").length, total: theirs.length });
+    rows.push({ user: u, lastSignIn: last.get(u.email) ?? null, firstDay: fd?.done ?? 0, steps: fd?.steps.length ?? 7, open: theirs.filter((r) => r.status === "open" || r.status === "seen").length, total: theirs.length });
   }
   return rows.sort((a, b) => (b.lastSignIn ?? "").localeCompare(a.lastSignIn ?? ""));
 }

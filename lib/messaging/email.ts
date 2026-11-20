@@ -23,6 +23,7 @@ import { canSee } from "@/lib/contacts/service";
 import { contactStore, type Purpose } from "@/lib/contacts/store";
 import { mloById } from "@/lib/config";
 import { companyDetails } from "@/lib/accounts/company";
+import { signatureFor } from "@/lib/profile/signature";
 import { checkDraft } from "@/lib/concierge/guard";
 import { recordPromises } from "@/lib/concierge/promises";
 import { clientLink } from "@/lib/clientpage/link";
@@ -87,7 +88,9 @@ export async function sendEmail(actor: User, contactId: string, rawSubject: stri
     await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "gate.block.email", detail: { contactId, purpose, reason: g.reasons[0] ?? "" } });
     return { ok: false, error: g.reasons[0] ?? "Not allowed right now.", reasons: g.reasons };
   }
-  const text = `${d.text}\n\n${emailFooter(actor, clientLink(c.id, c.linkVersion ?? 0))}`;
+  // D49: their own signature, then the compliance footer (which always stays).
+  const sig = await signatureFor(actor).catch(() => "");
+  const text = `${d.text}\n\n${sig ? `${sig}\n\n` : ""}${emailFooter(actor, clientLink(c.id, c.linkVersion ?? 0))}`;
   const mlo = mloById(actor.mloId);
   const fromName = (mlo?.name ?? actor.name ?? "LoanM8").replace(/[<>"]/g, "");
   const r = await send({ from: `${fromName} <${cfg.from}>`, to: c.email, replyTo: actor.email, subject: s.text, text });

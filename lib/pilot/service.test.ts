@@ -138,7 +138,7 @@ describe("Triage (D44)", () => {
 describe("Your first day and the pilot overview (D44)", () => {
   it("has six steps checked against the real state, and the report step ticks after a report", async () => {
     const before = await firstDay(lo);
-    expect(before.steps.map((s) => s.id)).toEqual(["mfa", "details", "contacts", "permission", "concierge", "report"]);
+    expect(before.steps.map((s) => s.id)).toEqual(["mfa", "details", "signature", "contacts", "permission", "concierge", "report"]);
     expect(before.steps.find((s) => s.id === "report")!.done).toBe(false);
     await submitReport(lo, { kind: "idea", message: "Day one went fine", path: "/mlo" }, NOW, send);
     const after = await firstDay(lo);
@@ -162,7 +162,7 @@ describe("Your first day and the pilot overview (D44)", () => {
     const row = rows.find((r) => r.user.id === "u_lo")!;
     expect(row.lastSignIn).toBe("2026-11-19T16:00:00.000Z");
     expect(row.open).toBe(1);
-    expect(row.steps).toBe(6);
+    expect(row.steps).toBe(7);
     expect(rows.find((r) => r.user.id === "u_other")!.lastSignIn).toBeNull();
     expect(await pilotOverview(lo)).toEqual([]);
   });

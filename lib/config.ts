@@ -513,15 +513,15 @@ export const AI_PRICES: Record<string, { input: number; output: number; cacheRea
   "claude-haiku-5-5": { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
 };
 
-export const AI_ROUTES = ["concierge", "tell", "ask", "debrief", "scripts", "templates", "docs", "practice", "expenses", "receipts", "import"] as const;
+export const AI_ROUTES = ["concierge", "tell", "ask", "debrief", "scripts", "templates", "docs", "practice", "expenses", "receipts", "import", "setup"] as const;
 export type AiRoute = (typeof AI_ROUTES)[number] | "chat";
 
 const OPUS = "claude-opus-5-5", SONNET = "claude-sonnet-5-5", HAIKU = "claude-haiku-5-5";
 export const AI_PLANS = {
   /** $99: mixed models, with a monthly AI allowance. */
-  capped: { label: "Standard", allowanceCents: 1200, models: { concierge: SONNET, tell: SONNET, ask: SONNET, debrief: SONNET, scripts: SONNET, templates: SONNET, docs: SONNET, practice: SONNET, expenses: HAIKU, receipts: HAIKU, import: SONNET } },
+  capped: { label: "Standard", allowanceCents: 1200, models: { concierge: SONNET, tell: SONNET, ask: SONNET, debrief: SONNET, scripts: SONNET, templates: SONNET, docs: SONNET, practice: SONNET, expenses: HAIKU, receipts: HAIKU, import: SONNET, setup: SONNET } },
   /** Unlimited: the most capable model where quality shows, with a fair-use limit. */
-  unlimited: { label: "Unlimited", allowanceCents: 6000, models: { concierge: OPUS, tell: OPUS, ask: OPUS, debrief: OPUS, scripts: OPUS, templates: SONNET, docs: OPUS, practice: SONNET, expenses: HAIKU, receipts: SONNET, import: SONNET } },
+  unlimited: { label: "Unlimited", allowanceCents: 6000, models: { concierge: OPUS, tell: OPUS, ask: OPUS, debrief: OPUS, scripts: OPUS, templates: SONNET, docs: OPUS, practice: SONNET, expenses: HAIKU, receipts: SONNET, import: SONNET, setup: SONNET } },
 } as const satisfies Record<string, { label: string; allowanceCents: number; models: Record<(typeof AI_ROUTES)[number], string> }>;
 export type AiPlan = keyof typeof AI_PLANS;
 

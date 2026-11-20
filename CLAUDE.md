@@ -100,6 +100,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     `mloById`/`ccAllMlos` include them (public site: `ALL_MLOS` only), and
     `companyDetails()` puts their own sponsor on emails, texts, templates.
     `ensureRegistry()` loads them; company counts fail closed until loaded.
+    D49 email signature (`lib/profile/signature.ts`, `/mlo/signature`): under
+    every email above the compliance footer, checked on save. D50 setup
+    assistant (`lib/setup/assistant.ts`, `/mlo/setup-help`): live checklist
+    facts every turn, pasted keys masked, links limited, no-AI fallback.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

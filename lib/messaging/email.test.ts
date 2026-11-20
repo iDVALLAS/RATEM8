@@ -8,6 +8,7 @@ import { MemoryConciergeStore, setConciergeStoreForTests } from "@/lib/concierge
 import { MemoryAutomationStore, setAutomationStoreForTests } from "@/lib/automations/store";
 import { SPONSOR } from "@/config/licensing";
 import { mloById } from "@/lib/config";
+import { newMemorySignatureStore, saveSignature, setSignatureStoreForTests } from "@/lib/profile/signature";
 
 const NOW = new Date("2026-11-19T18:00:00Z");
 const me: User = { id: "lo1", email: "lo1@x.com", name: "Pat", role: "lo", mloId: "mlo-001", status: "active", createdAt: "", createdBy: "" };
@@ -70,6 +71,22 @@ describe("Email to clients (D33)", () => {
     expect(t).toMatchObject({ channel: "email", direction: "out", status: "sent", providerId: "em_1" });
     // D31: the loan officer's own promise became a reminder.
     expect((await concierge.tasks("lo1")).some((k) => k.lane === "promise")).toBe(true);
+  });
+
+  it("D49: puts their signature between the message and the required footer", async () => {
+    setSignatureStoreForTests(newMemorySignatureStore());
+    try {
+      const c = await ann();
+      await saveSignature(me, "Pat\nhttps://cal.example/pat");
+      let sent: { text: string } | null = null;
+      await sendEmail(me, c.id, "A quick update on your loan", "Hi Ann, all set for Friday.", "service", NOW, async (m) => ((sent = m), { ok: true, id: "em_2" }));
+      const t = sent!.text;
+      expect(t.indexOf("all set for Friday")).toBeLessThan(t.indexOf("https://cal.example/pat"));
+      expect(t.indexOf("https://cal.example/pat")).toBeLessThan(t.indexOf(SPONSOR.address));
+      expect(t).toContain("Equal Housing Opportunity");
+    } finally {
+      setSignatureStoreForTests(null);
+    }
   });
 
   it("refuses bad subjects, bodies, unsubscribed clients, other books and missing keys", async () => {

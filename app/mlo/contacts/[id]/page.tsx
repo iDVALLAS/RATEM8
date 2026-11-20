@@ -253,6 +253,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               <label className="mlo-field">
                 <span>Message</span>
                 <textarea name="body" rows={5} maxLength={4000} className="mlo-textarea" required />
+                <span className="mlo-note">Your <Link href="/mlo/signature">email signature</Link> and the required footer are added under it.</span>
               </label>
               <div className="mlo-row-form">
                 <select name="purpose" className="mlo-select" aria-label="What it's about" defaultValue="service">

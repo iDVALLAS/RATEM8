@@ -1,0 +1,30 @@
+/* D50: the setup assistant: chat beside the live checklist. */
+.sh-wrap { max-width: 80rem; }
+.sh-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 20rem); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .sh-grid { grid-template-columns: minmax(0, 1fr); } }
+.sh-main { padding: 0; overflow: hidden; }
+.sh-chat { display: grid; grid-template-rows: minmax(0, 1fr) auto auto auto; min-height: 60vh; }
+.sh-log { display: grid; gap: 12px; align-content: start; padding: 18px; max-height: 64vh; overflow-y: auto; }
+.sh-empty { display: grid; gap: 12px; color: var(--fg-soft); }
+.sh-empty p { margin: 0; }
+.sh-starters { display: flex; flex-wrap: wrap; gap: 8px; }
+.sh-chip { min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--rule-strong); background: transparent; color: var(--fg); font: inherit; font-size: 14px; cursor: pointer; }
+.sh-chip:hover, .sh-chip:focus-visible { border-color: var(--accent); }
+.sh-msg { display: grid; gap: 4px; max-width: 92%; }
+.sh-msg--user { justify-self: end; }
+.sh-who { font: 500 11px/1.4 var(--font-jetbrains, ui-monospace), monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.sh-msg--user .sh-who { justify-self: end; }
+.sh-text { white-space: pre-wrap; word-break: break-word; line-height: 1.55; padding: 12px 14px; border-radius: 16px; background: var(--bg-sunken); color: var(--fg); }
+.sh-msg--user .sh-text { background: var(--accent-soft); }
+.sh-text a { color: var(--accent); }
+.sh-typing { color: var(--muted); }
+.sh-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; padding: 12px 18px 8px; border-top: 1px solid var(--rule); }
+.sh-chat > .mlo-note { padding: 0 18px 14px; margin: 0; }
+.sh-chat > .mlo-flash { margin: 0 18px 8px; }
+.sh-side h2 { margin: 0; }
+.sh-group ul { list-style: none; margin: 4px 0 12px; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.sh-group li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: start; }
+.sh-group li.is-done { color: var(--muted); }
+.sh-dot { width: 18px; height: 18px; border-radius: 999px; border: 1.5px solid var(--rule-strong); display: grid; place-items: center; font-size: 11px; color: var(--cc-hi-text, var(--bg)); }
+.sh-group li.is-done .sh-dot { background: var(--cc-hi, var(--accent)); border-color: transparent; }
+@media (prefers-reduced-motion: reduce) { .sh-log { scroll-behavior: auto; } }

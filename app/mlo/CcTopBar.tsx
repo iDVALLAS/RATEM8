@@ -87,7 +87,9 @@ export default function CcTopBar({ admin, signedIn, pilot = false, name, email, 
   const [more, setMore] = useState(false);
   const acctRef = useRef<HTMLDivElement>(null);
   useDismiss(acct, () => setAcct(false), acctRef);
-  useEffect(() => setMore(false), [path]);
+  useEffect(() => {
+    setMore(false);
+  }, [path]);
   useEffect(() => {
     if (!more) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMore(false);

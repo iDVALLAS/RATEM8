@@ -3660,3 +3660,97 @@ right edge. He asked for LoanM8 bigger, with Command Center smaller and
 - **Mockups:** real screenshots at 1920, 1440, 1180, 390 and 360px in
   light and dark, published for the owner.
 - **Verified:** `npm run verify`.
+
+## D49 — Email signature (2026-11-20)
+
+The owner: "we need a place where an LO adds their email signature
+because it will be key during setup."
+
+- **`/mlo/signature`** (Settings → Email signature):
+  - **The editor:** a plain-text box, up to 10 lines and 600 characters,
+    with a live preview of the end of an email (your message, your
+    signature, then the required footer).
+  - **"Start from my details"** builds a signature from what's on file,
+    inventing nothing: name, "Mortgage Loan Officer", company, phone,
+    email and booking link. NMLS is left out because the footer under it
+    always carries it.
+  - **Saving an empty box** turns the signature off.
+- **Every email gets it.** `sendEmail` puts it between the message and
+  the compliance footer, which always stays (NMLS, company and address,
+  Equal Housing Opportunity, stop link). That covers the contact page and
+  the Concierge's "send as email". Texts keep their own short sign-off.
+- **Checks on save** (`checkSignature`):
+  - no rates, percentages or APR
+  - no promises or claims (guaranteed, lowest or best rates, pre-approved,
+    close in N days, commission, referral fee)
+  - the fair-housing word list
+  - `https://` links only, no HTML
+  - nothing that looks like an account number, Social Security number or
+    birth date
+  The fair-housing pattern moved to `lib/fair-housing.ts`, shared with
+  templates.
+- **Setup:** a new checklist step ("Your email signature is set", in the
+  You group) and a new first-day step (now 7). The contact page's email
+  box links to it.
+- **Files:** `lib/profile/signature.ts` (`cc_signatures`),
+  `app/mlo/signature/*`, `lib/messaging/email.ts`,
+  `lib/setup/checklist.ts`, `lib/pilot/service.ts`, `lib/fair-housing.ts`,
+  `app/mlo/nav.ts`, `app/mlo/icons.tsx`.
+- **Verified:**
+  - Signature tests and an email test (signature between the message and
+    the footer).
+  - In the browser: the starting signature came from the record; "Best
+    rates in town" was refused with the reason; saving worked; and the
+    preview shows the footer under it.
+
+## D50 — The setup assistant (2026-11-20)
+
+The owner: "I want an AI wizard to help an MLO with any setup they need.
+So if Twilio isn't set up, I want AI to help them set it up."
+
+- **`/mlo/setup-help`** (Settings → Setup assistant): a chat beside the
+  person's live setup list. Each unfinished item there, and on Home's
+  setup guide, Texting setup and the first-day card, opens the assistant
+  already asking about it. There are starter questions too ("What should
+  I do next?", texting, email, the loan system).
+- **What it knows, rebuilt every turn** (`setupFacts`):
+  - their whole checklist, with what's done
+  - their role
+  - their company's texting registration wording and exact webhook
+    addresses
+  - for the owner, every launch-checklist setting and whether it's set
+    (names only, never values)
+  So "done" gets checked against the real state. The texting wording now
+  lives in `lib/messaging/registration.ts`, shared with the Texting
+  setup page.
+- **Its rules:**
+  - one step at a time, from the facts only
+  - it can't click or log in, and says so
+  - Vercel settings, Twilio and Resend belong to the owner, so a loan
+    officer is told exactly what to ask for
+  - no legal advice, nothing outside setup
+- **Secrets:**
+  - **On the way in:** keys and passwords people paste are removed before
+    the model sees them. That covers Twilio tokens, Resend, Anthropic and
+    Google keys, database addresses, "password:", and long key-like runs
+    outside web addresses. The person is told to make a new key, since it
+    was typed into a chat.
+  - **On the way out:** answers keep only links to this site and a short
+    list of official pages.
+  - **Nothing is stored:** the conversation stays in the browser.
+- **Limits and AI use:** 40 questions an hour. It's metered like every AI
+  feature (route `setup`, Sonnet on both plans). Without the AI it answers
+  with the next unfinished steps written out, with links.
+- **Bug found and fixed in testing:** the chat's scroll effect returned
+  `scrollIntoView()`'s value, which recent Chrome makes a promise. React
+  treated it as a cleanup function and the page crashed. Effects now use
+  braces, the top bar's included.
+- **Verified:**
+  - Seven new tests: masking keeps web addresses and non-secret Twilio
+    IDs; links are filtered; the owner's facts have setting names, not
+    values; a loan officer is pointed to the owner; masked text reaches
+    the model; the no-AI path; and limits.
+  - `npm run verify`.
+  - **In the browser at 1280px and 390px:** a starter question got an
+    answer; a pasted token got the "removed" notice; and a topic link
+    opened with its question. No errors.

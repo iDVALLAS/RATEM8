@@ -1,0 +1,11 @@
+/* D49: signature editor beside a preview of the end of an email. */
+.sig-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .sig-grid { grid-template-columns: minmax(0, 1fr); } }
+.sig-edit { display: grid; gap: 10px; min-width: 0; }
+.sig-text { font-family: var(--font-geist-sans), system-ui, sans-serif; line-height: 1.5; }
+.sig-preview { min-width: 0; border: 1px solid var(--rule); border-radius: 16px; padding: 14px; background: var(--bg-sunken); }
+.sig-preview__label { margin: 0 0 8px; font: 500 11px/1.4 var(--font-jetbrains, ui-monospace), monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.sig-preview__mail { margin: 0; white-space: pre-wrap; word-break: break-word; font: 13.5px/1.55 var(--font-geist-sans), system-ui, sans-serif; color: var(--fg-soft); }
+.sig-preview__body { color: var(--muted); font-style: italic; }
+.sig-preview__sig { font-weight: 500; color: var(--fg); }
+.sig-preview__foot { color: var(--muted); font-size: 12.5px; }
