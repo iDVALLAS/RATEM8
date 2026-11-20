@@ -187,7 +187,7 @@ const excerpt = (t: string, at: number) => t.slice(Math.max(0, at - 60), at + 10
  * sent by the browser. When every piece is in, the video passes or is held.
  */
 export async function checkPart(user: User, videoId: string, index: number, total: number, pcm: Uint8Array, now = new Date(), transcriber = transcribePart): Promise<{ ok: true; done: boolean; video: Video } | { ok: false; error: string; status?: number }> {
-  if (!transcribeOn()) return { ok: false, error: "The word check isn't set up (GOOGLE_CLOUD_API_KEY with Speech-to-Text turned on).", status: 503 };
+  if (!transcribeOn()) return { ok: false, error: "The word check isn't set up (Command Center's Google key, CC_GOOGLE_CLOUD_API_KEY, with Speech-to-Text turned on).", status: 503 };
   const v = await videoStore().video(videoId);
   if (!v || v.ownerUserId !== user.id || v.status === "deleted") return { ok: false, error: "No such video.", status: 404 };
   if (v.status !== "checking") return { ok: true, done: true, video: v };

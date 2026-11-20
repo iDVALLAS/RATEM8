@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   } catch {
     return new Response("Not found", { status: 404 });
   }
-  if (!voiceOn()) return new Response("Voice is off.", { status: 404 });
+  if (!voiceOn("cc")) return new Response("Voice is off.", { status: 404 });
   const name = new URL(req.url).searchParams.get("name") ?? "";
   if (!isCandidate(name)) return new Response("Unknown voice.", { status: 400 });
   let audio = cache.get(name);
@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     const day = new Date().toISOString().slice(0, 10);
     if ((await incr(`m8:voice:samples:${day}`, 2 * 86_400)) > 200) return new Response("Enough samples for today.", { status: 429 });
     try {
-      audio = await synthesize(SAMPLE_LINE, name);
+      audio = await synthesize(SAMPLE_LINE, name, "cc");
     } catch (err) {
       console.error("[mlo-voice] sample failed", err instanceof Error ? err.message : "unknown");
       return new Response("Google didn't return audio for that voice.", { status: 502 });

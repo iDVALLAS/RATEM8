@@ -21,8 +21,8 @@ export default async function MloVoice({ searchParams }: { searchParams: Promise
   await requireAdminPage();
   const { f } = await searchParams;
   const tenant = listTenants()[0];
-  const on = voiceOn();
-  const [voices, current] = on ? await Promise.all([availableCandidates(), currentVoice()]) : [[], ""];
+  const on = voiceOn("cc");
+  const [voices, current] = on ? await Promise.all([availableCandidates("cc"), currentVoice()]) : [[], ""];
 
   return (
     <PageShell>
@@ -34,7 +34,7 @@ export default async function MloVoice({ searchParams }: { searchParams: Promise
         {!on ? (
           <section className="mlo-section">
             <p className="mlo-note">
-              Voice is off. It turns on when GOOGLE_CLOUD_API_KEY is set in Vercel (and M8_VOICE isn&apos;t &quot;false&quot;), then redeploy.
+              Voice is off. It turns on when CC_GOOGLE_CLOUD_API_KEY (or the shared GOOGLE_CLOUD_API_KEY) is set in Vercel (and M8_VOICE isn&apos;t &quot;false&quot;), then redeploy.
             </p>
           </section>
         ) : (

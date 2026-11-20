@@ -229,7 +229,7 @@ export function liveStatus(user: User, companyTexting = false): LiveItem[] {
     { label: "Email", on: !!emailConfig(), onText: "Sign-in links, your morning email, and emails to clients in your name, with replies to your own inbox.", offText: "Not connected yet." },
     { label: "AI help", on: !!ccAnthropicKey(), onText: "The Concierge, Tell M8, Help me answer, import matching and receipt reading.", offText: "Not connected yet. Everything else works by hand." },
     { label: "Texting", on: texting, onText: "Texts go through your sponsoring company's registered service once the carriers approve its campaign.", offText: "Not on yet. Texting waits for your sponsoring company's carrier registration; use email and calls meanwhile." },
-    { label: "Dictation", on: listenOn(), onText: "Speak call notes and expenses instead of typing.", offText: "Not on. Type instead." },
+    { label: "Dictation", on: listenOn("cc"), onText: "Speak call notes and expenses instead of typing.", offText: "Not on. Type instead." },
     { label: "Recruiting credit", on: rewardsOn(), onText: "Credit for loan officers you bring in is applied to your membership.", offText: "Tracked, and applied once the owner turns it on." },
     { label: "Production share", on: productionOn(), onText: "Your share from recruits' closed loans is on your statement.", offText: "Tracked, and paid once the owner turns it on with the sponsoring company's compensation plan." },
   ];

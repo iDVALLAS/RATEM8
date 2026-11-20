@@ -90,7 +90,7 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
 
             <section className="mlo-section" id="tell">
               <h2>Add something</h2>
-              <Tell micOn={listenOn()} aiOn={!!ccAnthropicKey()} />
+              <Tell micOn={listenOn("cc")} aiOn={!!ccAnthropicKey()} />
               {rate ? <p className="mlo-note" style={{ marginTop: 8 }}>Miles are counted at the IRS business rate for the trip&apos;s date ({rate.cents}¢ a mile today; {rate.source}).</p> : null}
             </section>
 

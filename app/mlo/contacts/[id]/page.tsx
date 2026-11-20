@@ -194,7 +194,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
         {v.user.id === c.ownerUserId && c.kind === "contact" ? (
           <section className="mlo-section" id="debrief">
             <h2>After a call</h2>
-            <Debrief contactId={c.id} micOn={listenOn()} />
+            <Debrief contactId={c.id} micOn={listenOn("cc")} />
           </section>
         ) : null}
 

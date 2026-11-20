@@ -162,6 +162,8 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     addresses for the dialer call list (Call session button; only gate-allowed people; FL/OK/MD only
     with written call permission), new lead, loan update, client replied; dialer results come back
     by key and are logged like hand-logged calls.
+    D66.2: Command Center's Google key is `CC_GOOGLE_CLOUD_API_KEY` (`googleKey("cc")`, falls back to
+    `GOOGLE_CLOUD_API_KEY`, which stays the public site's).
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.

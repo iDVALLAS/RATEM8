@@ -16,7 +16,7 @@ export default function Tell({ micOn, aiOn }: { micOn: boolean; aiOn: boolean })
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const onText = useCallback((t: string) => setText((n) => (n ? `${n} ${t}` : t)), []);
-  const mic = useMic(onText, (m) => setMsg(m ? { ok: false, text: m } : null));
+  const mic = useMic(onText, (m) => setMsg(m ? { ok: false, text: m } : null), { endpoint: "/api/cc/loa/listen" });
   const done = (r: { ok: true; drafts: number; by: string } | { ok: false; error: string }, what: string) => {
     setMsg(r.ok ? { ok: true, text: `${r.drafts} ${r.drafts === 1 ? "draft" : "drafts"} ${what}. Check and confirm below.` } : { ok: false, text: r.error });
     if (r.ok) router.refresh();

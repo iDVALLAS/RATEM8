@@ -5358,3 +5358,26 @@ as the broadcast voice in the owner's other app).
   voices Google lists for the key are offered, as before.
 - **Verified:** `npm run verify` (629 tests).
 - **Known limits:** the samples can't be heard here without the Google key.
+
+## D66.2 — Command Center's own Google key (2026-11-20)
+
+Owner: "yes do the separate keys" (the public site and Command Center on
+separate Google keys, like the two AI keys).
+
+- **Files:** `lib/voice/google.ts` (`googleKey(use)`, and `voiceOn`, `listenOn`,
+  `synthesize`, `availableCandidates`, `transcribe` take `"site"` or `"cc"`),
+  `lib/videos/transcribe.ts`, the Command Center callers (`/mlo/voice` and its
+  samples, Your LOA, `/api/cc/loa/speak` and `/listen`, call-note and expense
+  dictation, video and voicemail word checks, the pilot checklist), messages on
+  the Videos and Voice pages, `lib/setup/launch.ts` and
+  `docs/COMMAND_CENTER_LAUNCH.md`, `lib/voice/google.test.ts`.
+- **How it works:** the public site (M8's voice and mic on `/chat`) uses
+  `GOOGLE_CLOUD_API_KEY`. Command Center uses `CC_GOOGLE_CLOUD_API_KEY`, and the
+  shared key until its own is set, so nothing stops working in between.
+- Call-note and expense dictation used the public mic route (`/api/m8-listen`);
+  they now use the signed-in `/api/cc/loa/listen`, on Command Center's key and
+  per-user daily limit.
+- **Owner:** add `CC_GOOGLE_CLOUD_API_KEY` (Sensitive) with the new Loanmate key;
+  leave `GOOGLE_CLOUD_API_KEY` as it is; redeploy.
+- **Verified:** `npm run verify`; a test that each side uses its own key and that
+  Command Center falls back to the shared one.

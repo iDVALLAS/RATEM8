@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_VOICE, MAX_SPEAK_CHARS, SIG_TTL_MS, VOICE_CANDIDATES, currentVoice, isCandidate, saveVoice, signReply, speakableText, verifyReply, voiceOn } from "./google";
+import { DEFAULT_VOICE, MAX_SPEAK_CHARS, SIG_TTL_MS, VOICE_CANDIDATES, currentVoice, googleKey, isCandidate, listenOn, saveVoice, signReply, speakableText, synthesize, verifyReply, voiceOn } from "./google";
+import { transcribeOn } from "@/lib/videos/transcribe";
 import { MemoryStore, setStoreForTests } from "@/lib/pricing/store";
 
 describe("M8 voice (C15)", () => {
   const saved = { ...process.env };
   beforeEach(() => {
     process.env.GOOGLE_CLOUD_API_KEY = "test-key";
+    delete process.env.CC_GOOGLE_CLOUD_API_KEY;
     delete process.env.M8_VOICE;
     delete process.env.M8_VOICE_SECRET;
   });
@@ -21,6 +23,29 @@ describe("M8 voice (C15)", () => {
     delete process.env.M8_VOICE;
     delete process.env.GOOGLE_CLOUD_API_KEY;
     expect(voiceOn()).toBe(false);
+  });
+
+  it("gives Command Center its own key, falling back to the public site's until it's set", async () => {
+    delete process.env.CC_GOOGLE_CLOUD_API_KEY;
+    expect(googleKey("site")).toBe("test-key");
+    expect(googleKey("cc")).toBe("test-key");
+    process.env.CC_GOOGLE_CLOUD_API_KEY = "cc-key";
+    expect(googleKey("cc")).toBe("cc-key");
+    expect(googleKey("site")).toBe("test-key");
+    // Command Center works on its own key with no public key, and the public site stays off.
+    delete process.env.GOOGLE_CLOUD_API_KEY;
+    expect([voiceOn("cc"), listenOn("cc"), transcribeOn()]).toEqual([true, true, true]);
+    expect([voiceOn(), listenOn()]).toEqual([false, false]);
+    const seen: string[] = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = (async (_u: RequestInfo | URL, init?: RequestInit) => (seen.push(String((init?.headers as Record<string, string>)["X-Goog-Api-Key"])), new Response(JSON.stringify({ audioContent: "AAAA" }), { status: 200 }))) as typeof fetch;
+    try {
+      await synthesize("Hello", DEFAULT_VOICE, "cc");
+      await expect(synthesize("Hello", DEFAULT_VOICE)).rejects.toThrow();
+    } finally {
+      globalThis.fetch = real;
+    }
+    expect(seen).toEqual(["cc-key"]);
   });
 
   it("speaks only the exact reply it signed, and only for an hour", () => {

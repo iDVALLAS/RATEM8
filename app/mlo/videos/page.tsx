@@ -57,7 +57,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
 
       <section className="mlo-section" id="new">
         <h2>New video</h2>
-        {!checkReady ? <p className="mlo-note">The word check needs Google Speech-to-Text: the owner turns on the Speech-to-Text API for the Google Cloud key M8&apos;s voice uses (GOOGLE_CLOUD_API_KEY).</p> : null}
+        {!checkReady ? <p className="mlo-note">The word check needs Google Speech-to-Text: the owner sets Command Center&apos;s Google key (CC_GOOGLE_CLOUD_API_KEY) with the Speech-to-Text API on.</p> : null}
         {uploadsOn() ? <Recorder folder={prefixFor(me.id)} checkReady={checkReady} /> : <p className="mlo-note">{NEEDS_TOKEN}</p>}
       </section>
 

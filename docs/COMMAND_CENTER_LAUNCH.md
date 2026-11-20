@@ -110,11 +110,12 @@ Checks whether a number was disconnected since permission was given. Pay per que
 
 ### Voice and the mic (Google Cloud, optional)
 
-M8 reads replies aloud and you can dictate call notes. Enable Text-to-Speech and Speech-to-Text on the key.
+M8 reads replies aloud, and loan officers talk to their LOA, dictate call notes and expenses, and get video captions and the word check on videos and voicemails. Two keys, like the AI keys: one for the public site and one for Command Center, each restricted to Cloud Text-to-Speech and Cloud Speech-to-Text (application restriction: None, since the calls come from Vercel's servers). Command Center uses the public key until its own is set.
 
 | Variable | Sensitive | Note |
 | --- | --- | --- |
-| `GOOGLE_CLOUD_API_KEY` (optional) | Yes | Restrict it to those two APIs. |
+| `GOOGLE_CLOUD_API_KEY` (optional) | Yes | The public site's key (M8's voice and mic on /chat). |
+| `CC_GOOGLE_CLOUD_API_KEY` (optional) | Yes | Command Center's own key (its own Google project and budget, if you like). |
 
 ### Error alerts (Sentry, optional)
 

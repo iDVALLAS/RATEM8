@@ -2,7 +2,9 @@
  * lib/voice/google.ts — M8's voice (C15). SERVER-ONLY.
  *
  * Google Cloud Text-to-Speech over its REST API (no client library), with
- * the API key in GOOGLE_CLOUD_API_KEY (Vercel, Sensitive). Like every M8
+ * the API key in GOOGLE_CLOUD_API_KEY (Vercel, Sensitive). Command Center
+ * has its own key, CC_GOOGLE_CLOUD_API_KEY (owner, 2026-11-20: separate
+ * keys, like the AI keys), and uses the shared one until it's set. Like every M8
  * service it is a switch: on with the key, off without it, and
  * M8_VOICE="false" turns it off with the key still set.
  *
@@ -24,14 +26,21 @@ const env = (k: string): string | undefined => {
 
 const API = "https://texttospeech.googleapis.com/v1";
 
+/** Who's asking: the public site (M8 chat) or Command Center (loan officers). */
+export type VoiceUse = "site" | "cc";
+/** The Google key for that use. Command Center falls back to the shared key until its own is set. */
+export function googleKey(use: VoiceUse = "site"): string | undefined {
+  return use === "cc" ? env("CC_GOOGLE_CLOUD_API_KEY") ?? env("GOOGLE_CLOUD_API_KEY") : env("GOOGLE_CLOUD_API_KEY");
+}
+
 /** True when M8 can speak: the key is set and the kill switch isn't. */
-export function voiceOn(): boolean {
-  return !!env("GOOGLE_CLOUD_API_KEY") && env("M8_VOICE") !== "false";
+export function voiceOn(use: VoiceUse = "site"): boolean {
+  return !!googleKey(use) && env("M8_VOICE") !== "false";
 }
 
 /** C16: the microphone (speech to text). Same key; M8_LISTEN="false" turns only the mic off. */
-export function listenOn(): boolean {
-  return voiceOn() && env("M8_LISTEN") !== "false";
+export function listenOn(use: VoiceUse = "site"): boolean {
+  return voiceOn(use) && env("M8_LISTEN") !== "false";
 }
 
 /** Seconds of speech turned into text per day across the site (M8_LISTEN_DAILY_SECONDS overrides). */
@@ -187,8 +196,8 @@ export function speakableText(reply: string): string {
 const langOf = (voice: string) => voice.split("-").slice(0, 2).join("-");
 
 /** MP3 bytes for `text` in `voice`, or throws. */
-export async function synthesize(text: string, voice: string): Promise<Uint8Array> {
-  const key = env("GOOGLE_CLOUD_API_KEY");
+export async function synthesize(text: string, voice: string, use: VoiceUse = "site"): Promise<Uint8Array> {
+  const key = googleKey(use);
   if (!key) throw new Error("voice off");
   const res = await fetch(`${API}/text:synthesize`, {
     method: "POST",
@@ -207,8 +216,8 @@ export async function synthesize(text: string, voice: string): Promise<Uint8Arra
 }
 
 /** Names of the candidates Google offers this key (all of them if the list can't be read). */
-export async function availableCandidates(): Promise<typeof VOICE_CANDIDATES> {
-  const key = env("GOOGLE_CLOUD_API_KEY");
+export async function availableCandidates(use: VoiceUse = "site"): Promise<typeof VOICE_CANDIDATES> {
+  const key = googleKey(use);
   if (!key) return [];
   try {
     const res = await fetch(`${API}/voices?languageCode=en-US`, { headers: { "X-Goog-Api-Key": key }, cache: "no-store" });
@@ -233,8 +242,8 @@ export const MORTGAGE_PHRASES = [
 ];
 
 /** Text for 16 kHz, 16-bit mono PCM, or "" when nothing was understood. Throws on failure. */
-export async function transcribe(pcm: Uint8Array): Promise<string> {
-  const key = env("GOOGLE_CLOUD_API_KEY");
+export async function transcribe(pcm: Uint8Array, use: VoiceUse = "site"): Promise<string> {
+  const key = googleKey(use);
   if (!key) throw new Error("voice off");
   const res = await fetch("https://speech.googleapis.com/v1/speech:recognize", {
     method: "POST",

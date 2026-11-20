@@ -17,7 +17,7 @@ export default function Debrief({ contactId, micOn }: { contactId: string; micOn
   const [msg, setMsg] = useState<string | null>(null);
   const [r, setR] = useState<Result | null>(null);
   const onText = useCallback((t: string) => setNote((n) => (n ? `${n} ${t}` : t)), []);
-  const mic = useMic(onText, setMsg);
+  const mic = useMic(onText, setMsg, { endpoint: "/api/cc/loa/listen" });
   return (
     <form
       className="mlo-grid"

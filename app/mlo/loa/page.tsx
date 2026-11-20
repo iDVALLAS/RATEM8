@@ -70,7 +70,7 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
 
       <section className="mlo-section" id="talk">
         <h2>Talk to your LOA</h2>
-        <LoaChat loans={open.map((l) => ({ id: l.id, label: `${l.borrowerName} · ${l.milestone}` }))} lenders={lenders} defaultLoanId={sp.loan && open.some((l) => l.id === sp.loan) ? sp.loan : null} mic={listenOn()} voice={voiceOn()} />
+        <LoaChat loans={open.map((l) => ({ id: l.id, label: `${l.borrowerName} · ${l.milestone}` }))} lenders={lenders} defaultLoanId={sp.loan && open.some((l) => l.id === sp.loan) ? sp.loan : null} mic={listenOn("cc")} voice={voiceOn("cc")} />
       </section>
 
       <section className="mlo-section" id="overlays">

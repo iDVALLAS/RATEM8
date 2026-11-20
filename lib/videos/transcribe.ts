@@ -4,17 +4,17 @@
  *
  * The browser pulls the sound out of the video and sends it here in pieces
  * of at most 50 seconds (16 kHz, 16-bit mono, lib/videos/audio.ts). Google
- * Speech-to-Text (the key M8's voice already uses, GOOGLE_CLOUD_API_KEY)
+ * Speech-to-Text (Command Center's Google key, CC_GOOGLE_CLOUD_API_KEY, or the shared GOOGLE_CLOUD_API_KEY)
  * turns each piece into words with their times, so the words become
  * captions too. Nothing is stored at Google.
  */
-import { MORTGAGE_PHRASES } from "@/lib/voice/google";
+import { googleKey, MORTGAGE_PHRASES } from "@/lib/voice/google";
 import type { Cue } from "./store";
 
 const env = (k: string) => process.env[k]?.trim() || undefined;
 
 /** True when the word check can run. */
-export const transcribeOn = () => !!env("GOOGLE_CLOUD_API_KEY");
+export const transcribeOn = () => !!googleKey("cc");
 
 type Word = { word?: string; startTime?: string; endTime?: string };
 type Result = { alternatives?: { transcript?: string; words?: Word[] }[] };
@@ -45,7 +45,7 @@ const round = (n: number) => Math.round(n * 100) / 100;
 
 /** One piece of sound: its text and caption lines, timed from the start of the video. Throws on failure. */
 export async function transcribePart(pcm: Uint8Array, offsetSec: number, fetcher: typeof fetch = fetch, sampleRate = 16_000): Promise<{ text: string; cues: Cue[] }> {
-  const key = env("GOOGLE_CLOUD_API_KEY");
+  const key = googleKey("cc");
   if (!key) throw new Error("speech off");
   const res = await fetcher("https://speech.googleapis.com/v1/speech:recognize", {
     method: "POST",
