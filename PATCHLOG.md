@@ -5185,3 +5185,52 @@ authenticator option".
   - Browser: Connections lists all nine; a LendingPad key saved shows
     "Saved (leave blank to keep)" and never the key; Sign-in security
     shows the QR code; no sideways scroll at 390px.
+
+## D65 — Zapier: power dialers and outgoing events (2026-11-20)
+
+Owner: "include Zapier connections for power dialer or any other features
+that are wanted such as power caller."
+
+- **Files:**
+  - `lib/zapier/service.ts`, `lib/zapier/zapier.test.ts`
+  - `app/api/zapier/call/route.ts`
+  - `app/mlo/connections/{page.tsx,actions.ts}` (new "Zapier" section, `#zapier`)
+  - `app/mlo/calls/{page.tsx,actions.ts}` ("Send this list to my dialer")
+  - Emit points: `app/api/leads/inbound/route.ts`,
+    `app/api/pipeline/inbound/route.ts`, `lib/messaging/service.ts`
+  - `lib/site-lock.ts` (`/api/zapier/` is open to the key-checked route)
+- **Out (Zapier "Catch Hook", also Make, n8n and Pipedream):** the loan
+  officer pastes a hook address on Connections and picks what to send.
+  - Call list for your dialer: on demand from Call session. It carries only
+    the people the call session already allows right now (permission,
+    do-not-call, quiet hours, caps). Each person's name, phone, email, state,
+    why they're on the list, and a link to their contact page. Never loan
+    amounts or rates.
+  - New lead, loan update, and a client replied (who replied, never what
+    they wrote).
+  - Hook addresses are sealed like passwords. Only https on a public host.
+    Each hook shows when it last delivered or failed, and has "Send a test".
+- **Florida, Oklahoma and Maryland** regulate automated dialing with their
+  own consent rules. People there go to a dialer only with written (or web
+  form, or text reply) permission to call. Everyone else stays on the
+  hand-dialed list, and the button says how many stayed.
+- **In: call results.** A second Zap posts the dialer's "call completed"
+  to `/api/zapier/call` with the loan officer's key (`X-CC-Key`, the same
+  key as the loan and lead addresses). Fields: phone, result (the
+  disposition) and notes; up to 50 calls per post and 600 per hour.
+  - Each call is logged on the contact like a hand-logged call. "Do not
+    call" records the stop; "wrong number" too.
+- **Law note on the page:** use a one-line power dialer. Dialers that ring
+  several numbers at once can drop calls, which federal rules limit
+  (47 CFR 64.1200(a)(7)).
+- **Verified:**
+  - `npm run verify` (619 tests, 5 new): hook addresses (https, public host
+    only), sealing, each event reaching only its own hooks, the dialer list
+    holding only gate-allowed people with no loan figures, the FL/OK/MD
+    rule, disposition mapping, and "Do Not Call" recording a stop.
+  - Browser at 390 and 1280: a hook added on Connections shows its name and
+    host, never the address; the row stacks on phones; no sideways scroll;
+    Call session renders with no errors.
+- **Known limits:** nothing live was sent to a real Zapier hook from this
+  session. The owner's first test is "Send a test" on Connections.
+- **Next up:** D66 LOA forms (plan first).

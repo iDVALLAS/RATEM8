@@ -11,7 +11,8 @@ import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../MloChrome";
 import { BuildButton } from "../scripts/Buttons";
 import { buildScriptAction } from "../scripts/actions";
-import { logCallAction } from "./actions";
+import { logCallAction, sendToDialerAction } from "./actions";
+import { hookStore } from "@/lib/zapier/service";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,16 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
             <section className="mlo-section">
               <h2>{q.ready.length ? `${q.ready.length} to call now` : "Nobody to call right now"}{q.done ? ` · ${q.done} done today` : ""}</h2>
               <p className="mlo-note">One person at a time, from Today. Each call is checked against your contact rules first (permission, do-not-call, today&apos;s limit, quiet hours where they live). You dial; nothing rings on its own and no recorded voicemails are dropped.</p>
+              {q.ready.length ? (
+                (await hookStore().list(me.id).catch(() => [])).some((h) => h.event === "call_list") ? (
+                  <form action={sendToDialerAction} className="mlo-row-form" style={{ marginTop: 8 }}>
+                    <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Send this list to my dialer</button>
+                    <span className="mlo-note">Through your Zapier hook. Only the people above who can be called now.</span>
+                  </form>
+                ) : (
+                  <p className="mlo-note">Use a power dialer? <Link href="/mlo/connections#zapier">Connect it through Zapier</Link> and send this list to it.</p>
+                )
+              ) : null}
             </section>
 
             {next ? (

@@ -156,6 +156,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     D63 Connections (`/mlo/connections`, `lib/connect/*`): per-system routes (ARIVE = Zapier only;
     LendingPad/Encompass API keys sealed; Encompass sign-in test), Encompass field names on the loan
     address; authenticator setup shows a QR code (`qrcode` package).
+    D65 Zapier (`lib/zapier/*`, Connections `#zapier`, `/api/zapier/call`): sealed Catch Hook
+    addresses for the dialer call list (Call session button; only gate-allowed people; FL/OK/MD only
+    with written call permission), new lead, loan update, client replied; dialer results come back
+    by key and are logged like hand-logged calls.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

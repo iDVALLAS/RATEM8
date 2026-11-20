@@ -3,6 +3,7 @@ import { ingestLead, readLead } from "@/lib/leads/intake";
 import { ownerForKey } from "@/lib/pipeline/keys";
 import { incr } from "@/lib/m8/kv";
 import { ensureRegistry } from "@/lib/registry/cache";
+import { emit } from "@/lib/zapier/service";
 
 /**
  * POST /api/leads/inbound — new leads from a lead vendor or web form (D14).
@@ -33,6 +34,8 @@ export async function POST(req: Request) {
       continue;
     }
     await ingestLead(user, lead);
+    // D65: a Zapier hook for new leads (to a dialer, a CRM, a Slack channel).
+    await emit(owner, "lead_created", { lead }).catch(() => null);
     accepted++;
   }
   return json(accepted ? 200 : 400, { ok: accepted > 0, accepted, skipped, ...(accepted ? {} : { error: "Each lead needs a phone number or an email." }) });

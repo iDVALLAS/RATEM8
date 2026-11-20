@@ -3,7 +3,7 @@
  * replies, opt-outs and delivery status (D4). SERVER-ONLY.
  */
 import { randomBytes } from "node:crypto";
-import { mloById } from "@/lib/config";
+import { CONFIG, mloById } from "@/lib/config";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { redactChatInput } from "@/lib/m8/redact";
 import { canSee, recordConsent, summarize } from "@/lib/contacts/service";
@@ -145,6 +145,9 @@ export async function handleInbound(from: string, sender: string, rawBody: strin
   if (contacts.length) {
     const { onContactReply } = await import("@/lib/campaigns/service");
     for (const c of contacts) await onContactReply(c.id, out, now).catch(() => 0);
+    // D65: a Zapier hook for "a client replied" hears who replied (never what they wrote).
+    const { emit } = await import("@/lib/zapier/service");
+    for (const c of contacts) await emit(c.ownerUserId, "client_replied", { firstName: c.firstName, lastName: c.lastName, phone: c.phone, optedOut: out, contactUrl: `${CONFIG.siteUrl.replace(/\/$/, "")}/mlo/contacts/${encodeURIComponent(c.id)}` }, now).catch(() => null);
   }
   await accountStore().audit({ at, actor: "twilio", action: out ? "text.inbound.optout" : "text.inbound", detail: { matched: contacts.length } });
   return { contacts: contacts.length, optedOut: out };

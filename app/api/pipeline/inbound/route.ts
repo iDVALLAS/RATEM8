@@ -1,3 +1,4 @@
+import { emit } from "@/lib/zapier/service";
 import { ingest, readPayload } from "@/lib/pipeline/intake";
 import { ownerForKey } from "@/lib/pipeline/keys";
 import { incr } from "@/lib/m8/kv";
@@ -30,6 +31,8 @@ export async function POST(req: Request) {
       continue;
     }
     await ingest(owner, u, url.searchParams.get("source")?.slice(0, 20) || "loan system");
+    // D65: a Zapier hook for loan updates (names and status only; no rate or amount).
+    await emit(owner, "loan_updated", { loanNumber: u.externalId, borrower: u.borrowerName, status: u.milestone, purpose: u.purpose, closing: u.keyDates.closing }).catch(() => null);
     accepted++;
   }
   return json(accepted ? 200 : 400, { ok: accepted > 0, accepted, skipped, ...(accepted ? {} : { error: "Each update needs a loan number and a status." }) });
