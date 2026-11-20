@@ -4387,3 +4387,79 @@ Research (sources in the 2026-11-20 chat):
   - Business Manager.
   - Call practice built into the Coach.
   - The team's plan in the morning email.
+
+## D54.1 — The Concierge team, part 2 (2026-11-20)
+
+The owner: "build part 2".
+
+- **Marketing** (`lib/agents/marketing.ts`): it never spends on its own.
+  - **Seasonal card drives:** Thanksgiving (Nov 1–14), the holidays
+    (Dec 1–12) and the new year (Dec 27–Jan 8), for past clients with a
+    mailing address.
+    - The move opens Cards already filled in
+      (`/mlo/cards?starter=…&group=past_client`), and Thanks.io prices it
+      before anything is sent.
+    - If cards aren't set up or Thanks.io isn't connected, it says what's
+      missing instead.
+  - **A monthly plan:** four post ideas for the loan officer's own accounts
+    (`CONTENT`, all passing the wording rules), plus a reminder to put
+    their NMLS ID on every post and keep out rates and promises.
+  - **A nudge** to turn on a new-lead campaign when none picks up new
+    leads.
+  - **A quarterly "Mail a neighborhood"** when that source is on.
+- **Mail a neighborhood** (`prepareNeighborhood`, the Cards page
+  `#neighborhood`): 4×6 postcards to the 25–1,000 homes nearest an
+  address.
+  - **Audiences** are by home and stage only: every home, new homeowners,
+    likely to move, likely to refinance, likely first-time buyers,
+    renters, owners with strong equity. Never by family, age or wealth
+    (fair housing).
+  - **Price first:** Thanks.io's estimate (with `radius_search`) counts
+    and prices the homes, including the list fee, and buys nothing.
+  - **Send once:** the review shows the count and the price, then the
+    send buys the list and mails it.
+  - **The card:** no names (a "Hello, neighbor" starter); the
+    NMLS/Equal Housing sign-off and the company's return address as on
+    every card.
+- **Business Manager** (`lib/agents/business.ts`, a panel on the team
+  page):
+  - Income, expenses and profit so far this year (confirmed entries).
+  - A tax set-aside at 25% of profit, labelled "a common starting point,
+    not tax advice: your CPA sets the real number".
+  - Cost per closed loan, and leads to loans by lead source.
+  - Moves: expense drafts to confirm, missing receipts, and the federal
+    estimated tax dates (14 days before Jan 15, Apr 15, Jun 15, Sep 15).
+- **Coach call practice** (`lib/agents/practice.ts`): four calls (a rate
+  shopper, a new web lead, a past client, a listing agent after an
+  expired listing).
+  - They run on the CORE lessons' practice engine: `practiceTurn` and
+    `practiceCoach` now look up lessons or Coach scenarios, and the
+    persona and coach wording no longer assume an agent.
+  - They play right on the team page (`?practice=`), with the Coach's
+    feedback.
+- **Morning email:** one "Your team" line with counts only (waiting,
+  messages to OK, yeses needed, sent in the last day) and a link.
+- **Also:**
+  - Marketing and Business Manager are marked ready.
+  - The mail source can be turned on in Set up.
+  - Moves can link to a page ("Open and price it").
+- **Verified:**
+  - 4 new team tests:
+    - Marketing moves, including the missing-setup case
+    - every post idea passes the wording rules
+    - Business Manager numbers and the estimated-tax reminder
+    - practice through the engine, with the AI-off fallback
+  - 2 new card tests: neighborhood checks (ZIP, count, audiences, no
+    names), and price first then send once with `radius_search`.
+  - The copy check caught "in a hurry" in a persona and the guard caught
+    "pre-approved" in a post idea; both were reworded.
+  - `npm run verify`.
+  - **In the browser:**
+    - set up with mail on → Run now found the campaign nudge, the
+      neighborhood mail, the post ideas and the relocation plan
+    - the Business Manager panel shows
+    - a practice call opens
+    - 390px: the team and Cards pages have no sideways scroll and no
+      errors
+- **Next:** D55 video messages, D56 texting set up by Command Center, D57
+  voicemail drops. (Renumbered: the team took D54.)

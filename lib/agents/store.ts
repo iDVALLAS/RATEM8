@@ -51,6 +51,8 @@ export type Move = {
   body: string;
   /** Spend requests: an estimate, then what was actually spent. */
   amountCents: number | null;
+  /** Where to do it (a Command Center page), when it isn't a contact or a loan. */
+  href?: string | null;
   /** Gift lanes (owner's practice, 2026-11-20): logged per person per year. */
   gift?: GiftKind | null;
   score: number;

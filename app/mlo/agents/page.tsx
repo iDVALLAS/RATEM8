@@ -6,6 +6,9 @@ import { decodeFlash } from "@/lib/mlo/flash";
 import { teamStore, type Move } from "@/lib/agents/store";
 import { AGENTS, AGENT_KEYS } from "@/lib/agents/team";
 import { scorecard } from "@/lib/agents/service";
+import { snapshot, SET_ASIDE } from "@/lib/agents/business";
+import { COACH_SCENARIOS, scenarioById } from "@/lib/agents/practice";
+import { Practice } from "../academy/Client";
 import { GIFT_RULES } from "@/lib/agents/runner";
 import { FlashBox } from "../MloChrome";
 import { giftAction, moveDismissAction, moveDoneAction, runNowAction, sendDraftAction } from "./actions";
@@ -20,7 +23,7 @@ const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-US"
 
 function MoveCard({ m, top }: { m: Move; top?: boolean }) {
   const a = AGENTS[m.agent];
-  const link = m.loanId ? `/mlo/pipeline/${m.loanId}` : m.contactId ? `/mlo/contacts/${m.contactId}` : null;
+  const link = m.loanId ? `/mlo/pipeline/${m.loanId}` : m.contactId ? `/mlo/contacts/${m.contactId}` : m.href ?? null;
   return (
     <li className={`ag-move ag-move--${m.kind} ${top ? "is-top" : ""}`}>
       <div className="ag-move__head">
@@ -45,7 +48,8 @@ function MoveCard({ m, top }: { m: Move; top?: boolean }) {
             <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Yes, log it</button>
           </form>
         ) : null}
-        {m.kind === "task" || m.kind === "plan" ? <form action={moveDoneAction.bind(null, m.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Done</button></form> : null}
+        {m.kind === "spend" && !m.gift && m.href ? <Link href={m.href} className="mlo-btn" style={{ marginTop: 0 }}>Open and price it</Link> : null}
+        {m.kind === "task" || m.kind === "plan" || (m.kind === "spend" && !m.gift) ? <form action={moveDoneAction.bind(null, m.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Done</button></form> : null}
         <form action={moveDismissAction.bind(null, m.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Not now</button></form>
         {m.kind === "draft" ? <Link href="/mlo/agents/setup#playbooks" className="mlo-note">Let it send on its own</Link> : null}
       </div>
@@ -54,8 +58,8 @@ function MoveCard({ m, top }: { m: Move; top?: boolean }) {
 }
 
 /** /mlo/agents — the Concierge team (D54): the plan, what waits for you, what was sent, and the Coach. */
-export default async function TeamPage({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
-  const { f } = await searchParams;
+export default async function TeamPage({ searchParams }: { searchParams: Promise<{ f?: string; practice?: string }> }) {
+  const { f, practice } = await searchParams;
   const v = await requireViewer();
   const me = v.user;
   if (!me) {
@@ -69,7 +73,9 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
   const open = await teamStore().moves(me.id, { status: "open", limit: 300 });
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
   const sent = await teamStore().moves(me.id, { status: "sent", since: weekAgo, limit: 200 });
-  const card = await scorecard(me);
+  const [card, biz] = await Promise.all([scorecard(me), snapshot(me)]);
+  const scene = practice ? scenarioById(practice) : null;
+  const usd = (c: number) => `$${Math.round(c / 100).toLocaleString("en-US")}`;
   const top = open.filter((m) => m.kind !== "send").slice(0, 3);
   const rest = open.filter((m) => !top.includes(m));
   const byAgent = (k: string) => open.filter((m) => m.agent === k).length;
@@ -117,10 +123,37 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                 <div><strong>{card.sentByTeam}</strong><span>sent by your team</span></div>
               </div>
               <p className="mlo-note" style={{ marginTop: 8 }}>The last 7 days. {p ? `Your goal works out to about ${p.loansPerYear} loans a year: ${p.loansPerWeek} closing${p.loansPerWeek === 1 ? "" : "s"}, ${p.appsPerWeek} applications and ${p.talksPerWeek} conversations a week.` : <>Set your income goal in <Link href="/mlo/agents/setup#goals">Set up</Link> and your Coach works it back to weekly numbers.</>}</p>
-              <div className="mlo-row-form" style={{ marginTop: 10 }}>
-                <Link href="/mlo/scripts" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Practice a call</Link>
+              <h3 className="ag-sub" id="practice">Practice a call with M8</h3>
+              <div className="mlo-row-form">
+                {COACH_SCENARIOS.map((x) => <Link key={x.id} href={`/mlo/agents?practice=${x.id}#practice`} className={`mlo-btn ${scene?.id === x.id ? "" : "mlo-btn--ghost"}`} style={{ marginTop: 0 }}>{x.title}</Link>)}
                 <Link href="/mlo/academy" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Next CORE lesson</Link>
               </div>
+              {scene ? (
+                <div style={{ marginTop: 12 }}>
+                  <p className="mlo-note">M8 plays {scene.practice.persona}. Your goal: {scene.practice.tryTo} When you&apos;re done, ask the Coach for feedback.</p>
+                  <Practice key={scene.id} sessionId={scene.id} opening={scene.practice.opening} tryTo={scene.practice.tryTo} />
+                </div>
+              ) : null}
+            </section>
+
+            <section className="mlo-section" aria-labelledby="biz-h">
+              <h2 id="biz-h" className="text-xl">Your Business Manager · {biz.year} so far</h2>
+              <div className="ag-score">
+                <div><strong>{usd(biz.incomeCents)}</strong><span>income recorded</span></div>
+                <div><strong>{usd(biz.expenseCents)}</strong><span>business expenses</span></div>
+                <div><strong>{usd(biz.profitCents)}</strong><span>profit</span></div>
+                <div><strong>{usd(biz.setAsideCents)}</strong><span>to set aside for taxes ({Math.round(SET_ASIDE * 100)}%)</span></div>
+                <div><strong>{biz.costPerLoanCents === null ? "–" : usd(biz.costPerLoanCents)}</strong><span>cost per closed loan ({biz.loansClosed} closed)</span></div>
+              </div>
+              <p className="mlo-note" style={{ marginTop: 8 }}>From your <Link href="/mlo/expenses">Expenses</Link> (confirmed entries only{biz.drafts ? `; ${biz.drafts} drafts waiting` : ""}) and your loans. {Math.round(SET_ASIDE * 100)}% of profit is a common starting point for self-employed set-asides, not tax advice: your CPA sets the real number.</p>
+              {biz.sources.length ? (
+                <div style={{ overflowX: "auto", marginTop: 8 }}>
+                  <table className="mlo-table">
+                    <thead><tr><th>Lead source</th><th>Leads</th><th>Became loans</th></tr></thead>
+                    <tbody>{biz.sources.map((x) => <tr key={x.source}><td>{x.source}</td><td>{x.leads}</td><td>{x.loans}{x.leads ? ` (${Math.round((x.loans / x.leads) * 100)}%)` : ""}</td></tr>)}</tbody>
+                  </table>
+                </div>
+              ) : null}
             </section>
 
             <section className="mlo-section" aria-labelledby="sent-h">

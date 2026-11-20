@@ -11,6 +11,13 @@ import { PLAYBOOKS } from "./playbooks";
 import { runTeam, sendDueMoves, type Senders } from "./runner";
 import { approveGift, goalPlan, importListings, importNewAgents, saveTeamSettings, sendDraft, setPlaybook } from "./service";
 import { MemoryTeamStore, setTeamStoreForTests, teamStore } from "./store";
+import { MemoryCampaignStore, setCampaignStoreForTests } from "@/lib/campaigns/store";
+import { saveEntry } from "@/lib/expenses/service";
+import { snapshot } from "./business";
+import { CONTENT } from "./marketing";
+import { COACH_SCENARIOS } from "./practice";
+import { practiceTurn } from "@/lib/academy/service";
+import { checkTemplate } from "@/lib/templates/service";
 
 const NOW = new Date("2026-12-02T16:00:00Z");
 const me: User = { id: "lo1", email: "lo1@x.com", name: "Pat", role: "lo", mloId: "mlo-001", status: "active", createdAt: "", createdBy: "" };
@@ -38,6 +45,7 @@ describe("The Concierge team (D54)", () => {
     setPipelineStoreForTests(pipeline);
     setExpenseStoreForTests(new MemoryExpenseStore());
     setTeamStoreForTests(new MemoryTeamStore());
+    setCampaignStoreForTests(new MemoryCampaignStore());
     // A past client whose home anniversary is in 3 days, one gone quiet with permission, and a RETR-imported agent.
     await importBatch(me, "contacts", [rec("Ann", { loan: { closedOn: "2023-12-05", amount: 400000, noteRate: 6.5 } }), rec("Bo")], "a.csv", "personal", new Date("2026-01-01T00:00:00Z"));
     const bo = await by("Bo");
@@ -45,7 +53,7 @@ describe("The Concierge team (D54)", () => {
     await importBatch(me, "agents", [rec("Rex", { relationship: "agent" })], "retr.csv", "unknown", new Date("2026-01-01T00:00:00Z"));
   });
   afterEach(() => {
-    for (const f of [setContactStoreForTests, setTouchStoreForTests, setAccountStoreForTests, setConciergeStoreForTests, setPipelineStoreForTests, setExpenseStoreForTests, setTeamStoreForTests]) f(null);
+    for (const f of [setContactStoreForTests, setTouchStoreForTests, setAccountStoreForTests, setConciergeStoreForTests, setPipelineStoreForTests, setExpenseStoreForTests, setTeamStoreForTests, setCampaignStoreForTests]) f(null);
   });
   const by = async (n: string): Promise<Contact> => (await contacts.list({})).contacts.find((c) => c.firstName === n)!;
   const open = async () => teamStore().moves("lo1", { status: "open" });
@@ -149,5 +157,47 @@ describe("The Concierge team (D54)", () => {
   it("works the income goal back to weekly numbers", () => {
     expect(goalPlan({ yearlyIncome: 240000, incomePerLoan: 5000, appToClose: 75, talkToApp: 10, partnerTouchesPerWeek: 5 })).toEqual({ loansPerYear: 48, loansPerWeek: 1, appsPerWeek: 1.3, talksPerWeek: 14, partnerTouchesPerWeek: 5 });
     expect(goalPlan({ yearlyIncome: 0, incomePerLoan: 5000, appToClose: 75, talkToApp: 10, partnerTouchesPerWeek: 5 })).toBeNull();
+  });
+
+  describe("part 2 (D54.1)", () => {
+    const saved = { ...process.env };
+    afterEach(() => {
+      process.env = { ...saved };
+    });
+
+    it("Marketing: the month's post ideas, the season's cards, a new-lead campaign, and neighborhood mail when it's on", async () => {
+      await saveTeamSettings(me, { ...settingsOn, sources: [...settingsOn.sources, "mail"] }, NOW);
+      await runTeam(me, NOW);
+      const mk = (await open()).filter((m) => m.agent === "marketing");
+      expect(mk.find((m) => m.key === "content:2026-12")).toMatchObject({ kind: "plan" });
+      // Cards by mail aren't set up here, so the holiday drive says what's missing instead of offering a spend.
+      expect(mk.find((m) => m.key === "season:holidays:2026")).toMatchObject({ kind: "plan", href: "/mlo/cards" });
+      expect(mk.find((m) => m.key === "campaign:new_lead")).toMatchObject({ href: "/mlo/campaigns" });
+      expect(mk.find((m) => m.key === "mail:2026-Q4")).toMatchObject({ kind: "spend", href: "/mlo/cards#neighborhood" });
+    });
+
+    it("Marketing: every post idea passes the wording rules", () => {
+      for (const [m, ideas] of Object.entries(CONTENT)) for (const x of ideas) expect(checkTemplate(x).ok, `${m}: ${x}`).toBe(true);
+    });
+
+    it("Business Manager: profit, a set-aside, cost per loan, sources, and the estimated tax date", async () => {
+      await saveEntry(me, null, { kind: "income", date: "2026-03-01", dollars: 10000, miles: 0, vendor: "Home Trust", category: "other", businessPct: 100, purpose: "Loan comp", recipient: "" }, NOW);
+      await saveEntry(me, null, { kind: "expense", date: "2026-03-02", dollars: 2000, miles: 0, vendor: "Ads", category: "advertising", businessPct: 100, purpose: "Ads", recipient: "" }, NOW);
+      const s = await snapshot(me, NOW);
+      expect(s).toMatchObject({ incomeCents: 1_000_000, profitCents: 1_000_000 - s.expenseCents, setAsideCents: Math.round((1_000_000 - s.expenseCents) * 0.25) });
+      expect(s.expenseCents).toBeGreaterThanOrEqual(200_000);
+      await saveTeamSettings(me, settingsOn, NOW);
+      const jan = new Date("2027-01-05T16:00:00Z");
+      await runTeam(me, jan);
+      expect((await open()).find((m) => m.key === "est-tax:2027-1")).toMatchObject({ agent: "business", title: "Estimated tax payment due January 15" });
+    });
+
+    it("Coach: practice calls run on the practice engine, with the goal when the AI is off", async () => {
+      for (const sc of COACH_SCENARIOS) expect(checkTemplate(sc.practice.tryTo).ok, sc.id).toBe(true);
+      const r = await practiceTurn("coach-rate-shopper", [{ who: "me", text: "Happy to help! Can I ask a few questions first?" }], { call: null });
+      expect(r).toMatchObject({ ok: true, live: false });
+      expect(r.ok && r.reply).toContain("Loan Estimate");
+      expect(await practiceTurn("nope", [{ who: "me", text: "hi there" }], { call: null })).toMatchObject({ ok: false });
+    });
   });
 });

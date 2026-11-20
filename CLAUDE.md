@@ -123,6 +123,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     Pipeline, Partner, Coach, Compliance) plan in the sweep, send at the tick; only
     approved playbooks (hash of exact text) send, via the gate, daily cap; gifts/lunches
     wait for a yes and log to expenses; RESPA lines held; never RETR data; `CC_TEAM="false"`.
+    D54.1: Marketing (seasonal cards via Cards presets, monthly post ideas, campaign nudge,
+    "Mail a neighborhood" = Thanks.io radius estimate then send, fair-housing audiences only),
+    Business Manager (profit, 25% set-aside "not tax advice", cost/loan, sources, tax dates),
+    Coach practice calls (academy engine), team line in the morning email.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

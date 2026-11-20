@@ -25,6 +25,8 @@ import { sendEmail } from "@/lib/messaging/email";
 import { myValues } from "@/lib/templates/service";
 import { todayFor } from "@/lib/today/facts";
 import { pipelineStore } from "@/lib/pipeline/store";
+import { marketingIdeas } from "./marketing";
+import { businessIdeas } from "./business";
 import type { TodayCard } from "@/lib/today/rank";
 import { reviewMessage } from "./compliance";
 import { fillPlaybook, playbookById, playbookVersion, type Playbook } from "./playbooks";
@@ -72,7 +74,7 @@ function fromPlaybook(ctx: Ctx, agent: AgentKey, pbId: string, c: Contact, base:
   };
 }
 
-const task = (agent: AgentKey, key: string, title: string, why: string, score: number, extra: Partial<Proposal> = {}): Proposal => ({ key, agent, kind: "task", title, why, contactId: null, loanId: null, playbookId: null, channel: null, subject: "", body: "", amountCents: null, score, until: null, to: "client", cooldownDays: 7, ...extra });
+const task = (agent: AgentKey, key: string, title: string, why: string, score: number, extra: Partial<Proposal> = {}): Proposal => ({ key, agent, kind: "task", title, why, contactId: null, loanId: null, playbookId: null, channel: null, subject: "", body: "", amountCents: null, href: null, score, until: null, to: "client", cooldownDays: 7, ...extra });
 
 /** Today's cards, handed to the right agent. */
 function fromCards(ctx: Ctx, cards: TodayCard[]): Proposal[] {
@@ -205,7 +207,9 @@ export async function proposeAll(user: User, settings: TeamSettings, now: Date):
   const ctx: Ctx = { user, settings, now, contacts: new Map(mine.map((c) => [c.id, c])), lastTouch, values: { myFirst: mv.myFirst, myName: mv.myName, company: mv.company, area: settings.area.trim() || "your area" } };
   const { cards } = await todayFor(user, now, { ownOnly: true }).catch(() => ({ cards: [] as TodayCard[] }));
   const listings = await teamStore().listings(user.id);
-  return [...fromCards(ctx, cards), ...fromPartners(ctx, listings), ...relocationPlan(ctx), ...(await giftIdeas(ctx))];
+  const marketing = await marketingIdeas(ctx, task).catch(() => []);
+  const business = await businessIdeas(user, now, task).catch(() => []);
+  return [...fromCards(ctx, cards), ...fromPartners(ctx, listings), ...relocationPlan(ctx), ...(await giftIdeas(ctx)), ...marketing, ...business];
 }
 
 export type RunResult = { proposed: number; added: number; held: number; sent: number; waiting: number };

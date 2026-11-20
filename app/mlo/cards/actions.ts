@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
-import { disconnectThanks, discardCards, prepareCards, sendCards, setNoMail } from "@/lib/cards/service";
+import { disconnectThanks, discardCards, prepareCards, prepareNeighborhood, sendCards, setNoMail } from "@/lib/cards/service";
 
 const go = (path: string, ok: boolean, lines: string[]): never => redirect(`${path}${path.includes("?") ? "&" : "?"}f=${encodeURIComponent(encodeFlash({ ok, lines }))}`);
 const me = async () => (await currentUser()) ?? redirect("/sign-in");
@@ -45,4 +45,24 @@ export async function disconnectThanksAction(): Promise<void> {
 export async function noMailAction(contactId: string, noMail: boolean): Promise<void> {
   const ok = await setNoMail(await me(), contactId, noMail);
   go(`/mlo/contacts/${encodeURIComponent(contactId)}`, ok, [ok ? (noMail ? "No cards by mail for them." : "Cards by mail are back on for them.") : "Couldn't change that."]);
+}
+
+/** D54.1: price postcards to the homes around an address (nothing bought yet). */
+export async function neighborhoodAction(fd: FormData): Promise<void> {
+  const u = await me();
+  const [designId, designImage] = String(fd.get("design") ?? "").split("|");
+  const r = await prepareNeighborhood(u, {
+    street: String(fd.get("street") ?? ""),
+    city: String(fd.get("city") ?? ""),
+    state: String(fd.get("state") ?? ""),
+    zip: String(fd.get("zip") ?? ""),
+    count: Number(fd.get("count")),
+    audience: String(fd.get("audience") ?? ""),
+    size: fd.get("size") === "6x9" ? "6x9" : "4x6",
+    designId: Number(designId),
+    designImage: designImage ?? "",
+    message: String(fd.get("message") ?? ""),
+  });
+  if (r.ok) redirect(`/mlo/cards?d=${encodeURIComponent(r.order.id)}`);
+  go("/mlo/cards", false, [r.error]);
 }

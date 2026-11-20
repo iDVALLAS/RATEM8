@@ -29,3 +29,4 @@
 .ag-checks label { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; }
 .ag-pb { border: 1px solid var(--rule); border-radius: 14px; padding: 12px 14px; display: grid; gap: 6px; }
 .ag-pb pre { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bg-sunken); white-space: pre-wrap; font: inherit; font-size: 14px; }
+.ag-sub { margin: 16px 0 8px; font-size: 16px; font-weight: 600; }

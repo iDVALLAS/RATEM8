@@ -9,7 +9,7 @@ type Starter = { id: string; label: string; message: string };
 const GROUPS: [string, string][] = [["all", "Everyone"], ["past_client", "Past clients"], ["lead", "Leads"], ["sphere", "Sphere"], ["agent", "Agents"], ["other", "Everyone else"]];
 
 /** D53: the card builder. Plain form fields; the server checks everything again. */
-export default function Builder({ action, people, designs, styles, starters, signoff, max, preselect }: {
+export default function Builder({ action, people, designs, styles, starters, signoff, max, preselect, startWith, startGroup }: {
   action: (fd: FormData) => void;
   people: PickPerson[];
   designs: { notecard: DesignOpt[]; "4x6": DesignOpt[]; "6x9": DesignOpt[] };
@@ -18,11 +18,13 @@ export default function Builder({ action, people, designs, styles, starters, sig
   signoff: string;
   max: number;
   preselect: string[];
+  startWith?: string;
+  startGroup?: string;
 }) {
   const [kind, setKind] = useState<"notecard" | "postcard">("notecard");
   const [size, setSize] = useState<"4x6" | "6x9">("4x6");
-  const [message, setMessage] = useState(starters[0]?.message ?? "");
-  const [group, setGroup] = useState("all");
+  const [message, setMessage] = useState((starters.find((s) => s.id === startWith) ?? starters[0])?.message ?? "");
+  const [group, setGroup] = useState(GROUPS.some(([k]) => k === startGroup) ? startGroup! : "all");
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<Set<string>>(() => new Set(preselect));
   const list = kind === "notecard" ? designs.notecard : designs[size];

@@ -25,7 +25,7 @@ export type Digest = { subject: string; text: string; people: number; drafts: nu
 
 export async function digestFor(user: User, now = new Date()): Promise<Digest> {
   const nowIso = now.toISOString();
-  const [today, drafts, tasks, notes] = await Promise.all([todayFor(user, now, { ownOnly: true }), conciergeStore().proposals(user.id, "pending"), conciergeStore().tasks(user.id), conciergeStore().pendingMemory(user.id, nowIso)]);
+  const [today, drafts, tasks, notes, team] = await Promise.all([todayFor(user, now, { ownOnly: true }), conciergeStore().proposals(user.id, "pending"), conciergeStore().tasks(user.id), conciergeStore().pendingMemory(user.id, nowIso), teamLine(user, now)]);
   const personal = tasks.filter((t) => t.lane === "personal");
   const firstOf = async (id: string) => (await contactStore().get(id))?.firstName || "someone";
   const loanCards = today.cards.filter((c) => LOAN_KINDS.has(c.kind));
@@ -41,6 +41,7 @@ export async function digestFor(user: User, now = new Date()): Promise<Digest> {
     people.length ? `People worth reaching out to (${people.length}):\n${people.slice(0, 8).map((c) => line(c.name, c.kind)).join("\n")}` : "Nobody on Today right now.",
     drafts.length ? `Drafts waiting for your OK: ${drafts.length}` : "",
     notes.length ? `Notes to keep or forget: ${notes.length}` : "",
+    team ? `${team} ${base}/mlo/agents` : "",
     "",
     `Open Command Center: ${base}/mlo`,
     `Start a call session: ${base}/mlo/calls`,
@@ -81,4 +82,15 @@ async function resendSend(to: string, subject: string, text: string): Promise<bo
   } catch {
     return false;
   }
+}
+
+/** D54.1: the Concierge team in one line, counts only. */
+async function teamLine(user: User, now: Date): Promise<string> {
+  const { teamStore } = await import("@/lib/agents/store");
+  const s = await teamStore().settings(user.id).catch(() => null);
+  if (!s?.enabled) return "";
+  const [open, sent] = await Promise.all([teamStore().moves(user.id, { status: "open", limit: 500 }), teamStore().moves(user.id, { status: "sent", since: new Date(now.getTime() - 86_400_000).toISOString(), limit: 500 })]);
+  const yes = open.filter((m) => m.kind === "spend").length;
+  const drafts = open.filter((m) => m.kind === "draft").length;
+  return `Your team: ${open.length} waiting for you${drafts ? ` (${drafts} message${drafts === 1 ? "" : "s"} to OK)` : ""}${yes ? `, ${yes} need${yes === 1 ? "s" : ""} your yes` : ""}, ${sent.length} sent in the last day.`;
 }

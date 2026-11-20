@@ -34,6 +34,8 @@ export type CardOrder = {
   finalMessage: string;
   contactIds: string[];
   skipped: Skipped[];
+  /** D54.1 "mail a neighborhood": homes found around an address (no contacts). */
+  radius?: { address: string; count: number; audience: string; found: number } | null;
   estimateCents: number;
   balanceCents: number | null;
   coveredByBalance: boolean | null;

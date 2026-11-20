@@ -22,7 +22,7 @@ const SOURCE_LABELS: Record<Source, string> = {
   listings: "Canceled and expired listings: reach the listing agent (from a list you add below)",
   new_agents: "Agents new to the area: a welcome (from a list you add below)",
   relocation: "Relocation: a monthly plan for brokerage relocation desks and local employers",
-  mail: "Mail to new neighborhoods: coming with the Marketing agent (it will always ask before spending)",
+  mail: "Mail to new neighborhoods: a quarterly idea from Marketing; Thanks.io finds and prices the homes, and nothing is bought until you say yes",
 };
 
 /** /mlo/agents/setup — turn the team on, choose where it looks, goals, gifts, playbooks and lists (D54). */
@@ -69,7 +69,7 @@ export default async function TeamSetup({ searchParams }: { searchParams: Promis
             <h2 id="src-h" className="text-xl">Where your {AGENTS.finder.name} looks</h2>
             <div className="ag-checks" style={{ marginTop: 8, display: "grid", gap: 4 }}>
               {(Object.keys(SOURCE_LABELS) as Source[]).map((k) => (
-                <label key={k}><input type="checkbox" name="sources" value={k} defaultChecked={s.sources.includes(k)} disabled={k === "mail"} /> {SOURCE_LABELS[k]}</label>
+                <label key={k}><input type="checkbox" name="sources" value={k} defaultChecked={s.sources.includes(k)} /> {SOURCE_LABELS[k]}</label>
               ))}
             </div>
           </section>

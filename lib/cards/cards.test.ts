@@ -6,7 +6,7 @@ import { SPONSOR } from "@/config/licensing";
 import { mloById } from "@/lib/config";
 import { CARD_STARTERS } from "./library";
 import { cardStore, newMemoryCardStore, setCardStoreForTests } from "./store";
-import { cardSignoff, checkCardMessage, connectThanks, finalMessage, prepareCards, recipientFor, returnAddress, sendCards, setNoMail, thanksStatus } from "./service";
+import { cardSignoff, checkCardMessage, connectThanks, finalMessage, prepareCards, prepareNeighborhood, recipientFor, returnAddress, sendCards, setNoMail, thanksStatus } from "./service";
 import { setCardsFetchForTests, thanksAuthUrl } from "./thanks";
 
 const NOW = new Date("2026-11-20T18:00:00Z");
@@ -165,5 +165,36 @@ describe("Cards by mail through Thanks.io (D53)", () => {
     fake({ estimate: () => new Response(JSON.stringify({ message: "The given data was invalid.", errors: { image_template_id: ["The selected image template id is invalid."] } }), { status: 422 }) });
     const r = await prepareCards(me, { ...design, contactIds: [(await byName("Ann")).id] }, NOW);
     expect(r).toMatchObject({ ok: false, error: expect.stringMatching(/image template id is invalid/) });
+  });
+
+  describe("mail a neighborhood (D54.1)", () => {
+    const nb = { street: "44 Pine Rd", city: "Bellevue", state: "WA", zip: "98004", count: 250, audience: "newhomeowner", size: "4x6" as const, designId: 7, designImage: "https://cdn.example.com/pc.png", message: CARD_STARTERS.find((s) => s.id === "neighborhood")!.message };
+
+    it("checks the request before asking Thanks.io", async () => {
+      await connect();
+      expect(await prepareNeighborhood(me, { ...nb, zip: "980" }, NOW)).toMatchObject({ ok: false });
+      expect(await prepareNeighborhood(me, { ...nb, count: 5000 }, NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/1000/) });
+      expect(await prepareNeighborhood(me, { ...nb, audience: "kidsinhousehold" }, NOW)).toMatchObject({ ok: false });
+      expect(await prepareNeighborhood(me, { ...nb, message: "Hi {first}, happy holidays to you" }, NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/neighbor/) });
+    });
+
+    it("prices the homes first, then buys and mails them in one send", async () => {
+      await connect();
+      const calls = fake({ estimate: () => new Response(JSON.stringify({ data: { total_cost_in_cents: 23_750, total_recipients: 250, current_balance_in_cents: 50_000, covered_by_balance: true, test_mode: true } }), { status: 200 }) });
+      const r = await prepareNeighborhood(me, nb, NOW);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      expect(r.order).toMatchObject({ kind: "postcard", size: "4x6", contactIds: [], estimateCents: 23_750, testMode: true, radius: { found: 250, audience: "newhomeowner", address: "44 Pine Rd, Bellevue, WA, 98004" } });
+      const est = JSON.parse(calls.find((c) => c.url.includes("/estimate/postcard"))!.body);
+      expect(est.radius_search).toEqual({ address: "44 Pine Rd, Bellevue, WA, 98004", record_count: 250, record_types: "newhomeowner", include_condos: true });
+      expect(est.recipients).toBeUndefined();
+      expect(est.message).toContain("Equal Housing Opportunity");
+      expect(calls.some((c) => c.url.includes("/send/"))).toBe(false);
+      const sendCalls = fake();
+      expect(await sendCards(me, r.order.id, NOW)).toEqual({ ok: true, count: 250, testMode: true });
+      const body = JSON.parse(sendCalls.find((c) => c.url.includes("/send/postcard"))!.body);
+      expect(body.radius_search.record_count).toBe(250);
+      expect(await sendCards(me, r.order.id, NOW)).toMatchObject({ ok: false });
+    });
   });
 });

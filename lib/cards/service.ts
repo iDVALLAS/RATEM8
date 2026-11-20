@@ -26,6 +26,7 @@ import { incr } from "@/lib/m8/kv";
 import { seal, unseal } from "@/lib/mail/seal";
 import { CARD_FIELDS, CARD_MAX } from "./library";
 import { cardStore, type CardAccount, type CardKind, type CardOrder, type PostcardSize, type Skipped } from "./store";
+import { AUDIENCES, type Audience } from "./thanks";
 import { estimate, listDesigns, listStyles, sendMail, thanksExchange, thanksRefresh, ThanksError, type Design, type MailBody, type Recipient, type Style } from "./thanks";
 
 export const MAX_CARDS = 500;
@@ -221,7 +222,7 @@ async function bodyFor(user: User, o: CardOrder, recipients: Recipient[]): Promi
   const m = mloById(user.mloId);
   const ret = returnAddress(companyDetails(m).address);
   return {
-    recipients,
+    ...(o.radius ? { radius_search: { address: o.radius.address, record_count: o.radius.count, record_types: o.radius.audience as Audience, include_condos: true } } : { recipients }),
     message: o.finalMessage,
     image_template_id: o.imageTemplateId,
     ...(o.styleId ? { handwriting_style_id: o.styleId } : {}),
@@ -239,6 +240,7 @@ export async function sendCards(user: User, orderId: string, now = new Date()): 
   if (now.getTime() - Date.parse(o.createdAt) > DRAFT_TTL_MS) return { ok: false, error: "That price check is over 30 minutes old. Check the price again." };
   // One send per order, even with a double click or two tabs.
   if ((await incr(`cards:send:${o.id}`, 86_400).catch(() => 1)) > 1) return { ok: false, error: "Those cards are already on their way." };
+  if (o.radius) return sendNeighborhood(user, o, now);
   // Re-check each person now: they may have opted out or got a card meanwhile.
   const recipients: Recipient[] = [];
   const kept: string[] = [];
@@ -280,4 +282,68 @@ export async function setNoMail(user: User, contactId: string, noMail: boolean, 
   await contactStore().put({ ...c, noMail, updatedAt: iso(now) });
   await accountStore().audit({ at: iso(now), actor: user.email, action: noMail ? "cards.nomail" : "cards.mail_ok", detail: { contactId } });
   return true;
+}
+
+// ---- D54.1: mail a neighborhood (the Marketing agent's tool; always priced first) ----
+
+export const NEIGHBORHOOD_MAX = 1000;
+export type NeighborhoodInput = { street: string; city: string; state: string; zip: string; count: number; audience: string; size: PostcardSize; designId: number; designImage: string; message: string };
+
+/** Price postcards to the homes nearest an address. Thanks.io counts and prices the list; nothing is bought yet. */
+export async function prepareNeighborhood(user: User, input: NeighborhoodInput, now = new Date()): Promise<PrepareResult> {
+  const street = input.street.replace(/[\r\n]+/g, " ").trim().slice(0, 100);
+  const city = input.city.trim().slice(0, 60);
+  const state = input.state.trim().toUpperCase();
+  const zip = input.zip.trim();
+  if (street.length < 4 || city.length < 2 || !/^[A-Z]{2}$/.test(state) || !/^\d{5}$/.test(zip)) return { ok: false, error: "Enter the street address, city, state (2 letters) and ZIP to center the mailing on." };
+  const count = Math.round(input.count);
+  if (!(count >= 25 && count <= NEIGHBORHOOD_MAX)) return { ok: false, error: `Pick between 25 and ${NEIGHBORHOOD_MAX} homes.` };
+  if (!(input.audience in AUDIENCES)) return { ok: false, error: "Pick who to mail." };
+  if (!Number.isInteger(input.designId) || input.designId <= 0) return { ok: false, error: "Pick a design for the front." };
+  if (/\{first\}/.test(input.message)) return { ok: false, error: "A neighborhood mailing has no names to fill in: write \"Hi neighbor\" instead of {first}." };
+  const msg = checkCardMessage(input.message);
+  if (!msg.ok) return { ok: false, error: msg.error };
+  const size: PostcardSize = input.size === "6x9" ? "6x9" : "4x6";
+  const order: CardOrder = {
+    id: `cd_${randomBytes(9).toString("base64url")}`,
+    ownerUserId: user.id,
+    kind: "postcard",
+    size,
+    imageTemplateId: input.designId,
+    imageUrl: /^https:\/\//.test(input.designImage) ? input.designImage : "",
+    styleId: null,
+    message: msg.text,
+    finalMessage: finalMessage(user, msg.text),
+    contactIds: [],
+    skipped: [],
+    radius: { address: `${street}, ${city}, ${state}, ${zip}`, count, audience: input.audience, found: 0 },
+    estimateCents: 0,
+    balanceCents: null,
+    coveredByBalance: null,
+    testMode: false,
+    status: "draft",
+    orderId: null,
+    error: "",
+    createdAt: iso(now),
+    sentAt: null,
+  };
+  const est = await withToken(user, now, (t) => estimate(t, "postcard", { radius_search: { address: order.radius!.address, record_count: count, record_types: input.audience as Audience, include_condos: true }, message: order.finalMessage, image_template_id: order.imageTemplateId, size, email_lookup: false, metadata: { source: "loanm8-command-center", order: order.id } }));
+  if (!est.ok) return { ok: false, error: est.error };
+  if (!est.value.recipients) return { ok: false, error: "Thanks.io found no homes for that search. Try a different address or audience." };
+  Object.assign(order, { estimateCents: est.value.totalCents, balanceCents: est.value.balanceCents, coveredByBalance: est.value.covered, testMode: est.value.testMode, radius: { ...order.radius!, found: est.value.recipients } });
+  await cardStore().putOrder(order);
+  return { ok: true, order };
+}
+
+async function sendNeighborhood(user: User, o: CardOrder, now: Date): Promise<{ ok: true; count: number; testMode: boolean } | { ok: false; error: string }> {
+  await cardStore().putOrder({ ...o, status: "sending" });
+  const body = await bodyFor(user, o, []);
+  const r = await withToken(user, now, (t) => sendMail(t, "postcard", body));
+  if (!r.ok) {
+    await cardStore().putOrder({ ...o, status: "failed", error: r.error });
+    return { ok: false, error: r.error };
+  }
+  await cardStore().putOrder({ ...o, status: "sent", orderId: r.value.orderId, sentAt: iso(now) });
+  await accountStore().audit({ at: iso(now), actor: user.email, action: "cards.send.neighborhood", detail: { order: o.id, count: o.radius?.found ?? 0, audience: o.radius?.audience ?? "", thanksOrder: r.value.orderId } });
+  return { ok: true, count: o.radius?.found ?? 0, testMode: o.testMode };
 }

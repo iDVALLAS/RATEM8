@@ -9,10 +9,10 @@ import { requestOrigin } from "@/lib/mail/origin";
 import { CARD_MAX, CARD_STARTERS } from "@/lib/cards/library";
 import { cardStore } from "@/lib/cards/store";
 import { cardSignoff, designsFor, recipientFor, stylesFor, thanksStatus } from "@/lib/cards/service";
-import { cardsOn, cardsRedirect } from "@/lib/cards/thanks";
+import { AUDIENCES, cardsOn, cardsRedirect, type Audience } from "@/lib/cards/thanks";
 import { FlashBox } from "../MloChrome";
 import Builder, { type PickPerson } from "./Builder";
-import { discardCardsAction, disconnectThanksAction, prepareCardsAction, sendCardsAction } from "./actions";
+import { discardCardsAction, disconnectThanksAction, neighborhoodAction, prepareCardsAction, sendCardsAction } from "./actions";
 import "../mlo.css";
 import "./cards.css";
 
@@ -24,7 +24,7 @@ const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-
 const KIND = (k: string, s: string | null) => (k === "notecard" ? "Notecard" : `${s ?? "4x6"} postcard`);
 
 /** /mlo/cards — handwritten-style cards by mail through your own Thanks.io account (D53). */
-export default async function CardsPage({ searchParams }: { searchParams: Promise<{ f?: string; d?: string; c?: string }> }) {
+export default async function CardsPage({ searchParams }: { searchParams: Promise<{ f?: string; d?: string; c?: string; starter?: string; group?: string }> }) {
   const sp = await searchParams;
   const v = await requireViewer();
   const me = v.user;
@@ -82,7 +82,7 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
       return shell(
         <>
           <section className="mlo-section cd-review" aria-labelledby="rv-h">
-            <h2 id="rv-h" className="text-xl">{o.contactIds.length} {KIND(o.kind, o.size).toLowerCase()}{o.contactIds.length === 1 ? "" : "s"} · {money(o.estimateCents)}</h2>
+            <h2 id="rv-h" className="text-xl">{o.radius ? o.radius.found : o.contactIds.length} {KIND(o.kind, o.size).toLowerCase()}{(o.radius ? o.radius.found : o.contactIds.length) === 1 ? "" : "s"} · {money(o.estimateCents)}</h2>
             <p className="mlo-note">Priced by Thanks.io just now; nothing has been charged. Paid from your Thanks.io account{o.balanceCents !== null ? ` (balance ${money(o.balanceCents)})` : ""}.{short ? " Your balance doesn't cover it: Thanks.io charges your card on file or refuses the order." : ""}</p>
             {o.testMode ? <p className="mlo-flash">Your Thanks.io account is in test mode: Thanks.io will cancel these instead of mailing them.</p> : null}
             <div className="cd-preview">
@@ -90,9 +90,9 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
               {o.imageUrl ? <img src={o.imageUrl} alt="The card's front" /> : null}
               <pre className="cd-signoff">{o.finalMessage.replace(/%FIRST_NAME%/g, "[first name]")}</pre>
             </div>
-            <p className="mlo-note" style={{ marginTop: 10 }}>To: {names.filter(Boolean).join(", ")}{o.contactIds.length > 60 ? ` and ${o.contactIds.length - 60} more` : ""}. From: your name, at your company&apos;s address.</p>
+            <p className="mlo-note" style={{ marginTop: 10 }}>{o.radius ? <>To: the {o.radius.found} homes nearest {o.radius.address} ({AUDIENCES[o.radius.audience as Audience] ?? "every home"}). Thanks.io buys this list when you send (included in the price).</> : <>To: {names.filter(Boolean).join(", ")}{o.contactIds.length > 60 ? ` and ${o.contactIds.length - 60} more` : ""}.</>} From: your name, at your company&apos;s address.</p>
             <div className="mlo-row-form" style={{ marginTop: 12 }}>
-              <form action={sendCardsAction.bind(null, o.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Send {o.contactIds.length} card{o.contactIds.length === 1 ? "" : "s"} for {money(o.estimateCents)}</button></form>
+              <form action={sendCardsAction.bind(null, o.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Send {o.radius ? o.radius.found : o.contactIds.length} card{(o.radius ? o.radius.found : o.contactIds.length) === 1 ? "" : "s"} for {money(o.estimateCents)}</button></form>
               <form action={discardCardsAction.bind(null, o.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Don&apos;t send</button></form>
             </div>
           </section>
@@ -119,7 +119,8 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
     })
     .sort((a, b) => a.name.localeCompare(b.name));
   const history = await cardStore().ordersFor(me.id, 20);
-  const pre = sp.c ? [sp.c].filter((id) => people.some((p) => p.id === id && p.mailable)) : [];
+  const pre = sp.c ? [sp.c].filter((id) => people.some((p) => p.id === id && p.mailable)) : sp.group ? people.filter((p) => p.group === sp.group && p.mailable).map((p) => p.id) : [];
+  const neighborStarter = CARD_STARTERS.find((s) => s.id === "neighborhood")?.message ?? "";
 
   return shell(
     <>
@@ -134,7 +135,42 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
         signoff={cardSignoff(me)}
         max={CARD_MAX}
         preselect={pre}
+        startWith={sp.starter}
+        startGroup={sp.group}
       />
+      <section className="mlo-section" id="neighborhood" aria-labelledby="nb-h">
+        <h2 id="nb-h" className="text-xl">Mail a neighborhood</h2>
+        <p className="mlo-note">4 × 6 postcards to the homes nearest an address (a listing, an open house, your office). Thanks.io finds and prices the list first; nothing is bought until you send. Audiences are by home and stage only, never by family, age or wealth.</p>
+        <form action={neighborhoodAction} className="mlo-grid" style={{ marginTop: 10 }}>
+          <div className="mlo-row-form">
+            <label className="mlo-field" style={{ flex: "2 1 220px" }}><span>Street address</span><input name="street" className="mlo-input" required maxLength={100} /></label>
+            <label className="mlo-field" style={{ flex: "1 1 140px" }}><span>City</span><input name="city" className="mlo-input" required maxLength={60} /></label>
+            <label className="mlo-field" style={{ flex: "0 1 80px" }}><span>State</span><input name="state" className="mlo-input" required maxLength={2} /></label>
+            <label className="mlo-field" style={{ flex: "0 1 110px" }}><span>ZIP</span><input name="zip" className="mlo-input" required inputMode="numeric" maxLength={5} /></label>
+          </div>
+          <div className="mlo-row-form">
+            <label className="mlo-field" style={{ flex: "0 1 140px" }}><span>How many homes</span><input name="count" className="mlo-input" inputMode="numeric" defaultValue={250} /></label>
+            <label className="mlo-field" style={{ flex: "1 1 200px" }}><span>Who</span>
+              <select name="audience" className="mlo-select" defaultValue="all">{Object.entries(AUDIENCES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+            </label>
+            <input type="hidden" name="size" value="4x6" />
+          </div>
+          {(p46.ok ? p46.value : []).length ? (
+            <div className="cd-designs" role="radiogroup" aria-label="Front design">
+              {(p46.ok ? p46.value : []).map((d) => (
+                <label key={d.id} className="cd-design">
+                  <input type="radio" name="design" value={`${d.id}|${d.image}`} required />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={d.image} alt="" loading="lazy" />
+                  <span>{d.name}</span>
+                </label>
+              ))}
+            </div>
+          ) : <p className="mlo-note">Add a postcard design in Thanks.io (Image Templates) first.</p>}
+          <label className="mlo-field"><span>Message (no names: these are neighbors you haven&apos;t met)</span><textarea name="message" rows={5} maxLength={CARD_MAX} className="mlo-textarea" defaultValue={neighborStarter} required /></label>
+          <button type="submit" className="mlo-btn" style={{ marginTop: 0, justifySelf: "start" }}>Find the homes and price it</button>
+        </form>
+      </section>
       <section className="mlo-section" aria-labelledby="hist-h">
         <h2 id="hist-h" className="text-xl">Sent</h2>
         {history.filter((o) => o.status !== "draft").length ? (

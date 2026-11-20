@@ -83,8 +83,14 @@ export async function listDesigns(t: string, kind: CardKind, size: PostcardSize 
 }
 
 export type Recipient = { name: string; address: string; address2?: string; city: string; province: string; postal_code: string; country: "US" };
+/** Audiences for "mail a neighborhood": by home and stage, never by family, age or wealth (fair housing). */
+export const AUDIENCES = { all: "Every home", newhomeowner: "New homeowners", likelytomove: "Likely to move", likelytorefi: "Likely to refinance", firsttimehomebuyer: "Likely first-time buyers", renters: "Renters", majorityhomeequity: "Owners with strong equity" } as const;
+export type Audience = keyof typeof AUDIENCES;
+export type RadiusSearch = { address: string; record_count: number; record_types: Audience; include_condos: boolean };
+
 export type MailBody = {
-  recipients: Recipient[];
+  recipients?: Recipient[];
+  radius_search?: RadiusSearch;
   message: string;
   image_template_id: number;
   handwriting_style_id?: number;
@@ -103,7 +109,7 @@ export type Estimate = { totalCents: number; balanceCents: number | null; covere
 export async function estimate(t: string, kind: CardKind, body: MailBody): Promise<Estimate> {
   const j = await api<{ data?: { total_cost_in_cents?: number; current_balance_in_cents?: number; covered_by_balance?: boolean; test_mode?: boolean; total_recipients?: number } }>(t, `/estimate/${kind}`, { method: "POST", body });
   const d = j.data ?? {};
-  return { totalCents: Number(d.total_cost_in_cents) || 0, balanceCents: typeof d.current_balance_in_cents === "number" ? d.current_balance_in_cents : null, covered: typeof d.covered_by_balance === "boolean" ? d.covered_by_balance : null, testMode: !!d.test_mode, recipients: Number(d.total_recipients) || body.recipients.length };
+  return { totalCents: Number(d.total_cost_in_cents) || 0, balanceCents: typeof d.current_balance_in_cents === "number" ? d.current_balance_in_cents : null, covered: typeof d.covered_by_balance === "boolean" ? d.covered_by_balance : null, testMode: !!d.test_mode, recipients: Number(d.total_recipients) || body.recipients?.length || 0 };
 }
 
 export async function sendMail(t: string, kind: CardKind, body: MailBody): Promise<{ orderId: number | null }> {
