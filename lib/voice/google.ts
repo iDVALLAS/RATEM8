@@ -53,10 +53,10 @@ export const MAX_SPEAK_CHARS = 2500;
 export const SIG_TTL_MS = 60 * 60 * 1000;
 
 /**
- * The voices offered on /mlo/voice: Google's own, for a mix of warm and
- * conversational with confident and seasoned. `tone` is Google's
- * description of each Chirp 3 HD voice. Only those Google lists for the
- * key are shown.
+ * The voices offered on /mlo/voice: all 30 of Google's Chirp 3 HD voices
+ * (owner, 2026-11-20: "add all 30 voices to the picker"; the same set as
+ * the owner's other app), plus two Studio voices. `tone` is Google's
+ * description of each. Only those Google lists for the key are shown.
  */
 export const VOICE_CANDIDATES: { name: string; tone: string; gender: "female" | "male" }[] = [
   { name: "en-US-Chirp3-HD-Sulafat", tone: "Warm", gender: "female" },
@@ -64,12 +64,31 @@ export const VOICE_CANDIDATES: { name: string; tone: string; gender: "female" | 
   { name: "en-US-Chirp3-HD-Kore", tone: "Firm", gender: "female" },
   { name: "en-US-Chirp3-HD-Achernar", tone: "Soft", gender: "female" },
   { name: "en-US-Chirp3-HD-Vindemiatrix", tone: "Gentle", gender: "female" },
+  { name: "en-US-Chirp3-HD-Zephyr", tone: "Bright", gender: "female" },
+  { name: "en-US-Chirp3-HD-Laomedeia", tone: "Upbeat", gender: "female" },
+  { name: "en-US-Chirp3-HD-Aoede", tone: "Breezy", gender: "female" },
+  { name: "en-US-Chirp3-HD-Leda", tone: "Youthful", gender: "female" },
+  { name: "en-US-Chirp3-HD-Autonoe", tone: "Bright", gender: "female" },
+  { name: "en-US-Chirp3-HD-Callirrhoe", tone: "Easy-going", gender: "female" },
+  { name: "en-US-Chirp3-HD-Despina", tone: "Smooth", gender: "female" },
+  { name: "en-US-Chirp3-HD-Erinome", tone: "Clear", gender: "female" },
+  { name: "en-US-Chirp3-HD-Pulcherrima", tone: "Forward", gender: "female" },
   { name: "en-US-Chirp3-HD-Sadaltager", tone: "Knowledgeable", gender: "male" },
   { name: "en-US-Chirp3-HD-Charon", tone: "Informative", gender: "male" },
   { name: "en-US-Chirp3-HD-Algieba", tone: "Smooth", gender: "male" },
   { name: "en-US-Chirp3-HD-Orus", tone: "Firm", gender: "male" },
   { name: "en-US-Chirp3-HD-Schedar", tone: "Even", gender: "male" },
   { name: "en-US-Chirp3-HD-Iapetus", tone: "Clear", gender: "male" },
+  { name: "en-US-Chirp3-HD-Fenrir", tone: "Excitable", gender: "male" },
+  { name: "en-US-Chirp3-HD-Puck", tone: "Upbeat", gender: "male" },
+  { name: "en-US-Chirp3-HD-Algenib", tone: "Gravelly", gender: "male" },
+  { name: "en-US-Chirp3-HD-Sadachbia", tone: "Lively", gender: "male" },
+  { name: "en-US-Chirp3-HD-Umbriel", tone: "Easy-going", gender: "male" },
+  { name: "en-US-Chirp3-HD-Rasalgethi", tone: "Informative", gender: "male" },
+  { name: "en-US-Chirp3-HD-Alnilam", tone: "Firm", gender: "male" },
+  { name: "en-US-Chirp3-HD-Achird", tone: "Friendly", gender: "male" },
+  { name: "en-US-Chirp3-HD-Zubenelgenubi", tone: "Casual", gender: "male" },
+  { name: "en-US-Chirp3-HD-Enceladus", tone: "Breathy", gender: "male" },
   { name: "en-US-Studio-O", tone: "Studio, warm", gender: "female" },
   { name: "en-US-Studio-Q", tone: "Studio, assured", gender: "male" },
 ];

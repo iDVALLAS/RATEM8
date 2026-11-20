@@ -3576,7 +3576,7 @@ couldn't be seen.
 - The log never holds the address, the link or the email body.
 - `lib/pilot/service.ts` logs Resend refusals the same way, for reports,
   sign-up emails and triage notes.
-- **Verified:** `npm run verify`.
+- **Verified:** `npm run verify` (629 tests).
 
 ## D47 — Sign in on your computer even when you read the email on your phone (2026-11-19)
 
@@ -3659,7 +3659,7 @@ right edge. He asked for LoanM8 bigger, with Command Center smaller and
   - No sideways scroll at any width.
 - **Mockups:** real screenshots at 1920, 1440, 1180, 390 and 360px in
   light and dark, published for the owner.
-- **Verified:** `npm run verify`.
+- **Verified:** `npm run verify` (629 tests).
 
 ## D49 — Email signature (2026-11-20)
 
@@ -5342,3 +5342,19 @@ Encompass)."
 - **Known limits:** no live email with attachments was sent from this session (no mailbox
   connected). Forms aren't in "Download everything" yet. E-signatures stay in ARIVE or DocuSign.
 - **Next up:** owner's sign-off.
+
+## D66.1 — All 30 Chirp 3 HD voices on the voice picker (2026-11-20)
+
+Owner: "add all 30 voices to the picker" (the same Google Chirp 3 HD set
+as the broadcast voice in the owner's other app).
+
+- **Files:** `lib/voice/google.ts` (`VOICE_CANDIDATES`).
+- The picker on `/mlo/voice` now offers all 30 Chirp 3 HD voices (14
+  female, 16 male) with Google's description of each, plus the two Studio
+  voices. Added: Zephyr, Laomedeia, Aoede, Leda, Autonoe, Callirrhoe,
+  Despina, Erinome, Pulcherrima, Fenrir, Puck, Algenib, Sadachbia,
+  Umbriel, Rasalgethi, Alnilam, Achird, Zubenelgenubi, Enceladus.
+- The default stays Sulafat (warm) until the owner picks another. Only
+  voices Google lists for the key are offered, as before.
+- **Verified:** `npm run verify` (629 tests).
+- **Known limits:** the samples can't be heard here without the Google key.
