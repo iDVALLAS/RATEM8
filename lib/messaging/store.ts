@@ -29,7 +29,7 @@ export type Touch = {
   at: string;
   actor: string;
   /** D8.1: who wrote an outbound message. Only "human" (or missing) is shown to a model as the loan officer's own words. */
-  origin?: "human" | "concierge" | "template";
+  origin?: "human" | "concierge" | "template" | "campaign";
 };
 
 /**

@@ -3754,3 +3754,95 @@ So if Twilio isn't set up, I want AI to help them set it up."
   - **In the browser at 1280px and 390px:** a starter question got an
     answer; a pasted token got the "removed" notice; and a topic link
     opened with its question. No errors.
+
+## D51 — Campaigns: texts, emails and reminders, sent for you (2026-11-20)
+
+The owner asked for "the most user friendly campaigns that a MLO can set
+up using AI Voice, Text and Email", modeled on Bonzo (research in the
+2026-11-20 chat: step lists with "wait N days", sending days and
+cut-offs, stop on reply, starters, an AI builder). The owner's decisions
+(2026-11-20):
+- Sending is **always automatic**, through the contact rules.
+- **Email** connects to the company mailbox, send-only (D52).
+- **Command Center sets up texting** for each company (D53).
+- **Voicemail drops** come before AI calls (D54).
+
+- **A campaign** (`lib/campaigns/*`, tables `cc_campaigns` and
+  `cc_enrollments`) has:
+  - **Steps:** a text, an email, or a task for the loan officer, each
+    "wait N days" after the step before.
+  - **When someone replies:** stop ("follow up") or keep going ("keep in
+    touch"; STOP still ends it).
+  - **What it's about:** marketing or service, which sets the permission
+    it needs.
+  - **Who goes in:** people you add, or every new lead.
+  - **Sending days and hours** in each person's time zone.
+- **Running it** (`runEnrollment`, `runDue`):
+  - **Every text and email goes through `sendText` or `sendEmail`,**
+    which means permission, do-not-call, quiet hours, caps, state rules
+    and the wording guard, exactly as when sent by hand.
+  - **Quiet hours (`retryAt`)** reschedule the same step. Any other
+    refusal skips the step with the reason logged, and the campaign
+    moves on.
+  - **A step with a field it can't fill in** (no first name) is skipped,
+    never sent with a blank.
+  - **Steps that wait 0 days** go out together.
+  - **Tasks** land in the loan officer's reminders.
+- **Replies:**
+  - A text reply ends follow-up campaigns, and STOP ends every campaign
+    (`handleInbound` → `onContactReply`).
+  - Email replies will do the same once D52 connects the mailbox.
+- **New leads** (`ingestLead` → `onNewLead`) go into active "every new
+  lead" campaigns, and day-0 steps go out right away.
+- **The schedule:**
+  - `/api/cc/campaigns/tick` (CRON_SECRET) runs daily at 18:17 UTC
+    (10:17 Pacific, 1:17 Eastern), and the morning run also calls it.
+  - Vercel's free plan runs scheduled jobs only once a day. On a paid
+    plan, set the tick to every 15 minutes in `vercel.json`.
+- **Limits and the switch:** 300 messages per loan officer per day.
+  `CC_CAMPAIGNS="false"` stops everything.
+- **Starters** (`lib/campaigns/library.ts`), all passing the template
+  wording checks:
+  - New lead (the first two weeks)
+  - Application started, not finished (service)
+  - Pre-approved buyer, while they shop
+  - Past client, all year
+  - Agent partner (no value for referrals, RESPA)
+- **The AI writer** (`aiCreateCampaign`, AI route `campaigns`): "describe
+  what you want" makes a draft, never a running campaign. Steps that
+  fail the checks are left out and the person is told. Without the AI it
+  starts from the closest starter.
+- **Checks** (`checkStep`, `checkCampaign`):
+  - only the campaign fields ({first}, {myFirst}, {myName}, {myPhone},
+    {company}, {bookingLink})
+  - the template wording checks (rates, promises, fair housing)
+  - texts up to 480 characters; emails need a subject
+  - days and hours that make sense
+  - an edit that would break a running campaign is refused
+- **Pages:**
+  - **`/mlo/campaigns`:** what's connected (texting and email, each with
+    a "set it up" link to the setup assistant), the AI box, starter
+    cards, and your campaigns with their counts.
+  - **`/mlo/campaigns/[id]`:** the editor (settings, steps with day
+    numbers, field buttons, a live preview, move and remove), turn on or
+    pause, add people by group, and each person's step, next time and
+    last outcome, with "Take out".
+  - **Nav:** People → Campaigns.
+- **Campaign messages are recorded** with origin `campaign` on each
+  person's history (`sendEmail` gained an `origin` option).
+- **Verified:**
+  - 12 new tests: every starter passes; the checks; own book only; a
+    whole run; sending-hours waits; retry vs skip; blanks never sent;
+    reply and STOP; the switch and pausing; the new-lead trigger; edits;
+    and the AI writer with its fallback.
+  - `npm run verify`.
+  - **In the browser:**
+    - imported three people, started from the past-client starter and
+      added a step
+    - saved, turned it on and added past clients
+    - the run held both until 9:01 AM Pacific (outside weekday hours)
+    - the run refuses requests without the secret
+    - the AI box fell back to a starter (no key here)
+    - phones measure 390px, with no errors
+- **Next:** D52 company email, D53 texting set up by Command Center, D54
+  voicemail drops.

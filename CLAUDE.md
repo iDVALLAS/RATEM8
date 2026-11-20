@@ -104,6 +104,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     every email above the compliance footer, checked on save. D50 setup
     assistant (`lib/setup/assistant.ts`, `/mlo/setup-help`): live checklist
     facts every turn, pasted keys masked, links limited, no-AI fallback.
+    D51 campaigns (`lib/campaigns/*`, `/mlo/campaigns`): text/email/task
+    steps with waits, automatic but every send through `sendText`/`sendEmail`
+    (the gate); reply ends follow-ups, STOP ends all; new leads auto-enroll;
+    `/api/cc/campaigns/tick` daily (Hobby); `CC_CAMPAIGNS="false"` stops all.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

@@ -73,7 +73,7 @@ function emailConfig(): { apiKey: string; from: string } | null {
 
 export const emailOn = () => !!emailConfig();
 
-export async function sendEmail(actor: User, contactId: string, rawSubject: string, rawBody: string, purpose: Purpose, now = new Date(), send: (msg: { from: string; to: string; replyTo: string; subject: string; text: string }) => Promise<{ ok: boolean; id: string | null }> = resendSend): Promise<SendOutcome> {
+export async function sendEmail(actor: User, contactId: string, rawSubject: string, rawBody: string, purpose: Purpose, now = new Date(), send: (msg: { from: string; to: string; replyTo: string; subject: string; text: string }) => Promise<{ ok: boolean; id: string | null }> = resendSend, opts: { origin?: "human" | "concierge" | "template" | "campaign" } = {}): Promise<SendOutcome> {
   const c = await contactStore().get(contactId);
   if (!c || !canSee(actor, c)) return { ok: false, error: "No such contact." };
   if (!c.email) return { ok: false, error: "There's no email address for them." };
@@ -94,7 +94,7 @@ export async function sendEmail(actor: User, contactId: string, rawSubject: stri
   const mlo = mloById(actor.mloId);
   const fromName = (mlo?.name ?? actor.name ?? "LoanM8").replace(/[<>"]/g, "");
   const r = await send({ from: `${fromName} <${cfg.from}>`, to: c.email, replyTo: actor.email, subject: s.text, text });
-  await touchStore().add({ id: `t_${randomBytes(9).toString("base64url")}`, contactId: c.id, ownerUserId: c.ownerUserId, channel: "email", purpose, direction: "out", body: `${s.text}\n\n${d.text}`, status: r.ok ? "sent" : "failed", providerId: r.id, note: g.basis, at: now.toISOString(), actor: actor.email, origin: "human" });
+  await touchStore().add({ id: `t_${randomBytes(9).toString("base64url")}`, contactId: c.id, ownerUserId: c.ownerUserId, channel: "email", purpose, direction: "out", body: `${s.text}\n\n${d.text}`, status: r.ok ? "sent" : "failed", providerId: r.id, note: g.basis, at: now.toISOString(), actor: actor.email, origin: opts.origin ?? "human" });
   await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "gate.send.email", detail: { contactId, purpose, ok: r.ok } });
   if (r.ok) await recordPromises(actor, c, d.text, `email:${r.id ?? now.toISOString()}`, now).catch(() => 0);
   return r.ok ? { ok: true } : { ok: false, error: "Resend didn't accept the email." };

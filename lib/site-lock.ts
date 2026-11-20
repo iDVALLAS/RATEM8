@@ -53,6 +53,8 @@ const OPEN_EXACT = new Set([
   "/api/cc/dev-login",
   // D8: the scheduled Concierge run checks CRON_SECRET.
   "/api/cc/concierge/sweep",
+  // D51: the campaign run checks CRON_SECRET.
+  "/api/cc/campaigns/tick",
 ]);
 // D4: Twilio webhooks are verified by signature, so they stay reachable while locked.
 // D6: the loan intake checks its own per-loan-officer key.

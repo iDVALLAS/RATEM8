@@ -47,7 +47,7 @@ export default async function Membership({ searchParams }: { searchParams: Promi
   const shareNames = Object.fromEntries(await Promise.all([...new Set([...myShare.map((l) => l.recruitUserId), ...(sponsorThis?.lines ?? []).flatMap((l) => [l.recruitUserId, l.recruiterUserId])])].map(async (id) => [id, await nameOfAny(id)] as const)));
   const myAi = me ? await allowanceFor(me.id) : null;
   const teamAi = admin ? await usageStore().monthAll(monthOf(new Date())) : [];
-  const ROUTE_LABELS: Record<string, string> = { concierge: "Concierge", tell: "Tell your Concierge", ask: "Questions", debrief: "Call notes", scripts: "Call scripts", templates: "Templates", docs: "AUS findings", practice: "Training practice", expenses: "Expenses", receipts: "Receipts", import: "Import matching", setup: "Setup assistant", chat: "Borrower chat (M8)" };
+  const ROUTE_LABELS: Record<string, string> = { concierge: "Concierge", tell: "Tell your Concierge", ask: "Questions", debrief: "Call notes", scripts: "Call scripts", templates: "Templates", docs: "AUS findings", practice: "Training practice", expenses: "Expenses", receipts: "Receipts", import: "Import matching", setup: "Setup assistant", campaigns: "Campaign writer", chat: "Borrower chat (M8)" };
   const nationalShare = MEMBERSHIP.marketingShare * MEMBERSHIP.nationalPart;
   const areaShare = MEMBERSHIP.marketingShare - nationalShare;
   return (

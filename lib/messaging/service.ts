@@ -139,6 +139,11 @@ export async function handleInbound(from: string, sender: string, rawBody: strin
     if (out) await recordConsent(SYSTEM, c.id, { channel: "text", purpose: "marketing", granted: false, evidence: "revoked", proof: `texted "${body.slice(0, 60)}"` }, now);
     await ts.add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose: "service", direction: "in", body, status: "received", providerId: null, phone: from, sender, note: out ? "Opt-out recorded: texts and calls are off for this number." : isOptIn(body) ? "They texted START. Texting is unblocked, but permission still has to be on file." : null, at, actor: "contact" });
   }
+  // D51: a reply ends "follow up" campaigns; STOP ends every campaign.
+  if (contacts.length) {
+    const { onContactReply } = await import("@/lib/campaigns/service");
+    for (const c of contacts) await onContactReply(c.id, out, now).catch(() => 0);
+  }
   await accountStore().audit({ at, actor: "twilio", action: out ? "text.inbound.optout" : "text.inbound", detail: { matched: contacts.length } });
   return { contacts: contacts.length, optedOut: out };
 }

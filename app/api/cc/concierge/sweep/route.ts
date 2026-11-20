@@ -8,6 +8,7 @@ import { sendDigest } from "@/lib/digest";
 import { sendWeekly } from "@/lib/report/weekly";
 import { automationStore } from "@/lib/automations/store";
 import { ensureRegistry } from "@/lib/registry/cache";
+import { runDue } from "@/lib/campaigns/service";
 
 /**
  * GET /api/cc/concierge/sweep — the morning run for every loan officer who
@@ -45,5 +46,10 @@ export async function GET(req: Request) {
       await report("error", e, { route: "concierge-sweep", stage: "sweep" });
     }
   }
-  return Response.json({ ok: failed === 0, swept: done, failed });
+  // D51: campaign steps due now (East Coast mornings; the midday run covers the West).
+  const campaigns = await runDue(new Date()).catch(async (e) => {
+    await report("error", e, { route: "concierge-sweep", stage: "campaigns" });
+    return null;
+  });
+  return Response.json({ ok: failed === 0, swept: done, failed, campaigns });
 }

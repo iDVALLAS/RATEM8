@@ -153,5 +153,12 @@ export async function ingestLead(user: User, lead: Lead, now = new Date()): Prom
     } else permission = "not_naming_us";
   }
   await accountStore().audit({ at, actor: `lead:${lead.vendor}`, action: "lead.inbound", detail: { owner: user.id, contactId: c.id, created, permission } });
+  // D51: into the loan officer's active "new lead" campaigns; steps due now go out at once (through the contact rules).
+  try {
+    const { onNewLead } = await import("@/lib/campaigns/service");
+    await onNewLead(user, c.id, now);
+  } catch {
+    // A campaign problem never loses the lead.
+  }
   return { contactId: c.id, created, permission };
 }

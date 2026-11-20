@@ -1,3 +1,6 @@
 {
-  "crons": [{ "path": "/api/cc/concierge/sweep", "schedule": "17 15 * * *" }]
+  "crons": [
+    { "path": "/api/cc/concierge/sweep", "schedule": "17 15 * * *" },
+    { "path": "/api/cc/campaigns/tick", "schedule": "17 18 * * *" }
+  ]
 }
