@@ -153,6 +153,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     agreement, title commitment, conditional approval and escrow fees; TRID/VOE/lock deadlines
     (`lib/loa/dates.ts`); 18-point checklist; escrow/title drafts sent by the LO; voice/text chat
     with web search limited to Fannie/Freddie guide sites plus uploaded lender overlays.
+    D63 Connections (`/mlo/connections`, `lib/connect/*`): per-system routes (ARIVE = Zapier only;
+    LendingPad/Encompass API keys sealed; Encompass sign-in test), Encompass field names on the loan
+    address; authenticator setup shows a QR code (`qrcode` package).
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
@@ -769,7 +772,7 @@ No dependency was added in v12 through v24. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`,
 `@neondatabase/serverless ^1.2.0` (C4, owner-approved Neon), `@vercel/blob ^1.1.1` (D55,
-video uploads straight from the browser). Upstash and
+video uploads straight from the browser), `qrcode ^1.5.4` (D63, the authenticator setup QR code). Upstash and
 Resend are called over HTTP with `fetch`, so they need no library.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,
 `typescript ^5`, `eslint ^9.17`, `eslint-config-next ^15.1`,

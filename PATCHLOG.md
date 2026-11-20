@@ -5135,3 +5135,53 @@ tile, and tabs.
   - On narrower screens it spans the full width above two columns.
 - **Verified:** `npm run verify`. Screenshots at 1440px in night and paper
   and at 390px; no sideways scroll.
+
+## D63 — Connections to loan systems and CRMs, and a QR code for the authenticator (2026-11-20)
+
+The owner: "add the wiring to add the vendor api for Arrive, Lending Pad and
+other good CRMs that have it", and "a 2 factor auth and google
+authenticator option".
+- **What each vendor offers** (searched 2026-11-20):
+  - **ARIVE** has no direct API for custom integrations. Its supported
+    route is Zapier (Broker Pro and Non-Del plans), with "New Loan" and
+    "Loan Status Updated" triggers.
+  - **LendingPad** has an Enterprise API for Lender Edition clients, with
+    keys issued by its support team; there's no public reference.
+  - **Encompass (ICE)** has Developer Connect: OAuth, loan webhooks
+    (create and update) and the loan pipeline.
+  - **Shape** advertises an API with webhooks.
+  - **Bonzo** connects through Zapier and webhooks. **Total Expert** and
+    **Jungo (Salesforce)** connect through enterprise integrations, flows
+    or exports. **Floify** connects through Zapier.
+- **Connections** (`/mlo/connections`, under Settings; `lib/connect/*`):
+  - Your loan address and lead address, and where to make the key.
+  - Then each system: what it brings (loans or people), its routes, the
+    steps, and which address to use, with `?source=` set per system.
+  - **Stored API access** for vendors that issue credentials (LendingPad,
+    Encompass, Shape), saved per loan officer.
+    - Secrets are sealed (AES-256-GCM) and never shown again; a blank
+      secret keeps the saved one.
+    - Encompass has a **Test**: it signs in to Developer Connect
+      (`user@encompass:instance`, OAuth) and records whether it worked.
+    - The loan sync for Encompass and LendingPad is finished against the
+      owner's own instance or keys once access is granted. No code was
+      written against endpoints that can't be seen or tested.
+  - The loan address now also reads Encompass-style pipeline names
+    (`Loan.LoanNumber`, `Loan.BorrowerFirstName`,
+    `Loan.CurrentMilestoneName`, `Loan.LoanAmount`).
+- **Two-step sign-in:** it already existed (D34, Settings → Sign-in
+  security). It works with Google Authenticator, Microsoft Authenticator,
+  1Password or Authy, has recovery codes, and the owner can require it for
+  everyone (`CC_REQUIRE_MFA`).
+  - New: a **QR code** to scan from a computer screen, drawn on the server
+    from the same setup link (dark on white in every theme). It comes from
+    the `qrcode` package (new dependency, with `@types/qrcode` for
+    development).
+  - The steps now name Google Authenticator: "tap +, and scan this code".
+- **Verified:**
+  - `npm run verify` (614 tests, 4 new): the catalog, sealed secrets kept
+    on a blank save, the Encompass sign-in test passing and failing, and
+    Encompass field names on the loan address.
+  - Browser: Connections lists all nine; a LendingPad key saved shows
+    "Saved (leave blank to keep)" and never the key; Sign-in security
+    shows the QR code; no sideways scroll at 390px.

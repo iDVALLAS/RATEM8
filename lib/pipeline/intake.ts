@@ -16,16 +16,16 @@ import { pipelineStore, type KeyDates, type Loan } from "./store";
 
 const norm = (k: string) => k.toLowerCase().replace(/[^a-z0-9]/g, "");
 const FIELDS: Record<string, string[]> = {
-  externalId: ["loannumber", "loanid", "loanno", "id", "fileid", "filenumber", "loanguid"],
-  firstName: ["borrowerfirstname", "firstname", "primaryborrowerfirstname"],
-  lastName: ["borrowerlastname", "lastname", "primaryborrowerlastname"],
+  externalId: ["loannumber", "loanid", "loanno", "id", "fileid", "filenumber", "loanguid", "loanloannumber", "loanfolderloannumber"],
+  firstName: ["borrowerfirstname", "firstname", "primaryborrowerfirstname", "loanborrowerfirstname"],
+  lastName: ["borrowerlastname", "lastname", "primaryborrowerlastname", "loanborrowerlastname"],
   fullName: ["borrowername", "borrower", "name", "primaryborrower"],
   email: ["borroweremail", "email", "emailaddress"],
   phone: ["borrowerphone", "borrowermobile", "mobilephone", "cellphone", "phone", "homephone"],
-  milestone: ["loanstatus", "status", "milestone", "currentmilestone", "loanmilestone", "stage"],
+  milestone: ["loanstatus", "status", "milestone", "currentmilestone", "loanmilestone", "stage", "loancurrentmilestonename", "currentmilestonename", "loanstage"],
   purpose: ["loanpurpose", "purpose"],
   loanType: ["loantype", "program", "loanprogram", "mortgagetype"],
-  amount: ["loanamount", "totalloanamount", "baseloanamount", "amount"],
+  amount: ["loanamount", "totalloanamount", "baseloanamount", "amount", "loanloanamount"],
   noteRate: ["interestrate", "noterate", "rate"],
   application: ["applicationdate", "appdate", "applicationreceiveddate", "dateapplicationreceived"],
   lockExpires: ["lockexpirationdate", "lockexpiration", "lockexpires", "rateLockExpirationDate".toLowerCase()],

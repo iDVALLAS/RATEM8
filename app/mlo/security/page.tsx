@@ -8,6 +8,7 @@ import { accountStore } from "@/lib/accounts/store";
 import { mfaRequired, pendingEnroll } from "@/lib/accounts/mfa";
 import { FlashBox, MloNav } from "../MloChrome";
 import Confirm from "./Confirm";
+import QRCode from "qrcode";
 import { disableAction, startAction } from "./actions";
 import "../mlo.css";
 
@@ -23,6 +24,8 @@ export default async function Security({ searchParams }: { searchParams: Promise
   const rec = me ? await accountStore().getMfa(me.id) : null;
   const on = !!rec?.enabledAt;
   const pending = me && !on ? await pendingEnroll(me) : null;
+  // D63: a QR code to scan from a computer screen (drawn here from the same setup link; nothing leaves the server).
+  const qr = pending ? await QRCode.toString(pending.uri, { type: "svg", errorCorrectionLevel: "M", margin: 2, color: { dark: "#000000", light: "#ffffff" } }).catch(() => null) : null;
   const left = recovery !== undefined ? Number(recovery) : null;
   return (
     <PageShell>
@@ -50,7 +53,8 @@ export default async function Security({ searchParams }: { searchParams: Promise
                 ) : (
                   <ol className="mlo-steps">
                     <li>
-                      <p>On your phone, open the authenticator app and add an account. On this phone, <a href={pending.uri}>tap here to add it</a>. Otherwise choose &ldquo;enter a setup key&rdquo; and type:</p>
+                      <p>On your phone, open Google Authenticator (or another authenticator app), tap +, and scan this code. On this phone, <a href={pending.uri}>tap here to add it</a> instead. Or choose &ldquo;enter a setup key&rdquo; and type the key below.</p>
+                      {qr ? <div className="mlo-qr" role="img" aria-label="QR code to scan with your authenticator app" dangerouslySetInnerHTML={{ __html: qr }} /> : null}
                       <p className="mlo-key" aria-label="Setup key">{pending.key}</p>
                       <p className="mlo-note">Account: MLO Command Center · Time based. Keep this key private.</p>
                     </li>
