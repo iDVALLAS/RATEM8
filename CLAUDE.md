@@ -143,6 +143,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     8 kHz WAV recorded in the browser, word-checked, left through the gate as `ai_call` (recorded
     voice); Command Center adds who's calling, the opt-out (toll-free `TWILIO_OPTOUT_NUMBER` for
     offers) and the call-back number; press 9 stops calls and texts platform-wide; `CC_VOICEMAIL="false"`.
+    D58 M8 loan-update calls (`lib/aicalls/*`, `/api/twilio/aicall*`), off until `CC_AI_CALLS="true"`:
+    written AI-call permission + gate + a loan in progress; AI disclosure, identity check before any
+    loan detail, status from the client page only, guarded replies, call-back tasks, "stop calling".
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

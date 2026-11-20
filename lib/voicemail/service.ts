@@ -131,10 +131,11 @@ export const twilioDialer: Dialer = async (x) => {
 };
 
 /** True when the public site runs this version (Twilio fetches the message from there). */
-export async function liveSiteReady(fetcher: typeof fetch = fetch): Promise<boolean> {
+export async function liveSiteReady(fetcher: typeof fetch = fetch, feature: "voicemail-drops" | "ai-calls" = "voicemail-drops"): Promise<boolean> {
   try {
     const r = await fetcher(`${SITE()}/api/twilio/voicedrop/ping`, { cache: "no-store" });
-    return r.ok && ((await r.json().catch(() => null)) as { feature?: string } | null)?.feature === "voicemail-drops";
+    const j = r.ok ? ((await r.json().catch(() => null)) as { feature?: string; features?: string[] } | null) : null;
+    return !!j && (j.features ?? [j.feature]).includes(feature);
   } catch {
     return false;
   }

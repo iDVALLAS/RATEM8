@@ -37,6 +37,9 @@ import { sendVideoAction } from "../../videos/actions";
 import { voicemailStore } from "@/lib/voicemail/store";
 import { optOutLine, voicemailOn } from "@/lib/voicemail/service";
 import { dropAction } from "../../voicemail/actions";
+import { aiCallStore } from "@/lib/aicalls/store";
+import { aiCallsOn } from "@/lib/aicalls/service";
+import { aiCallAction } from "../aicall-actions";
 import { clientLink } from "@/lib/clientpage/link";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
@@ -74,6 +77,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const [myVideos, theirVideos] = videosOn() ? await Promise.all([videoStore().videosFor(v.user.id, 50).catch(() => []), videoStore().sendsForContact(c.id, 10).catch(() => [])]) : [[], []];
   const readyVideos = myVideos.filter((x) => x.status === "ok");
   // D57: your voicemails, and drops to this person.
+  // D58: M8's loan-update calls to this person.
+  const m8Calls = aiCallsOn() ? await aiCallStore().forContact(c.id, 5).catch(() => []) : [];
   const [myVoicemails, theirDrops] = voicemailOn() ? await Promise.all([voicemailStore().voicemailsFor(v.user.id).catch(() => []), voicemailStore().dropsForContact(c.id, 5).catch(() => [])]) : [[], []];
   const memory = await conciergeStore().memory(c.ownerUserId, c.id, new Date().toISOString(), { includePending: true });
   const tenant = listTenants()[0];
@@ -351,6 +356,20 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                 <p className="mlo-note"><Link href="/mlo/voicemail">Record a voicemail</Link> to leave {c.firstName || "them"} a message without calling.</p>
               )}
               {theirDrops.length ? <p className="mlo-note">Voicemails: {theirDrops.map((d) => `${new Date(d.at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })} ${d.status === "left" ? "left" : d.status === "answered" ? "answered" : d.status}${d.optedOut ? ", pressed 9 to stop" : ""}`).join("; ")}.</p> : null}
+            </div>
+          ) : null}
+          {aiCallsOn() ? (
+            <div id="m8-calls" style={{ marginTop: 18 }}>
+              <form action={aiCallAction.bind(null, c.id)} className="mlo-row-form">
+                <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={!c.phone}>Have M8 call with a loan update</button>
+                <span className="mlo-note">An AI call ({gate.ai_call.service.allowed ? "allowed now" : "not now"}): needs written permission and a loan in progress. M8 checks it&apos;s them first, says only what their own page says, and passes anything else to you.</span>
+              </form>
+              {m8Calls.map((k) => (
+                <details key={k.id} style={{ marginTop: 6 }}>
+                  <summary className="mlo-note">M8 call {new Date(k.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" })}: {k.status.replace("-", " ")}{k.outcome ? ` · ${k.outcome === "stop" ? "asked to stop" : k.outcome === "message" ? "left a message" : "wants a call back"}` : ""}</summary>
+                  <ol className="mlo-note" style={{ paddingLeft: 18 }}>{k.turns.map((t, i) => <li key={i}><strong>{t.who === "m8" ? "M8" : c.firstName || "Client"}:</strong> {t.text}</li>)}</ol>
+                </details>
+              ))}
             </div>
           ) : null}
           {inCampaigns.length ? (

@@ -71,6 +71,14 @@ Loan officers leave a recorded voicemail through their contact rules (D57). Call
 | `TWILIO_OPTOUT_NUMBER` (optional) | No | The toll-free opt-out line (+18…). |
 | `TWILIO_CALLER_ID` (optional) | No | A Twilio number drops can come from while a company has no registered number (TWILIO_CALLER_ID_<company NMLS> for one company). |
 
+### M8 loan-update calls (off until counsel reviews)
+
+M8, an AI voice, calls a client with written permission to tell them where their loan stands, and passes anything else to the loan officer (D58). It checks it's them before saying anything about the loan, tells them it's an AI and keeps a written note, never quotes numbers or promises, and stops on request. Have counsel review the call rules (lib/aicalls/service.ts) and your consent wording first. California stays held by the contact rules until cleared. Uses the calling number from Voicemail drops.
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `CC_AI_CALLS` (optional) | No | Set to "true" to turn M8 calls on. |
+
 ### AI for Command Center (Anthropic)
 
 Make a separate workspace in the Anthropic Console for Command Center, with its own monthly spend limit, and ask Anthropic for zero data retention on it (it handles client messages and notes). The public chat keeps its own key.

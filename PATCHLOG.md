@@ -4824,3 +4824,69 @@ records a voicemail once and leaves it for one person or many.
     390px.
 - **Not verified live:** no Twilio account or Google key in this session.
 - **Next:** AI calls with written consent.
+
+## D58 — M8 loan-update calls, with written permission (2026-11-20)
+
+Planned with D57: "then AI calls with written consent". **Off until the
+owner sets `CC_AI_CALLS="true"`, after counsel reviews it.**
+- **What it does:** from a contact's page, "Have M8 call with a loan
+  update". M8, an AI voice, calls the client and tells them where their
+  loan stands, in the same plain words their own page uses (D30). It
+  answers only from that, and passes everything else to the loan officer.
+- **Before it calls** (`canAiCall`), all of these must hold:
+  - written permission for recorded or AI-voice calls (a signature, a web
+    form or a texted yes; a recorded "yes" or the loan officer's word
+    isn't enough);
+  - the send gate allows an AI-voice call now (quiet hours, reassigned
+    numbers, caps, California held, STOP);
+  - a loan in progress;
+  - a calling number for the company;
+  - the public site runs this version.
+- **On the call** (`lib/aicalls/service.ts`), turn by turn over plain
+  HTTP (Twilio speech gathering), so it runs on Vercel with no extra
+  server:
+  1. "Hi, this is M8, an AI assistant calling for (loan officer) at
+     (company). Am I speaking with (client)?" Nothing about the loan is
+     said until they say yes. Anyone else hears only "please ask them to
+     call (loan officer)". A voicemail gets no loan details at all.
+  2. "I keep a written note of this call for (first name), and you can say
+     stop calling at any time." Then the status and the one thing waiting
+     on them.
+  3. Their questions: the model reads the status and the conversation in
+     data blocks (D8.1), with fixed rules:
+     - no rates, payments, costs, dollar figures, dates, approvals,
+       predictions or advice;
+     - never asks for an SSN, a date of birth or account numbers;
+     - one or two short sentences.
+     - Every reply passes the Concierge's output guard before it's spoken.
+       A reply that fails becomes "I'll have (first name) call you back".
+  4. Anything else becomes a **call-back task** (or a message) on the loan
+     officer's list, with what they asked, plus an email.
+  5. "Stop calling" (or pressing 9) ends it at once, ahead of the model,
+     and stops recorded calls and texts to that number.
+  - At most 8 questions per call, then a call-back.
+  - With no AI (no key, allowance used, or a slow answer after 8
+    seconds), it still gives the status and offers the call-back.
+  - What they said is stored redacted. The whole call shows on the
+    contact's page.
+- **Model:** a new AI route, "calls" (Haiku on Standard, Sonnet on
+  Unlimited, for speed on a live call), metered against the loan
+  officer's allowance like every Command Center feature.
+- **Verified:**
+  - `npm run verify` (6 new tests):
+    - off by default; written permission required (a recorded yes isn't
+      enough); quiet hours
+    - the AI disclosure and asking for the client before any loan detail;
+      someone else answering; a voicemail with no details
+    - the status from their page; a model reply quoting a rate and
+      "approved" is replaced by the call-back, which makes the task and the
+      email
+    - the rules and the data blocks the model sees; a good answer keeps
+      the conversation going; the no-AI path
+    - "stop calling" opting the number out and the call's final status
+  - Browser: the contact page shows Send a video, Leave a voicemail and
+    the M8 call button; without written permission it refuses with the
+    reason.
+- **Not verified live:** no Twilio account, AI key or phone in this
+  session. Before turning it on, counsel should review the call rules and
+  the consent wording, and the owner should test-call their own phone.

@@ -13,7 +13,7 @@ const me: User = { id: "lo1", email: "lo1@x.com", name: "Pat", role: "lo", mloId
 const rec = { firstName: "Ann", lastName: "Lee", email: null, phone: "+12068231234", phone2: null, street: null, city: null, state: "WA", zip: null, relationship: "past_client", tags: [], notes: null, loan: null, agent: null, attestedOptIns: [] as ("text" | "call" | "email")[] };
 const wav = (sec: number) => encodeWav(new Float32Array(Math.round(sec * VM_RATE)).fill(0.1));
 const blob = { put: async (p: string) => `https://abc.public.blob.vercel-storage.com/${p}`, del: async () => undefined };
-const says = (text: string, rates: number[] = []) => async (_p: Uint8Array, _o: number, _f: typeof fetch, rate = 16_000) => (rates.push(rate), { text, cues: [] });
+const says = (text: string, rates: number[] = []) => async (_p: Uint8Array, _o: number, _f?: typeof fetch, rate = 16_000) => (rates.push(rate), { text, cues: [] });
 const M = mloById("mlo-001")!;
 
 describe("Voicemail drops (D57)", () => {
