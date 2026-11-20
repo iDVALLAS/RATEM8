@@ -4233,3 +4233,18 @@ The owner:
   - `npm run verify`.
   - 3× close-ups at the top of the breath in night, dim and paper, plus
     the phone in paper: no sideways scroll and no errors.
+
+### D53.4 follow-up: a smaller orb (2026-11-20)
+
+The owner: "make the top orb smaller but it pulses behind and glows".
+
+- **The orb:** radius 300 (was 330), centered on the ring (whose radius is
+  about 272).
+  - At the low point of the breath (0.94) it barely shows behind the ring.
+  - At the high point (1.06) it peeks past the ring.
+- **The glow:** radius 420, stronger in the middle (85%), going from 35%
+  to full on each 3s breath.
+- **Verified:**
+  - `npm run verify`.
+  - 3× frames across a full breath in night and paper, plus an animated
+    preview sent to the owner.

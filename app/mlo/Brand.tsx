@@ -17,19 +17,19 @@ export default function Brand({ href, label }: { href: string; label: string }) 
       <span className="cc-logo" aria-hidden="true">
         <svg className="cc-logo__orb" viewBox="0 0 1600 680" focusable="false">
           <defs>
-            <radialGradient id="ccLogoHalo" cx="800" cy="296" r="430" gradientUnits="userSpaceOnUse">
-              <stop offset="0.7" style={{ stopColor: "var(--cc-logo-halo)", stopOpacity: 0.6 }} />
+            <radialGradient id="ccLogoHalo" cx="800" cy="296" r="420" gradientUnits="userSpaceOnUse">
+              <stop offset="0.6" style={{ stopColor: "var(--cc-logo-halo)", stopOpacity: 0.85 }} />
               <stop offset="1" style={{ stopColor: "var(--cc-logo-halo)", stopOpacity: 0 }} />
             </radialGradient>
-            <linearGradient id="ccLogoFill" x1="0" y1="-34" x2="0" y2="626" gradientUnits="userSpaceOnUse">
+            <linearGradient id="ccLogoFill" x1="0" y1="-4" x2="0" y2="596" gradientUnits="userSpaceOnUse">
               <stop offset="0" style={{ stopColor: "var(--cc-logo-hi)" }} />
               <stop offset="0.55" style={{ stopColor: "var(--cc-logo-mid)" }} />
               <stop offset="1" style={{ stopColor: "var(--cc-logo-lo)" }} />
             </linearGradient>
           </defs>
           <g className="cc-logo__pulse">
-            <circle className="cc-logo__halo" cx="800" cy="296" r="430" fill="url(#ccLogoHalo)" />
-            <circle cx="800" cy="296" r="330" fill="url(#ccLogoFill)" />
+            <circle className="cc-logo__halo" cx="800" cy="296" r="420" fill="url(#ccLogoHalo)" />
+            <circle cx="800" cy="296" r="300" fill="url(#ccLogoFill)" />
           </g>
         </svg>
         {/* eslint-disable-next-line @next/next/no-img-element */}

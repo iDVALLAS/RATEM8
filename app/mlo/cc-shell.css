@@ -112,8 +112,8 @@
 .cc-logo__orb, .cc-logo__powered { overflow: visible; pointer-events: none; }
 .cc-logo__pulse { transform-box: view-box; transform-origin: 800px 296px; animation: cc-logo-breathe 3s ease-in-out infinite; will-change: transform; }
 .cc-logo__halo { animation: cc-logo-halo 3s ease-in-out infinite; }
-@keyframes cc-logo-breathe { 0%, 100% { transform: scale(0.92); } 50% { transform: scale(1.06); } }
-@keyframes cc-logo-halo { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@keyframes cc-logo-breathe { 0%, 100% { transform: scale(0.94); } 50% { transform: scale(1.06); } }
+@keyframes cc-logo-halo { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .cc-logo__pulse, .cc-logo__halo { animation: none; } }
 /* Pops on every background: a soft green glow on dark, a soft shadow on light. */
 .cc-logo__mark { filter: drop-shadow(0 0 6px rgba(93, 202, 165, 0.3)); }
