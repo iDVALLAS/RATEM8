@@ -71,6 +71,8 @@ export const copy = {
     ],
     menuLabel: "Menu",
     closeLabel: "Close",
+    /** D60: loan officers sign in to MLO Command Center (sign-in sends anyone already signed in straight in). */
+    mloLogin: { href: "/sign-in", label: "MLO login", aria: "Loan officer login to MLO Command Center" },
   },
 
   hero: {
@@ -320,6 +322,8 @@ export const copy = {
         // v14: labels match the nav's Partner dropdown.
         links: [
           { href: "/join", label: "Mortgage loan originators" },
+          // D60: the way in to MLO Command Center.
+          { href: "/sign-in", label: "Loan officer login" },
           { href: "/agents", label: "Real estate agents" },
           { href: "/investors", label: "Investors" },
           { href: "/ai", label: "For AI assistants" },
@@ -1061,6 +1065,7 @@ export const copy = {
     chat: "Chat with M8",
     chatNote: "An AI assistant · A licensed loan officer verifies every recommendation",
     tester: "Tester access →",
+    mloLogin: "Loan officer login",
   },
 
   comingSoon: {

@@ -4929,3 +4929,34 @@ mode ... and all other hot touch points".
     renders at 209px wide on desktop and 170px on phones.
   - Screenshots in night and paper at 1440px and night at 390px; no
     sideways scroll.
+
+## D60 — "MLO login" on the LoanM8 site (2026-11-20)
+
+The owner: "create the login from the LOANM8 Page for the link that goes to
+the MLOCC". Until now the only way in was a small "Sign in" inside the
+desktop Partner dropdown, and the coming-soon page that loanm8.com shows
+during stealth had none.
+- **Where it is now** (all go to `/sign-in`, which sends anyone already
+  signed in straight to Command Center):
+  - The top bar on every LoanM8 page: an "MLO login" pill beside the
+    theme toggle on desktop, and a compact one beside the menu button on
+    phones.
+  - The coming-soon page (what visitors see while the site is in
+    stealth): "Loan officer login" beside Tester access.
+  - The footer's Partner column: "Loan officer login".
+- **Copy:** `copy.nav.mloLogin`, `copy.comingSoonHome.mloLogin`, and the
+  footer column in `lib/copy.ts`. Style: `.nav-login` in
+  `app/globals.css` (theme accent outline that fills on hover; no
+  transition under reduced motion).
+- **Why `/sign-in` and not `/mlo`:** `/mlo` answers "not found" on a
+  server without `MLO_OWNER_EMAIL` and asks for the shared password where
+  that's on. Sign-in always works, and it already forwards anyone who's
+  signed in.
+- **Verified:**
+  - `npm run verify`.
+  - With stealth on and signed out:
+    - On the coming-soon page, clicking "Loan officer login" lands on
+      sign-in with the logo showing.
+    - The top bar shows one visible login link, at 1440px and at 390px,
+      and the footer link is present.
+    - No sideways scroll at 390px.

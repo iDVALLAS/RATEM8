@@ -28,13 +28,19 @@ export default function ComingSoonHomePage() {
                 Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
               </span>
             </span>
-            <Link
-              href="/demo"
-              className="font-mono text-[10px] tracking-[0.18em] uppercase transition-colors"
-              style={{ color: "var(--color-m8-green)" }}
-            >
-              <ArrowText text={copy.comingSoonHome.tester} />
-            </Link>
+            <span className="flex items-center gap-5">
+              <Link
+                href="/demo"
+                className="font-mono text-[10px] tracking-[0.18em] uppercase transition-colors"
+                style={{ color: "var(--color-m8-green)" }}
+              >
+                <ArrowText text={copy.comingSoonHome.tester} />
+              </Link>
+              {/* D60: loan officers get to MLO Command Center from here while the site is in stealth. */}
+              <Link href={copy.nav.mloLogin.href} className="nav-login" aria-label={copy.nav.mloLogin.aria} prefetch={false}>
+                {copy.comingSoonHome.mloLogin}
+              </Link>
+            </span>
           </div>
         </header>
 

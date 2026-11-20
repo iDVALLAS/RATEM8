@@ -98,12 +98,18 @@ export function Nav() {
                 </Link>
               ))}
             </div>
-            <div className="ml-8">
+            <Link href={copy.nav.mloLogin.href} className="nav-login ml-6" aria-label={copy.nav.mloLogin.aria} prefetch={false}>
+              {copy.nav.mloLogin.label}
+            </Link>
+            <div className="ml-4">
               <ThemeToggle />
             </div>
           </nav>
 
           <div className="flex items-center gap-3 lg:hidden">
+            <Link href={copy.nav.mloLogin.href} className="nav-login nav-login--compact" aria-label={copy.nav.mloLogin.aria} prefetch={false}>
+              {copy.nav.mloLogin.label}
+            </Link>
             <ThemeToggle />
             <button
               type="button"
