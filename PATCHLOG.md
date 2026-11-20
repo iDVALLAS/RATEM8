@@ -1167,3 +1167,25 @@ a waist-up shot, so at 30–36px the face was tiny.
 - Chat card avatar 36px → 56px (owner chose 56 from a 36/48/56/64 mockup).
   Checked on desktop and 390px for WA (Jason) and OR (Ryder): 56×56, no
   overflow.
+
+## C15 — MLO Command lockup on the admin pages (2026-11-20)
+
+Owner chose mockup B ("powered by LoanM8" under the logo's right end), then
+asked to see it in the app with the colours tuned to the site logo.
+- `public/brand/mlo-command.webp`: the owner's MLO Command artwork, 1200px,
+  with its greens shifted from hue ~144° onto the site palette (160–168°,
+  M8 Green / Deep Green / Forest). Shapes, glow and plate untouched.
+- `components/mlo/MloCommandLockup.tsx`: the logo over the shared `<Orb>`
+  (46.7% of the logo width, centred), "powered by **Loan**M8" under the
+  right end ("M8" in M8 Green). Styles in `app/mlo/mlo.css`; the orb's
+  breathing stops under reduced motion like every orb. Strings in
+  `lib/content/mlo.ts` (`lockup`).
+- Replaces the "MLO admin" eyebrow on `/mlo/setup` and `/mlo/pricing`.
+- `lib/public-paths.ts`: `/brand/` is public in stealth (brand artwork
+  only), so the logo loads for a loan officer without the tester cookie.
+- Verified on a local production build with admin credentials: desktop
+  1280, phone 390 (no horizontal scroll, smallest text 10px), night, dim
+  and paper themes. `npm run verify` passes.
+- Known: `/mlo` returns 404 on a preview until `MLO_ADMIN_USER` and
+  `MLO_ADMIN_PASSWORD` are set for Preview in Vercel.
+- Next up: owner sign-off.

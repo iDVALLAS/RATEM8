@@ -13,6 +13,7 @@ import { normalizeRule } from "@/lib/pricing/compRule";
 import { listTenants } from "@/lib/pricing/tenants";
 import { saveSettingsAction } from "../actions";
 import { FlashBox, MloNav, TenantPicker } from "../MloChrome";
+import MloCommandLockup from "@/components/mlo/MloCommandLockup";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +43,7 @@ export default async function MloSetup({ searchParams }: Props) {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">{mloContent.title}</p>
+        <MloCommandLockup />
         <h1 className="tagline text-4xl">{c.heading}</h1>
         <MloNav current="setup" tenantId={tenant.id} />
         <TenantPicker tenants={tenants} current={tenant.id} base="/mlo/setup" />

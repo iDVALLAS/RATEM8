@@ -44,6 +44,8 @@ export const STEALTH_PUBLIC_PREFIXES = [
   "/images/",
   // C1: loan officer headshots shown on the public chat.
   "/team/",
+  // Brand artwork (the hero monogram, the MLO Command logo on the admin pages).
+  "/brand/",
 ] as const;
 
 const EXACT = new Set<string>([...STEALTH_PUBLIC_PAGES, ...STEALTH_PUBLIC_FILES]);

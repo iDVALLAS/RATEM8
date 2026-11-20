@@ -26,3 +26,13 @@
 .mlo-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .mlo-table th, .mlo-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--rule); color: var(--fg-soft); }
 .mlo-table th { font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+
+/* MLO Command lockup (owner mockup B, 2026-11-20): logo over the orb, "powered by LoanM8" under its right end. */
+.mlo-lockup { padding: clamp(28px, 7vw, 48px) 0 clamp(40px, 9vw, 60px); }
+.mlo-lockup__stage { position: relative; width: min(620px, 100%); container-type: inline-size; }
+.mlo-lockup__orb { position: absolute; left: 50%; top: 50%; width: 46.7%; aspect-ratio: 1; translate: -50% -50%; z-index: 0; pointer-events: none; }
+.mlo-lockup__orb .orb { display: block; }
+.mlo-lockup__logo { position: relative; z-index: 1; display: block; width: 100%; height: auto; }
+.mlo-lockup__powered { position: absolute; right: 0.7%; top: calc(100% - 1.6cqw); z-index: 2; display: flex; align-items: baseline; gap: 0.7em; white-space: nowrap; margin: 0; font-weight: 300; font-size: clamp(10px, 1.7cqw, 15px); letter-spacing: 0.32em; text-transform: uppercase; color: var(--muted); }
+.mlo-lockup__powered b { font-weight: 500; font-size: clamp(15px, 2.9cqw, 26px); letter-spacing: 0.02em; text-transform: none; color: var(--fg); }
+.mlo-lockup__powered b span { color: var(--color-m8-green); }

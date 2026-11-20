@@ -14,6 +14,7 @@ import { headers } from "next/headers";
 import { bookmarkletUrl } from "@/lib/pricing/loansifterBookmarklet";
 import { importLoanSifterAction, publishSnapshotAction } from "../actions";
 import { FlashBox, MloNav, TenantPicker } from "../MloChrome";
+import MloCommandLockup from "@/components/mlo/MloCommandLockup";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export default async function MloPricing({ searchParams }: Props) {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">{mloContent.title}</p>
+        <MloCommandLockup />
         <h1 className="tagline text-4xl">{c.heading}</h1>
         <MloNav current="pricing" tenantId={tenant.id} />
         <TenantPicker tenants={tenants} current={tenant.id} base="/mlo/pricing" />

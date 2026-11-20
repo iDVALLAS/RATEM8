@@ -4,6 +4,8 @@
  */
 export const mloContent = {
   title: "MLO admin",
+  // MLO Command lockup (components/mlo/MloCommandLockup.tsx).
+  lockup: { alt: "MLO Command", poweredBy: "powered by" },
   nav: { setup: "Setup", pricing: "Pricing snapshots", rates: "View /rates" },
   tenantLabel: "Sponsoring brokerage",
   setup: {
