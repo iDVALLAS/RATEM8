@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
 import { setFirstDayHidden, submitReport, triageReport } from "@/lib/pilot/service";
+import { sendPilotInvites } from "@/lib/pilot/invite";
+import { requestOrigin } from "@/lib/mail/origin";
+import { headers } from "next/headers";
 
 export type ReportState = { ok: boolean; ref?: string; masked?: boolean; emailed?: boolean; error?: string } | null;
 
@@ -28,4 +31,18 @@ export async function triageAction(id: string, fd: FormData): Promise<void> {
   const r = await triageReport(u, id, String(fd.get("status") ?? ""), String(fd.get("note") ?? ""));
   const f = r.ok ? { ok: true, lines: [r.emailed ? "Saved, and emailed to them." : "Saved."] } : { ok: false, lines: [r.error] };
   redirect(`/mlo/pilot?f=${encodeURIComponent(encodeFlash(f))}#reports`);
+}
+
+/** D61: invite loan officers to the pilot by email; each gets their own sign-up link. */
+export async function pilotInviteAction(fd: FormData): Promise<void> {
+  const u = (await currentUser()) ?? redirect("/sign-in");
+  const r = await sendPilotInvites(u, String(fd.get("people") ?? ""), requestOrigin(await headers()));
+  const go = (ok: boolean, lines: string[]): never => redirect(`/mlo/pilot?f=${encodeURIComponent(encodeFlash({ ok, lines }))}#invite`);
+  if (!r.ok) return go(false, [r.error]);
+  const sent = r.results.filter((x) => x.ok).length;
+  go(sent > 0, [
+    sent ? `Invited ${sent} ${sent === 1 ? "person" : "people"}. When they sign up, they show at the top of Sign-ups marked Invited; check their NMLS record and approve.` : "Nobody was invited.",
+    ...r.results.filter((x) => !x.ok).map((x) => `${x.email}: ${x.note}`),
+    ...(r.bad.length ? [`Skipped (no email address): ${r.bad.slice(0, 5).join("; ")}`] : []),
+  ]);
 }

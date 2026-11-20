@@ -23,6 +23,7 @@ import { inviteUser } from "@/lib/accounts/auth";
 import { incr } from "@/lib/m8/kv";
 import { US_STATES } from "@/lib/us-states";
 import { resendMail, reportInbox, type Mailer } from "@/lib/pilot/service";
+import { readInvite } from "@/lib/pilot/invite";
 import { refreshRegistry, nmlsRecordUrl } from "./cache";
 import { signUpStore, type SignUp, type SignUpLicense } from "./store";
 
@@ -58,10 +59,10 @@ export function formToInput(fd: FormData): SignUpForm {
   return { name: s("name"), email: s("email"), phone: s("phone"), nmls: s("nmls"), sponsorName: s("sponsorName"), sponsorNmls: s("sponsorNmls"), sponsorAddress: s("sponsorAddress"), licenses, calendly: s("calendly"), applicationUrl: s("applicationUrl"), heardFrom: s("heardFrom"), sponsorAllows: s("sponsorAllows") as "yes" | "no", attest: (fd.get("attest") === "on") as true };
 }
 
-export type SubmitResult = { ok: true } | { ok: false; error: string };
+export type SubmitResult = { ok: true; invited?: boolean } | { ok: false; error: string };
 
 /** Step 1. The answer never reveals whether the email already has an account. */
-export async function submitSignUp(form: SignUpForm, origin: string, ipHash: string, now = Date.now(), send: Mailer = resendMail): Promise<SubmitResult> {
+export async function submitSignUp(form: SignUpForm, origin: string, ipHash: string, now = Date.now(), send: Mailer = resendMail, inviteToken: string | null = null): Promise<SubmitResult> {
   const parsed = SignUpInput.safeParse(form);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const v = parsed.data;
@@ -79,6 +80,9 @@ export async function submitSignUp(form: SignUpForm, origin: string, ipHash: str
     await send({ to: v.email, subject: "Your MLO Command Center sign-up is being reviewed", text: `We already have your sign-up from ${open.createdAt.slice(0, 10)} and it's waiting for review. You'll get an email when it's done.` }).catch(() => false);
     return { ok: true };
   }
+  // D61: an invite emailed to this address proves the email, so the sign-up goes straight to review.
+  const invite = readInvite(inviteToken, now);
+  const invited = !!invite && invite.email === v.email;
   const t = token();
   const prior = earlier.find((s) => s.status === "unconfirmed");
   const record: SignUp = {
@@ -107,7 +111,14 @@ export async function submitSignUp(form: SignUpForm, origin: string, ipHash: str
     userId: null,
     verifiedBy: null,
     verifiedAt: null,
+    invitedBy: invited ? invite!.by : null,
   };
+  if (invited) {
+    const ready: SignUp = { ...record, status: "pending", confirmedAt: iso(now), confirmHash: null, confirmExpires: null };
+    await signUpStore().put(ready);
+    await notifyReviewer(ready, origin, send);
+    return { ok: true, invited: true };
+  }
   await signUpStore().put(record);
   await send({ to: v.email, subject: "Confirm your email for MLO Command Center", text: `Thanks for signing up for MLO Command Center. Confirm your email here:\n\n${origin}/sign-up/confirm?t=${encodeURIComponent(t)}\n\nThe link works for 24 hours. After that, a person checks your NMLS record and you'll get an email when your account is ready. If you didn't sign up, ignore this email.` }).catch(() => false);
   return { ok: true };
@@ -119,27 +130,32 @@ export async function confirmSignUp(rawToken: string, origin: string, now = Date
   if (!s) return { ok: false, error: "That link isn't valid. It may have been used already." };
   if (s.status !== "unconfirmed") return { ok: true, name: s.name };
   if (!s.confirmExpires || Date.parse(s.confirmExpires) < now) return { ok: false, error: "That link has expired. Sign up again and we'll send a new one." };
-  await signUpStore().put({ ...s, status: "pending", confirmedAt: iso(now), confirmHash: null, confirmExpires: null });
-  const to = reportInbox();
-  if (to) {
-    await send({
-      to,
-      replyTo: s.email,
-      subject: `New loan officer sign-up: ${s.name}, NMLS ${s.nmls}`,
-      text: [
-        `${s.name} (${s.email}) signed up for Command Center and confirmed their email.`,
-        ``,
-        `NMLS ID: ${s.nmls}`,
-        `Sponsoring company: ${s.sponsorName}, NMLS ${s.sponsorNmls}`,
-        `Licensed in: ${s.licenses.map((l) => l.state).join(", ")}`,
-        `Their sponsor allows client contacts in an outside system: ${s.sponsorAllows ? "yes" : "NO"}`,
-        ``,
-        `Check their NMLS record: ${nmlsRecordUrl(s.nmls)}`,
-        `Review and approve: ${origin}/mlo/signups`,
-      ].join("\n"),
-    }).catch(() => false);
-  }
+  const ready: SignUp = { ...s, status: "pending", confirmedAt: iso(now), confirmHash: null, confirmExpires: null };
+  await signUpStore().put(ready);
+  await notifyReviewer(ready, origin, send);
   return { ok: true, name: s.name };
+}
+
+/** Tells the reviewer a sign-up is ready, with the NMLS record to check. */
+async function notifyReviewer(s: SignUp, origin: string, send: Mailer): Promise<void> {
+  const to = reportInbox();
+  if (!to) return;
+  await send({
+    to,
+    replyTo: s.email,
+    subject: `${s.invitedBy ? "Invited loan officer signed up" : "New loan officer sign-up"}: ${s.name}, NMLS ${s.nmls}`,
+    text: [
+      `${s.name} (${s.email}) ${s.invitedBy ? `signed up from the pilot invite ${s.invitedBy} sent` : "signed up for Command Center and confirmed their email"}.`,
+      ``,
+      `NMLS ID: ${s.nmls}`,
+      `Sponsoring company: ${s.sponsorName}, NMLS ${s.sponsorNmls}`,
+      `Licensed in: ${s.licenses.map((l) => l.state).join(", ")}`,
+      `Their sponsor allows client contacts in an outside system: ${s.sponsorAllows ? "yes" : "NO"}`,
+      ``,
+      `Check their NMLS record: ${nmlsRecordUrl(s.nmls)}`,
+      `Review and approve: ${origin}/mlo/signups`,
+    ].join("\n"),
+  }).catch(() => false);
 }
 
 const ownerOnly = (u: User) => u.status === "active" && u.role === "owner";

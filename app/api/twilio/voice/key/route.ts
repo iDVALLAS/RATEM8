@@ -10,6 +10,6 @@ export async function POST(req: Request) {
   const q = new URL(req.url).searchParams;
   const k = q.get("k") ?? "";
   const d = q.get("d");
-  const body = await keyTwiml(["drop", "company", "optout"].includes(k) ? k : "company", p, d && /^dr_[A-Za-z0-9_-]{8,20}$/.test(d) ? d : null, new Date());
+  const body = await keyTwiml(["drop", "company", "optout", "optout-number"].includes(k) ? k : "company", p, d && /^dr_[A-Za-z0-9_-]{8,20}$/.test(d) ? d : null, new Date());
   return new Response(body, { headers: { "Content-Type": "text/xml", "Cache-Control": "no-store" } });
 }

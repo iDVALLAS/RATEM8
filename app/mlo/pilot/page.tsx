@@ -8,7 +8,8 @@ import { decodeFlash } from "@/lib/mlo/flash";
 import { pilotOn, pilotOverview, refOf, reportInbox, reportsFor } from "@/lib/pilot/service";
 import { REPORT_KINDS, REPORT_STATUS, type ReportStatus } from "@/lib/pilot/store";
 import { FlashBox } from "../MloChrome";
-import { triageAction } from "../pilot-actions";
+import { pilotInviteAction, triageAction } from "../pilot-actions";
+import { invitedWaiting, MAX_INVITES } from "@/lib/pilot/invite";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +50,19 @@ export default async function Pilot({ searchParams }: { searchParams: Promise<{ 
             <Link className="mlo-btn mlo-btn--ghost" href="/mlo/team" style={{ marginTop: 0 }}>Invite someone directly</Link>
             <Link className="mlo-btn mlo-btn--ghost" href="/mlo/welcome" style={{ marginTop: 0 }}>See what they see</Link>
           </p>
+        </section>
+
+        <section className="mlo-section" id="invite">
+          <h2>Invite loan officers to the pilot</h2>
+          <form action={pilotInviteAction} className="mlo-grid">
+            <label className="mlo-field">
+              <span>One per line: a name and email, or just the email (up to {MAX_INVITES} at a time)</span>
+              <textarea name="people" rows={4} className="mlo-textarea" required placeholder={"Ann Lee, ann@example.com\nbo@example.com"} />
+            </label>
+            <button type="submit" className="mlo-btn">Email their invites</button>
+          </form>
+          <p className="mlo-note">Each person gets their own sign-up link (good for 14 days) with their name and email filled in. They add their NMLS ID, sponsoring company and states, and it comes straight to <Link href="/mlo/signups">Sign-ups</Link> marked Invited. Open their NMLS record, tick the box, approve: they get their sign-in link. {(await invitedWaiting().catch(() => 0)) ? <strong>{await invitedWaiting()} invited sign-up(s) waiting for you now.</strong> : null}</p>
+          <p className="mlo-note">Assistants, or a loan officer whose record is already in Command Center: use <Link href="/mlo/team">Team</Link>, Add someone.</p>
         </section>
 
         <section className="mlo-section">

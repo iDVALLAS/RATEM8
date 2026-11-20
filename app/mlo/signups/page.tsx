@@ -69,7 +69,7 @@ export default async function SignUps({ searchParams }: { searchParams: Promise<
             <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 14 }}>
               {pending.map((s) => (
                 <li key={s.id} className="cc-card">
-                  <p className="cc-card__title">{s.name} · NMLS {s.nmls} · signed up {when(s.createdAt)}</p>
+                  <p className="cc-card__title">{s.name} · NMLS {s.nmls} · signed up {when(s.createdAt)}{s.invitedBy ? <span className="cc-badge" style={{ marginLeft: 8 }}>Invited</span> : null}</p>
                   <Details s={s} />
                   {s.sponsorAllows ? (
                     <form action={approveAction.bind(null, s.id)} className="mlo-grid" style={{ marginTop: 12 }}>

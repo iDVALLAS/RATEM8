@@ -256,6 +256,13 @@ export async function optOutPhone(rawPhone: string, sender: string, source: stri
 
 /** A key pressed on a drop, the company line or the opt-out line. Only 9 means anything. */
 export async function keyTwiml(kind: string, p: Record<string, string>, dropId: string | null, now: Date): Promise<string> {
+  if (kind === "optout" && (p.Digits ?? "") === "1") return enterNumberTwiml();
+  if (kind === "optout-number") {
+    const n = toE164(p.Digits);
+    if (!n) return twiml(`${say("That number didn't look right. Please call again. Goodbye.")}<Hangup/>`);
+    await optOutPhone(n, optOutLine() ?? "opt-out line", "entered on the opt-out line", now);
+    return twiml(`${say(`Done. ${spoken(n)} won't get more recorded calls or texts from loan officers using Command Center. Goodbye.`)}<Hangup/>`);
+  }
   if ((p.Digits ?? "") !== "9") return hangup();
   const to = kind === "drop" ? p.To : p.From;
   const sender = kind === "drop" ? p.From : p.To;
@@ -282,6 +289,29 @@ export async function companyLineTwiml(p: Record<string, string>): Promise<strin
   return twiml(`${gather}${dial}<Hangup/>`);
 }
 
-/** The platform's toll-free opt-out line. */
-export const optOutLineTwiml = () =>
-  twiml(`<Gather numDigits="1" timeout="8" action="${SITE()}/api/twilio/voice/key?k=optout" method="POST">${say("This is the opt-out line for recorded calls from loan officers using MLO Command Center. To stop recorded calls and texts to the number you're calling from, press 9.")}</Gather>${say("Nothing was changed. Goodbye.")}<Hangup/>`);
+/**
+ * D61: the toll-free number can live elsewhere (the owner's is at NumberBarn)
+ * and forward to a Twilio number set to /api/twilio/voice. That Twilio number
+ * is TWILIO_OPTOUT_RING_TO; calls to it are the opt-out line too.
+ */
+export const optOutRingTo = () => toE164(env("TWILIO_OPTOUT_RING_TO"));
+export function isOptOutLine(to: string | undefined): boolean {
+  const n = toE164(to);
+  return !!n && (n === optOutLine() || n === optOutRingTo());
+}
+
+/**
+ * The platform's toll-free opt-out line. When the caller's own number shows,
+ * pressing 9 stops it. When it doesn't (some forwarding services show their
+ * own number instead), the caller keys in the number to stop.
+ */
+export function optOutLineTwiml(p: Record<string, string> = {}): string {
+  const from = toE164(p.From);
+  const ours = [optOutLine(), optOutRingTo(), toE164(env("TWILIO_CALLER_ID"))];
+  const intro = "This is the opt-out line for recorded calls from loan officers using MLO Command Center.";
+  if (from && !ours.includes(from)) return twiml(`<Gather numDigits="1" timeout="8" action="${SITE()}/api/twilio/voice/key?k=optout" method="POST">${say(`${intro} To stop recorded calls and texts to the number you're calling from, press 9. To stop a different number, press 1.`)}</Gather>${say("Nothing was changed. Goodbye.")}<Hangup/>`);
+  return enterNumberTwiml(intro);
+}
+
+const enterNumberTwiml = (intro = "") =>
+  twiml(`<Gather numDigits="10" timeout="12" action="${SITE()}/api/twilio/voice/key?k=optout-number" method="POST">${say(`${intro} Using the keypad, enter the 10-digit phone number you'd like to stop recorded calls and texts to.`.trim())}</Gather>${say("Nothing was changed. Goodbye.")}<Hangup/>`);

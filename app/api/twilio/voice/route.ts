@@ -1,7 +1,6 @@
 import { readTwilio } from "@/lib/messaging/webhook";
 import { ensureRegistry } from "@/lib/registry/cache";
-import { companyLineTwiml, optOutLine, optOutLineTwiml } from "@/lib/voicemail/service";
-import { toE164 } from "@/lib/contacts/normalize";
+import { companyLineTwiml, isOptOutLine, optOutLineTwiml } from "@/lib/voicemail/service";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +13,6 @@ export async function POST(req: Request) {
   await ensureRegistry();
   const p = await readTwilio(req);
   if (!p) return new Response("Forbidden", { status: 403 });
-  const body = optOutLine() && toE164(p.To) === optOutLine() ? optOutLineTwiml() : await companyLineTwiml(p);
+  const body = isOptOutLine(p.To) ? optOutLineTwiml(p) : await companyLineTwiml(p);
   return new Response(body, { headers: { "Content-Type": "text/xml", "Cache-Control": "no-store" } });
 }

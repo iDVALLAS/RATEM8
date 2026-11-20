@@ -4960,3 +4960,62 @@ during stealth had none.
     - The top bar shows one visible login link, at 1440px and at 390px,
       and the footer link is present.
     - No sideways scroll at 390px.
+
+## D61 — Pilot invites, spoken consent for M8 calls, and a forwarded toll-free line (2026-11-20)
+
+The owner: "i want an easy way to add people to the pilot", "I also approved
+AI calls where clients have verbally or otherwise consented", and "i have a
+toll free number from NumberBarn".
+- **Pilot invites** (Pilot page, "Invite loan officers to the pilot";
+  `lib/pilot/invite.ts`):
+  - Paste people one per line ("Ann Lee, ann@x.com", "Ann <ann@x.com>" or
+    just the email), up to 25 at a time.
+  - Each gets an email from the owner's name, with Reply-To set to the
+    owner, and their own sign-up link: signed with `CC_LINK_SECRET`, good
+    for 14 days, for that email only.
+  - The link fills in their name and email (the email is locked). Because
+    the link reached their inbox, the email-confirmation step is skipped
+    and the sign-up goes straight to Sign-ups, marked **Invited**. The
+    owner gets an "Invited loan officer signed up" email with their NMLS
+    record link.
+  - The NMLS check by a person stays, as for every sign-up: open the
+    record, tick, approve.
+  - People who already have an account are skipped. A link used with a
+    different email falls back to the normal sign-up.
+  - Assistants, and loan officers whose record already exists, still go
+    through Team → Add someone.
+- **M8 calls with spoken consent:** `canAiCall` now accepts permission for
+  recorded or AI-voice calls that's signed, from a web form, a texted yes,
+  or **a yes on a recorded call** (evidence "Said yes on a recorded call",
+  with where the recording is kept).
+  - A bare "your word" from an import still doesn't count: the contact
+    rules have always required proof for these calls.
+  - The contact page and launch list wording follow. The launch item now
+    reads "off until you turn them on" (owner approval, 2026-11-20).
+  - Turning it on is still `CC_AI_CALLS="true"` in Vercel.
+- **A toll-free number from another carrier:**
+  - `TWILIO_OPTOUT_NUMBER` is the toll-free number said in voicemails (the
+    owner's is at NumberBarn).
+  - New `TWILIO_OPTOUT_RING_TO` is the Twilio number it forwards to, whose
+    Voice webhook is `/api/twilio/voice`. Calls to either are the opt-out
+    line.
+  - When the caller's own number shows, press 9 stops it, or press 1 to
+    stop a different number.
+  - When the forwarding hides it (shows the toll-free number, or nothing),
+    the caller keys in the 10-digit number to stop. A bad entry changes
+    nothing.
+- **Vercel Blob:** a second try to create the store from here was refused
+  (403, no permission to create storage on the project). The owner
+  creates it once in Vercel.
+- **Verified:**
+  - `npm run verify` (603 tests, 6 new):
+    - pasting formats
+    - invite signing, expiry and forgery
+    - who may invite, skipping existing accounts, the emailed link
+    - an invited sign-up going straight to review, and the wrong-email
+      fallback
+    - recorded-call consent passing and "your word" failing
+    - the forwarded line, typed-in numbers and press 1
+  - Browser: invite on Pilot → the emailed link (from the dev mail log) →
+    a prefilled, locked sign-up → submit → shows on Sign-ups marked
+    Invited.

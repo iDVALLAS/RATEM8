@@ -64,15 +64,17 @@ describe("M8 loan-update calls (D58)", () => {
   const mails: { to: string; subject: string }[] = [];
   const mail = async (m: { to: string; subject: string; text: string }) => (mails.push(m), true);
 
-  it("is off until the owner turns it on, and needs written permission and a loan in progress", async () => {
+  it("is off until the owner turns it on, and needs permission with proof (written or on a recorded call) and a loan in progress", async () => {
     const id = await client();
     delete process.env.CC_AI_CALLS;
     expect(await canAiCall(me, id, TUE_10AM_PT)).toMatchObject({ ok: false, error: expect.stringMatching(/off/) });
     process.env.CC_AI_CALLS = "true";
-    expect(await canAiCall(me, id, TUE_10AM_PT)).toMatchObject({ ok: false, error: expect.stringMatching(/written permission/) });
-    await recordConsent(me, id, { channel: "ai_call", purpose: "service", granted: true, evidence: "recorded_call", proof: "said yes on a call" }, TUE_10AM_PT);
-    expect(await canAiCall(me, id, TUE_10AM_PT)).toMatchObject({ ok: false, error: expect.stringMatching(/written permission/) });
-    await recordConsent(me, id, { channel: "ai_call", purpose: "service", granted: true, evidence: "written", proof: "signed form" }, TUE_10AM_PT);
+    expect(await canAiCall(me, id, TUE_10AM_PT)).toMatchObject({ ok: false, error: expect.stringMatching(/permission/) });
+    // Your word alone (an import) isn't proof.
+    await recordConsent(me, id, { channel: "ai_call", purpose: "service", granted: true, evidence: "attested", proof: "from my list" }, TUE_10AM_PT);
+    expect(await canAiCall(me, id, TUE_10AM_PT)).toMatchObject({ ok: false, error: expect.stringMatching(/with proof/) });
+    // A yes on a recorded call counts (D61), as does written.
+    await recordConsent(me, id, { channel: "ai_call", purpose: "service", granted: true, evidence: "recorded_call", proof: "said yes on the 11/14 call, recording in the phone system" }, TUE_10AM_PT);
     expect(await canAiCall(me, id, TUE_10AM_PT)).toEqual({ ok: true });
     expect(await canAiCall(me, id, new Date("2026-11-17T07:00:00Z"))).toMatchObject({ ok: false }); // 11 PM Pacific
   });

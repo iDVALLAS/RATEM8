@@ -6,7 +6,7 @@ import { MemoryTouchStore, setTouchStoreForTests } from "@/lib/messaging/store";
 import { mloById } from "@/lib/config";
 import { encodeWav, readWav, VM_RATE } from "./audio";
 import { newMemoryVoicemailStore, setVoicemailStoreForTests, voicemailStore } from "./store";
-import { addVoicemail, companyLineTwiml, dropStatus, dropTwiml, dropVoicemail, keyTwiml, optOutLineTwiml, spoken, type Dialer } from "./service";
+import { addVoicemail, companyLineTwiml, dropStatus, dropTwiml, dropVoicemail, isOptOutLine, keyTwiml, optOutLineTwiml, spoken, type Dialer } from "./service";
 
 const TUE_10AM_PT = new Date("2026-11-17T18:00:00Z");
 const me: User = { id: "lo1", email: "lo1@x.com", name: "Pat", role: "lo", mloId: "mlo-001", status: "active", createdAt: "", createdBy: "" };
@@ -150,5 +150,24 @@ describe("Voicemail drops (D57)", () => {
     const stranger = await companyLineTwiml({ From: "+13105559876", To: "+14258210000" });
     expect(stranger).not.toContain("<Dial");
     expect(optOutLineTwiml()).toMatch(/k=optout/);
+  });
+
+  it("the toll-free line works when it's forwarded from another carrier, even without the caller's number", async () => {
+    process.env.TWILIO_OPTOUT_NUMBER = "+18888210100";
+    process.env.TWILIO_OPTOUT_RING_TO = "+14258219999";
+    expect(isOptOutLine("+18888210100")).toBe(true);
+    expect(isOptOutLine("+14258219999")).toBe(true);
+    expect(isOptOutLine("+14258210000")).toBe(false);
+    // Their number shows: press 9 stops it.
+    expect(optOutLineTwiml({ From: "+12068231234", To: "+14258219999" })).toMatch(/k=optout"[\s\S]*press 9/);
+    // The forwarding service shows its own number: they key in the number to stop.
+    const blind = optOutLineTwiml({ From: "+18888210100", To: "+14258219999" });
+    expect(blind).toMatch(/numDigits="10"[^>]*k=optout-number/);
+    const c = await ann();
+    expect(await keyTwiml("optout-number", { Digits: "2068231234" }, null, TUE_10AM_PT)).toMatch(/Done\./);
+    expect(await touches.optedOut(c.phone!)).toBe(true);
+    expect(summarize(await contacts.consents(c.id)).call.marketing.evidence).toBe("revoked");
+    expect(await keyTwiml("optout-number", { Digits: "12345" }, null, TUE_10AM_PT)).toMatch(/didn't look right/);
+    expect(await keyTwiml("optout", { Digits: "1", From: "+18888210100" }, null, TUE_10AM_PT)).toMatch(/numDigits="10"/);
   });
 });

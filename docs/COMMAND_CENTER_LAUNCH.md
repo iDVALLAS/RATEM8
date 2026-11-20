@@ -64,16 +64,17 @@ Stores the short videos loan officers record and send (D55). In Vercel: the proj
 
 ### Voicemail drops (Twilio, optional)
 
-Loan officers leave a recorded voicemail through their contact rules (D57). Calls come from the company's own number once Command Center registers its texting (D56), or from a number you set here. For voicemails with an offer, the law asks for a toll-free opt-out line: buy a toll-free number in Twilio and set its Voice webhook to (your site)/api/twilio/voice (HTTP POST). A number you set by hand needs the same Voice webhook. Uses the Blob store (Video messages) and the Google key (Voice and the mic).
+Loan officers leave a recorded voicemail through their contact rules (D57). Calls come from the company's own number once Command Center registers its texting (D56), or from a number you set here. For voicemails with an offer, the law asks for a toll-free opt-out line: a toll-free number in Twilio with its Voice webhook set to (your site)/api/twilio/voice (HTTP POST), or a toll-free number elsewhere (such as NumberBarn) forwarded to a Twilio number with that webhook (D61). If the forwarding hides the caller's number, the line asks them to key it in. A number you set by hand needs the same Voice webhook. Uses the Blob store (Video messages) and the Google key (Voice and the mic).
 
 | Variable | Sensitive | Note |
 | --- | --- | --- |
-| `TWILIO_OPTOUT_NUMBER` (optional) | No | The toll-free opt-out line (+18…). |
+| `TWILIO_OPTOUT_NUMBER` (optional) | No | The toll-free opt-out line (+18…), as it's said in voicemails. |
+| `TWILIO_OPTOUT_RING_TO` (optional) | No | When the toll-free number lives elsewhere: the Twilio number it forwards to. |
 | `TWILIO_CALLER_ID` (optional) | No | A Twilio number drops can come from while a company has no registered number (TWILIO_CALLER_ID_<company NMLS> for one company). |
 
-### M8 loan-update calls (off until counsel reviews)
+### M8 loan-update calls (off until you turn them on)
 
-M8, an AI voice, calls a client with written permission to tell them where their loan stands, and passes anything else to the loan officer (D58). It checks it's them before saying anything about the loan, tells them it's an AI and keeps a written note, never quotes numbers or promises, and stops on request. Have counsel review the call rules (lib/aicalls/service.ts) and your consent wording first. California stays held by the contact rules until cleared. Uses the calling number from Voicemail drops.
+M8, an AI voice, calls a client who gave permission with proof (written, or a yes on a recorded call; D61) to tell them where their loan stands, and passes anything else to the loan officer (D58). It checks it's them before saying anything about the loan, tells them it's an AI and keeps a written note, never quotes numbers or promises, and stops on request. The owner approved these on 2026-11-20. California stays held by the contact rules until cleared. Uses the calling number from Voicemail drops.
 
 | Variable | Sensitive | Note |
 | --- | --- | --- |

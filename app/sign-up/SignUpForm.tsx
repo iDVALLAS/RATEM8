@@ -6,12 +6,19 @@ import { signUpAction } from "./actions";
 type State = { code: string; name: string };
 
 /** D45: the loan officer sign-up form. Every state and DC can be picked. */
-export default function SignUpForm({ states }: { states: State[] }) {
+export default function SignUpForm({ states, invite = null }: { states: State[]; invite?: { token: string; name: string; email: string } | null }) {
   const [picked, setPicked] = useState<string[]>([]);
-  const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null);
+  const [result, setResult] = useState<{ ok: boolean; error?: string; invited?: boolean } | null>(null);
   const [pending, start] = useTransition();
   const toggle = (code: string) => setPicked((p) => (p.includes(code) ? p.filter((c) => c !== code) : [...p, code].sort()));
 
+  if (result?.ok && result.invited) {
+    return (
+      <div className="mlo-flash mlo-flash--ok" role="status">
+        <strong>Thanks, you&apos;re in the queue.</strong> A person checks your NMLS record next, and you&apos;ll get an email with your sign-in link when your account is ready.
+      </div>
+    );
+  }
   if (result?.ok) {
     return (
       <div className="mlo-flash mlo-flash--ok" role="status">
@@ -30,8 +37,9 @@ export default function SignUpForm({ states }: { states: State[] }) {
     >
       <fieldset className="mlo-section su-set">
         <legend>You</legend>
-        <label className="mlo-field"><span>Full name, as on your NMLS record</span><input name="name" required maxLength={80} autoComplete="name" className="mlo-input" /></label>
-        <label className="mlo-field"><span>Work email (you&apos;ll sign in with it)</span><input name="email" type="email" required maxLength={254} autoComplete="email" className="mlo-input" /></label>
+        {invite ? <input type="hidden" name="invite" value={invite.token} /> : null}
+        <label className="mlo-field"><span>Full name, as on your NMLS record</span><input name="name" required maxLength={80} autoComplete="name" className="mlo-input" defaultValue={invite?.name ?? ""} /></label>
+        <label className="mlo-field"><span>Work email (you&apos;ll sign in with it){invite ? " (from your invite)" : ""}</span><input name="email" type="email" required maxLength={254} autoComplete="email" className="mlo-input" defaultValue={invite?.email ?? ""} readOnly={!!invite} /></label>
         <label className="mlo-field"><span>Phone (optional)</span><input name="phone" type="tel" maxLength={30} autoComplete="tel" inputMode="tel" className="mlo-input" /></label>
         <label className="mlo-field"><span>Your NMLS ID</span><input name="nmls" required inputMode="numeric" pattern="\d{1,10}" maxLength={10} className="mlo-input" /></label>
       </fieldset>

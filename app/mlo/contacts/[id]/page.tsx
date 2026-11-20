@@ -362,7 +362,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
             <div id="m8-calls" style={{ marginTop: 18 }}>
               <form action={aiCallAction.bind(null, c.id)} className="mlo-row-form">
                 <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={!c.phone}>Have M8 call with a loan update</button>
-                <span className="mlo-note">An AI call ({gate.ai_call.service.allowed ? "allowed now" : "not now"}): needs written permission and a loan in progress. M8 checks it&apos;s them first, says only what their own page says, and passes anything else to you.</span>
+                <span className="mlo-note">An AI call ({gate.ai_call.service.allowed ? "allowed now" : "not now"}): needs their permission with proof (written, or a yes on a recorded call) and a loan in progress. M8 checks it&apos;s them first, says only what their own page says, and passes anything else to you.</span>
               </form>
               {m8Calls.map((k) => (
                 <details key={k.id} style={{ marginTop: 6 }}>

@@ -4,9 +4,9 @@
  * reviews it).
  *
  * The narrowest useful AI call:
- *  - Only about a loan in progress, only to a client who gave WRITTEN
- *    permission for recorded or AI-voice calls (a signature, a web form or a
- *    texted yes), and only when the send gate allows an AI-voice call now
+ *  - Only about a loan in progress, only to a client who gave permission for
+ *    recorded or AI-voice calls with proof (a signature, a web form, a texted
+ *    yes, or a yes on a recorded call; D61), and only when the send gate allows an AI-voice call now
  *    (quiet hours, reassigned numbers, caps, California held for counsel).
  *  - M8 says first that it's an AI calling for the loan officer and the
  *    company, and asks for the client by name. Nothing about the loan is
@@ -48,7 +48,12 @@ import { aiCallStore, type AiCall } from "./store";
 const env = (k: string) => process.env[k]?.trim() || undefined;
 const iso = (d: Date) => d.toISOString();
 const SITE = () => CONFIG.siteUrl.replace(/\/$/, "");
-const WRITTEN = ["written", "web_form", "text_reply"];
+/**
+ * D61 (owner, 2026-11-20): AI calls go to clients who agreed in writing or
+ * out loud. Out loud counts when it's on record (a recorded call), so
+ * there's proof; a bare "your word" from an import still doesn't.
+ */
+const CONSENTED = ["written", "web_form", "text_reply", "recorded_call"];
 export const MAX_TURNS = 8;
 
 /** Off unless the owner turns it on (CC_AI_CALLS="true"), with Twilio connected. */
@@ -62,7 +67,7 @@ export async function canAiCall(actor: User, contactId: string, now: Date): Prom
   const c = await contactStore().get(contactId);
   if (!c || !canSee(actor, c)) return { ok: false, error: "No such contact." };
   const p = summarize(await contactStore().consents(c.id)).ai_call.service;
-  if (!p.granted || !WRITTEN.includes(p.evidence ?? "")) return { ok: false, error: "M8 calls need written permission for recorded or AI-voice calls (a signed form, a web form or a texted yes)." };
+  if (!p.granted || !CONSENTED.includes(p.evidence ?? "")) return { ok: false, error: "M8 calls need the client's permission for recorded or AI-voice calls, with proof: signed, a web form, a texted yes, or a yes on a recorded call. Record it under Permission to contact." };
   const d = await gateFor(actor, c, "ai_call", "service", now);
   if (!d.allowed) return { ok: false, error: d.reasons[0] ?? "Not allowed right now." };
   const mlo = mloById(actor.mloId);
@@ -87,7 +92,7 @@ export async function startAiCall(actor: User, contactId: string, now: Date, dia
     return { ok: false, error: placed.error };
   }
   await aiCallStore().put({ ...call, callSid: placed.sid });
-  await touchStore().add({ id: `t_${randomBytes(9).toString("base64url")}`, contactId: c.id, ownerUserId: c.ownerUserId, channel: "ai_call", purpose: "service", direction: "out", body: "M8 call: loan update", status: "queued", providerId: placed.sid, note: "written AI-call permission", at: iso(now), actor: actor.email, phone: c.phone, sender: caller.from, origin: "agent" });
+  await touchStore().add({ id: `t_${randomBytes(9).toString("base64url")}`, contactId: c.id, ownerUserId: c.ownerUserId, channel: "ai_call", purpose: "service", direction: "out", body: "M8 call: loan update", status: "queued", providerId: placed.sid, note: "AI-call permission on file", at: iso(now), actor: actor.email, phone: c.phone, sender: caller.from, origin: "agent" });
   await accountStore().audit({ at: iso(now), actor: actor.email, action: "gate.send.ai_call", detail: { contactId: c.id } });
   return { ok: true, id: call.id };
 }

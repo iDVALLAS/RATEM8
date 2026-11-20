@@ -41,6 +41,8 @@ export type SignUp = {
   userId: string | null;
   verifiedBy: "human" | "retr" | null;
   verifiedAt: string | null;
+  /** D61: who invited them to the pilot (their email), when they came from an invite. */
+  invitedBy?: string | null;
 };
 
 export interface SignUpStore {
