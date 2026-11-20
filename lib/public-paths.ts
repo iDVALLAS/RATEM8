@@ -53,6 +53,8 @@ export const STEALTH_PUBLIC_PREFIXES = [
   "/images/",
   // C1: loan officer headshots shown on the public chat.
   "/team/",
+  // D54.2: the MLO Command Center logo and icons on the sign-in and sign-up pages.
+  "/brand/",
   // D26: each client's own page (a signed link).
   "/my/",
   // D55: a video message's watch page (an unguessable link per person, noindex).

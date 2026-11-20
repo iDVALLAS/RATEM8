@@ -1,4 +1,5 @@
-import { CC_PITCH, CC_TAGLINE } from "@/lib/content/command-center";
+import { CC_PITCH, CC_POINTS, CC_TAGLINE, CC_TEAM_LINE, CC_TEAM_TITLE } from "@/lib/content/command-center";
+import { AGENT_KEYS, AGENTS } from "@/lib/agents/team";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Icon } from "./icons";
 import Brand from "./Brand";
@@ -6,12 +7,7 @@ import type { IconName } from "./nav";
 import "./cc-shell.css";
 import "./mlo.css";
 
-const POINTS: { icon: IconName; text: string }[] = [
-  { icon: "spark", text: "A Concierge that drafts check-ins in your voice. You approve every one." },
-  { icon: "shield", text: "Contact rules for all 50 states and DC, checked before anything goes out." },
-  { icon: "pipeline", text: "Every loan's journey and deadlines, synced from your loan system." },
-  { icon: "receipt", text: "Expenses and mileage, kept for your CPA." },
-];
+const POINTS: readonly { icon: IconName; text: string }[] = CC_POINTS;
 
 /**
  * D46: the frame for signing in and signing up (/sign-in, /sign-in/code,
@@ -36,6 +32,13 @@ export default function CcAuthShell({ children, wide = false }: { children: Reac
             <p className="cc-auth__eyebrow">For licensed loan officers</p>
             <p className="cc-auth__pitch">{CC_TAGLINE}</p>
             <p className="cc-auth__sub">{CC_PITCH}</p>
+            <div className="cc-auth__team">
+              <p className="cc-auth__team-title"><Icon name="spark" size={20} /> {CC_TEAM_TITLE}</p>
+              <p className="cc-auth__team-line">{CC_TEAM_LINE}</p>
+              <ul className="cc-auth__agents" aria-label="Your Concierge team">
+                {AGENT_KEYS.map((k) => <li key={k}><strong>{AGENTS[k].name}</strong><span>{AGENTS[k].role}</span></li>)}
+              </ul>
+            </div>
             <ul className="cc-auth__points">
               {POINTS.map((p) => (
                 <li key={p.icon}><span className="cc-auth__icon"><Icon name={p.icon} size={20} /></span><span>{p.text}</span></li>

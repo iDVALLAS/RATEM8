@@ -4890,3 +4890,42 @@ owner sets `CC_AI_CALLS="true"`, after counsel reviews it.**
 - **Not verified live:** no Twilio account, AI key or phone in this
   session. Before turning it on, counsel should review the call rules and
   the consent wording, and the owner should test-call their own phone.
+
+## D59 — The sign-in logo, and the pitch with the Concierge team (2026-11-20)
+
+The owner, with a screenshot of the sign-in page: "the logo is not showing
+also need to update the home page with the latest additions of multi-agent
+mode ... and all other hot touch points".
+- **The logo:** the files under `/brand/` weren't on the stealth list
+  (`lib/public-paths.ts`). A signed-out visitor's browser was redirected
+  instead of getting the image, so the logo showed as a broken box on
+  sign-in and sign-up. Earlier checks ran with stealth off, which is why
+  they passed. `/brand/` is now public in stealth (it was already open
+  under the site lock).
+- **The pitch beside sign-in and sign-up** (`app/mlo/CcAuthShell.tsx`,
+  copy in `lib/content/command-center.ts`):
+  - The tagline and the pitch under it are unchanged.
+  - New: a "A whole team working your business" card. It has one line on
+    what the Concierge team does, that Compliance checks every word, and
+    that nothing goes out or gets spent without a yes. Below that are the
+    eight team members with their roles, read from `lib/agents/team.ts`
+    so they can't drift.
+  - The feature list grew from four items to eight, in two columns:
+    - video messages
+    - voicemail drops
+    - business texting registered for the company
+    - email from their own mailbox, plus campaigns
+    - cards by mail
+    - the Loan Journey
+    - contact rules
+    - expenses, mileage and profit
+  - Only what's live is listed: M8 calls stay off the pitch while
+    they're off.
+  - On wide screens the sign-in box stays near the top beside the taller
+    pitch. Phones still show the form first.
+- **Verified:**
+  - `npm run verify`.
+  - With stealth on and signed out, the logo loads (200, image/webp) and
+    renders at 209px wide on desktop and 170px on phones.
+  - Screenshots in night and paper at 1440px and night at 390px; no
+    sideways scroll.
