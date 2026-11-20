@@ -5381,3 +5381,13 @@ separate Google keys, like the two AI keys).
   leave `GOOGLE_CLOUD_API_KEY` as it is; redeploy.
 - **Verified:** `npm run verify`; a test that each side uses its own key and that
   Command Center falls back to the shared one.
+
+## Promote — D61 through D66.2 to production (2026-11-20)
+
+Owner: "promote".
+
+- Remote M8 red team against the D66.2 preview: 43 of 43 passed.
+- Production deployment of the exact commit 725fd96 (D66.2), created from Git, not a promote of the
+  preview build.
+- loanm8.com checked after: `/api/health` 200 (chat on), `/sign-in` 200, the D65 Zapier route answers
+  401 without a key, the D66 forms route answers 401 signed out.
