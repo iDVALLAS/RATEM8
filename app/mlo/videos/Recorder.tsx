@@ -135,7 +135,7 @@ export default function Recorder({ folder, checkReady }: { folder: string; check
       let file: Awaited<ReturnType<typeof upload>>;
       try {
         file = await upload(`${folder}${stamp}.${extFor(type)}`, take.file, {
-          access: "public",
+          access: "private",
           handleUploadUrl: "/api/cc/videos/upload",
           contentType: type,
           multipart: take.file.size > 8 * 1024 * 1024,
@@ -153,7 +153,7 @@ export default function Recorder({ folder, checkReady }: { folder: string; check
       }
       setPct(null);
       const still = await posterFrom(take.file);
-      const poster = still ? await upload(`${folder}${stamp}-poster.jpg`, still, { access: "public", handleUploadUrl: "/api/cc/videos/upload", contentType: "image/jpeg" }).catch(() => null) : null;
+      const poster = still ? await upload(`${folder}${stamp}-poster.jpg`, still, { access: "private", handleUploadUrl: "/api/cc/videos/upload", contentType: "image/jpeg" }).catch(() => null) : null;
       const reg = await registerVideoAction({ url: file.url, posterUrl: poster?.url ?? null, title, durationSec: seconds || sound.seconds });
       if (!reg.ok) {
         setBusy("");

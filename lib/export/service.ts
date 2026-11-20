@@ -9,7 +9,7 @@
  * book. Nothing secret goes in (no connection tokens or loan-system keys).
  */
 import type { User } from "@/lib/accounts/store";
-import { mloById } from "@/lib/config";
+import { CONFIG, mloById } from "@/lib/config";
 import { contactStore, type Contact } from "@/lib/contacts/store";
 import { touchStore } from "@/lib/messaging/store";
 import { conciergeStore } from "@/lib/concierge/store";
@@ -80,7 +80,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
     templates: add("templates.csv", mine, { first: ["name"] }),
     scripts: add("call-scripts.csv", scripts.map((s) => ({ contact: who(s.contactId), ...s })), { first: ["contact"] }),
     cards: add("cards-by-mail.csv", cards.map((o) => ({ ...o, contactIds: undefined, people: o.contactIds.map(who).join("; ") })), { first: ["createdAt", "status", "kind", "people"], omit: ["contactIds"] }),
-    videos: add("videos.csv", videos.map((v) => ({ createdAt: v.createdAt, title: v.title, seconds: v.durationSec, status: v.status, reason: v.reason, whatItSays: v.transcript, file: v.url })), { first: ["createdAt", "title", "status"] }),
+    videos: add("videos.csv", videos.map((v) => ({ createdAt: v.createdAt, title: v.title, seconds: v.durationSec, status: v.status, reason: v.reason, whatItSays: v.transcript, file: v.url ? `${CONFIG.siteUrl.replace(/\/$/, "")}/api/cc/videos/file/${encodeURIComponent(v.id)}` : "" })), { first: ["createdAt", "title", "status"] }),
     videoSends: add("video-sends.csv", videoSends.map((s) => ({ at: s.at, contact: s.contactName, channel: s.channel, video: videos.find((v) => v.id === s.videoId)?.title ?? "(deleted)", views: s.views, firstViewedAt: s.firstViewedAt, lastViewedAt: s.lastViewedAt })), { first: ["at", "contact", "video", "views"] }),
     expenses: add("expenses.csv", expenses, { first: ["date", "kind", "amountCents", "miles", "vendor", "category", "purpose"] }),
   };

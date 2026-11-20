@@ -5,7 +5,7 @@ import { requireViewer } from "@/lib/mlo/page-auth";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { contactStore } from "@/lib/contacts/store";
 import { videoStore } from "@/lib/videos/store";
-import { DEFAULT_NOTE, NOTE_MAX, prefixFor, transcribeOn, videosOn } from "@/lib/videos/service";
+import { DEFAULT_NOTE, NEEDS_TOKEN, NOTE_MAX, ownMedia, prefixFor, transcribeOn, uploadsOn, videosOn } from "@/lib/videos/service";
 import { emailReadyFor } from "@/lib/messaging/email";
 import { twilioConfig } from "@/lib/messaging/twilio";
 import { FlashBox } from "../MloChrome";
@@ -40,7 +40,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
     return shell(
       <section className="mlo-section">
         <h2>Turn on video messages</h2>
-        <p className="mlo-note">Videos are stored in Vercel Blob. The owner turns it on once: in Vercel, open the project, then Storage, then Create, then Blob, and connect it to this project. Vercel adds BLOB_READ_WRITE_TOKEN (Sensitive) for you. Then redeploy.</p>
+        <p className="mlo-note">Videos are kept in a private Vercel Blob store: only you, and the people you send a link to, can play them. The owner turns it on once: in Vercel, open the project, then Storage, then Create, then Blob, choose Private, and connect it to this project with &ldquo;Add a read-write token env var&rdquo; ticked. Vercel adds BLOB_STORE_ID and BLOB_READ_WRITE_TOKEN (Sensitive) for you. Then redeploy.</p>
       </section>,
     );
 
@@ -58,7 +58,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
       <section className="mlo-section" id="new">
         <h2>New video</h2>
         {!checkReady ? <p className="mlo-note">The word check needs Google Speech-to-Text: the owner turns on the Speech-to-Text API for the Google Cloud key M8&apos;s voice uses (GOOGLE_CLOUD_API_KEY).</p> : null}
-        <Recorder folder={prefixFor(me.id)} checkReady={checkReady} />
+        {uploadsOn() ? <Recorder folder={prefixFor(me.id)} checkReady={checkReady} /> : <p className="mlo-note">{NEEDS_TOKEN}</p>}
       </section>
 
       {ready.length ? (
@@ -108,7 +108,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
               const watched = to.filter((s) => s.views > 0).length;
               return (
                 <li key={x.id} className="vid-item">
-                  <video className="vid-thumb" src={x.url} poster={x.posterUrl ?? undefined} preload="none" controls playsInline aria-label={x.title} />
+                  <video className="vid-thumb" src={ownMedia(x.id, "video")} poster={x.posterUrl ? ownMedia(x.id, "poster") : undefined} preload="none" controls playsInline aria-label={x.title} />
                   <div className="vid-body">
                     <form action={renameVideoAction.bind(null, x.id)} className="mlo-row-form">
                       <input name="title" className="mlo-input vid-title" defaultValue={x.title} maxLength={80} aria-label="Name" />
@@ -120,7 +120,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
                     </p>
                     {x.status === "held" ? <p className="mlo-note">{x.reason} It can&apos;t be sent; record it again without that part.</p> : null}
                     {x.status === "ok" && x.reason ? <p className="mlo-note">{x.reason}</p> : null}
-                    {x.status === "checking" ? <div className="mlo-row-form"><CheckAgain id={x.id} url={x.url} /></div> : null}
+                    {x.status === "checking" ? <div className="mlo-row-form"><CheckAgain id={x.id} url={ownMedia(x.id, "video")} /></div> : null}
                     {x.transcript ? <details><summary className="mlo-note">What it says (also its captions)</summary><p className="mlo-note" style={{ whiteSpace: "pre-wrap" }}>{x.transcript}</p></details> : null}
                     {to.length ? (
                       <details>

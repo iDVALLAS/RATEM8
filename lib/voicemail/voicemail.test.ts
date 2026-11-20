@@ -12,7 +12,7 @@ const TUE_10AM_PT = new Date("2026-11-17T18:00:00Z");
 const me: User = { id: "lo1", email: "lo1@x.com", name: "Pat", role: "lo", mloId: "mlo-001", status: "active", createdAt: "", createdBy: "" };
 const rec = { firstName: "Ann", lastName: "Lee", email: null, phone: "+12068231234", phone2: null, street: null, city: null, state: "WA", zip: null, relationship: "past_client", tags: [], notes: null, loan: null, agent: null, attestedOptIns: [] as ("text" | "call" | "email")[] };
 const wav = (sec: number) => encodeWav(new Float32Array(Math.round(sec * VM_RATE)).fill(0.1));
-const blob = { put: async (p: string) => `https://abc.public.blob.vercel-storage.com/${p}`, del: async () => undefined };
+const blob = { put: async (p: string) => `https://abc.private.blob.vercel-storage.com/${p}`, del: async () => undefined };
 const says = (text: string, rates: number[] = []) => async (_p: Uint8Array, _o: number, _f?: typeof fetch, rate = 16_000) => (rates.push(rate), { text, cues: [] });
 const M = mloById("mlo-001")!;
 
@@ -24,6 +24,7 @@ describe("Voicemail drops (D57)", () => {
     process.env.TWILIO_ACCOUNT_SID = "AC" + "0".repeat(32);
     process.env.TWILIO_AUTH_TOKEN = "secret";
     process.env.BLOB_READ_WRITE_TOKEN = "vercel_blob_rw_test";
+    process.env.CC_LINK_SECRET = "test-secret";
     process.env.GOOGLE_CLOUD_API_KEY = "g";
     process.env.TWILIO_CALLER_ID = "+14258210000";
     delete process.env.TWILIO_OPTOUT_NUMBER;
@@ -70,7 +71,7 @@ describe("Voicemail drops (D57)", () => {
     expect(await addVoicemail(me, "x", new Uint8Array(500), TUE_10AM_PT, blob, says("Hi."))).toMatchObject({ ok: false });
     expect(await addVoicemail(me, "x", wav(10), TUE_10AM_PT, blob, says(""))).toMatchObject({ ok: false });
     const v = await save();
-    expect(v).toMatchObject({ status: "ok", seconds: 10, url: expect.stringMatching(/^https:\/\/abc\.public\.blob\.vercel-storage\.com\/voicemail\/lo1\//) });
+    expect(v).toMatchObject({ status: "ok", seconds: 10, url: expect.stringMatching(/^https:\/\/abc\.private\.blob\.vercel-storage\.com\/voicemail\/lo1\//) });
   });
 
   it("leaves a voicemail only when the contact rules allow a recorded-voice call", async () => {
@@ -106,7 +107,9 @@ describe("Voicemail drops (D57)", () => {
     const d = (await voicemailStore().dropsFor(me.id))[0];
     const machine = await dropTwiml(d.id, "machine_end_beep");
     expect(machine.indexOf(`This is a recorded message from ${M.name}`)).toBeLessThan(machine.indexOf("<Play>"));
-    expect(machine).toContain(`<Play>${v.url}</Play>`);
+    // D65.1: Twilio plays a signed, expiring address for this one recording, never the private file's own address.
+    expect(machine).toMatch(new RegExp(`<Play>https://\\S+/api/twilio/voicedrop/audio\\?id=${v.id}&amp;e=\\d+&amp;s=[A-Za-z0-9_-]{32}</Play>`));
+    expect(machine).not.toContain("blob.vercel-storage.com");
     expect(machine).toContain(`call ${spoken(M.phone!)}`);
     expect(machine).not.toContain("<Gather");
     const human = await dropTwiml(d.id, "human");

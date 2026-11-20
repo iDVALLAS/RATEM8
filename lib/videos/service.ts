@@ -16,6 +16,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { del as blobDel, head as blobHead } from "@vercel/blob";
+import { blobAddress, blobOn, browserUploadOn, NEEDS_TOKEN } from "@/lib/blob/private";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { CONFIG, mloById } from "@/lib/config";
 import { companyDetails } from "@/lib/accounts/company";
@@ -36,8 +37,11 @@ const iso = (d: Date) => d.toISOString();
 const rid = (p: string, n = 9) => `${p}${randomBytes(n).toString("base64url")}`;
 const env = (k: string) => process.env[k]?.trim() || undefined;
 
-/** On with a Vercel Blob store (BLOB_READ_WRITE_TOKEN); CC_VIDEOS="false" turns it off. */
-export const videosOn = () => !!env("BLOB_READ_WRITE_TOKEN") && env("CC_VIDEOS") !== "false";
+/** On with the private Vercel Blob store (D65.1); CC_VIDEOS="false" turns it off. */
+export const videosOn = () => blobOn() && env("CC_VIDEOS") !== "false";
+/** Recording and uploading from the browser also needs the store's read-write token. */
+export const uploadsOn = () => videosOn() && browserUploadOn();
+export { NEEDS_TOKEN };
 export { transcribeOn };
 
 /** Seconds of sound checked per day across the platform (CC_VIDEO_CHECK_DAILY_SECONDS overrides). */
@@ -58,6 +62,7 @@ export const prefixFor = (userId: string) => `videos/${userId.replace(/[^A-Za-z0
 /** What the upload route allows for this pathname, or why not. */
 export function uploadRules(user: Pick<User, "id">, pathname: string): { ok: true; allowedContentTypes: string[]; maximumSizeInBytes: number } | { ok: false; error: string } {
   if (!videosOn()) return { ok: false, error: "Video messages are off." };
+  if (!browserUploadOn()) return { ok: false, error: NEEDS_TOKEN };
   if (!pathname.startsWith(prefixFor(user.id)) || pathname.includes("..") || pathname.length > 200) return { ok: false, error: "Not your folder." };
   if (/-poster\.jpg$/.test(pathname)) return { ok: true, allowedContentTypes: [POSTER_TYPE], maximumSizeInBytes: 2 * 1024 * 1024 };
   if (!/\.(mp4|webm|mov)$/i.test(pathname)) return { ok: false, error: "Use an MP4, WebM or MOV file." };
@@ -66,14 +71,8 @@ export function uploadRules(user: Pick<User, "id">, pathname: string): { ok: tru
 
 /** A Blob address for this loan officer's folder, or null. */
 function ownBlob(user: Pick<User, "id">, url: string): { url: string; pathname: string } | null {
-  try {
-    const u = new URL(url);
-    if (u.protocol !== "https:" || !u.hostname.endsWith(".public.blob.vercel-storage.com")) return null;
-    const pathname = decodeURIComponent(u.pathname.replace(/^\//, ""));
-    return pathname.startsWith(prefixFor(user.id)) && !pathname.includes("..") ? { url: `${u.origin}${u.pathname}`, pathname } : null;
-  } catch {
-    return null;
-  }
+  const a = blobAddress(url);
+  return a && a.pathname.startsWith(prefixFor(user.id)) ? { url: a.url, pathname: a.pathname } : null;
 }
 
 export type BlobDeps = {
@@ -313,6 +312,29 @@ export const realSenders = (statusCallback: string | null): Senders => ({
 
 // ---- Watching ----
 
+/** Where the browser plays a video from: Command Center's own routes, never the stored file's address. */
+export const watchMedia = (token: string, which: "video" | "poster") => `/v/${token}/${which === "video" ? "media" : "poster"}`;
+export const ownMedia = (id: string, which: "video" | "poster") => `/api/cc/videos/file/${encodeURIComponent(id)}${which === "poster" ? "?poster=1" : ""}`;
+
+/** The stored file behind a watch link (for its media route), or null. */
+export async function watchFile(token: string, which: "video" | "poster"): Promise<{ url: string; contentType: string } | null> {
+  if (!/^[A-Za-z0-9_-]{8,40}$/.test(token)) return null;
+  const s = await videoStore().send(token).catch(() => null);
+  if (!s || s.status !== "sent") return null;
+  const v = await videoStore().video(s.videoId);
+  if (!v || v.status !== "ok" || !v.url) return null;
+  if (which === "poster") return v.posterUrl ? { url: v.posterUrl, contentType: POSTER_TYPE } : null;
+  return { url: v.url, contentType: v.contentType };
+}
+
+/** The loan officer's own file (any status but deleted, so a held video can still be watched and checked again). */
+export async function ownFile(user: Pick<User, "id">, id: string, which: "video" | "poster"): Promise<{ url: string; contentType: string } | null> {
+  const v = await videoStore().video(id);
+  if (!v || v.ownerUserId !== user.id || v.status === "deleted" || !v.url) return null;
+  if (which === "poster") return v.posterUrl ? { url: v.posterUrl, contentType: POSTER_TYPE } : null;
+  return { url: v.url, contentType: v.contentType };
+}
+
 export type WatchView =
   | { state: "missing" }
   | { state: "gone"; mloName: string }
@@ -345,8 +367,8 @@ export async function watchView(token: string): Promise<WatchView> {
     state: "ok",
     token,
     title: v.title,
-    url: v.url,
-    posterUrl: v.posterUrl,
+    url: watchMedia(token, "video"),
+    posterUrl: v.posterUrl ? watchMedia(token, "poster") : null,
     contentType: v.contentType,
     transcript: v.transcript,
     hasCaptions: v.cues.length > 0,

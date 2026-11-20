@@ -7,7 +7,7 @@ import { companyDetails, companyOfMlo } from "@/lib/accounts/company";
 import { mloById } from "@/lib/config";
 import { contactStore } from "@/lib/contacts/store";
 import { voicemailStore } from "@/lib/voicemail/store";
-import { callerFor, MAX_BATCH, optOutLine, voicemailOn } from "@/lib/voicemail/service";
+import { callerFor, MAX_BATCH, optOutLine, ownAudio, voicemailOn } from "@/lib/voicemail/service";
 import { transcribeOn } from "@/lib/videos/transcribe";
 import { FlashBox } from "../MloChrome";
 import VoicemailRecorder from "./Recorder";
@@ -36,7 +36,7 @@ export default async function VoicemailPage({ searchParams }: { searchParams: Pr
     </PageShell>
   );
   if (!me) return shell(<section className="mlo-section"><p className="mlo-note">Sign in with your own account to leave voicemails.</p></section>);
-  if (!voicemailOn()) return shell(<section className="mlo-section"><h2>Not on yet</h2><p className="mlo-note">Voicemail drops need Twilio (the platform&apos;s keys) and a Vercel Blob store for the recordings (the same one video messages use). The owner sets both up from the launch checklist.</p></section>);
+  if (!voicemailOn()) return shell(<section className="mlo-section"><h2>Not on yet</h2><p className="mlo-note">Voicemail drops need Twilio (the platform&apos;s keys) and the private Vercel Blob store for the recordings (the same one video messages use). The owner sets both up from the launch checklist.</p></section>);
 
   const m = mloById(me.mloId);
   const co = companyDetails(m);
@@ -73,7 +73,7 @@ export default async function VoicemailPage({ searchParams }: { searchParams: Pr
             {mine.map((x) => (
               <li key={x.id} style={{ borderTop: "1px solid var(--rule)", paddingTop: 12, display: "grid", gap: 6 }}>
                 <strong>{x.title}</strong>
-                <audio src={x.url} controls preload="none" aria-label={x.title} />
+                <audio src={ownAudio(x.id)} controls preload="none" aria-label={x.title} />
                 <details><summary className="mlo-note">What it says ({Math.round(x.seconds)} seconds)</summary><p className="mlo-note">{x.transcript}</p></details>
                 <form action={deleteVoicemailAction.bind(null, x.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Delete</button></form>
               </li>

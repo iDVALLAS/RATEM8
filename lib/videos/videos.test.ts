@@ -5,7 +5,7 @@ import { MemoryAccountStore, setAccountStoreForTests, type User } from "@/lib/ac
 import { mloById } from "@/lib/config";
 import { PART_BYTES } from "./audio";
 import { newMemoryVideoStore, setVideoStoreForTests, videoStore } from "./store";
-import { checkPart, checkTranscript, deleteVideo, recordView, registerVideo, sendVideo, uploadRules, watchView, type BlobDeps, type Senders } from "./service";
+import { checkPart, checkTranscript, deleteVideo, ownFile, recordView, registerVideo, sendVideo, uploadRules, videosOn, watchFile, watchView, type BlobDeps, type Senders } from "./service";
 import { toCues, toVtt } from "./transcribe";
 
 const FIRST = mloById("mlo-001")!.firstName;
@@ -13,7 +13,7 @@ const NOW = new Date("2026-11-20T18:00:00Z");
 const me: User = { id: "lo1", email: "lo1@x.com", name: "Pat", role: "lo", mloId: "mlo-001", status: "active", createdAt: "", createdBy: "" };
 const other: User = { ...me, id: "lo2", email: "lo2@x.com" };
 const base = { phone2: null, tags: [], notes: null, loan: null, agent: null, attestedOptIns: [] as ("text" | "call" | "email")[], relationship: "past_client", street: null, city: null, zip: null, state: "WA" };
-const HOST = "https://abc123.public.blob.vercel-storage.com";
+const HOST = "https://abc123.private.blob.vercel-storage.com";
 const blob = (deleted: string[] = []): BlobDeps => ({ head: async () => ({ size: 1_000_000, contentType: "video/webm" }), del: async (u) => void deleted.push(...u) });
 const pcm = (sec: number) => new Uint8Array(Math.round(sec * 32_000));
 const says = (text: string) => async () => ({ text, cues: [{ start: 0, end: 2, text }] });
@@ -56,6 +56,17 @@ describe("Video messages (D55)", () => {
     expect(uploadRules(me, "videos/lo1/x.exe").ok).toBe(false);
     delete process.env.BLOB_READ_WRITE_TOKEN;
     expect(uploadRules(me, "videos/lo1/123.webm").ok).toBe(false);
+    // D65.1: the private store's id alone runs the server side; the browser upload still needs the token, and says how to add it.
+    process.env.BLOB_STORE_ID = "store_test";
+    expect(videosOn()).toBe(true);
+    expect(uploadRules(me, "videos/lo1/123.webm")).toMatchObject({ ok: false, error: expect.stringMatching(/read-write token/) });
+    delete process.env.BLOB_STORE_ID;
+    expect(videosOn()).toBe(false);
+  });
+
+  it("accepts files saved before the switch to the private store (public addresses)", async () => {
+    const r = await registerVideo(me, { url: "https://abc123.public.blob.vercel-storage.com/videos/lo1/9.webm", title: "", durationSec: 20 }, NOW, blob());
+    expect(r.ok).toBe(true);
   });
 
   it("records a video only from the loan officer's own folder in Blob, up to two minutes", async () => {
@@ -127,6 +138,13 @@ describe("Video messages (D55)", () => {
     expect(e.token).not.toBe(r.token);
     const w = await watchView(r.token!);
     expect(w).toMatchObject({ state: "ok", title: "Congrats!", firstName: "Ann", hasCaptions: true, mlo: { first: FIRST } });
+    // D65.1: the page plays from Command Center's own routes, never the stored file's address.
+    expect(w).toMatchObject({ url: `/v/${r.token}/media`, posterUrl: `/v/${r.token}/poster` });
+    expect(JSON.stringify(w)).not.toContain("blob.vercel-storage.com");
+    expect(await watchFile(r.token!, "video")).toEqual({ url: `${HOST}/videos/lo1/1.webm`, contentType: expect.any(String) });
+    expect(await watchFile("nope-nope-nope", "video")).toBeNull();
+    expect(await ownFile(me, v.id, "poster")).toMatchObject({ url: `${HOST}/videos/lo1/1-poster.jpg` });
+    expect(await ownFile(other, v.id, "video")).toBeNull();
     expect(await watchView("nope-nope-nope")).toEqual({ state: "missing" });
     // A refused send leaves a dead link.
     const refused = await sendVideo(me, { contactId: c.id, videoId: v.id, channel: "text", purpose: "marketing", note: "Hi" }, NOW, { ...senders, text: async () => ({ ok: false, error: "Quiet hours." }) });
@@ -136,6 +154,8 @@ describe("Video messages (D55)", () => {
     expect(await deleteVideo(me, v.id, NOW, blob(deleted))).toBe(true);
     expect(deleted).toEqual([`${HOST}/videos/lo1/1.webm`, `${HOST}/videos/lo1/1-poster.jpg`]);
     expect(await watchView(r.token!)).toMatchObject({ state: "gone" });
+    expect(await watchFile(r.token!, "video")).toBeNull();
+    expect(await ownFile(me, v.id, "video")).toBeNull();
   });
 
   it("counts a view once per visitor per half hour, never the sender's own, and emails the first one", async () => {

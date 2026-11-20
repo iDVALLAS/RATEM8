@@ -54,13 +54,14 @@ Each loan officer connects their own Thanks.io account and pays for their own ca
 | `THANKSIO_CLIENT_ID` (optional) | No | From the OAuth application. |
 | `THANKSIO_CLIENT_SECRET` (optional) | Yes | From the OAuth application. |
 
-### Video messages (Vercel Blob, optional)
+### Video messages and voicemails (private Vercel Blob store, optional)
 
-Stores the short videos loan officers record and send (D55). In Vercel: the project → Storage → Create → Blob, then connect it to this project; Vercel adds the token. The word check uses the Google key below, with Speech-to-Text on.
+Stores the short videos loan officers record and send (D55) and their voicemail recordings (D57), in a PRIVATE store: files open only through Command Center, for the loan officer, the person a video was sent to, or Twilio playing a voicemail (D65.1). In Vercel: the project → Storage → Create → Blob, choose Private, and connect it to this project with "Add a read-write token env var" ticked. Already made one without the token? Storage → the store → Projects → reconnect ratem-8 with that box ticked. Then redeploy. The word check uses the Google key below, with Speech-to-Text on.
 
 | Variable | Sensitive | Note |
 | --- | --- | --- |
-| `BLOB_READ_WRITE_TOKEN` (optional) | Yes | Set by Vercel when the Blob store is connected. |
+| `BLOB_STORE_ID` (optional) | No | Set by Vercel when the store is connected (the server reads and saves through Vercel's own sign-in). |
+| `BLOB_READ_WRITE_TOKEN` (optional) | Yes | Set by Vercel when "Add a read-write token env var" is ticked. Recording and uploading from the browser need it. |
 
 ### Voicemail drops (Twilio, optional)
 

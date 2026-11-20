@@ -5234,3 +5234,59 @@ that are wanted such as power caller."
 - **Known limits:** nothing live was sent to a real Zapier hook from this
   session. The owner's first test is "Send a test" on Connections.
 - **Next up:** D66 LOA forms (plan first).
+
+## D65.1 — Private Blob store for videos and voicemails (2026-11-20)
+
+The owner created a **private** Vercel Blob store (`loanm8-private`) for
+the project. Vercel set `BLOB_STORE_ID`. The code was written for a public
+store (`@vercel/blob` 1.1.1 only knew public files), so uploads would have
+failed. Now every file is private and opens only through Command Center.
+
+- **Files:**
+  - `package.json` / lockfile: `@vercel/blob` 2.8.2 (pinned; private
+    stores, streaming reads, sign-in through Vercel's built-in OIDC token)
+  - `lib/blob/private.ts` (new), `lib/blob/private.test.ts` (new)
+  - `lib/videos/service.ts`, `lib/videos/videos.test.ts`
+  - `app/mlo/videos/{page.tsx,Recorder.tsx}`
+  - `app/v/[token]/media/route.ts`, `app/v/[token]/poster/route.ts` (new)
+  - `app/api/cc/videos/file/[id]/route.ts` (new)
+  - `lib/voicemail/service.ts`, `lib/voicemail/voicemail.test.ts`
+  - `app/mlo/voicemail/page.tsx`
+  - `app/api/twilio/voicedrop/audio/route.ts`, `app/api/cc/voicemail/file/[id]/route.ts` (new)
+  - `lib/export/service.ts` (the videos list links to the signed-in route)
+  - `lib/site-lock.ts` (`/api/cc/voicemail/` open to its own sign-in check)
+  - `lib/setup/launch.ts`, `docs/COMMAND_CENTER_LAUNCH.md`
+- **What changed:**
+  - Uploads (browser and server) save with `access: "private"`.
+  - Nothing uses a file's own address any more:
+    - A client's watch link plays from `/v/<token>/media` (and
+      `/poster`). The route checks the link is live and the video still
+      passes, then streams it with byte ranges so the video can seek.
+    - The loan officer's own videos and recordings play from signed-in
+      routes that serve only their own files.
+    - Twilio plays a voicemail from a signed address for that one
+      recording (HMAC under `CC_LINK_SECRET`, an hour).
+    - Responses are `private, no-store` and never carry the store address.
+  - The store is "on" with `BLOB_STORE_ID` (server reads, saves and deletes
+    through Vercel's OIDC sign-in) or `BLOB_READ_WRITE_TOKEN`. Recording
+    and uploading from the browser also need `BLOB_READ_WRITE_TOKEN` (it
+    signs the browser's one-file pass). With only the store id, the video
+    page says how to add it.
+  - Files saved under a public address before the switch still play
+    through the same routes.
+- **Verified:** `npm run verify` (624 tests, 7 new or extended): the
+  store switches, address checks, the signed address (valid, an hour
+  later, wrong id, longer expiry, tampered signature, no key), range
+  streaming and no address in responses. Browser, with only the store id
+  set: Video messages shows how to add the read-write token instead of the
+  recorder; Voicemail drops renders; both at 390 and 1280 with no page
+  errors and no sideways scroll; unknown or badly signed file addresses
+  return 404.
+- **Known limits:** no live upload or playback against the real store from
+  this session (no credentials here). First check after the redeploy:
+  record a short video, play it on Video messages, send it to yourself and
+  play the link; record a voicemail and play it.
+- **Owner action:** in Vercel, Storage → `loanm8-private` → Projects →
+  reconnect `ratem-8` with "Add a read-write token env var" ticked (adds
+  `BLOB_READ_WRITE_TOKEN`, Sensitive). Don't create a second store. Then
+  redeploy.

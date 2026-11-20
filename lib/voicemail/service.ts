@@ -26,6 +26,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { del as blobDel, put as blobPut } from "@vercel/blob";
+import { blobOn, signMedia } from "@/lib/blob/private";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { companyDetails, companyOfMlo } from "@/lib/accounts/company";
 import { CONFIG, mloById } from "@/lib/config";
@@ -48,8 +49,8 @@ const rid = (p: string) => `${p}${randomBytes(9).toString("base64url")}`;
 const SITE = () => CONFIG.siteUrl.replace(/\/$/, "");
 const SYSTEM: User = { id: "system", email: "system", name: "System", role: "owner", mloId: null, status: "active", createdAt: "", createdBy: "" };
 
-/** On with Twilio and a Blob store; CC_VOICEMAIL="false" turns it off. */
-export const voicemailOn = () => !!twilioConfig() && !!env("BLOB_READ_WRITE_TOKEN") && env("CC_VOICEMAIL") !== "false";
+/** On with Twilio and the private Blob store; CC_VOICEMAIL="false" turns it off. */
+export const voicemailOn = () => !!twilioConfig() && blobOn() && env("CC_VOICEMAIL") !== "false";
 /** The toll-free opt-out line voicemails for offers must name (64.1200(b)(3)). */
 export function optOutLine(): string | null {
   const n = toE164(env("TWILIO_OPTOUT_NUMBER"));
@@ -73,7 +74,7 @@ export async function callerFor(company: string | null): Promise<{ from: string;
 
 export type BlobDeps = { put: (path: string, body: Uint8Array) => Promise<string>; del: (url: string) => Promise<void> };
 const realBlob: BlobDeps = {
-  put: async (path, body) => (await blobPut(path, Buffer.from(body), { access: "public", contentType: "audio/wav", addRandomSuffix: true })).url,
+  put: async (path, body) => (await blobPut(path, Buffer.from(body), { access: "private", contentType: "audio/wav", addRandomSuffix: true })).url,
   del: (url) => blobDel(url),
 };
 
@@ -203,6 +204,25 @@ export function spoken(phone: string): string {
   const d = phone.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
   return d.length === 10 ? `${d.slice(0, 3).split("").join(" ")}, ${d.slice(3, 6).split("").join(" ")}, ${d.slice(6).split("").join(" ")}` : d.split("").join(" ");
 }
+/** Where Twilio fetches a recording: a signed address good for an hour (the file itself is private, D65.1). */
+export function playUrl(voicemailId: string, now = new Date()): string | null {
+  const q = signMedia("vm", voicemailId, now, 3_600);
+  return q ? `${SITE()}/api/twilio/voicedrop/audio?${q}` : null;
+}
+/** Where the loan officer plays their own recording (signed in). */
+export const ownAudio = (id: string) => `/api/cc/voicemail/file/${encodeURIComponent(id)}`;
+
+/** The stored file for a recording that's still in use (Twilio's signed fetch), or null. */
+export async function voicemailFile(id: string): Promise<string | null> {
+  const v = await voicemailStore().voicemail(id).catch(() => null);
+  return v && v.status === "ok" && v.url ? v.url : null;
+}
+/** The loan officer's own recording, or null. */
+export async function ownVoicemailFile(user: Pick<User, "id">, id: string): Promise<string | null> {
+  const v = await voicemailStore().voicemail(id).catch(() => null);
+  return v && v.ownerUserId === user.id && v.status === "ok" && v.url ? v.url : null;
+}
+
 const say = (s: string) => `<Say voice="Polly.Joanna">${xml(s)}</Say>`;
 const twiml = (inner: string) => `<?xml version="1.0" encoding="UTF-8"?><Response>${inner}</Response>`;
 export const hangup = () => twiml("<Hangup/>");
@@ -216,6 +236,8 @@ export async function dropTwiml(dropId: string, answeredBy: string): Promise<str
   if (!d) return hangup();
   const [v, owner] = await Promise.all([voicemailStore().voicemail(d.voicemailId), accountStore().userById(d.ownerUserId)]);
   if (!v || v.status !== "ok" || !owner) return hangup();
+  const play = playUrl(v.id);
+  if (!play) return hangup();
   const m = mloById(owner.mloId);
   const co = companyDetails(m);
   const who = m?.name ?? owner.name;
@@ -225,7 +247,7 @@ export async function dropTwiml(dropId: string, answeredBy: string): Promise<str
   const intro = say(`This is a recorded message from ${who} with ${co.short || co.name}.`);
   const stop = d.purpose === "marketing" ? say(machine ? `To stop these calls, call ${spoken(optout ?? d.from)}.` : "To stop these calls, press 9 at any time.") : "";
   const outro = say(`To reach ${m?.firstName ?? who}, call ${spoken(back)}.${d.purpose === "service" ? (machine ? ` To stop these calls, call ${spoken(d.from)} and press 9.` : " To stop these calls, press 9.") : ""}`);
-  const body = `${intro}${stop}<Play>${xml(v.url)}</Play>${outro}`;
+  const body = `${intro}${stop}<Play>${xml(play)}</Play>${outro}`;
   if (machine) return twiml(`${body}<Hangup/>`);
   return twiml(`<Gather numDigits="1" timeout="4" action="${xml(`${SITE()}/api/twilio/voice/key?k=drop&d=${d.id}`)}" method="POST">${body}</Gather><Hangup/>`);
 }
