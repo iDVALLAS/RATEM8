@@ -4132,3 +4132,24 @@ around the perimeter of the design not the inside background removed".
   - Screenshots at 1440 and 390px, in dark and light, plus sign-in: no
     sideways scroll and no errors.
   - The pulse runs (the scale changes over time).
+
+### D53.2 follow-up (2026-11-20)
+
+The owner: "i also want the Powered by LoanM8 under it like it is" and
+"the orb to be pulsing".
+
+- **"Powered by LoanM8"** now sits under the badge, centered, on every
+  Command Center page and the sign-in pages.
+  - It's live text: "POWERED BY" in JetBrains Mono at 10px (the minimum
+    text size), "LoanM8" in Geist at 12px with M8 in M8 Green.
+- **Logo size:** 54px tall on desktop, where the bar is now 68px. Phones
+  are 46px.
+- **The pulse is clearly visible now:** a 3s breath from 0.92 to 1.08
+  scale, with the glow going from 20% to full. It's still motionless
+  under reduced motion.
+  - If someone's computer has animations turned off (Windows "Animation
+    effects", macOS "Reduce motion"), the orb stays still on purpose.
+- **Verified:**
+  - `npm run verify`.
+  - Screenshots paused at two points of the breath (desktop dark, phone
+    light, sign-in): no sideways scroll and no errors.

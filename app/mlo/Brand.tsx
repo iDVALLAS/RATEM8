@@ -3,7 +3,7 @@ import Link from "next/link";
 /**
  * The MLO Command logo (owner's artwork, 2026-11-20), shared by the app bar
  * and the sign-in pages. Two layers: the orb, drawn here so it can breathe
- * (scale and glow only, 4s like the M8 orb's idle), and the badge image on
+ * (scale and glow only, a 3s breath), and the badge image on
  * top (public/brand/mlo-command-badge*.webp; only the black around the
  * outside was removed). "Powered by LoanM8" is live text (M8 in M8 Green).
  */
@@ -14,7 +14,7 @@ export default function Brand({ href, label, powered = true }: { href: string; l
         <svg className="cc-logo__orb" viewBox="0 0 830 410" focusable="false">
           <defs>
             <radialGradient id="ccLogoHalo" cx="413" cy="203" r="250" gradientUnits="userSpaceOnUse">
-              <stop offset="0.62" style={{ stopColor: "var(--cc-logo-halo)", stopOpacity: 0.55 }} />
+              <stop offset="0.62" style={{ stopColor: "var(--cc-logo-halo)", stopOpacity: 0.7 }} />
               <stop offset="1" style={{ stopColor: "var(--cc-logo-halo)", stopOpacity: 0 }} />
             </radialGradient>
             <linearGradient id="ccLogoFill" x1="0" y1="20" x2="0" y2="386" gradientUnits="userSpaceOnUse">
