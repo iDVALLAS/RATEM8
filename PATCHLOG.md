@@ -4042,3 +4042,54 @@ templates, handwriting styles, test mode).
 - **Next:** a one-click "download everything" export (backs up the
   tagline), D54 video messages, D55 texting set up by Command Center,
   D56 voicemail drops.
+
+## D53.1 — Download everything, and the pitch under the tagline (2026-11-20)
+
+The owner: "okay do it" (the one-click export that backs "Quit renting
+your CRM and start owning it."). On the pitch: "we will stick with your
+phrasing", with members' ownership of LoanM8 itself tabled for later.
+
+- **Settings → Download everything** (`/mlo/export`, `POST /api/cc/export`,
+  `lib/export/*`): one zip of spreadsheets with the loan officer's whole
+  book:
+  - contacts and agents
+  - every permission and opt-out with its proof
+  - every text, email and call logged
+  - Concierge notes, reminders and drafts
+  - loans, campaigns and who's in them, their own templates, call scripts
+    and cards
+  - expenses, plus as many receipt files as fit
+  - their signature
+  - a README that explains each file
+- **Safety:**
+  - Only their own book. Assistants can't download a loan officer's book.
+  - No secrets: connection tokens and loan-system keys are never read.
+    `ownerUserId` is dropped.
+  - Spreadsheet cells that start like a formula are written as text, so
+    Excel never runs them. Phone numbers and amounts stay readable.
+  - 5 downloads an hour, an audit entry each time, and an email to the
+    person ("in case it wasn't you").
+  - Session cookies are SameSite=Lax, so another site can't trigger it.
+- **No new library:** a small ZIP writer (`lib/export/zip.ts`, deflate,
+  UTF-8 names, CRC-32), and `ConciergeStore.allMemory`. Receipts fill up
+  to about 3 MB so the file stays under Vercel's response size; the rest
+  are listed in the README.
+- **Pitch** (`lib/content/command-center.ts` `CC_PITCH`, under the
+  tagline on sign-in and sign-up): "Your contacts, your mailbox and your
+  data stay yours, and you can download everything any time. Members pool
+  their ad budget for marketing in their own area, and earn credit toward
+  their membership for every loan officer they bring in."
+  - Your number isn't included yet; it comes with D55.
+  - No earnings or equity claims.
+- **Verified:**
+  - 3 new tests:
+    - zips unpack byte for byte, with the CRC checked
+    - formula-safe cells, with phones and amounts kept
+    - the whole book, own book only, nothing secret
+  - `npm run verify`.
+  - **In the browser:**
+    - downloaded `loanm8-everything-2026-11-20.zip` from the page at
+      390px (no sideways scroll), and `unzip` lists all 16 files
+- **Next:** D54 video messages, D55 texting set up by Command Center, D56
+  voicemail drops. Tabled: whether members get any ownership in LoanM8
+  (securities counsel first).

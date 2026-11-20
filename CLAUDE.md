@@ -116,7 +116,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     D53 cards by mail (`lib/cards/*`, `/mlo/cards`): each LO's own Thanks.io
     (OAuth, `THANKSIO_CLIENT_*`), price first then send once, NMLS/EHO
     sign-off and company return address on every card, `Contact.noMail`.
-    Tagline "Quit renting your CRM and start owning it." (`lib/content/command-center.ts`).
+    Tagline "Quit renting your CRM and start owning it." and pitch (`lib/content/command-center.ts`;
+    no earnings or equity claims). D53.1 Download everything (`/mlo/export`,
+    `lib/export/*`): own book as a zip of formula-safe CSVs, no secrets, emailed notice.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

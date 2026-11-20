@@ -5,7 +5,7 @@
  */
 export type IconName =
   | "home" | "spark" | "inbox" | "phone" | "users" | "upload" | "cards" | "script" | "pipeline" | "bolt" | "trend" | "cap" | "network"
-  | "receipt" | "chart" | "shield" | "team" | "lock" | "gear" | "check" | "message" | "rocket" | "tag" | "mic" | "book" | "globe" | "lead" | "flag" | "help" | "pen" | "wand" | "send" | "mail";
+  | "receipt" | "chart" | "shield" | "team" | "lock" | "gear" | "check" | "message" | "rocket" | "tag" | "mic" | "book" | "globe" | "lead" | "flag" | "help" | "pen" | "wand" | "send" | "mail" | "download";
 
 export type Dest = {
   key: string;
@@ -62,6 +62,7 @@ export const DESTS: Dest[] = [
   { key: "rules", href: "/mlo/rules", label: "Contact rules", icon: "shield", group: "settings", desc: "Quiet hours, caps, do-not-call and state rules every message passes." },
   { key: "team", href: "/mlo/team", label: "Team", icon: "team", group: "settings", desc: "People, roles and books." },
   { key: "setuphelp", href: "/mlo/setup-help", label: "Setup assistant", icon: "wand", group: "settings", desc: "An AI that walks you through any setup step, from texting to your loan system.", account: true },
+  { key: "export", href: "/mlo/export", label: "Download everything", icon: "download", group: "settings", desc: "Your whole book in one zip: contacts, permission records, messages, notes and more.", account: true },
   { key: "welcome", href: "/mlo/welcome", label: "Getting started", icon: "help", group: "settings", desc: "Your first day, what works right now, and how to report a problem.", account: true },
   { key: "security", href: "/mlo/security", label: "Sign-in security", icon: "lock", group: "settings", desc: "A code from your phone at sign-in.", account: true },
   { key: "signups", href: "/mlo/signups", label: "Sign-ups", icon: "lead", group: "admin", desc: "Loan officers who signed up. Check each NMLS record and approve.", admin: true },

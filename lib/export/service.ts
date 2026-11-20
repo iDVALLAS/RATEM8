@@ -1,0 +1,128 @@
+/**
+ * lib/export/service.ts — "Download everything" (D53.1). SERVER-ONLY.
+ *
+ * Backs the tagline: a loan officer can take their whole book with them.
+ * One zip of spreadsheets (and their receipt files) holding everything
+ * Command Center keeps for them: contacts and agents, permission records,
+ * every text, email and call logged, notes, reminders, drafts, loans,
+ * campaigns, templates, call scripts, cards and expenses. Only their own
+ * book. Nothing secret goes in (no connection tokens or loan-system keys).
+ */
+import type { User } from "@/lib/accounts/store";
+import { mloById } from "@/lib/config";
+import { contactStore, type Contact } from "@/lib/contacts/store";
+import { touchStore } from "@/lib/messaging/store";
+import { conciergeStore } from "@/lib/concierge/store";
+import { pipelineStore } from "@/lib/pipeline/store";
+import { campaignStore } from "@/lib/campaigns/store";
+import { templateStore } from "@/lib/templates/service";
+import { scriptStore } from "@/lib/scripts/store";
+import { cardStore } from "@/lib/cards/store";
+import { expenseStore } from "@/lib/expenses/store";
+import { signatureFor } from "@/lib/profile/signature";
+import { toCsv } from "./csv";
+import { zip, type ZipFile } from "./zip";
+
+/** Vercel caps a response at about 4.5 MB; receipts fill what's left of this. */
+export const RECEIPT_BUDGET = 3 * 1024 * 1024;
+
+const nameOf = (c: Contact | undefined) => (c ? [c.firstName, c.lastName].filter(Boolean).join(" ") : "");
+const safeName = (s: string) => s.replace(/[^\w.\- ]+/g, "_").slice(0, 80) || "file";
+
+export type ExportResult = { file: Buffer; filename: string; counts: Record<string, number>; receiptsLeftOut: number };
+
+export async function buildExport(user: User, now = new Date()): Promise<ExportResult> {
+  const owner = user.id;
+  const nowIso = now.toISOString();
+  const all = (await contactStore().list({ ownerUserId: owner, limit: 100000 })).contacts.filter((c) => c.ownerUserId === owner);
+  const byId = new Map(all.map((c) => [c.id, c]));
+  const who = (id: string | null | undefined) => (id ? nameOf(byId.get(id)) : "");
+  const contactRow = (c: Contact) => ({ name: nameOf(c), ...c });
+
+  const consents = [];
+  for (let i = 0; i < all.length; i += 500) consents.push(...(await contactStore().consentsFor(all.slice(i, i + 500).map((c) => c.id))));
+  const [touches, notes, tasks, drafts, loans, campaigns, templates, scripts, cards, expenses, receipts, sig] = await Promise.all([
+    touchStore().since(owner, "1970-01-01T00:00:00.000Z"),
+    conciergeStore().allMemory(owner, nowIso),
+    conciergeStore().tasks(owner, false),
+    conciergeStore().proposals(owner),
+    pipelineStore().list(owner),
+    campaignStore().campaigns(owner),
+    templateStore().visible(owner),
+    scriptStore().recent(owner, 5000),
+    cardStore().ordersFor(owner, 5000),
+    expenseStore().list(owner, null),
+    expenseStore().receipts(owner),
+    signatureFor(user).catch(() => ""),
+  ]);
+  const enrollments = (await Promise.all(campaigns.map((c) => campaignStore().enrollments(c.id)))).flat();
+  const mine = templates.filter((t) => t.ownerUserId === owner);
+
+  const files: ZipFile[] = [];
+  const add = (name: string, rows: object[], opts: { first?: string[]; omit?: string[] } = {}) => {
+    files.push({ name, data: toCsv(rows, { ...opts, omit: [...(opts.omit ?? []), "ownerUserId"] }) });
+    return rows.length;
+  };
+  const counts: Record<string, number> = {
+    contacts: add("contacts.csv", all.filter((c) => c.kind === "contact").map(contactRow), { first: ["name", "firstName", "lastName", "email", "phone", "street", "city", "state", "zip", "relationship"] }),
+    agents: add("agents.csv", all.filter((c) => c.kind === "agent").map(contactRow), { first: ["name", "firstName", "lastName", "email", "phone"] }),
+    permissions: add("permission-records.csv", consents.map((e) => ({ contact: who(e.contactId), ...e })), { first: ["contact", "channel", "purpose", "granted", "evidence", "proof", "at"] }),
+    messages: add("messages.csv", touches.map((t) => ({ contact: who(t.contactId), ...t })), { first: ["at", "contact", "channel", "direction", "purpose", "status", "body"] }),
+    notes: add("notes.csv", notes.map((n) => ({ contact: who(n.contactId), ...n })), { first: ["createdAt", "contact", "kind", "fact", "quote", "source"] }),
+    reminders: add("reminders.csv", tasks.map((t) => ({ contact: who(t.contactId), ...t })), { first: ["due", "contact", "title", "why", "done"] }),
+    drafts: add("concierge-drafts.csv", drafts.map((p) => ({ contact: who(p.contactId), ...p })), { first: ["createdAt", "contact", "status"] }),
+    loans: add("loans.csv", loans.map((l) => ({ contact: who(l.contactId), ...l })), { first: ["externalId", "contact"] }),
+    campaigns: add("campaigns.csv", campaigns.map((c) => ({ ...c, steps: c.steps.map((s, i) => `Step ${i + 1} (${s.channel}, wait ${s.waitDays} days)${s.subject ? `: ${s.subject}` : ""}\n${s.body}`).join("\n\n") })), { first: ["name", "status", "kind", "purpose", "trigger"] }),
+    campaignPeople: add("campaign-people.csv", enrollments.map((e) => ({ campaign: campaigns.find((c) => c.id === e.campaignId)?.name ?? "", contact: who(e.contactId), ...e })), { first: ["campaign", "contact", "status", "stepIndex", "nextAt"] }),
+    templates: add("templates.csv", mine, { first: ["name"] }),
+    scripts: add("call-scripts.csv", scripts.map((s) => ({ contact: who(s.contactId), ...s })), { first: ["contact"] }),
+    cards: add("cards-by-mail.csv", cards.map((o) => ({ ...o, contactIds: undefined, people: o.contactIds.map(who).join("; ") })), { first: ["createdAt", "status", "kind", "people"], omit: ["contactIds"] }),
+    expenses: add("expenses.csv", expenses, { first: ["date", "kind", "amountCents", "miles", "vendor", "category", "purpose"] }),
+  };
+
+  // Receipt files, newest first, as many as fit.
+  let used = files.reduce((n, f) => n + Buffer.byteLength(f.data), 0);
+  let left = 0;
+  for (const r of [...receipts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))) {
+    if (used + r.size > RECEIPT_BUDGET + 1024 * 1024) {
+      left++;
+      continue;
+    }
+    const full = await expenseStore().receipt(owner, r.id);
+    if (!full) continue;
+    const b64 = full.data.replace(/^data:[^,]*,/, "");
+    const buf = Buffer.from(b64, "base64");
+    used += buf.length;
+    files.push({ name: `receipts/${full.createdAt.slice(0, 10)}-${safeName(full.name)}`, data: buf });
+  }
+  counts.receipts = receipts.length - left;
+
+  const mlo = mloById(user.mloId);
+  files.push({ name: "my-signature.txt", data: sig || "(none saved)" });
+  files.push({
+    name: "README.txt",
+    data: [
+      `LoanM8 Command Center: everything for ${user.name || user.email}`,
+      `Made ${now.toUTCString()}${mlo ? ` · ${mlo.name}` : ""}`,
+      "",
+      "Each .csv file opens in Excel, Numbers or Google Sheets. Most other CRMs can import contacts.csv and agents.csv directly.",
+      "",
+      ...Object.entries(counts).map(([k, n]) => `${k}: ${n}`),
+      ...(left ? ["", `${left} receipt file${left === 1 ? " is" : "s are"} too large to fit in this download. Download them one by one from Expenses.`] : []),
+      "",
+      "What each file holds:",
+      "contacts.csv, agents.csv: everyone in your book, with addresses, tags, notes, loan details and do-not-call checks.",
+      "permission-records.csv: every permission and opt-out on file, with its proof. Keep this: it's your record of consent.",
+      "messages.csv: every text, email and call logged in Command Center.",
+      "notes.csv, reminders.csv, concierge-drafts.csv: your Concierge's notes, reminders and drafts.",
+      "loans.csv: loans synced from your loan system.",
+      "campaigns.csv, campaign-people.csv, templates.csv, call-scripts.csv, cards-by-mail.csv: what you built and sent.",
+      "expenses.csv and receipts/: your business expenses, income and mileage.",
+      "",
+      "Not included, on purpose: passwords, connection keys and sign-in codes.",
+    ].join("\r\n"),
+  });
+
+  const stamp = now.toISOString().slice(0, 10);
+  return { file: zip(files, now), filename: `loanm8-everything-${stamp}.zip`, counts, receiptsLeftOut: left };
+}

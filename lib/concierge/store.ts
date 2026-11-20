@@ -93,6 +93,8 @@ export interface ConciergeStore {
   memory(owner: string, contactId: string, now: string, opts?: { includePending?: boolean }): Promise<MemoryNote[]>;
   /** Pending notes waiting for the loan officer. */
   pendingMemory(owner: string, now: string): Promise<MemoryNote[]>;
+  /** Every note for this owner (the "download everything" export). */
+  allMemory(owner: string, now: string): Promise<MemoryNote[]>;
   keepMemory(owner: string, id: string): Promise<void>;
   deleteMemory(owner: string, id: string): Promise<void>;
   /** Hard-deletes expired notes. */
@@ -155,6 +157,9 @@ export class MemoryConciergeStore implements ConciergeStore {
   }
   async pendingMemory(owner: string, now: string) {
     return [...this.m.values()].filter((x) => x.ownerUserId === owner && x.status === "pending" && (!x.expiresAt || x.expiresAt > now)).map((x) => structuredClone(x));
+  }
+  async allMemory(owner: string, now: string) {
+    return [...this.m.values()].filter((x) => x.ownerUserId === owner && (!x.expiresAt || x.expiresAt > now)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((x) => structuredClone(x));
   }
   async keepMemory(owner: string, id: string) {
     const x = this.m.get(id);
@@ -261,6 +266,10 @@ export class NeonConciergeStore implements ConciergeStore {
   async pendingMemory(owner: string, now: string) {
     await this.init();
     return (await this.q(`SELECT body FROM cc_concierge_memory WHERE owner_user_id = $1 AND body->>'status' = 'pending' AND (expires_at IS NULL OR expires_at > $2) ORDER BY created_at DESC LIMIT 200`, [owner, now])).map((x) => body<MemoryNote>(x));
+  }
+  async allMemory(owner: string, now: string) {
+    await this.init();
+    return (await this.q(`SELECT body FROM cc_concierge_memory WHERE owner_user_id = $1 AND (expires_at IS NULL OR expires_at > $2) ORDER BY created_at DESC LIMIT 20000`, [owner, now])).map((x) => body<MemoryNote>(x));
   }
   async keepMemory(owner: string, id: string) {
     await this.init();
