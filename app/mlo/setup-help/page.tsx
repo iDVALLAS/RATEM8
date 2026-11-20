@@ -31,7 +31,7 @@ export default async function SetupHelp({ searchParams }: { searchParams: Promis
   return (
     <PageShell>
       <div className="mlo-wrap sh-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Setup assistant</h1>
         <div className="sh-grid">
           <section className="mlo-section sh-main" aria-label="Chat with the setup assistant">

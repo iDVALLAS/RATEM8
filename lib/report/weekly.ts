@@ -100,7 +100,7 @@ async function resendSend(to: string, subject: string, text: string): Promise<bo
   const cfg = emailConfig();
   if (!cfg) return false;
   try {
-    const res = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: `LoanM8 Command Center <${cfg.from}>`, to: [to], subject, text }) });
+    const res = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ from: `MLO Command Center <${cfg.from}>`, to: [to], subject, text }) });
     return res.ok;
   } catch {
     return false;

@@ -41,7 +41,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Concierge</h1>
         <p className="mlo-note">Your Concierge now works with a full team: a Business Finder, Pipeline, Partner, Coach and Compliance. <Link href="/mlo/agents">Open your team</Link>.</p>
         <MloNav current="concierge" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />

@@ -32,7 +32,7 @@ export default async function TextingSetup() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Texting setup</h1>
         <MloNav current="setup" tenantId={tenant.id} admin={v.admin} signedIn={!!v.user} />
 

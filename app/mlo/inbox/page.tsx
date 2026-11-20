@@ -22,7 +22,7 @@ export default async function Inbox() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Inbox</h1>
         <MloNav current="inbox" tenantId={tenant.id} admin={v.admin} signedIn={!!v.user} />
         {!twilioConfig() ? <div className="mlo-flash mlo-flash--err" role="status">Texting isn&apos;t connected yet. It turns on when the Twilio keys are in Vercel.</div> : null}

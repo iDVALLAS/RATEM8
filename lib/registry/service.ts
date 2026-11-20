@@ -70,13 +70,13 @@ export async function submitSignUp(form: SignUpForm, origin: string, ipHash: str
   if (byIp > 5 || byEmail > 3) return { ok: false, error: "Too many sign-ups from here in an hour. Try again later." };
 
   if (await accountStore().userByEmail(v.email)) {
-    await send({ to: v.email, subject: "You already have a LoanM8 Command Center account", text: `Someone (hopefully you) tried to sign up with this email, but it already has an account. Sign in here instead:\n\n${origin}/sign-in\n\nIf this wasn't you, you can ignore this email.` }).catch(() => false);
+    await send({ to: v.email, subject: "You already have a MLO Command Center account", text: `Someone (hopefully you) tried to sign up with this email, but it already has an account. Sign in here instead:\n\n${origin}/sign-in\n\nIf this wasn't you, you can ignore this email.` }).catch(() => false);
     return { ok: true };
   }
   const earlier = await signUpStore().byEmail(v.email);
   const open = earlier.find((s) => s.status === "pending");
   if (open) {
-    await send({ to: v.email, subject: "Your LoanM8 Command Center sign-up is being reviewed", text: `We already have your sign-up from ${open.createdAt.slice(0, 10)} and it's waiting for review. You'll get an email when it's done.` }).catch(() => false);
+    await send({ to: v.email, subject: "Your MLO Command Center sign-up is being reviewed", text: `We already have your sign-up from ${open.createdAt.slice(0, 10)} and it's waiting for review. You'll get an email when it's done.` }).catch(() => false);
     return { ok: true };
   }
   const t = token();
@@ -109,7 +109,7 @@ export async function submitSignUp(form: SignUpForm, origin: string, ipHash: str
     verifiedAt: null,
   };
   await signUpStore().put(record);
-  await send({ to: v.email, subject: "Confirm your email for LoanM8 Command Center", text: `Thanks for signing up for LoanM8 Command Center. Confirm your email here:\n\n${origin}/sign-up/confirm?t=${encodeURIComponent(t)}\n\nThe link works for 24 hours. After that, a person checks your NMLS record and you'll get an email when your account is ready. If you didn't sign up, ignore this email.` }).catch(() => false);
+  await send({ to: v.email, subject: "Confirm your email for MLO Command Center", text: `Thanks for signing up for MLO Command Center. Confirm your email here:\n\n${origin}/sign-up/confirm?t=${encodeURIComponent(t)}\n\nThe link works for 24 hours. After that, a person checks your NMLS record and you'll get an email when your account is ready. If you didn't sign up, ignore this email.` }).catch(() => false);
   return { ok: true };
 }
 
@@ -179,7 +179,7 @@ export async function declineSignUp(actor: User, id: string, rawNote: string, no
   const note = String(rawNote ?? "").trim().slice(0, 1000);
   await signUpStore().put({ ...s, status: "declined", decidedAt: iso(now), decidedBy: actor.email, note });
   await accountStore().audit({ at: iso(now), actor: actor.email, action: "signup.decline", detail: { signupId: id } });
-  await send({ to: s.email, replyTo: actor.email, subject: "Your LoanM8 Command Center sign-up", text: `Thanks for signing up for LoanM8 Command Center. We couldn't approve it this time.${note ? `\n\n${note}` : ""}\n\nReply to this email with any questions.` }).catch(() => false);
+  await send({ to: s.email, replyTo: actor.email, subject: "Your MLO Command Center sign-up", text: `Thanks for signing up for MLO Command Center. We couldn't approve it this time.${note ? `\n\n${note}` : ""}\n\nReply to this email with any questions.` }).catch(() => false);
   return { ok: true };
 }
 

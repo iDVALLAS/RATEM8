@@ -1,4 +1,4 @@
-// LoanM8 Command Center QA sweep (D28). Needs Playwright available to Node and a local
+// MLO Command Center QA sweep (D28). Needs Playwright available to Node and a local
 // server on http://localhost:3100 started with:
 //   CC_DEV_LOGIN=1 CC_LINK_SECRET=qa-secret MLO_OWNER_EMAIL=owner@example.com NEXT_PUBLIC_STEALTH_MODE=false PORT=3100 npm start
 // It builds a small book (imports, a loan through the loan-system webhook, a lead), opens every

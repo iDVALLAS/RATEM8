@@ -84,7 +84,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <div className="ag-head">
           <div>
             <h1 className="tagline text-4xl">Your Concierge team</h1>

@@ -27,7 +27,7 @@ export default async function Security({ searchParams }: { searchParams: Promise
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Sign-in security</h1>
         <MloNav current="security" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
@@ -52,7 +52,7 @@ export default async function Security({ searchParams }: { searchParams: Promise
                     <li>
                       <p>On your phone, open the authenticator app and add an account. On this phone, <a href={pending.uri}>tap here to add it</a>. Otherwise choose &ldquo;enter a setup key&rdquo; and type:</p>
                       <p className="mlo-key" aria-label="Setup key">{pending.key}</p>
-                      <p className="mlo-note">Account: LoanM8 Command Center · Time based. Keep this key private.</p>
+                      <p className="mlo-note">Account: MLO Command Center · Time based. Keep this key private.</p>
                     </li>
                     <li><Confirm /></li>
                   </ol>

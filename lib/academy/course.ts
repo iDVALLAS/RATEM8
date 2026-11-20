@@ -249,7 +249,7 @@ export const SESSIONS: Session[] = [
     goal: "Invite an agent to consider lending, and answer their questions honestly.",
     learn: [
       { h: "Open with curiosity", points: ["\"You're the one your buyers ask about financing. Have you ever thought about doing that side?\"", "Listen for what they want: steadier work, helping buyers earlier, growing a team."] },
-      { h: "What you can offer", points: ["LoanM8 Command Center, M8, this training and the templates, and a sponsoring company.", "A clear licensing path and help studying.", "Membership in a community of loan officers who share an area marketing budget and help each other."] },
+      { h: "What you can offer", points: ["MLO Command Center, M8, this training and the templates, and a sponsoring company.", "A clear licensing path and help studying.", "Membership in a community of loan officers who share an area marketing budget and help each other."] },
       { h: "Common questions", points: ["\"I don't have time to study.\" Most courses are online and self-paced; make a plan for a few hours a week.", "\"Would I lose my real estate business?\" That depends on the state and the companies' policies (session 3). Find out before deciding.", "\"How would I be paid?\" Explain how loan officer compensation works under the sponsor's written plan, never a promise of an amount."] },
     ],
     doThisWeek: ["Have one curiosity conversation with an agent from your list."],

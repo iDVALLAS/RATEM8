@@ -69,7 +69,7 @@ describe("The second sign-in step (D34)", () => {
     const s = await startEnroll(lo, T0);
     if ("error" in s) throw new Error();
     expect(await pendingEnroll(lo)).toMatchObject({ key: s.key });
-    expect(s.uri).toMatch(/^otpauth:\/\/totp\/LoanM8%20Command%20Center%3Alo%40example\.com\?secret=/);
+    expect(s.uri).toMatch(/^otpauth:\/\/totp\/MLO%20Command%20Center%3Alo%40example\.com\?secret=/);
     expect(await confirmEnroll(lo, "000000", T0)).toMatchObject({ ok: false });
     expect(await mfaOn(lo.id)).toBe(false);
     const r = await confirmEnroll(lo, codeAt(s.key, T0), T0);

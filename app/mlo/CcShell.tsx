@@ -23,7 +23,7 @@ export default async function CcShell({ children }: { children: React.ReactNode;
       <CcTopBar admin={admin} signedIn={!!user} pilot={pilotOn()} name={user?.name ?? (basic ? "Shared admin login" : "")} email={user?.email ?? ""} role={user ? ROLE_LABELS[user.role] : ""} tenantId={listTenants()[0]?.id ?? ""} badges={{ concierge: drafts }} />
       <main id="main" className="cc-main">{children}</main>
       <footer className="cc-foot">
-        <span>LoanM8 Command Center · for licensed loan officers</span>
+        <span>MLO Command Center · for licensed loan officers</span>
         <a href="/" target="_blank" rel="noopener noreferrer">loanm8.com</a>
       </footer>
     </div>

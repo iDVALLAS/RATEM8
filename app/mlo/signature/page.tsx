@@ -31,7 +31,7 @@ export default async function SignaturePage({ searchParams }: { searchParams: Pr
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Email signature</h1>
         <FlashBox flash={decodeFlash(f)} />
         <section className="mlo-section">

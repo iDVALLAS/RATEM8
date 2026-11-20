@@ -15,7 +15,7 @@ export default async function ExportPage() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Download everything</h1>
         {!me ? (
           <p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to download your book.</p>

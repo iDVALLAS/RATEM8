@@ -7,7 +7,7 @@ import { hashIp } from "@/lib/m8/limits";
 import { land } from "./land";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Sign in", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: { absolute: "Sign in — MLO Command Center" }, robots: { index: false, follow: false } };
 
 const NOTES: Record<string, string> = {
   expired: "That link has expired or was already used. Ask for a new code.",

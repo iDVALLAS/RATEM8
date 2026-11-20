@@ -38,7 +38,7 @@ export default async function Report({ searchParams }: { searchParams: Promise<{
         <p className="ex-noprint mlo-row-form"><Link href={`/mlo/expenses?year=${year}`}>← Back to Expenses</Link> <PrintButton /> <a href={`/api/cc/expenses/csv?year=${year}`}>Download CSV</a></p>
         <p className="eyebrow">Business income and expenses · {year}</p>
         <h1 className="tagline text-4xl ex-name">{me.name || me.email}</h1>
-        <p className="mlo-note">Self-employed mortgage loan originator{mlo ? `, NMLS #${mlo.nmls}` : ""} · {me.email} · Prepared {today} from LoanM8 Command Center</p>
+        <p className="mlo-note">Self-employed mortgage loan originator{mlo ? `, NMLS #${mlo.nmls}` : ""} · {me.email} · Prepared {today} from MLO Command Center</p>
         <p className="mlo-note" style={{ marginTop: 6 }}><strong>Organizer for your tax preparer, not tax advice.</strong> Amounts are what was entered and confirmed. &ldquo;Counts&rdquo; applies the business-use share, 50% for meals, $25 per person for gifts and the IRS mileage rate; your CPA makes the final call on every line.</p>
         {s.drafts ? <p className="mlo-flash mlo-flash--err ex-noprint">{s.drafts} {s.drafts === 1 ? "entry is" : "entries are"} still waiting to be confirmed and aren&apos;t in this report.</p> : null}
 

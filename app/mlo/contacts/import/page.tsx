@@ -17,7 +17,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Import</h1>
         <MloNav current="contacts" tenantId={tenant.id} admin={v.admin} signedIn={!!v.user} />
         {v.user ? (

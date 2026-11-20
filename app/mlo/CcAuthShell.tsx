@@ -47,7 +47,7 @@ export default function CcAuthShell({ children, wide = false }: { children: Reac
         </div>
       </main>
       <footer className="cc-foot">
-        <span>LoanM8 Command Center · for licensed loan officers</span>
+        <span>MLO Command Center · for licensed loan officers</span>
         <span className="cc-auth__links"><a href="/privacy">Privacy</a><a href="/terms">Terms</a></span>
       </footer>
     </div>

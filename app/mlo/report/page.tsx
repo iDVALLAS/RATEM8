@@ -19,7 +19,7 @@ export default async function Report() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Your week</h1>
         <MloNav current="report" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         {!me || !w ? (

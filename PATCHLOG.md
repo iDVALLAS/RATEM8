@@ -4520,3 +4520,34 @@ it instead".
   - `npm run verify`.
   - The sign-in page links the new 32/48/192px icons and the 180px Apple
     icon, and they load (200).
+
+## D54.3 — MLO Command Center everywhere (2026-11-20)
+
+The owner, about the logo and the name: "every page should get this".
+- **The logo:** every Command Center page already renders in `CcShell`,
+  and sign-in, code, link, sign-up and confirm render in `CcAuthShell`.
+  Both show the D54.2 logo, which was checked page by page; none were
+  missing it.
+- **The name:** "LoanM8 Command Center" → "MLO Command Center" in 45 files
+  under `app/`, `lib/` and `scripts/`, covering:
+  - the page eyebrows
+  - the emails (the platform sender name, sign-in, the morning and weekly
+    emails, sign-ups)
+  - the authenticator-app issuer for new enrollments (existing codes keep
+    working)
+  - the export readme
+  - the setup assistant
+  - the launch list (`docs/COMMAND_CENTER_LAUNCH.md` regenerated)
+  - The MFA test is updated to the new name.
+  - Short mentions of "Command Center" inside sentences are unchanged.
+- **Tab titles:** "… — MLO Command Center". The template is set in the
+  `/mlo`, `/sign-in` and `/sign-up` layouts. Next.js applies a layout's
+  template only to pages below it, so Home, Sign in and Sign up set
+  absolute titles.
+- **Unchanged:** the public LoanM8 site and its titles. "Powered by
+  LoanM8" stays in the logo.
+- **Verified:**
+  - `npm run verify`.
+  - The tab titles on Home, Your team, Contacts, Cards, Sign in, Sign up
+    and Enter your code.
+  - The "MLO COMMAND CENTER" eyebrows, and the logo present on each.

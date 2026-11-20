@@ -8,7 +8,7 @@ import SignUpForm from "./SignUpForm";
 import "./sign-up.css";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Sign up", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: { absolute: "Sign up — MLO Command Center" }, robots: { index: false, follow: false } };
 
 /** /sign-up — a licensed loan officer signs up for Command Center (D45). */
 export default async function SignUp() {

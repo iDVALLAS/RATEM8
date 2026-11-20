@@ -147,5 +147,5 @@ export async function sendFromMailbox(user: Pick<User, "id">, msg: MailMsg, now 
 export async function sendTestToSelf(user: User, now = new Date()): Promise<MailboxSend> {
   const m = await mailboxFor(user);
   if (!m) return { ok: false, error: "No mailbox is connected." };
-  return sendFromMailbox(user, { fromName: user.name || "LoanM8 Command Center", to: m.email, subject: "Test from LoanM8 Command Center", text: `This is a test from LoanM8 Command Center.\n\nEmails you send to clients from Command Center now go from ${m.email}, land in your Sent folder, and replies come back here.` }, now);
+  return sendFromMailbox(user, { fromName: user.name || "MLO Command Center", to: m.email, subject: "Test from MLO Command Center", text: `This is a test from MLO Command Center.\n\nEmails you send to clients from Command Center now go from ${m.email}, land in your Sent folder, and replies come back here.` }, now);
 }

@@ -102,7 +102,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
   files.push({
     name: "README.txt",
     data: [
-      `LoanM8 Command Center: everything for ${user.name || user.email}`,
+      `MLO Command Center: everything for ${user.name || user.email}`,
       `Made ${now.toUTCString()}${mlo ? ` · ${mlo.name}` : ""}`,
       "",
       "Each .csv file opens in Excel, Numbers or Google Sheets. Most other CRMs can import contacts.csv and agents.csv directly.",

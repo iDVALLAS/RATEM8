@@ -45,7 +45,7 @@ export const resendMail: Mailer = async (m) => {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: `LoanM8 Command Center <${cfg.from}>`, to: [m.to], subject: m.subject, text: m.text, ...(m.replyTo ? { reply_to: m.replyTo } : {}) }),
+      body: JSON.stringify({ from: `MLO Command Center <${cfg.from}>`, to: [m.to], subject: m.subject, text: m.text, ...(m.replyTo ? { reply_to: m.replyTo } : {}) }),
     });
     if (!res.ok) {
       const err = (await res.json().catch(() => null)) as { name?: string; message?: string } | null;

@@ -25,7 +25,7 @@ import { TileArt } from "./art";
 import "./mlo.css";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Command Center", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: { absolute: "MLO Command Center" }, robots: { index: false, follow: false } };
 
 const KIND_ICON: Partial<Record<TodayCard["kind"], IconName>> = { reply: "inbox", new_lead: "lead", journey: "pipeline", promise: "check", anniversary: "spark", rate_gap: "trend", check_in: "users", ask_permission: "check", agent: "users", loan_late: "pipeline", lock: "lock", closing: "pipeline" };
 const HOT: TodayCard["kind"][] = ["reply", "new_lead", "journey", "promise"];

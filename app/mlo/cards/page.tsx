@@ -31,7 +31,7 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
   const shell = (body: React.ReactNode) => (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">Cards by mail</h1>
         <FlashBox flash={decodeFlash(sp.f)} />
         {body}

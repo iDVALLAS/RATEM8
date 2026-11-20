@@ -83,7 +83,7 @@ export function verifyTotp(secretB32: string, code: string, nowMs: number, lastS
 }
 
 /** The link an authenticator app opens (otpauth://), with the issuer shown in the app. */
-export function otpauthUri(secretB32: string, account: string, issuer = "LoanM8 Command Center"): string {
+export function otpauthUri(secretB32: string, account: string, issuer = "MLO Command Center"): string {
   const label = encodeURIComponent(`${issuer}:${account}`);
   return `otpauth://totp/${label}?secret=${secretB32}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=${STEP_SECONDS}`;
 }

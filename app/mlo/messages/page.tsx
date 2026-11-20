@@ -41,7 +41,7 @@ export default async function Messages() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">LoanM8 Command Center</p>
+        <p className="eyebrow">MLO Command Center</p>
         <h1 className="tagline text-4xl">What clients see</h1>
         <MloNav current="home" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <section className="mlo-section">

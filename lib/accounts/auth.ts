@@ -104,7 +104,7 @@ async function sendSignIn(to: string, link: string, code: string): Promise<boole
         from: `LoanM8 <${cfg.from}>`,
         to: [to],
         subject: `${code} is your LoanM8 sign-in code`,
-        text: `Your LoanM8 Command Center sign-in code is ${code}\n\nType it on the screen where you asked to sign in.\n\nOr, to sign in on the device you're reading this on, open this link:\n${link}\n\nThe code and the link each work once, for 15 minutes. If you didn't ask to sign in, ignore this email.`,
+        text: `Your MLO Command Center sign-in code is ${code}\n\nType it on the screen where you asked to sign in.\n\nOr, to sign in on the device you're reading this on, open this link:\n${link}\n\nThe code and the link each work once, for 15 minutes. If you didn't ask to sign in, ignore this email.`,
       }),
     });
     if (!res.ok) {
@@ -237,7 +237,7 @@ export async function inviteUser(actor: User, input: InviteInput, origin: string
   await store.audit({ at: iso(now), actor: actor.email, action: "user.invite", detail: { userId: user.id, role, mloId } });
   const t = token();
   await store.putLoginToken(sha256(t), user.id, iso(now + LINK_TTL_MS));
-  const emailed = await sendLink(email, `${origin}/api/cc/verify?t=${encodeURIComponent(t)}`, "You've been added to LoanM8 Command Center", `${actor.name} added you to LoanM8 Command Center as ${ROLE_LABELS[role]}.${process.env.CC_PILOT?.trim() === "true" ? " You're one of the loan officers in the pilot: after you sign in, Home shows your first-day steps, and Report a problem is on every page." : ""} Sign in here:`);
+  const emailed = await sendLink(email, `${origin}/api/cc/verify?t=${encodeURIComponent(t)}`, "You've been added to MLO Command Center", `${actor.name} added you to MLO Command Center as ${ROLE_LABELS[role]}.${process.env.CC_PILOT?.trim() === "true" ? " You're one of the loan officers in the pilot: after you sign in, Home shows your first-day steps, and Report a problem is on every page." : ""} Sign in here:`);
   return { ok: true, emailed };
 }
 
