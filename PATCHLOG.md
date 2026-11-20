@@ -3954,3 +3954,91 @@ LoanM8 waits ("leave as is").
   - Automatic email reply tracking: that would need reading the inbox,
     which this patch deliberately doesn't ask for.
 - **Next:** D53 texting set up by Command Center, D54 voicemail drops.
+
+## D53 — Cards by mail through Thanks.io, and the Command Center tagline (2026-11-20)
+
+The owner asked for "hookups to sites like Thanks.io where they can click
+contacts or select all and send out holiday cards". The owner didn't pick
+among the options offered, so the recommended ones were used: each loan
+officer connects their own Thanks.io account and pays for their own cards.
+Research: docs.thanks.io (OAuth, send and estimate endpoints, image
+templates, handwriting styles, test mode).
+
+- **Connecting** (`lib/cards/thanks.ts`, `/api/cc/cards/start` and
+  `/callback`): Thanks.io's OAuth with a one-time state in a sealed
+  10-minute cookie (`lm8_cc_cards`). Tokens are kept sealed in
+  `cc_card_accounts` and refreshed before they run out. A refused
+  connection is marked "reconnect", never retried quietly.
+- **Sending** (`/mlo/cards`, People → Cards by mail):
+  1. Pick a folded notecard or a 4×6 or 6×9 postcard.
+  2. Pick a front from the loan officer's own Thanks.io Image Templates
+     (Thanks.io has holiday designs).
+  3. Write the words, using six starters (holidays, Thanksgiving, new
+     year, closing thank-you, home anniversary, agent thank-you), and pick
+     a handwriting style.
+  4. Pick people by group or search, with **Select all**. A contact's page
+     has **Send a card**, which opens this with them already picked.
+  5. **Check the price:** Thanks.io prices it (nothing charged). The
+     review shows the count, the price, the balance, test mode, a preview
+     and who was left out and why.
+  6. **Send N cards for $X.**
+- **Rules** (`lib/cards/service.ts`):
+  - The words pass the same checks as texts and emails. Fields are
+    `{first}` (Thanks.io's `%FIRST_NAME%`) and `{myFirst}`, up to 380
+    characters.
+  - Every card ends with the loan officer's name and NMLS number, the
+    company and its NMLS number, and Equal Housing Opportunity. The
+    return address is the company's.
+  - People are left out, with the reason shown, for: no full mailing
+    address, on hold (a previous employer's list), "No cards by mail" (a
+    new switch on the contact page), no first name when `{first}` is
+    used, or a card in the last 30 days.
+  - Only the loan officer's own book, up to 500 at a time.
+  - No email-to-address lookups, which cost extra.
+  - At send time each person is checked again. The order sends once
+    (double clicks and two tabs are blocked), and a price check over 30
+    minutes old must be redone.
+  - Each order is recorded in `cc_card_orders`. The contact page lists
+    the cards they got.
+- **Setup:**
+  - Checklist item "Thanks.io is connected for cards by mail" (when
+    turned on).
+  - Launch checklist, phase 1: "Cards by mail (Thanks.io, optional)",
+    with `THANKSIO_CLIENT_ID` (not Sensitive) and
+    `THANKSIO_CLIENT_SECRET` (Sensitive).
+  - The setup assistant knows the steps (`?topic=cards`).
+  - `/api/cc/cards/` is open under the site lock (it checks sign-in
+    itself).
+- **Tagline:** the owner's "Quit renting your CRM and start owning it."
+  is the headline on the Command Center sign-in and sign-up pages
+  (`lib/content/command-center.ts`).
+- **Verified:**
+  - 10 new tests:
+    - the sign-in address, and tokens kept sealed
+    - every starter passes the checks, and rates, promises and unknown
+      fields are refused
+    - the sign-off with both NMLS numbers and Equal Housing
+    - the return address from the company's address
+    - full mailing addresses only
+    - price first, with reasons for who's left out, and own book only
+    - sends once, re-checks people at send time, and no repeat within 30
+      days
+    - a stale price check is refused
+    - reconnect when the permission is taken back
+    - Thanks.io's own refusal shown plainly
+  - `npm run verify`.
+  - **In the browser:**
+    - the cards page shows Connect Thanks.io
+    - start goes to dashboard.thanks.io
+    - a bad return comes back with a message
+    - the tagline on sign-in
+    - 390px with no sideways scroll
+- **Not yet:**
+  - A live order. It needs the owner's Thanks.io OAuth application, and
+    the builder screen's design picker needs a connected account to
+    show.
+  - Delivery status inside Command Center. Thanks.io's webhooks need a
+    paid plan, so status stays in the Thanks.io dashboard for now.
+- **Next:** a one-click "download everything" export (backs up the
+  tagline), D54 video messages, D55 texting set up by Command Center,
+  D56 voicemail drops.

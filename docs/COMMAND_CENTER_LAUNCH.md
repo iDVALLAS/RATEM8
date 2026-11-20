@@ -45,6 +45,15 @@ So each loan officer's client emails go from their own mailbox (D52). Google Clo
 | `MS_OAUTH_CLIENT_SECRET` (optional) | Yes | Entra → the app → Certificates & secrets (the secret's Value). |
 | `CC_MAIL_KEY` (optional) | Yes | Any long random value; encrypts the saved connections (otherwise one derived from CC_LINK_SECRET). Changing it means everyone reconnects. |
 
+### Cards by mail (Thanks.io, optional)
+
+Each loan officer connects their own Thanks.io account and pays for their own cards (D53). Register Command Center once: in Thanks.io, Settings → API Access → OAuth Applications → Create Application, with the redirect address (your site)/api/cc/cards/callback for the preview and production addresses.
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `THANKSIO_CLIENT_ID` (optional) | No | From the OAuth application. |
+| `THANKSIO_CLIENT_SECRET` (optional) | Yes | From the OAuth application. |
+
 ### AI for Command Center (Anthropic)
 
 Make a separate workspace in the Anthropic Console for Command Center, with its own monthly spend limit, and ask Anthropic for zero data retention on it (it handles client messages and notes). The public chat keeps its own key.

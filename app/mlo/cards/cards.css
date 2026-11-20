@@ -1,0 +1,24 @@
+/* D53 cards by mail */
+.cd-builder { display: grid; gap: 0; }
+.cd-step { border: 1px solid var(--rule); }
+.cd-step legend { padding: 0 6px; font-weight: 600; }
+.cd-choice { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+.cd-designs { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 8px; }
+.cd-design { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--rule); border-radius: 12px; cursor: pointer; font-size: 14px; }
+.cd-design input { position: absolute; opacity: 0; pointer-events: none; }
+.cd-design img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 8px; background: var(--bg-sunken); }
+.cd-design.is-on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.cd-design:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cd-starters { display: flex; flex-wrap: wrap; gap: 8px; }
+.cd-signoff { margin: 6px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--bg-sunken); white-space: pre-wrap; font: inherit; font-size: 14px; color: var(--fg-soft); }
+.cd-people { list-style: none; margin: 10px 0 0; padding: 0; max-height: 420px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 12px; }
+.cd-people li { border-bottom: 1px solid var(--rule); }
+.cd-people li:last-child { border-bottom: 0; }
+.cd-people label { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; flex-wrap: wrap; }
+.cd-people label.is-off { opacity: 0.6; }
+.cd-people .mlo-note { margin-left: auto; font-size: 13px; }
+.cd-bar { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; margin-top: 16px; background: var(--bg); border-top: 1px solid var(--rule); z-index: 2; }
+.cd-preview { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); margin-top: 12px; }
+.cd-preview img { width: 100%; max-width: 360px; border-radius: 12px; border: 1px solid var(--rule); }
+@media (min-width: 768px) { .cd-preview { grid-template-columns: minmax(0, 360px) minmax(0, 1fr); align-items: start; } }
+@media (max-width: 767px) { .cd-bar { bottom: 72px; } }

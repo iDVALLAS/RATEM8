@@ -1,3 +1,4 @@
+import { CC_TAGLINE } from "@/lib/content/command-center";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Icon } from "./icons";
 import Brand from "./Brand";
@@ -33,7 +34,8 @@ export default function CcAuthShell({ children, wide = false }: { children: Reac
         <div className={`cc-auth__grid ${wide ? "cc-auth__grid--wide" : ""}`}>
           <aside className="cc-auth__side" aria-label="About Command Center">
             <p className="cc-auth__eyebrow">For licensed loan officers</p>
-            <p className="cc-auth__pitch">Your book, your day and your business, in one place.</p>
+            <p className="cc-auth__pitch">{CC_TAGLINE}</p>
+            <p className="cc-auth__sub">Your book, your day and your business, in one place.</p>
             <ul className="cc-auth__points">
               {POINTS.map((p) => (
                 <li key={p.icon}><span className="cc-auth__icon"><Icon name={p.icon} size={20} /></span><span>{p.text}</span></li>

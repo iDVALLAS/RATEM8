@@ -23,6 +23,7 @@ const P: Record<IconName, React.ReactNode> = {
   gear: <><circle cx="12" cy="12" r="3" /><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M6 18l1.6-1.6M16.4 7.6 18 6" /></>,
   check: <><circle cx="12" cy="12" r="8.5" /><path d="m8.3 12.2 2.5 2.5 5-5" /></>,
   message: <path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-8l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z" />,
+  mail: <><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="m4 7 8 6 8-6" /></>,
   send: <><path d="M20.5 3.5 3.5 10.5l7 2.5 2.5 7z" /><path d="m10.5 13 4-4" /></>,
   wand: <><path d="M4 20 15 9" /><path d="m13.5 7.5 3 3" /><path d="M18 3v3M16.5 4.5h3M20 9v2M19 10h2M10 3v2M9 4h2" /></>,
   pen: <><path d="M15.5 5.5 18.5 8.5 9 18H6v-3z" /><path d="M13.5 7.5l3 3" /><path d="M5 21h14" /></>,

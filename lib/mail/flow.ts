@@ -5,11 +5,11 @@
  */
 import { randomBytes } from "node:crypto";
 import { seal, unseal } from "./seal";
-import type { MailProvider } from "./store";
 
 export const FLOW_COOKIE = "lm8_cc_mail";
 export const FLOW_TTL_MS = 10 * 60 * 1000;
-export type Flow = { state: string; verifier: string; provider: MailProvider; userId: string; at: number };
+/** Also used by other sign-in connections (D53 Thanks.io), each with its own cookie. */
+export type Flow = { state: string; verifier: string; provider: string; userId: string; at: number };
 
 export const newState = () => randomBytes(24).toString("base64url");
 export const sealFlow = (f: Flow) => seal(JSON.stringify(f));

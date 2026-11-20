@@ -22,6 +22,8 @@ import { databaseUrl, emailConfig } from "@/lib/m8/server";
 import { signatureFor } from "@/lib/profile/signature";
 import { mailboxFor } from "@/lib/mail/service";
 import { providersOn } from "@/lib/mail/oauth";
+import { cardsOn } from "@/lib/cards/thanks";
+import { thanksStatus } from "@/lib/cards/service";
 
 export type SetupItem = {
   id: string;
@@ -100,7 +102,7 @@ export async function checklist(user: User, now = new Date()): Promise<SetupItem
   const withPhone = contacts.filter((c) => c.phone && !c.locked);
   const dncFresh = withPhone.filter((c) => c.dnc && now.getTime() - Date.parse(c.dnc.checkedAt) <= 31 * 86_400_000).length;
   const permitted = contacts.filter((c) => Object.values(summarize(consents.filter((e) => e.contactId === c.id))).some((p) => p.service.granted || p.marketing.granted)).length;
-  const [keys, loans, s, auto, rnd, sig, box] = await Promise.all([pipelineStore().keys(user.id), pipelineStore().list(user.id), conciergeStore().settings(user.id), automationStore().settings(user.id), rndNeeded(user, now), signatureFor(user).catch(() => ""), mailboxFor(user)]);
+  const [keys, loans, s, auto, rnd, sig, box, cards] = await Promise.all([pipelineStore().keys(user.id), pipelineStore().list(user.id), conciergeStore().settings(user.id), automationStore().settings(user.id), rndNeeded(user, now), signatureFor(user).catch(() => ""), mailboxFor(user), cardsOn() ? thanksStatus(user) : Promise.resolve(null)]);
   const service = serviceForCompany(companyOfMlo(user.mloId), singleCompany());
   const items: SetupItem[] = [
     { id: "record", group: "you", label: "Your account is linked to your loan officer record", why: "Licensing, your NMLS number and your sponsor come from it; without it you can't market in any state.", done: !!mlo, href: "/mlo/team" },
@@ -110,6 +112,7 @@ export async function checklist(user: User, now = new Date()): Promise<SetupItem
     ...(providersOn().length || box
       ? [{ id: "mailbox", group: "you" as const, label: "Your email is connected", why: "Emails to clients go from your own Gmail or Microsoft 365 address, land in your Sent folder, and replies come back to you.", done: box?.status === "connected", detail: box ? (box.status === "connected" ? box.email : "needs reconnecting") : undefined, href: "/mlo/email" }]
       : []),
+    ...(cards ? [{ id: "cards", group: "you" as const, label: "Thanks.io is connected for cards by mail", why: "Holiday cards and thank-you notes to the people you pick, paid from your own Thanks.io account.", done: cards.connected, detail: cards.reconnect ? "needs reconnecting" : undefined, href: "/mlo/cards" }] : []),
     { id: "texting", group: "texting", label: "Texting is connected for your sponsoring company", why: "Texts go out through your company's own registered Messaging Service.", done: !!twilioConfig() && !!service, href: "/mlo/texting" },
     { id: "campaign_approved", group: "texting", label: "Your Customer Care campaign is approved by the carriers", why: "Carriers filter or block texts from unregistered campaigns.", done: marks.has("campaign_approved"), href: "/mlo/texting", manual: true },
     { id: "optout_wording", group: "texting", label: "The opt-out confirmation only confirms (no \"reply START\")", why: "FCC 26-67 from 2026-11-25. Set it in your Messaging Service's Advanced Opt-Out.", done: marks.has("optout_wording"), href: "/mlo/texting", manual: true },

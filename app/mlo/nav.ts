@@ -5,7 +5,7 @@
  */
 export type IconName =
   | "home" | "spark" | "inbox" | "phone" | "users" | "upload" | "cards" | "script" | "pipeline" | "bolt" | "trend" | "cap" | "network"
-  | "receipt" | "chart" | "shield" | "team" | "lock" | "gear" | "check" | "message" | "rocket" | "tag" | "mic" | "book" | "globe" | "lead" | "flag" | "help" | "pen" | "wand" | "send";
+  | "receipt" | "chart" | "shield" | "team" | "lock" | "gear" | "check" | "message" | "rocket" | "tag" | "mic" | "book" | "globe" | "lead" | "flag" | "help" | "pen" | "wand" | "send" | "mail";
 
 export type Dest = {
   key: string;
@@ -46,6 +46,7 @@ export const DESTS: Dest[] = [
   { key: "permission", href: "/mlo/contacts/permission", label: "Permission", icon: "check", group: "people", desc: "Record consent you already hold, and do-not-call checks, in bulk.", account: true },
   { key: "leads", href: "/mlo/leads", label: "Leads", icon: "lead", group: "people", desc: "New leads from your lead vendors, with where each came from." },
   { key: "campaigns", href: "/mlo/campaigns", label: "Campaigns", icon: "send", group: "people", desc: "Texts, emails and reminders spaced over days, sent for you through your contact rules.", account: true },
+  { key: "cards", href: "/mlo/cards", label: "Cards by mail", icon: "mail", group: "people", desc: "Pick people, or everyone, and send handwritten-style notes and holiday cards through Thanks.io.", account: true },
   { key: "templates", href: "/mlo/templates", label: "Templates", icon: "cards", group: "people", desc: "Open house kit, agent outreach, follow-ups and honest answers to objections." },
   { key: "scripts", href: "/mlo/scripts", label: "Call scripts", icon: "script", group: "people", desc: "What to say on each call, built from the client's loan and situation." },
   { key: "pipeline", href: "/mlo/pipeline", label: "Pipeline", icon: "pipeline", group: "loans", desc: "Loans from your loan system, each with its 33-step journey and clocks." },

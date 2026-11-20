@@ -28,6 +28,9 @@ import { FlashBox, MloNav } from "../../MloChrome";
 import { checkLineAction, consentAction, contactRepliedAction, deleteContactAction, dncAction, draftClientLinkAction, rndAction, rotateClientLinkAction, sendEmailAction, sendTextAction } from "../actions";
 import { emailReadyFor } from "@/lib/messaging/email";
 import { campaignStore } from "@/lib/campaigns/store";
+import { cardStore } from "@/lib/cards/store";
+import { cardsOn } from "@/lib/cards/thanks";
+import { noMailAction } from "../../cards/actions";
 import { clientLink } from "@/lib/clientpage/link";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
@@ -60,7 +63,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const thread = await touchStore().forContact(c.id, 100);
   const texting = !!twilioConfig();
   // D52: email goes from their own mailbox when connected.
-  const [mail, inCampaigns] = await Promise.all([emailReadyFor(v.user), campaignStore().activeForContact(c.id).catch(() => [])]);
+  const [mail, inCampaigns, cards] = await Promise.all([emailReadyFor(v.user), campaignStore().activeForContact(c.id).catch(() => []), cardsOn() ? cardStore().ordersForContact(c.id, 5).catch(() => []) : Promise.resolve([])]);
   const memory = await conciergeStore().memory(c.ownerUserId, c.id, new Date().toISOString(), { includePending: true });
   const tenant = listTenants()[0];
   const clientUrl = clientLink(c.id, c.linkVersion ?? 0);
@@ -270,6 +273,22 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                 Every email ends with your NMLS number, the company&apos;s name and address, and a one-click way to stop email.
               </p>
             </form>
+          ) : null}
+          {cardsOn() ? (
+            <div className="mlo-row-form" style={{ marginTop: 14 }} id="cards">
+              {c.noMail ? (
+                <>
+                  <span className="mlo-note">No cards by mail for them.</span>
+                  <form action={noMailAction.bind(null, c.id, false)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Cards are OK again</button></form>
+                </>
+              ) : (
+                <>
+                  <Link className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} href={`/mlo/cards?c=${encodeURIComponent(c.id)}`}>Send a card</Link>
+                  <form action={noMailAction.bind(null, c.id, true)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>No cards by mail</button></form>
+                </>
+              )}
+              <span className="mlo-note">{cards.length ? `Cards: ${cards.map((o) => `${o.kind === "notecard" ? "notecard" : "postcard"} ${new Date(o.sentAt ?? o.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}`).join(", ")}.` : c.street ? "No cards sent yet." : "Add a mailing address to send a card."}</span>
+            </div>
           ) : null}
           {inCampaigns.length ? (
             <form action={contactRepliedAction.bind(null, c.id)} className="mlo-row-form" style={{ marginTop: 14 }}>

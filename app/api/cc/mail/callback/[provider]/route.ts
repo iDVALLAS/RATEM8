@@ -25,6 +25,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prov
   const flow = openFlow(req.cookies.get(FLOW_COOKIE)?.value, provider, q.get("state"), u.id);
   const code = q.get("code");
   if (!flow || !code) return back(false, "That connection link expired or was opened in a different browser. Start again from this page.");
-  const r = await connectMailbox(u, flow.provider, code, flow.verifier, origin);
+  const r = await connectMailbox(u, provider, code, flow.verifier, origin);
   return r.ok ? back(true, `Connected. Emails to clients now go from ${r.email}.`) : back(false, r.error);
 }

@@ -48,6 +48,8 @@ export type Contact = Omit<ImportRecord, "attestedOptIns"> & {
   linkVersion?: number;
   /** D10: the client's say-so for their agent to hear how the loan is going (revocable). */
   partnerUpdates?: { allowed: boolean; agentContactId: string | null; proof: string; at: string; by: string } | null;
+  /** D53: they asked for no cards by mail. */
+  noMail?: boolean;
   ownerUserId: string;
   kind: "contact" | "agent";
   source: string;

@@ -16,6 +16,7 @@
  * the AI it still answers, with the next steps written out.
  */
 import { providerConfig, redirectUri } from "@/lib/mail/oauth";
+import { cardsOn, cardsRedirect } from "@/lib/cards/thanks";
 import Anthropic from "@anthropic-ai/sdk";
 import type { User } from "@/lib/accounts/store";
 import { isAdmin } from "@/lib/accounts/auth";
@@ -50,6 +51,8 @@ export const OFFICIAL_LINKS = [
   "https://entra.microsoft.com",
   "https://myaccount.google.com",
   "https://myapps.microsoft.com",
+  "https://dashboard.thanks.io",
+  "https://docs.thanks.io",
 ];
 
 const SECRET_PATTERNS: RegExp[] = [
@@ -120,6 +123,8 @@ export async function setupFacts(user: User, origin: string): Promise<Facts> {
     lines.push(`- Full wording page: ${origin}/mlo/texting (owners and team leads).`);
   }
   lines.push("", `Email (send-only connection to their own mailbox, page ${origin}/mlo/email): Gmail ${providerConfig("google") ? "available" : "not set up by the owner yet"}, Microsoft 365 ${providerConfig("microsoft") ? "available" : "not set up by the owner yet"}. They press Connect, sign in, and allow sending only; Command Center never reads their inbox. If their company's Microsoft admin must approve apps, they ask IT to approve "LoanM8 Command Center". Email replies aren't seen by Command Center: they press "They replied" on the contact's page to stop follow-up campaigns.`);
+  lines.push(`Cards by mail (Thanks.io, page ${origin}/mlo/cards): ${cardsOn() ? "available; each loan officer connects their own Thanks.io account (thanks.io, with a payment method) and pays per card. Designs come from their own Thanks.io Image Templates library (it has holiday designs). Test mode in Thanks.io (Settings, API Access) cancels orders instead of mailing" : "not set up by the owner yet"}.`);
+  if (owner) lines.push(`Owner setup for cards: in Thanks.io, Settings, API Access, OAuth Applications, Create Application, redirect address ${cardsRedirect(origin)} (and production). Then Vercel: THANKSIO_CLIENT_ID (not Sensitive), THANKSIO_CLIENT_SECRET (Sensitive), redeploy.`);
   if (owner) lines.push(`Owner setup for email: Google Cloud OAuth client (Web application), Gmail API enabled, scope gmail.send, authorized redirect URI ${redirectUri(origin, "google")}; Microsoft Entra app (accounts in any organizational directory), Web redirect URI ${redirectUri(origin, "microsoft")}, a client secret, delegated Microsoft Graph permissions Mail.Send, User.Read, offline_access. Then Vercel: GOOGLE_OAUTH_CLIENT_ID (not Sensitive), GOOGLE_OAUTH_CLIENT_SECRET (Sensitive), MS_OAUTH_CLIENT_ID (not Sensitive), MS_OAUTH_CLIENT_SECRET (Sensitive), and redeploy. Register the production address's redirect URIs too.`);
   if (owner) {
     lines.push("", "Platform settings in Vercel (which are set; values are never shown):");
