@@ -4248,3 +4248,23 @@ The owner: "make the top orb smaller but it pulses behind and glows".
   - `npm run verify`.
   - 3× frames across a full breath in night and paper, plus an animated
     preview sent to the owner.
+
+### D53.5 — MLO Command tab and home-screen icon (2026-11-20)
+
+The owner asked to put the new logo "everywhere that it is needed to replace
+the old logo".
+- **The logo:** it's only rendered by `app/mlo/Brand.tsx` (the app bar and
+  sign-in), which already shows the new one. No public LoanM8 page shows
+  or names Command Center, and the public site keeps its LoanM8 wordmark.
+- **What was left:** the browser tab and home-screen icon. MLO Command
+  pages showed the LoanM8 orb.
+  - New: `public/brand/mlo-command-icon-{32,48,180,192,512}.png`. It's
+    "MLO" from the owner's logo inside a glowing crosshair ring, on a dark
+    rounded square.
+  - Set by small layouts on `/mlo`, `/sign-in` and `/sign-up`
+    (`lib/content/mlo-command-meta.ts`).
+  - The owner asked why it's needed. The answer: so tabs and saved
+    shortcuts show MLO Command, not LoanM8. It's kept unless they say to
+    drop it.
+- **Also:** the smaller-orb change was verified (`npm run verify`) before
+  this commit.
