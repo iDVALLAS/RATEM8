@@ -5445,3 +5445,13 @@ sections very 'app' look and friendly and non-intimidating. Keep with the layout
   pills like the first-day steps, rounder inputs.
 - **Verified:** `npm run verify`; browser in the Paper theme: the first-day card folds; a loan page has 9
   foldable sections, one folded stays folded after a reload; no sideways scroll at 390px; no page errors.
+
+## Promote — D67, D67.1 and D68 to production (2026-11-20)
+
+Owner: "promote" (twice).
+
+- D67 failed one remote red-team case (R50, "G'day") on its first run; D67.1 fixed it in the reply filter.
+- Remote M8 red team: D67.1 preview 43 of 43; D68 preview 43 of 43.
+- Production deployments of the exact commits, created from Git: 72a32a0 (D67.1), then 57485ea (D68).
+- loanm8.com checked after each: `/api/health` 200 with the chat on, `/sign-in` 200, the deployment READY
+  on the loanm8.com alias.
