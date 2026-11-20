@@ -4153,3 +4153,26 @@ The owner: "i also want the Powered by LoanM8 under it like it is" and
   - `npm run verify`.
   - Screenshots paused at two points of the breath (desktop dark, phone
     light, sign-in): no sideways scroll and no errors.
+
+### D53.2 second follow-up (2026-11-20)
+
+The owner: "i want it as showed -- same size not extremely visible and to
+the right", "just like this" (the artwork), and "make sure it pops on the
+backgrounds".
+
+- **"Powered by LoanM8"** is now vector text inside the logo at the
+  artwork's own size and spot: small, right-aligned under the badge's
+  right side.
+  - "POWERED BY" is in muted JetBrains Mono, wide-spaced. "Loan" is in the
+    page's text color and "M8" in M8 Green.
+  - It scales with the logo and follows the theme. It's small on purpose,
+    below the usual 10px floor, as the owner asked.
+  - The image itself still has no text: drawn in, the line would vanish on
+    the light theme ("Loan" is white).
+- **Pops on every background:** a soft green glow around the badge on dark
+  and dim, and a soft dark shadow plus a deeper-green orb glow on light.
+- **Logo size:** 62px tall in the 68px bar (52px on phones).
+- **Verified:**
+  - `npm run verify`.
+  - 4× close-ups in night, dim and paper, plus the full bar and the phone
+    in light: no sideways scroll.

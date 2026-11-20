@@ -5,7 +5,8 @@ import Link from "next/link";
  * and the sign-in pages. Two layers: the orb, drawn here so it can breathe
  * (scale and glow only, a 3s breath), and the badge image on
  * top (public/brand/mlo-command-badge*.webp; only the black around the
- * outside was removed). "Powered by LoanM8" is live text (M8 in M8 Green).
+ * outside was removed), and "Powered by LoanM8" as vector text placed as in
+ * the artwork (M8 in M8 Green).
  */
 export default function Brand({ href, label, powered = true }: { href: string; label: string; powered?: boolean }) {
   return (
@@ -29,9 +30,18 @@ export default function Brand({ href, label, powered = true }: { href: string; l
           </g>
         </svg>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="cc-logo__badge" src="/brand/mlo-command-badge-360.webp" srcSet="/brand/mlo-command-badge-360.webp 360w, /brand/mlo-command-badge.webp 830w" sizes="(min-width: 768px) 140px, 112px" width={830} height={410} alt="" decoding="async" />
+        <img className="cc-logo__badge" src="/brand/mlo-command-badge-360.webp" srcSet="/brand/mlo-command-badge-360.webp 360w, /brand/mlo-command-badge.webp 830w" sizes="(min-width: 768px) 126px, 106px" width={830} height={410} alt="" decoding="async" />
+        {powered ? (
+          // Where the owner's artwork has it: small, to the right, under the badge. Vector text, so it stays sharp and follows the theme.
+          <svg className="cc-logo__powered" viewBox="0 0 830 410" focusable="false">
+            <text x="802" y="362" textAnchor="end">
+              <tspan className="cc-logo__pb">POWERED BY</tspan>
+              <tspan className="cc-logo__lm" dx="14">Loan</tspan>
+              <tspan className="cc-logo__m8">M8</tspan>
+            </text>
+          </svg>
+        ) : null}
       </span>
-      {powered ? <span className="cc-brand__powered" aria-hidden="true">Powered by <span className="cc-brand__lm">Loan<span className="cc-m8">M8</span></span></span> : null}
     </Link>
   );
 }
