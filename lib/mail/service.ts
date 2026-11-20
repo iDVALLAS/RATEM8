@@ -11,7 +11,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { accountStore, type User } from "@/lib/accounts/store";
-import { buildMime, base64url } from "./mime";
+import { buildMime, base64url, safeFilename, type Attachment } from "./mime";
 import { exchangeCode, grantedSend, mailboxAddress, mailFetch, refreshTokens, revoke, TokenError, PROVIDER_LABEL } from "./oauth";
 import { seal, unseal } from "./seal";
 import { mailboxStore, type Mailbox, type MailProvider } from "./store";
@@ -93,19 +93,19 @@ async function accessFor(m: Mailbox, now: Date, force = false): Promise<{ ok: tr
   }
 }
 
-export type MailMsg = { fromName: string; to: string; subject: string; text: string };
+export type MailMsg = { fromName: string; to: string; subject: string; text: string; attachments?: Attachment[] };
 export type MailboxSend = { ok: true; id: string | null; from: string } | { ok: false; error: string; reconnect?: boolean };
 
 async function post(m: Mailbox, token: string, msg: MailMsg, now: Date): Promise<Response | null> {
   try {
     if (m.provider === "google") {
-      const raw = base64url(buildMime({ fromName: msg.fromName, fromEmail: m.email, to: msg.to, subject: msg.subject, text: msg.text }, now));
+      const raw = base64url(buildMime({ fromName: msg.fromName, fromEmail: m.email, to: msg.to, subject: msg.subject, text: msg.text, attachments: msg.attachments }, now));
       return await mailFetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ raw }) });
     }
     return await mailFetch("https://graph.microsoft.com/v1.0/me/sendMail", {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ message: { subject: msg.subject.replace(/[\r\n]+/g, " "), body: { contentType: "Text", content: msg.text }, toRecipients: [{ emailAddress: { address: msg.to } }] }, saveToSentItems: true }),
+      body: JSON.stringify({ message: { subject: msg.subject.replace(/[\r\n]+/g, " "), body: { contentType: "Text", content: msg.text }, toRecipients: [{ emailAddress: { address: msg.to } }], ...(msg.attachments?.length ? { attachments: msg.attachments.map((a) => ({ "@odata.type": "#microsoft.graph.fileAttachment", name: safeFilename(a.filename), contentType: a.contentType, contentBytes: Buffer.from(a.content).toString("base64") })) } : {}) }, saveToSentItems: true }),
     });
   } catch {
     return null;

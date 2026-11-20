@@ -12,6 +12,9 @@ import { listenOn, voiceOn } from "@/lib/voice/google";
 import { FlashBox } from "../MloChrome";
 import LoaChat from "./LoaChat";
 import { addOverlayAction, removeOverlayAction } from "./actions";
+import { addFormAction, removeFormAction } from "../pipeline/[id]/forms/actions";
+import { FORM_KIND_LABELS, FORM_KINDS, OFFICIAL_FORMS } from "@/lib/forms/catalog";
+import { libraryFor } from "@/lib/forms/service";
 import "../mlo.css";
 import "./loa.css";
 
@@ -37,7 +40,7 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
   );
   if (!me) return shell(<section className="mlo-section"><p className="mlo-note">Sign in with your own account to work with your LOA.</p></section>);
 
-  const [loans, overlays, tasks] = await Promise.all([pipelineStore().list(me.id).catch(() => []), loaStore().overlays(me.id).catch(() => []), loaTasks(me).catch(() => [])]);
+  const [loans, overlays, tasks, library] = await Promise.all([pipelineStore().list(me.id).catch(() => []), loaStore().overlays(me.id).catch(() => []), loaTasks(me).catch(() => []), libraryFor(me).catch(() => [])]);
   const open = loans.filter((l) => !l.closed && !l.dead);
   const lenders = [...new Set(overlays.map((o) => o.lender))];
 
@@ -94,6 +97,34 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
           <label className="mlo-field"><span>…or paste its text</span><textarea name="text" rows={3} className="mlo-textarea" /></label>
           <button type="submit" className="mlo-btn">Read it in</button>
         </form>
+      </section>
+
+      <section className="mlo-section loa-forms" id="forms">
+        <h2>Your forms library</h2>
+        <p className="mlo-note" style={{ maxWidth: 720 }}>The blank forms you use on every file. Drop each in once; on any loan, your LOA fills the fillable ones from the file (Forms on the loan&apos;s page) and keeps the copy there. Forms from ARIVE: download them from the loan in ARIVE and drop them here. Disclosures stay in your loan system.</p>
+        {library.length ? (
+          <ul className="loa-items loa-items--stack" style={{ margin: "10px 0" }}>
+            {library.map((x) => (
+              <li key={x.id}>
+                <span><span className="loa-tag">{FORM_KIND_LABELS[x.kind]}</span><a href={`/api/cc/forms/${encodeURIComponent(x.id)}`} target="_blank" rel="noopener">{x.name}</a> · {x.fields.length ? `${x.fields.length} fillable fields` : "not fillable"}</span>
+                <form action={removeFormAction.bind(null, null, x.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Remove</button></form>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <form action={addFormAction.bind(null, null)} className="mlo-grid">
+          <div className="mlo-row-form">
+            <select name="kind" className="mlo-select" aria-label="What kind of form">{FORM_KINDS.map((k) => <option key={k} value={k}>{FORM_KIND_LABELS[k]}</option>)}</select>
+            <input name="name" className="mlo-input" placeholder="Name (optional)" aria-label="Name" maxLength={90} />
+          </div>
+          <input type="file" name="doc" accept="application/pdf" className="mlo-input" required aria-label="The blank form (PDF, up to 4 MB)" />
+          <button type="submit" className="mlo-btn">Add to my library</button>
+        </form>
+        <h3 style={{ marginTop: 14 }}>Worth keeping here</h3>
+        <ul className="mlo-note" style={{ paddingLeft: 18, display: "grid", gap: 4 }}>
+          {OFFICIAL_FORMS.map((o) => <li key={o.name}>{o.name}: {o.where}</li>)}
+        </ul>
+        <p className="mlo-note">Blank forms only. A form that already has a Social Security number in it isn&apos;t kept: signed borrower documents stay in your loan system.</p>
       </section>
     </>,
   );

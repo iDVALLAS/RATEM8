@@ -31,7 +31,7 @@ export const REPORT_MAX = 2000;
 export const REPORTS_PER_HOUR = 8;
 export const HIDE_MARK = "first_day_hidden";
 
-export type Mail = { to: string; subject: string; text: string; replyTo?: string };
+export type Mail = { to: string; subject: string; text: string; replyTo?: string; attachments?: { filename: string; contentType: string; content: Uint8Array }[] };
 export type Mailer = (m: Mail) => Promise<boolean>;
 
 export const resendMail: Mailer = async (m) => {
@@ -45,7 +45,7 @@ export const resendMail: Mailer = async (m) => {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${cfg.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: `MLO Command Center <${cfg.from}>`, to: [m.to], subject: m.subject, text: m.text, ...(m.replyTo ? { reply_to: m.replyTo } : {}) }),
+      body: JSON.stringify({ from: `MLO Command Center <${cfg.from}>`, to: [m.to], subject: m.subject, text: m.text, ...(m.replyTo ? { reply_to: m.replyTo } : {}), ...(m.attachments?.length ? { attachments: m.attachments.map((a) => ({ filename: a.filename.replace(/["\\/\r\n]/g, "").slice(0, 120) || "file", content: Buffer.from(a.content).toString("base64"), content_type: a.contentType })) } : {}) }),
     });
     if (!res.ok) {
       const err = (await res.json().catch(() => null)) as { name?: string; message?: string } | null;

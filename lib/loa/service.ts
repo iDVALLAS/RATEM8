@@ -34,6 +34,7 @@ import { addDocs } from "@/lib/journey/docs";
 import { journeyStore, emptyJourney, type Journey } from "@/lib/journey/store";
 import { pipelineStore, type Loan } from "@/lib/pipeline/store";
 import { sendFromMailbox } from "@/lib/mail/service";
+import type { Attachment } from "@/lib/mail/mime";
 import { resendMail } from "@/lib/pilot/service";
 import { signatureFor } from "@/lib/profile/signature";
 import { cdReceivedBy, cdSendBy, daysUntil, isDate, leDueBy, voeWindowOpens } from "./dates";
@@ -256,15 +257,15 @@ export async function makeDraft(user: User, loanId: string, kind: "escrow_fees" 
   return { ok: true, id: f.drafts.find((d) => d.kind === kind && d.status === "draft")!.id };
 }
 
-export type PartySender = (user: User, to: string, subject: string, text: string) => Promise<{ ok: boolean; via: string; error?: string }>;
+export type PartySender = (user: User, to: string, subject: string, text: string, attachments?: Attachment[]) => Promise<{ ok: boolean; via: string; error?: string }>;
 
 /** From the loan officer's own mailbox when it's connected; otherwise from Command Center with replies to them. */
-export const realPartySender: PartySender = async (user, to, subject, text) => {
+export const realPartySender: PartySender = async (user, to, subject, text, attachments) => {
   const m = mloById(user.mloId);
-  const r = await sendFromMailbox(user, { fromName: m?.name ?? user.name, to, subject, text }).catch(() => null);
+  const r = await sendFromMailbox(user, { fromName: m?.name ?? user.name, to, subject, text, attachments }).catch(() => null);
   if (r?.ok) return { ok: true, via: r.from };
   if (r && !r.ok && r.reconnect) return { ok: false, via: "", error: r.error };
-  const ok = await resendMail({ to, subject, text, replyTo: user.email });
+  const ok = await resendMail({ to, subject, text, replyTo: user.email, attachments });
   return ok ? { ok: true, via: "Command Center (replies to you)" } : { ok: false, via: "", error: "Email isn't set up yet. Connect your mailbox on the Email page." };
 };
 

@@ -41,3 +41,6 @@
 .loa-draft { border: 1px solid var(--rule-strong); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
 @media (max-width: 720px) { .loa-grid2, .loa-checks { grid-template-columns: minmax(0, 1fr); } .loa-kv { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) { .loa-items--stack li { grid-template-columns: minmax(0, 1fr); } }
+
+.loa-fill { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 10px 14px; }
+.loa-forms .mlo-grid { grid-template-columns: minmax(0, 1fr); } .loa-forms input[type="file"] { min-width: 0; max-width: 100%; }

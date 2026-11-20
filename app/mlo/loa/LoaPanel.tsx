@@ -25,7 +25,7 @@ export default function LoaPanel({ loan, file, journey, now = new Date() }: { lo
   return (
     <section className="mlo-section loa-panel" id="loa">
       <h2>Your LOA on this file</h2>
-      <p className="mlo-note">Drop a document and your LOA reads it into the file. It keeps the dates, drafts the emails to escrow and title for you to send, and chases what&apos;s open. <Link href={`/mlo/loa?loan=${encodeURIComponent(loan.id)}#talk`}>Ask your LOA about this loan</Link>.</p>
+      <p className="mlo-note">Drop a document and your LOA reads it into the file. It keeps the dates, drafts the emails to escrow and title for you to send, and chases what&apos;s open. <Link href={`/mlo/loa?loan=${encodeURIComponent(loan.id)}#talk`}>Ask your LOA about this loan</Link>, or open <Link href={`/mlo/pipeline/${encodeURIComponent(loan.id)}/forms`}>Forms</Link> for letters to escrow and title, fillable forms and sending them.</p>
 
       <form action={readDocAction.bind(null, loan.id)} className="mlo-grid">
         <div className="mlo-row-form">

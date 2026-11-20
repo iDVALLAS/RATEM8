@@ -5290,3 +5290,55 @@ failed. Now every file is private and opens only through Command Center.
   reconnect `ratem-8` with "Add a read-write token env var" ticked (adds
   `BLOB_READ_WRITE_TOKEN`, Sensitive). Don't create a second store. Then
   redeploy.
+
+## D66 — The LOA's forms side (2026-11-20)
+
+Owner: "there also needs to be a forms side where forms can be pulled from
+ARIVE forms and filled out, or forms can be dropped in and held within the
+account ... standard title and escrow forms, forms for requests." Then:
+"that's fine and disclosures can stay in the POS (ARIVE, LendingPad,
+Encompass)."
+
+- **Files:**
+  - `lib/forms/{catalog,pdf,store,service}.ts`, `lib/forms/forms.test.ts`
+  - `app/mlo/pipeline/[id]/forms/{page,actions}.tsx`, `forms/letter/[kind]/page.tsx`, `forms/fill/[formId]/page.tsx`
+  - `app/api/cc/forms/[id]/route.ts` (signed-in download)
+  - `app/mlo/loa/page.tsx` (Your forms library, `#forms`), `app/mlo/loa/LoaPanel.tsx` (Forms link), `app/mlo/loa/loa.css`
+  - Email attachments: `lib/mail/mime.ts` (multipart), `lib/mail/service.ts` (Gmail and Microsoft 365), `lib/pilot/service.ts` (Resend), `lib/loa/service.ts` (`PartySender` takes attachments)
+  - New dependency: `pdf-lib 1.17.1` (exact).
+- **Your forms library** (Your LOA → `#forms`): blank PDFs reused on every file. Official forms
+  are listed with where to get them (Fannie Mae 1005 and 1006, IRS 4506-C, SSA-89, the title and
+  escrow companies' own forms, lender forms from ARIVE). ARIVE has no way for other software to
+  pull files, so ARIVE forms are downloaded there and dropped here.
+- **Forms on each loan** (`/mlo/pipeline/<id>/forms`):
+  - Eight letters written from the file, for the loan officer to read and edit, then saved as a
+    PDF on their letterhead (name, NMLS, company and its NMLS, Equal Housing line): title order,
+    open escrow (with the wire-verification line), payoff authorization (lien holders from the
+    title commitment; the borrower writes account numbers), homeowner's insurance request,
+    HOA or condo questionnaire request, appraisal transfer request, gift letter, letter of
+    explanation.
+  - Fill a fillable form from the library: each field is matched to the file (borrower, property,
+    loan number, amounts, dates, the loan officer and company, escrow and title), shown with where
+    it came from, and editable. The borrower's own address is only the property on a refinance.
+    The copy stays fillable.
+  - Drop a form on the loan.
+  - Send: tick forms (up to 3 MB in one email), pick escrow, title or anyone on the deal, write the
+    message; it goes from the loan officer's mailbox when connected, with their signature, and is
+    noted on the LOA's file.
+- **Never kept or filled:** Social Security numbers, dates of birth, account and routing numbers,
+  signatures. Those fields are shown as "The borrower fills this in". A form whose fields already
+  hold a Social Security number is refused, and so is a letter or field value with one in it.
+- **Storage:** the private Blob store when connected (`forms/<owner>/...pdf`), else sealed in Neon
+  (`cc_form_files`); records in `cc_forms`. Downloads only through `/api/cc/forms/<id>`, signed in,
+  for a loan the person can see or their own library, never cached.
+- **Verified:**
+  - `npm run verify` (629 tests, 5 new): field matching and the never-filled fields; letters from
+    the file saved as multi-page PDFs; library add, SSN refusal, fill a copy per loan with the SSN
+    field left blank; another loan officer can't see, fill or remove; send with attachments;
+    multipart email with a hostile file name.
+  - Browser (1280 and 390): a fillable 4506-C added to the library (6 fields), a title order
+    letter saved, the form filled for a loan (4 of 6 matched, SSN left for the borrower), the PDF
+    downloads signed in and returns 401 signed out; no sideways scroll; no page errors.
+- **Known limits:** no live email with attachments was sent from this session (no mailbox
+  connected). Forms aren't in "Download everything" yet. E-signatures stay in ARIVE or DocuSign.
+- **Next up:** owner's sign-off.

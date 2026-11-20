@@ -162,6 +162,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     addresses for the dialer call list (Call session button; only gate-allowed people; FL/OK/MD only
     with written call permission), new lead, loan update, client replied; dialer results come back
     by key and are logged like hand-logged calls.
+    D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
+    letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
+    sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
@@ -778,7 +781,7 @@ No dependency was added in v12 through v24. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`,
 `@neondatabase/serverless ^1.2.0` (C4, owner-approved Neon), `@vercel/blob 2.8.2` (D55,
-video uploads straight from the browser; D65.1 pinned for private stores), `qrcode ^1.5.4` (D63, the authenticator setup QR code). Upstash and
+video uploads straight from the browser; D65.1 pinned for private stores), `qrcode ^1.5.4` (D63, the authenticator setup QR code), `pdf-lib 1.17.1` (D66, letters and filling forms). Upstash and
 Resend are called over HTTP with `fetch`, so they need no library.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,
 `typescript ^5`, `eslint ^9.17`, `eslint-config-next ^15.1`,
