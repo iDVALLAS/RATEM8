@@ -127,6 +127,8 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     "Mail a neighborhood" = Thanks.io radius estimate then send, fair-housing audiences only),
     Business Manager (profit, 25% set-aside "not tax advice", cost/loan, sources, tax dates),
     Coach practice calls (academy engine), team line in the morning email.
+    D54.2 logo (`app/mlo/Brand.tsx`): owner's MLO Command Center pill; lime-recolored copy on
+    night/dim, original green on paper; breathing glow behind; icons from its MLO swoosh.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

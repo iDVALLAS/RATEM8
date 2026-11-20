@@ -4463,3 +4463,39 @@ The owner: "build part 2".
       errors
 - **Next:** D55 video messages, D56 texting set up by Command Center, D57
   voicemail drops. (Renumbered: the team took D54.)
+
+## D54.2 — The MLO Command Center logo, colored to the theme (2026-11-20)
+
+The owner: "I want to use this attached logo sitewide and I want the
+colors to match the theme so for instance on the dark look with the yellow
+fluorescent color I want the accents that are green on this to be that
+fluorescent yellow color and then on the White page I want it to revert to
+be the standard color we use".
+
+- **The artwork:** the owner's MLO Command Center pill, with "Powered by
+  LoanM8" drawn in. It's on a transparent background and trimmed only.
+  - `public/brand/mlo-command-center.png` is the original, used on the
+    light theme.
+  - `mlo-command-center-lime.png` has every green and teal (hue 115°–200°)
+    moved to the dark theme's lime (#C6F24E, about 76°), keeping each
+    pixel's brightness and saturation. The white lettering is untouched.
+  - The web copies are `-green-` and `-lime-` at 480 and 960 wide.
+- **Where:** `app/mlo/Brand.tsx`, which covers the top bar on every
+  Command Center page plus sign-in, code, sign-up and confirm.
+  - Night and dim show the lime version; paper shows the original
+    (CSS on `data-theme`).
+  - The size is 48px tall (about 208px wide) on desktop and 38px on
+    phones. The bar is back to 64px.
+  - A soft glow behind it breathes on a 3s cycle (opacity only) in the
+    theme's highlight color, or a soft dark shade on light. It's still
+    under reduced motion.
+- **Tab and home-screen icons:** `mlo-command-icon-*` are remade from this
+  logo's "MLO" and swoosh only (the border and corners are dropped), on a
+  dark rounded square.
+- **Removed:** the earlier artwork's files and CSS (the badge, the orb and
+  the "Powered by" text layers).
+- **Verified:**
+  - `npm run verify`.
+  - Screenshots in night, dim and paper at 1440, phones in night and
+    paper, and sign-in in paper: no sideways scroll, no errors, and the
+    menu fits at full width.

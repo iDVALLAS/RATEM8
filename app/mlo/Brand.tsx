@@ -1,46 +1,25 @@
 import Link from "next/link";
 
 /**
- * The MLO Command logo (owner's artwork, 2026-11-20), shared by the app bar
- * and the sign-in pages. Three layers:
- *  1. An orb behind the crosshair ring that breathes (scale and glow only).
- *  2. The owner's logo, unchanged except that its "Powered by LoanM8" line
- *     was lifted out (public/brand/mlo-command-mark*.webp; the untouched
- *     original is mlo-command-logo.png).
- *  3. "Powered by LoanM8" as vector text in the lettering the owner picked
- *     from the earlier mockup (muted mono "POWERED BY", "Loan" in the text
- *     color, M8 in M8 Green), a couple of points larger.
+ * The MLO Command Center logo (owner's artwork, 2026-11-20), shared by the
+ * app bar and the sign-in pages. Its accents follow the theme: the
+ * fluorescent lime on dark and dim (the same hue as the dark theme's
+ * highlight), the artwork's own green on light. Only the greens were
+ * recolored; the white lettering is the artwork's. A soft glow behind it
+ * breathes in the theme's highlight color (opacity only; still under
+ * reduced motion).
+ * Files: public/brand/mlo-command-center.png (original) and
+ * mlo-command-center-lime.png, with web copies in -green/-lime-480/960.webp.
  */
 export default function Brand({ href, label }: { href: string; label: string }) {
   return (
     <Link href={href} className="cc-brand" aria-label={label}>
       <span className="cc-logo" aria-hidden="true">
-        <svg className="cc-logo__orb" viewBox="0 0 1600 680" focusable="false">
-          <defs>
-            <radialGradient id="ccLogoHalo" cx="800" cy="296" r="420" gradientUnits="userSpaceOnUse">
-              <stop offset="0.6" style={{ stopColor: "var(--cc-logo-halo)", stopOpacity: 0.85 }} />
-              <stop offset="1" style={{ stopColor: "var(--cc-logo-halo)", stopOpacity: 0 }} />
-            </radialGradient>
-            <linearGradient id="ccLogoFill" x1="0" y1="-4" x2="0" y2="596" gradientUnits="userSpaceOnUse">
-              <stop offset="0" style={{ stopColor: "var(--cc-logo-hi)" }} />
-              <stop offset="0.55" style={{ stopColor: "var(--cc-logo-mid)" }} />
-              <stop offset="1" style={{ stopColor: "var(--cc-logo-lo)" }} />
-            </linearGradient>
-          </defs>
-          <g className="cc-logo__pulse">
-            <circle className="cc-logo__halo" cx="800" cy="296" r="420" fill="url(#ccLogoHalo)" />
-            <circle cx="800" cy="296" r="300" fill="url(#ccLogoFill)" />
-          </g>
-        </svg>
+        <span className="cc-logo__glow" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="cc-logo__mark" src="/brand/mlo-command-mark-320.webp" srcSet="/brand/mlo-command-mark-320.webp 320w, /brand/mlo-command-mark-640.webp 640w" sizes="(min-width: 521px) 151px, 125px" width={1600} height={680} alt="" decoding="async" />
-        <svg className="cc-logo__powered" viewBox="0 0 1600 680" focusable="false">
-          <text x="1588" y="662" textAnchor="end">
-            <tspan className="cc-logo__pb">POWERED BY</tspan>
-            <tspan className="cc-logo__lm" dx="26">Loan</tspan>
-            <tspan className="cc-logo__m8">M8</tspan>
-          </text>
-        </svg>
+        <img className="cc-logo__img cc-logo__img--lime" src="/brand/mlo-command-center-lime-480.webp" srcSet="/brand/mlo-command-center-lime-480.webp 480w, /brand/mlo-command-center-lime-960.webp 960w" sizes="(min-width: 521px) 210px, 170px" width={2155} height={498} alt="" decoding="async" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="cc-logo__img cc-logo__img--green" src="/brand/mlo-command-center-green-480.webp" srcSet="/brand/mlo-command-center-green-480.webp 480w, /brand/mlo-command-center-green-960.webp 960w" sizes="(min-width: 521px) 210px, 170px" width={2155} height={498} alt="" decoding="async" />
       </span>
     </Link>
   );
