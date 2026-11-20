@@ -58,7 +58,7 @@ const OPEN_EXACT = new Set([
 ]);
 // D4: Twilio webhooks are verified by signature, so they stay reachable while locked.
 // D6: the loan intake checks its own per-loan-officer key.
-const OPEN_PREFIXES = ["/my/", "/api/cc/expenses/", "/api/cc/mail/", "/api/cc/cards/", "/api/cc/export", "/api/cc/override/", "/api/pipeline/", "/api/leads/", "/api/twilio/", "/demo/", "/_next/", "/fonts/", "/images/", "/brand/", "/team/", "/lenders/", "/mlo/", "/.well-known/"];
+const OPEN_PREFIXES = ["/my/", "/api/cc/expenses/", "/api/cc/mail/", "/api/cc/cards/", "/api/cc/videos/", "/v/", "/api/cc/export", "/api/cc/override/", "/api/pipeline/", "/api/leads/", "/api/twilio/", "/demo/", "/_next/", "/fonts/", "/images/", "/brand/", "/team/", "/lenders/", "/mlo/", "/.well-known/"];
 
 /** Reachable without the password while the lock is on. */
 export function openWhileLocked(pathname: string): boolean {

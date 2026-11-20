@@ -54,6 +54,14 @@ Each loan officer connects their own Thanks.io account and pays for their own ca
 | `THANKSIO_CLIENT_ID` (optional) | No | From the OAuth application. |
 | `THANKSIO_CLIENT_SECRET` (optional) | Yes | From the OAuth application. |
 
+### Video messages (Vercel Blob, optional)
+
+Stores the short videos loan officers record and send (D55). In Vercel: the project → Storage → Create → Blob, then connect it to this project; Vercel adds the token. The word check uses the Google key below, with Speech-to-Text on.
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `BLOB_READ_WRITE_TOKEN` (optional) | Yes | Set by Vercel when the Blob store is connected. |
+
 ### AI for Command Center (Anthropic)
 
 Make a separate workspace in the Anthropic Console for Command Center, with its own monthly spend limit, and ask Anthropic for zero data retention on it (it handles client messages and notes). The public chat keeps its own key.

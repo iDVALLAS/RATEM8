@@ -4551,3 +4551,87 @@ The owner, about the logo and the name: "every page should get this".
   - The tab titles on Home, Your team, Contacts, Cards, Sign in, Sign up
     and Enter your code.
   - The "MLO COMMAND CENTER" eyebrows, and the logo present on each.
+
+## D55 — Video messages (2026-11-20)
+
+The owner: "I also want to have pre-made video drops to clients", then
+"build the video messages next" (record or upload, with the word check).
+- **Making one** (`/mlo/videos`, "Video messages" under People):
+  - Record with the camera on a phone or computer (up to two minutes, a
+    countdown, stops itself), or upload an MP4, MOV or WebM (up to two
+    minutes and 250 MB).
+  - The file goes straight from the browser to Vercel Blob
+    (`@vercel/blob`, the one new dependency) through
+    `/api/cc/videos/upload`. That route gives a one-hour pass only to a
+    signed-in loan officer, only into their own folder
+    (`videos/<userId>/`), only video or its JPEG still, and only up to the
+    size limit. `registerVideoAction` then checks the file is really in
+    their folder (Blob's own record of its type and size) before saving it.
+- **The word check** (`lib/videos/transcribe.ts`, `service.ts`):
+  - The browser pulls the sound out of the video and sends it in pieces of
+    up to 50 seconds (16 kHz mono) to `/api/cc/videos/check`. Google
+    Speech-to-Text (the existing `GOOGLE_CLOUD_API_KEY`) turns it into
+    words with their times. The sound is never stored.
+  - The words get the draft rules every text and email gets: no rates or
+    APRs, no promises ("approved", "you'll qualify"), no dollar figures,
+    no rewards, nothing about who a home is for, no one else's links,
+    emails or phone numbers. Dates are allowed in a person's own words.
+  - A video that doesn't pass is **held**, with the reason and the
+    sentence near it, and can't be sent. Its true length is measured from
+    the sound, so a video over two minutes is held too.
+  - The words become the video's captions (WebVTT, on by default) and a
+    "Read what they say" text on the watch page.
+  - Limits: 60 checks an hour per loan officer, and 4 hours of sound a day
+    across the platform (`CC_VIDEO_CHECK_DAILY_SECONDS`).
+  - If a check is interrupted, "Run the word check" reads the stored file
+    again.
+- **Sending** (the Video messages page, or "Send … a video" on a
+  contact's page): pick a video, a short note (`{first}` fills in; checked
+  like a template) and text or email. It goes through `sendText` /
+  `sendEmail`, so permission, quiet hours, caps and STOP all apply. Each
+  person gets their **own link** (`/v/<token>`, 16 random characters).
+  Only a video that passed can be sent, and only by the loan officer who
+  made it.
+- **The watch page** (`/v/<token>`, public, noindex, not in robots):
+  - The video with captions, the loan officer's photo and name, and Text,
+    Call, Pick a time and Email buttons from their own record.
+  - The footer: the loan officer and their NMLS number, the company with
+    its NMLS number and address, NMLS Consumer Access, Equal Housing
+    Opportunity, "not an offer to lend or a commitment", and STOP.
+  - No LoanM8 menu: a client of a signed-up loan officer from another
+    company sees that loan officer and their company.
+  - A deleted video's links say it's no longer available.
+- **Who watched:** a view counts when they press play
+  (`/api/cc/videos/view`), once per visitor per half hour (a hashed
+  address), and never when the sender is the one watching. The first view
+  emails the loan officer ("Ann Lee watched your video", names only). The
+  Video messages page and the contact page show who watched, how often
+  and when.
+- **Also:** videos and who they went to are in Download everything
+  (`videos.csv`, `video-sends.csv`); the launch list and the setup
+  assistant cover the Blob store; `/v/` is public in stealth and open
+  under the site lock; robots.txt now also disallows `/v/` and `/my/`.
+- **Turning it on (owner, one time):** Vercel → the project → Storage →
+  Create → Blob → connect to this project (all environments). Vercel adds
+  `BLOB_READ_WRITE_TOKEN` (Sensitive) itself; then redeploy. Confirm the
+  Google key has Speech-to-Text on (it does if the chat's mic works).
+  `CC_VIDEOS="false"` turns videos off.
+- **Verified:**
+  - `npm run verify` (9 new tests in `lib/videos/videos.test.ts`: folder
+    rules, registering, the check in pieces and its captions, held for a
+    rate, a promise and a dollar figure, over-length, no key, sending
+    through the senders with a per-person link, delete, view counting and
+    the first-view email, WebVTT).
+  - In Chromium with a fake camera: the camera opens, records with the
+    countdown, plays back, and the sound is read for the check. The
+    upload itself needs the real Blob store, so it wasn't run here. The
+    watch page's missing state, the captions route (404 for an unknown
+    link), robots.txt and the menu entry; no sideways scroll at 390px.
+- **Known limits:** the sound is read in the browser, so the check trusts
+  that the sound sent is the video's own (it's the loan officer's own
+  check, like the draft rules). A file whose sound the browser can't read
+  (some MOV files in Chrome) has to be recorded in Command Center or
+  converted to MP4. Links point at the production address
+  (`NEXT_PUBLIC_SITE_URL`), like client pages, so they work once this is
+  promoted.
+- **Next:** D56 texting set up by Command Center, D57 voicemail drops.

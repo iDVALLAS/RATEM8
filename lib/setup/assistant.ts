@@ -29,6 +29,7 @@ import { registrationWording, serviceEnvName, webhookUrls } from "@/lib/messagin
 import { serviceForCompany, twilioConfig } from "@/lib/messaging/twilio";
 import { checklist, GROUP_LABELS, type SetupItem } from "./checklist";
 import { envStatus, LAUNCH, PHASES } from "./launch";
+import { transcribeOn, videosOn } from "@/lib/videos/service";
 
 export const MAX_TURNS = 24;
 export const MAX_MESSAGE = 2000;
@@ -124,6 +125,7 @@ export async function setupFacts(user: User, origin: string): Promise<Facts> {
   }
   lines.push("", `Email (send-only connection to their own mailbox, page ${origin}/mlo/email): Gmail ${providerConfig("google") ? "available" : "not set up by the owner yet"}, Microsoft 365 ${providerConfig("microsoft") ? "available" : "not set up by the owner yet"}. They press Connect, sign in, and allow sending only; Command Center never reads their inbox. If their company's Microsoft admin must approve apps, they ask IT to approve "MLO Command Center". Email replies aren't seen by Command Center: they press "They replied" on the contact's page to stop follow-up campaigns.`);
   lines.push(`Cards by mail (Thanks.io, page ${origin}/mlo/cards): ${cardsOn() ? "available; each loan officer connects their own Thanks.io account (thanks.io, with a payment method) and pays per card. Designs come from their own Thanks.io Image Templates library (it has holiday designs). Test mode in Thanks.io (Settings, API Access) cancels orders instead of mailing" : "not set up by the owner yet"}.`);
+  lines.push(`Video messages (page ${origin}/mlo/videos): ${videosOn() ? `available. Record with the camera or upload (MP4, MOV or WebM, up to two minutes and 250 MB). What they say is checked by the same rules as texts and emails before it can be sent${transcribeOn() ? "" : " (the word check isn't set up yet, so saving waits)"}; each person gets their own link and the loan officer sees who watched` : "not set up by the owner yet (a Vercel Blob store)"}.`);
   if (owner) lines.push(`Owner setup for cards: in Thanks.io, Settings, API Access, OAuth Applications, Create Application, redirect address ${cardsRedirect(origin)} (and production). Then Vercel: THANKSIO_CLIENT_ID (not Sensitive), THANKSIO_CLIENT_SECRET (Sensitive), redeploy.`);
   if (owner) lines.push(`Owner setup for email: Google Cloud OAuth client (Web application), Gmail API enabled, scope gmail.send, authorized redirect URI ${redirectUri(origin, "google")}; Microsoft Entra app (accounts in any organizational directory), Web redirect URI ${redirectUri(origin, "microsoft")}, a client secret, delegated Microsoft Graph permissions Mail.Send, User.Read, offline_access. Then Vercel: GOOGLE_OAUTH_CLIENT_ID (not Sensitive), GOOGLE_OAUTH_CLIENT_SECRET (Sensitive), MS_OAUTH_CLIENT_ID (not Sensitive), MS_OAUTH_CLIENT_SECRET (Sensitive), and redeploy. Register the production address's redirect URIs too.`);
   if (owner) {

@@ -31,6 +31,9 @@ import { campaignStore } from "@/lib/campaigns/store";
 import { cardStore } from "@/lib/cards/store";
 import { cardsOn } from "@/lib/cards/thanks";
 import { noMailAction } from "../../cards/actions";
+import { videoStore } from "@/lib/videos/store";
+import { DEFAULT_NOTE, NOTE_MAX, videosOn } from "@/lib/videos/service";
+import { sendVideoAction } from "../../videos/actions";
 import { clientLink } from "@/lib/clientpage/link";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
@@ -64,6 +67,9 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const texting = !!twilioConfig();
   // D52: email goes from their own mailbox when connected.
   const [mail, inCampaigns, cards] = await Promise.all([emailReadyFor(v.user), campaignStore().activeForContact(c.id).catch(() => []), cardsOn() ? cardStore().ordersForContact(c.id, 5).catch(() => []) : Promise.resolve([])]);
+  // D55: their video messages, and your videos ready to send.
+  const [myVideos, theirVideos] = videosOn() ? await Promise.all([videoStore().videosFor(v.user.id, 50).catch(() => []), videoStore().sendsForContact(c.id, 10).catch(() => [])]) : [[], []];
+  const readyVideos = myVideos.filter((x) => x.status === "ok");
   const memory = await conciergeStore().memory(c.ownerUserId, c.id, new Date().toISOString(), { includePending: true });
   const tenant = listTenants()[0];
   const clientUrl = clientLink(c.id, c.linkVersion ?? 0);
@@ -288,6 +294,39 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                 </>
               )}
               <span className="mlo-note">{cards.length ? `Cards: ${cards.map((o) => `${o.kind === "notecard" ? "notecard" : "postcard"} ${new Date(o.sentAt ?? o.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}`).join(", ")}.` : c.street ? "No cards sent yet." : "Add a mailing address to send a card."}</span>
+            </div>
+          ) : null}
+          {videosOn() ? (
+            <div id="video" style={{ marginTop: 18 }}>
+              {readyVideos.length && (c.phone || c.email) ? (
+                <form action={sendVideoAction} className="mlo-grid">
+                  <input type="hidden" name="contactId" value={c.id} />
+                  <label className="mlo-field">
+                    <span>Send {c.firstName || "them"} a video</span>
+                    <select name="videoId" className="mlo-select" required>
+                      {readyVideos.map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}
+                    </select>
+                  </label>
+                  <label className="mlo-field">
+                    <span>Note with the link ({"{first}"} is their first name)</span>
+                    <textarea name="note" rows={2} maxLength={NOTE_MAX} className="mlo-textarea" defaultValue={DEFAULT_NOTE} required />
+                  </label>
+                  <div className="mlo-row-form">
+                    <select name="channel" className="mlo-select" aria-label="How to send it" defaultValue={c.phone && texting ? "text" : "email"}>
+                      <option value="text" disabled={!c.phone || !texting}>By text</option>
+                      <option value="email" disabled={!c.email || !mail.ready}>By email</option>
+                    </select>
+                    <select name="purpose" className="mlo-select" aria-label="What it's about" defaultValue="service">
+                      <option value="service">About their loan or account</option>
+                      <option value="marketing">An offer or check-in</option>
+                    </select>
+                    <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Send video</button>
+                  </div>
+                </form>
+              ) : (
+                <p className="mlo-note"><Link href="/mlo/videos">Record a video message</Link> to send {c.firstName || "them"} their own link.</p>
+              )}
+              {theirVideos.length ? <p className="mlo-note">Videos: {theirVideos.map((s) => `${new Date(s.at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })} by ${s.channel}, ${s.views ? `watched ${s.views === 1 ? "once" : `${s.views} times`}` : "not watched yet"}`).join("; ")}.</p> : null}
             </div>
           ) : null}
           {inCampaigns.length ? (

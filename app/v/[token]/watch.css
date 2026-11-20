@@ -1,0 +1,22 @@
+/* D55: the watch page for a video message. Semantic tokens only. */
+.vw { min-height: 100svh; background: var(--bg); color: var(--fg); display: flex; flex-direction: column; }
+.vw-main { width: 100%; max-width: 760px; margin: 0 auto; padding: 28px 16px 40px; flex: 1; }
+.vw-from { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.vw-from img, .vw-initials { width: 48px; height: 48px; border-radius: 999px; object-fit: cover; flex: none; }
+.vw-initials { display: grid; place-items: center; background: var(--bg-sunken); color: var(--accent); font-weight: 600; }
+.vw-eyebrow { font-family: var(--font-mono, ui-monospace, monospace); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.vw-name { margin: 2px 0 0; font-size: 16px; color: var(--fg-soft); }
+.vw-title { font-size: clamp(26px, 5vw, 36px); font-weight: 300; letter-spacing: -0.01em; line-height: 1.15; margin: 4px 0 18px; }
+.vw-video { width: 100%; max-height: 72svh; border-radius: 16px; background: #000; display: block; }
+.vw-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 8px; }
+.vw-btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--rule-strong); color: var(--fg); text-decoration: none; font-size: 15px; }
+.vw-btn--primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600; }
+.vw-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.vw-words { margin-top: 18px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.vw-words summary { cursor: pointer; color: var(--fg-soft); min-height: 32px; }
+.vw-words p { color: var(--fg-soft); line-height: 1.6; white-space: pre-wrap; }
+.vw-foot { border-top: 1px solid var(--rule); padding: 18px 16px 28px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.vw-foot__in { max-width: 760px; margin: 0 auto; }
+.vw-foot a { color: var(--fg-soft); }
+.vw-eho { display: inline-flex; align-items: center; gap: 6px; }
+.vw-note { color: var(--fg-soft); line-height: 1.6; }

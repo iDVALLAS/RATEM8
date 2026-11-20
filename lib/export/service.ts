@@ -18,6 +18,7 @@ import { campaignStore } from "@/lib/campaigns/store";
 import { templateStore } from "@/lib/templates/service";
 import { scriptStore } from "@/lib/scripts/store";
 import { cardStore } from "@/lib/cards/store";
+import { videoStore } from "@/lib/videos/store";
 import { expenseStore } from "@/lib/expenses/store";
 import { signatureFor } from "@/lib/profile/signature";
 import { toCsv } from "./csv";
@@ -41,7 +42,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
 
   const consents = [];
   for (let i = 0; i < all.length; i += 500) consents.push(...(await contactStore().consentsFor(all.slice(i, i + 500).map((c) => c.id))));
-  const [touches, notes, tasks, drafts, loans, campaigns, templates, scripts, cards, expenses, receipts, sig] = await Promise.all([
+  const [touches, notes, tasks, drafts, loans, campaigns, templates, scripts, cards, expenses, receipts, sig, videos, videoSends] = await Promise.all([
     touchStore().since(owner, "1970-01-01T00:00:00.000Z"),
     conciergeStore().allMemory(owner, nowIso),
     conciergeStore().tasks(owner, false),
@@ -54,6 +55,8 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
     expenseStore().list(owner, null),
     expenseStore().receipts(owner),
     signatureFor(user).catch(() => ""),
+    videoStore().videosFor(owner, 5000).catch(() => []),
+    videoStore().sendsFor(owner, 20000).catch(() => []),
   ]);
   const enrollments = (await Promise.all(campaigns.map((c) => campaignStore().enrollments(c.id)))).flat();
   const mine = templates.filter((t) => t.ownerUserId === owner);
@@ -77,6 +80,8 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
     templates: add("templates.csv", mine, { first: ["name"] }),
     scripts: add("call-scripts.csv", scripts.map((s) => ({ contact: who(s.contactId), ...s })), { first: ["contact"] }),
     cards: add("cards-by-mail.csv", cards.map((o) => ({ ...o, contactIds: undefined, people: o.contactIds.map(who).join("; ") })), { first: ["createdAt", "status", "kind", "people"], omit: ["contactIds"] }),
+    videos: add("videos.csv", videos.map((v) => ({ createdAt: v.createdAt, title: v.title, seconds: v.durationSec, status: v.status, reason: v.reason, whatItSays: v.transcript, file: v.url })), { first: ["createdAt", "title", "status"] }),
+    videoSends: add("video-sends.csv", videoSends.map((s) => ({ at: s.at, contact: s.contactName, channel: s.channel, video: videos.find((v) => v.id === s.videoId)?.title ?? "(deleted)", views: s.views, firstViewedAt: s.firstViewedAt, lastViewedAt: s.lastViewedAt })), { first: ["at", "contact", "video", "views"] }),
     expenses: add("expenses.csv", expenses, { first: ["date", "kind", "amountCents", "miles", "vendor", "category", "purpose"] }),
   };
 
@@ -117,6 +122,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
       "notes.csv, reminders.csv, concierge-drafts.csv: your Concierge's notes, reminders and drafts.",
       "loans.csv: loans synced from your loan system.",
       "campaigns.csv, campaign-people.csv, templates.csv, call-scripts.csv, cards-by-mail.csv: what you built and sent.",
+      "videos.csv, video-sends.csv: your video messages (with a link to each file and what it says) and who watched.",
       "expenses.csv and receipts/: your business expenses, income and mileage.",
       "",
       "Not included, on purpose: passwords, connection keys and sign-in codes.",

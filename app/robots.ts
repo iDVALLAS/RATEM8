@@ -49,7 +49,7 @@ export default function robots(): MetadataRoute.Robots {
   }
 
   const allow = ["/", "/api/agent/"];
-  const disallow = ["/api/", "/demo"];
+  const disallow = ["/api/", "/demo", "/v/", "/my/"];
 
   return {
     rules: [

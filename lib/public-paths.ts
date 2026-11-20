@@ -55,6 +55,8 @@ export const STEALTH_PUBLIC_PREFIXES = [
   "/team/",
   // D26: each client's own page (a signed link).
   "/my/",
+  // D55: a video message's watch page (an unguessable link per person, noindex).
+  "/v/",
 ] as const;
 
 const EXACT = new Set<string>([...STEALTH_PUBLIC_PAGES, ...STEALTH_PUBLIC_FILES]);

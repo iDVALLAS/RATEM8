@@ -129,6 +129,11 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     Coach practice calls (academy engine), team line in the morning email.
     D54.2 logo (`app/mlo/Brand.tsx`): owner's MLO Command Center pill; lime-recolored copy on
     night/dim, original green on paper; breathing glow behind; icons from its MLO swoosh.
+    D55 video messages (`lib/videos/*`, `/mlo/videos`, watch page `/v/<token>`): record or
+    upload (2 min, 250 MB) straight to Vercel Blob (`BLOB_READ_WRITE_TOKEN`, `@vercel/blob`);
+    the sound is transcribed (Google STT) and checked by the draft rules before it can be
+    sent (held otherwise), words become captions; each person gets their own link through
+    `sendText`/`sendEmail`; views counted on play, first view emailed; `CC_VIDEOS="false"`.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.
@@ -744,7 +749,8 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 No dependency was added in v12 through v24. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`,
-`@neondatabase/serverless ^1.2.0` (C4, owner-approved Neon). Upstash and
+`@neondatabase/serverless ^1.2.0` (C4, owner-approved Neon), `@vercel/blob ^1.1.1` (D55,
+video uploads straight from the browser). Upstash and
 Resend are called over HTTP with `fetch`, so they need no library.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,
 `typescript ^5`, `eslint ^9.17`, `eslint-config-next ^15.1`,

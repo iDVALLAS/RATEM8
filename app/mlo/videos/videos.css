@@ -1,0 +1,18 @@
+/* D55: video messages. Semantic tokens only. */
+.vid-rec { display: grid; gap: 12px; }
+.vid-stage { display: grid; gap: 12px; justify-items: start; }
+.vid-screen { width: 100%; max-width: 640px; aspect-ratio: 16 / 9; background: #000; border-radius: 14px; object-fit: cover; }
+.vid-clock { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; color: var(--fg); }
+.vid-dot { width: 10px; height: 10px; border-radius: 999px; background: #e5484d; animation: vid-blink 1.2s ease-in-out infinite; }
+@keyframes vid-blink { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .vid-dot { animation: none; } }
+.vid-progress { width: 100%; max-width: 640px; accent-color: var(--accent); }
+.vid-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 18px; }
+.vid-item { display: grid; grid-template-columns: minmax(0, 240px) minmax(0, 1fr); gap: 16px; align-items: start; border-top: 1px solid var(--rule); padding-top: 16px; }
+.vid-thumb { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 10px; object-fit: cover; }
+.vid-body { display: grid; gap: 6px; min-width: 0; }
+.vid-title { min-width: 0; flex: 1; }
+.vid-ok { color: var(--accent); }
+.vid-held { color: #e5484d; }
+.vid-sends { margin: 6px 0 0; padding-left: 18px; color: var(--fg-soft); font-size: 14px; line-height: 1.6; }
+@media (max-width: 640px) { .vid-item { grid-template-columns: 1fr; } }
