@@ -3623,3 +3623,40 @@ will do the same every day.
   - **In the browser at 1280px and 390px:** the code screen; a wrong code
     gets the error; an old-style link lands on the button page; and a bad
     link sends you back with "expired".
+
+## D48 — Top bar spacing, and a bigger LoanM8 in the logo (2026-11-20)
+
+The owner, on the preview: the menu's "Platform" ran into the color
+toggle on his wide screen, and on his phone his initials were off the
+right edge. He asked for LoanM8 bigger, with Command Center smaller and
+"Center" under "Command".
+
+- **Cause on desktop:** the bar was capped at 80rem (1,280px), and the
+  full menu plus the Pilot label nearly filled it. At 1920px only 14px
+  separated the menu from the toggle, and wider Windows fonts closed
+  that gap.
+- **Cause on phones:** the bar measured 397px on a 390px screen.
+- **The menu measures itself** (`CcTopBar.tsx`, `data-fit` on the bar).
+  - **Sizes:** full (labels and arrows), compact (labels only), then icons
+    with each name on hover (`title`) and kept for screen readers.
+  - **How it picks:** it takes the largest size that leaves 12px from the
+    logo and Pilot label and 16px from the controls on its right.
+    `ResizeObserver` and the font load re-check it.
+  - **It replaces** the old fixed breakpoints at 1,400px.
+- **The bar runs full width,** with 24px side padding from 1,101px up.
+- **The logo** is `app/mlo/Brand.tsx`, shared by the app bar and the
+  sign-in pages: the orb, "LoanM8" at 21px (M8 in M8 Green), a thin
+  divider, then "COMMAND" over "CENTER" in small capitals. Option A of
+  the owner's mockups; option B (stacked) is in the mockup page.
+- **Phones:** the Pilot label hides at 520px and narrower, and the logo
+  steps down a size.
+- **Measured** (Paper, Pilot on, owner account):
+  - **Full menu** at 1440px and wider (≥30px clear on the right).
+  - **Compact** at 1280 and 1366px.
+  - **Icons** at 1101–1180px.
+  - **Phone tabs** below that.
+  - Initials end at 374 of 390px and 344 of 360px.
+  - No sideways scroll at any width.
+- **Mockups:** real screenshots at 1920, 1440, 1180, 390 and 360px in
+  light and dark, published for the owner.
+- **Verified:** `npm run verify`.

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Icon } from "./icons";
+import Brand from "./Brand";
 import type { IconName } from "./nav";
 import "./cc-shell.css";
 import "./mlo.css";
@@ -25,10 +25,7 @@ export default function CcAuthShell({ children, wide = false }: { children: Reac
       <a href="#main" className="skip-link">Skip to content</a>
       <header className="cc-bar">
         <div className="cc-bar__in">
-          <Link href="/sign-in" className="cc-brand" aria-label="Command Center sign in">
-            <span className="cc-brand__orb" aria-hidden="true" />
-            <span className="cc-brand__text"><span className="cc-brand__small">Loan<span className="cc-m8">M8</span></span><span className="cc-brand__big">Command Center</span></span>
-          </Link>
+          <Brand href="/sign-in" label="LoanM8 Command Center sign in" />
           <div className="cc-bar__end cc-auth__end"><ThemeToggle /></div>
         </div>
       </header>

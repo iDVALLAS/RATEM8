@@ -102,13 +102,13 @@
 
 /* ─── Top bar ───────────────────────────────────────────────── */
 .cc-bar { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--bg) 92%, transparent); border-bottom: 1px solid var(--rule); padding-top: env(safe-area-inset-top, 0px); }
-.cc-bar__in { max-width: 80rem; margin: 0 auto; display: flex; align-items: center; gap: 14px; min-height: 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.cc-bar__in { max-width: none; margin: 0 auto; display: flex; align-items: center; gap: 14px; min-height: 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .cc-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--fg); text-decoration: none; flex: none; }
 .cc-brand__orb { width: 28px; height: 28px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #B8F0DB 0%, var(--color-m8-green) 38%, var(--color-m8-deep) 70%, var(--color-m8-forest) 100%); box-shadow: 0 0 18px rgba(93, 202, 165, 0.45); }
-.cc-brand__text { display: grid; line-height: 1.05; }
-.cc-brand__small { font-size: 11px; color: var(--muted); letter-spacing: 0.02em; }
+/* D48: a larger "LoanM8", then "Command" over "Center", small, after a thin rule. */
+.cc-brand__word { font-size: 21px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; color: var(--fg); }
+.cc-brand__sub { display: grid; gap: 1px; padding-left: 10px; border-left: 1px solid var(--rule-strong); font: 600 9.5px/1.15 var(--font-geist-sans), system-ui, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 .cc-m8 { color: var(--color-m8-green); }
-.cc-brand__big { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .cc-nav { display: flex; align-items: center; gap: 2px; margin: 0 auto; padding: 4px; border-radius: 999px; background: var(--cc-nav-bg); min-width: 0; }
 .cc-nav__btn { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 13px; border-radius: 999px; border: 0; background: transparent; color: var(--cc-nav-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; white-space: nowrap; }
 .cc-nav__btn:hover { background: color-mix(in srgb, var(--cc-nav-on) 14%, transparent); }
@@ -159,7 +159,7 @@
 .cc-sheet__icon { position: relative; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--cc-card-2); color: var(--accent); }
 .cc-sheet__item.is-active .cc-sheet__icon { background: var(--cc-hi); color: var(--cc-hi-text); }
 @media (max-width: 380px) { .cc-sheet__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 520px) { .cc-brand__small { display: none; } .cc-bar__in { min-height: 56px; } }
+@media (max-width: 520px) { .cc-bar__in { min-height: 56px; gap: 10px; } .cc-pilot { display: none; } .cc-brand { gap: 8px; } .cc-brand__word { font-size: 19px; } .cc-brand__sub { padding-left: 8px; font-size: 8.5px; } }
 
 .cc-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; max-width: 80rem; width: 100%; margin: 0 auto; padding: 20px max(16px, env(safe-area-inset-left, 0px)) 28px max(16px, env(safe-area-inset-right, 0px)); color: var(--muted); font-size: 13px; border-top: 1px solid var(--rule); }
 .cc-foot a { color: var(--muted); }
@@ -221,12 +221,10 @@
 .cc-progress { flex: 1 1 200px; height: 10px; border-radius: 999px; background: var(--cc-card-2); overflow: hidden; }
 .cc-progress span { display: block; height: 100%; background: var(--cc-hi); border-radius: 999px; }
 @media (prefers-reduced-motion: reduce) { .cc-tile { transition: none; } .cc-tile:hover { transform: none; } }
-@media (max-width: 1400px) and (min-width: 1101px) { .cc-nav__btn { padding: 0 9px; gap: 5px; font-size: 13.5px; } .cc-brand__small { display: none; } .cc-chev { display: none; } }
 
 /* D44 pilot kit: the Pilot chip, Report a problem (floating button, dialog), Your first day. */
 .cc-pilot { flex: none; margin-left: 10px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--cc-hi); color: var(--fg); font: 500 11px/1.4 var(--font-mono, ui-monospace, monospace); letter-spacing: .08em; text-transform: uppercase; text-decoration: none; }
 .cc-pilot:hover { background: var(--cc-hi); color: var(--cc-hi-text); }
-@media (max-width: 1400px) and (min-width: 1101px) { .cc-pilot { display: none; } }
 .cc-fab { position: fixed; right: 20px; bottom: 20px; z-index: 40; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--rule-strong); background: var(--bg-elevated); color: var(--fg); font: inherit; font-size: 14px; cursor: pointer; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); }
 .cc-fab:hover, .cc-fab:focus-visible { border-color: var(--cc-hi); }
 @media (max-width: 1100px) { .cc-fab { display: none; } }
@@ -301,3 +299,13 @@
 }
 @media (max-width: 520px) { .cc-auth__card .su-set { padding: 14px 12px; border-radius: 14px; } .cc-auth__card h1 { font-size: 26px; } }
 .cc-auth__code { letter-spacing: 0.3em; font-size: 24px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* D48: the menu takes the largest of three sizes that fits (CcTopBar measures it). */
+.cc-bar__in:not([data-fit="full"]) .cc-chev { display: none; }
+.cc-bar__in:not([data-fit="full"]) .cc-nav__btn { padding: 0 10px; gap: 6px; font-size: 13.5px; }
+.cc-bar__in[data-fit="icons"] .cc-nav__btn { padding: 0 11px; gap: 0; }
+.cc-bar__in[data-fit="icons"] .cc-nav__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cc-bar__in[data-fit="icons"] .cc-nav__btn .cc-badge { margin-left: 4px; }
+.cc-bar__in[data-fit="icons"] .cc-pilot { display: none; }
+.cc-pilot { margin-left: 4px; }
+@media (min-width: 1101px) { .cc-bar__in { padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); } }

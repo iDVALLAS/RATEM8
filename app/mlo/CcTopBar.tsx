@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { activeKey, GROUPS, hrefOf, TABS, visibleDests, type Dest, type GroupKey } from "./nav";
 import { Icon } from "./icons";
 import { ReportDialog, openReport } from "./ReportProblem";
+import Brand from "./Brand";
+
+/**
+ * D48: how much of the menu fits, measured, not guessed from the screen
+ * width (fonts differ by computer): full labels with arrows, then labels
+ * only, then icons with hover labels.
+ */
+const FITS = ["full", "compact", "icons"] as const;
+// Runs before paint in the browser; a plain effect on the server.
+const useFitEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 type Props = { admin: boolean; signedIn: boolean; pilot?: boolean; name: string; email: string; role: string; tenantId: string; badges: Record<string, number> };
 
@@ -39,9 +49,9 @@ function Menu({ label, icon, items, current, tenantId, badges }: { label: string
   const count = items.reduce((n, d) => n + (badges[d.key] ?? 0), 0);
   return (
     <div className="cc-menu" ref={ref}>
-      <button type="button" className={`cc-nav__btn ${active ? "is-active" : ""}`} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <button type="button" className={`cc-nav__btn ${active ? "is-active" : ""}`} aria-expanded={open} title={label} onClick={() => setOpen((o) => !o)}>
         <Icon name={icon} size={18} />
-        <span>{label}</span>
+        <span className="cc-nav__label">{label}</span>
         {count ? <span className="cc-badge" aria-label={`${count} waiting`}>{count}</span> : null}
         <svg className="cc-chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75 5 6.5l3-2.75" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
       </button>
@@ -90,21 +100,42 @@ export default function CcTopBar({ admin, signedIn, pilot = false, name, email, 
   }, [more]);
   const tab = (key: string) => dests.find((d) => d.key === key);
 
+  // D48: step the menu down until it clears the logo and the right-hand controls.
+  const barRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  useFitEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    const fit = () => {
+      const nav = navRef.current, end = endRef.current, brand = bar.querySelector<HTMLElement>(".cc-brand");
+      if (!nav || !end || getComputedStyle(nav).display === "none") return;
+      for (const level of FITS) {
+        bar.dataset.fit = level;
+        const n = nav.getBoundingClientRect();
+        const left = Math.max(brand?.getBoundingClientRect().right ?? 0, bar.querySelector<HTMLElement>(".cc-pilot")?.getBoundingClientRect().right ?? 0);
+        if (nav.scrollWidth <= nav.clientWidth + 1 && n.left >= left + 12 && n.right <= end.getBoundingClientRect().left - 16) return;
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(bar);
+    document.fonts?.ready.then(fit).catch(() => {});
+    return () => ro.disconnect();
+  }, [admin, signedIn, pilot, badges.concierge]);
+
   return (
     <>
       <a href="#main" className="skip-link">Skip to content</a>
       <header className="cc-bar">
-        <div className="cc-bar__in">
-          <Link href="/mlo" className="cc-brand" aria-label="Command Center home">
-            <span className="cc-brand__orb" aria-hidden="true" />
-            <span className="cc-brand__text"><span className="cc-brand__small">Loan<span className="cc-m8">M8</span></span><span className="cc-brand__big">Command Center</span></span>
-          </Link>
+        <div className="cc-bar__in" ref={barRef}>
+          <Brand href="/mlo" label="LoanM8 Command Center home" />
           {pilot ? <Link href="/mlo/welcome" className="cc-pilot" title="You're in the pilot. Tell the owner about anything odd.">Pilot</Link> : null}
-          <nav className="cc-nav" aria-label="Command Center">
-            <Link href="/mlo" className={`cc-nav__btn ${current === "home" ? "is-active" : ""}`} aria-current={current === "home" ? "page" : undefined}><Icon name="home" size={18} /><span>Home</span></Link>
+          <nav className="cc-nav" aria-label="Command Center" ref={navRef}>
+            <Link href="/mlo" className={`cc-nav__btn ${current === "home" ? "is-active" : ""}`} aria-current={current === "home" ? "page" : undefined} title="Home"><Icon name="home" size={18} /><span className="cc-nav__label">Home</span></Link>
             {groups.map(({ g, items }) => <Menu key={g} label={GROUPS[g]} icon={MENU_ICON[g]} items={items} current={current} tenantId={tenantId} badges={badges} />)}
           </nav>
-          <div className="cc-bar__end">
+          <div className="cc-bar__end" ref={endRef}>
             <ThemeToggle />
             <div className="cc-menu" ref={acctRef}>
               <button type="button" className="cc-avatar" aria-expanded={acct} aria-label="Your account" onClick={() => setAcct((o) => !o)}>{initials(name, email)}</button>
