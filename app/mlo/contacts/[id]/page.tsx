@@ -25,8 +25,9 @@ import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { checkLineAction, consentAction, deleteContactAction, dncAction, draftClientLinkAction, rndAction, rotateClientLinkAction, sendEmailAction, sendTextAction } from "../actions";
-import { emailOn } from "@/lib/messaging/email";
+import { checkLineAction, consentAction, contactRepliedAction, deleteContactAction, dncAction, draftClientLinkAction, rndAction, rotateClientLinkAction, sendEmailAction, sendTextAction } from "../actions";
+import { emailReadyFor } from "@/lib/messaging/email";
+import { campaignStore } from "@/lib/campaigns/store";
 import { clientLink } from "@/lib/clientpage/link";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
@@ -58,6 +59,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const gate = Object.fromEntries(CHANNELS.map((ch) => [ch, Object.fromEntries(PURPOSES.map((p) => [p, decisions[pairs.findIndex(([a, b]) => a === ch && b === p)]]))])) as Record<(typeof CHANNELS)[number], Record<(typeof PURPOSES)[number], (typeof decisions)[number]>>;
   const thread = await touchStore().forContact(c.id, 100);
   const texting = !!twilioConfig();
+  // D52: email goes from their own mailbox when connected.
+  const [mail, inCampaigns] = await Promise.all([emailReadyFor(v.user), campaignStore().activeForContact(c.id).catch(() => [])]);
   const memory = await conciergeStore().memory(c.ownerUserId, c.id, new Date().toISOString(), { includePending: true });
   const tenant = listTenants()[0];
   const clientUrl = clientLink(c.id, c.linkVersion ?? 0);
@@ -260,9 +263,18 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                   <option value="service">About their loan or account ({gate.email.service.allowed ? "allowed now" : "not now"})</option>
                   <option value="marketing">An offer or check-in ({gate.email.marketing.allowed ? "allowed now" : "not now"})</option>
                 </select>
-                <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={!emailOn()}>Send email</button>
+                <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={!mail.ready}>Send email</button>
               </div>
-              <p className="mlo-note">{emailOn() ? "Sent from your name; replies come to your own inbox. Every email ends with your NMLS number, the company's name and address, and a one-click way to stop email." : "Email to clients turns on with the Resend keys in Vercel."}</p>
+              <p className="mlo-note">
+                {mail.reconnect ? <><Link href="/mlo/email">Reconnect your email</Link> to send. Nothing goes from another address meanwhile.</> : mail.via === "mailbox" ? `Sent from ${mail.from}; it lands in your Sent folder and replies come to you.` : mail.ready ? <>Sent in your name; replies come to your own inbox. <Link href="/mlo/email">Connect your own mailbox</Link> to send from your address.</> : <><Link href="/mlo/email">Connect your email</Link> to send.</>}{" "}
+                Every email ends with your NMLS number, the company&apos;s name and address, and a one-click way to stop email.
+              </p>
+            </form>
+          ) : null}
+          {inCampaigns.length ? (
+            <form action={contactRepliedAction.bind(null, c.id)} className="mlo-row-form" style={{ marginTop: 14 }}>
+              <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>They replied</button>
+              <span className="mlo-note">In {inCampaigns.length} campaign{inCampaigns.length === 1 ? "" : "s"}. Answered an email or called back? This stops their follow-up campaigns (keep-in-touch ones carry on).</span>
             </form>
           ) : null}
         </section>

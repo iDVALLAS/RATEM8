@@ -9,7 +9,7 @@ import { checkCampaign } from "@/lib/campaigns/service";
 import { contactStore } from "@/lib/contacts/store";
 import { companyOfMlo, singleCompany } from "@/lib/accounts/company";
 import { serviceForCompany, twilioConfig } from "@/lib/messaging/twilio";
-import { emailOn } from "@/lib/messaging/email";
+import { emailReadyFor } from "@/lib/messaging/email";
 import { FlashBox } from "../../MloChrome";
 import Editor from "../Editor";
 import { campaignStatusAction, deleteCampaignAction, enrollGroupAction, saveCampaignAction, stopEnrollmentAction } from "../actions";
@@ -51,7 +51,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         <FlashBox flash={decodeFlash(f)} />
         {problem && c.status !== "active" ? <p className="mlo-flash mlo-flash--err">Before it can run: {problem}</p> : null}
 
-        <Editor campaign={c} action={saveCampaignAction.bind(null, c.id)} textReady={textReady} emailReady={emailOn()} />
+        <Editor campaign={c} action={saveCampaignAction.bind(null, c.id)} textReady={textReady} emailReady={(await emailReadyFor(me)).ready} />
 
         <section className="mlo-section" id="people">
           <h2>People in it</h2>

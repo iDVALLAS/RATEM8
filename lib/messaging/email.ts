@@ -5,8 +5,9 @@
  * The research's channel plan (ledger item 14): proactive check-ins go by
  * email first, since Washington's text law and the carriers make marketing
  * texts hard; texts are for replies and loan status.
- *  - Sent through Resend from the loan officer's name, with replies going
- *    to the loan officer's own inbox (Reply-To).
+ *  - Sent from the loan officer's own Gmail or Microsoft 365 mailbox when
+ *    they connected it (D52), else through Resend from their name, with
+ *    replies going to their own inbox (Reply-To).
  *  - Every email carries a footer that identifies the sender: the loan
  *    officer, their NMLS number, the sponsoring company with its NMLS
  *    number and street address, and Equal Housing Opportunity. It also
@@ -27,6 +28,7 @@ import { signatureFor } from "@/lib/profile/signature";
 import { checkDraft } from "@/lib/concierge/guard";
 import { recordPromises } from "@/lib/concierge/promises";
 import { clientLink } from "@/lib/clientpage/link";
+import { mailboxFor, sendFromMailbox } from "@/lib/mail/service";
 import { gateFor, type SendOutcome } from "./service";
 import { touchStore } from "./store";
 
@@ -73,12 +75,29 @@ function emailConfig(): { apiKey: string; from: string } | null {
 
 export const emailOn = () => !!emailConfig();
 
+/**
+ * D52: whether this person can email clients — from their own connected
+ * mailbox, or through the platform's Resend address. A mailbox that needs
+ * reconnecting counts as not ready (it never falls back to Resend).
+ */
+export async function emailReadyFor(user: Pick<User, "id">): Promise<{ ready: boolean; via: "mailbox" | "resend" | null; from: string | null; reconnect: boolean }> {
+  const m = await mailboxFor(user);
+  if (m) return { ready: m.status === "connected", via: "mailbox", from: m.email, reconnect: m.status !== "connected" };
+  const cfg = emailConfig();
+  return { ready: !!cfg, via: cfg ? "resend" : null, from: cfg?.from ?? null, reconnect: false };
+}
+
 export async function sendEmail(actor: User, contactId: string, rawSubject: string, rawBody: string, purpose: Purpose, now = new Date(), send: (msg: { from: string; to: string; replyTo: string; subject: string; text: string }) => Promise<{ ok: boolean; id: string | null }> = resendSend, opts: { origin?: "human" | "concierge" | "template" | "campaign" } = {}): Promise<SendOutcome> {
   const c = await contactStore().get(contactId);
   if (!c || !canSee(actor, c)) return { ok: false, error: "No such contact." };
   if (!c.email) return { ok: false, error: "There's no email address for them." };
+  // D52: their own mailbox when connected; otherwise the platform's Resend address.
+  const box = await mailboxFor(actor);
+  // Campaign steps wait (retryAt) rather than being skipped while it's broken.
+  const later = (h: number) => new Date(now.getTime() + h * 3_600_000).toISOString();
+  if (box && box.status !== "connected") return { ok: false, error: `Reconnect your email (${box.label}) on the Email page before anything more is sent.`, retryAt: later(6) };
   const cfg = emailConfig();
-  if (!cfg) return { ok: false, error: "Email isn't connected yet. Add the Resend keys in Vercel." };
+  if (!box && !cfg) return { ok: false, error: "Email isn't connected yet. Connect your mailbox on the Email page, or the owner adds the Resend keys." };
   const s = checkSubject(rawSubject);
   if (!s.ok) return { ok: false, error: `The subject ${s.reason}.` };
   const d = checkDraft(rawBody, { names: [c.firstName, c.lastName, actor.name.split(/\s+/)[0]], places: [c.city] });
@@ -93,11 +112,17 @@ export async function sendEmail(actor: User, contactId: string, rawSubject: stri
   const text = `${d.text}\n\n${sig ? `${sig}\n\n` : ""}${emailFooter(actor, clientLink(c.id, c.linkVersion ?? 0))}`;
   const mlo = mloById(actor.mloId);
   const fromName = (mlo?.name ?? actor.name ?? "LoanM8").replace(/[<>"]/g, "");
-  const r = await send({ from: `${fromName} <${cfg.from}>`, to: c.email, replyTo: actor.email, subject: s.text, text });
+  let r: { ok: boolean; id: string | null; error?: string; retry?: boolean };
+  if (box) {
+    const m = await sendFromMailbox(actor, { fromName, to: c.email, subject: s.text, text }, now);
+    r = m.ok ? { ok: true, id: m.id } : { ok: false, id: null, error: m.error, retry: m.reconnect || /tried again/.test(m.error) };
+  } else {
+    r = await send({ from: `${fromName} <${cfg!.from}>`, to: c.email, replyTo: actor.email, subject: s.text, text });
+  }
   await touchStore().add({ id: `t_${randomBytes(9).toString("base64url")}`, contactId: c.id, ownerUserId: c.ownerUserId, channel: "email", purpose, direction: "out", body: `${s.text}\n\n${d.text}`, status: r.ok ? "sent" : "failed", providerId: r.id, note: g.basis, at: now.toISOString(), actor: actor.email, origin: opts.origin ?? "human" });
   await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "gate.send.email", detail: { contactId, purpose, ok: r.ok } });
   if (r.ok) await recordPromises(actor, c, d.text, `email:${r.id ?? now.toISOString()}`, now).catch(() => 0);
-  return r.ok ? { ok: true } : { ok: false, error: "Resend didn't accept the email." };
+  return r.ok ? { ok: true } : { ok: false, error: r.error ?? "Resend didn't accept the email.", ...(r.retry ? { retryAt: later(r.error?.startsWith("Reconnect") ? 6 : 1) } : {}) };
 }
 
 async function resendSend(msg: { from: string; to: string; replyTo: string; subject: string; text: string }): Promise<{ ok: boolean; id: string | null }> {

@@ -20,6 +20,8 @@ import { rndNeeded } from "@/lib/messaging/service";
 import { serviceForCompany, twilioConfig } from "@/lib/messaging/twilio";
 import { databaseUrl, emailConfig } from "@/lib/m8/server";
 import { signatureFor } from "@/lib/profile/signature";
+import { mailboxFor } from "@/lib/mail/service";
+import { providersOn } from "@/lib/mail/oauth";
 
 export type SetupItem = {
   id: string;
@@ -98,13 +100,16 @@ export async function checklist(user: User, now = new Date()): Promise<SetupItem
   const withPhone = contacts.filter((c) => c.phone && !c.locked);
   const dncFresh = withPhone.filter((c) => c.dnc && now.getTime() - Date.parse(c.dnc.checkedAt) <= 31 * 86_400_000).length;
   const permitted = contacts.filter((c) => Object.values(summarize(consents.filter((e) => e.contactId === c.id))).some((p) => p.service.granted || p.marketing.granted)).length;
-  const [keys, loans, s, auto, rnd, sig] = await Promise.all([pipelineStore().keys(user.id), pipelineStore().list(user.id), conciergeStore().settings(user.id), automationStore().settings(user.id), rndNeeded(user, now), signatureFor(user).catch(() => "")]);
+  const [keys, loans, s, auto, rnd, sig, box] = await Promise.all([pipelineStore().keys(user.id), pipelineStore().list(user.id), conciergeStore().settings(user.id), automationStore().settings(user.id), rndNeeded(user, now), signatureFor(user).catch(() => ""), mailboxFor(user)]);
   const service = serviceForCompany(companyOfMlo(user.mloId), singleCompany());
   const items: SetupItem[] = [
     { id: "record", group: "you", label: "Your account is linked to your loan officer record", why: "Licensing, your NMLS number and your sponsor come from it; without it you can't market in any state.", done: !!mlo, href: "/mlo/team" },
     { id: "portal", group: "you", label: "Your secure application and upload link is set", why: "Application texts and document requests point borrowers to it (your ARIVE borrower portal).", done: !!mlo && hasApplicationUrl(mlo) },
     { id: "booking", group: "you", label: "Your booking link is set", why: "Clients and M8 chat offer it to book time with you.", done: !!mlo && /^https:\/\//.test(mlo.calendly) },
     { id: "signature", group: "you", label: "Your email signature is set", why: "It goes under every email you send from Command Center, above the lines the law asks for.", done: !!sig.trim(), href: "/mlo/signature" },
+    ...(providersOn().length || box
+      ? [{ id: "mailbox", group: "you" as const, label: "Your email is connected", why: "Emails to clients go from your own Gmail or Microsoft 365 address, land in your Sent folder, and replies come back to you.", done: box?.status === "connected", detail: box ? (box.status === "connected" ? box.email : "needs reconnecting") : undefined, href: "/mlo/email" }]
+      : []),
     { id: "texting", group: "texting", label: "Texting is connected for your sponsoring company", why: "Texts go out through your company's own registered Messaging Service.", done: !!twilioConfig() && !!service, href: "/mlo/texting" },
     { id: "campaign_approved", group: "texting", label: "Your Customer Care campaign is approved by the carriers", why: "Carriers filter or block texts from unregistered campaigns.", done: marks.has("campaign_approved"), href: "/mlo/texting", manual: true },
     { id: "optout_wording", group: "texting", label: "The opt-out confirmation only confirms (no \"reply START\")", why: "FCC 26-67 from 2026-11-25. Set it in your Messaging Service's Advanced Opt-Out.", done: marks.has("optout_wording"), href: "/mlo/texting", manual: true },
@@ -122,6 +127,7 @@ export async function checklist(user: User, now = new Date()): Promise<SetupItem
     items.push(
       { id: "db", group: "owner", label: "The database is connected", why: "Without it, nothing in Command Center is kept between restarts.", done: !!databaseUrl() },
       { id: "email", group: "owner", label: "Email sending is connected (Resend)", why: "Sign-in links, the morning email and alerts.", done: !!emailConfig() },
+      { id: "mail_apps", group: "owner", label: "Loan officers can connect Gmail and Microsoft 365", why: "One app registration with Google and one with Microsoft; then everyone's emails go from their own mailbox.", done: providersOn().length === 2, detail: providersOn().length === 1 ? "one of two set" : undefined, href: "/mlo/email" },
       { id: "ai_key", group: "owner", label: "Command Center has its own AI key", why: "CC_ANTHROPIC_API_KEY (Sensitive): a separate workspace with its own spend limit and zero data retention.", done: !!process.env.CC_ANTHROPIC_API_KEY?.trim() },
       { id: "cron", group: "owner", label: "The morning run is on", why: "CRON_SECRET (Sensitive) lets the daily schedule run the Concierge, recipes and email.", done: !!process.env.CRON_SECRET?.trim() },
     );

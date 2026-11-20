@@ -108,6 +108,11 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     steps with waits, automatic but every send through `sendText`/`sendEmail`
     (the gate); reply ends follow-ups, STOP ends all; new leads auto-enroll;
     `/api/cc/campaigns/tick` daily (Hobby); `CC_CAMPAIGNS="false"` stops all.
+    D52 email (`lib/mail/*`, `/mlo/email`): Gmail/Microsoft 365 send-only
+    (`gmail.send`/`Mail.Send`, PKCE, sealed tokens in `cc_mailboxes`);
+    `sendEmail` uses the mailbox when connected, never falls back when it
+    breaks (campaign steps wait); "They replied" on the contact page ends
+    follow-ups. Keys `GOOGLE_OAUTH_*`, `MS_OAUTH_*`.
     Value-carrying submit buttons use bound
     server actions (`action.bind(null, value)`), never `name`/`value`.
   - **C22 lock:** production needs the tester password until `SITE_LOCK="false"`.

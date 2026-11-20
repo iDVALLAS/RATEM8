@@ -33,6 +33,18 @@ Sign-in links, the morning and weekly emails, alerts, and your emails to clients
 | `LOANM8_FROM_EMAIL` | No | The verified address mail comes from. |
 | `MLO_NOTIFICATION_EMAIL` | No | Where chat questions and alerts go. Email (sign-in links included) only sends once this is set too. |
 
+### Gmail and Microsoft 365 (send-only)
+
+So each loan officer's client emails go from their own mailbox (D52). Google Cloud: an OAuth client (Web application), the Gmail API on, scope gmail.send, redirect URI (your site)/api/cc/mail/callback/google; Google checks the app's brand before outside Workspaces can use it. Microsoft Entra: an app for accounts in any organization, Web redirect URI (your site)/api/cc/mail/callback/microsoft, a client secret, delegated Graph permissions Mail.Send, User.Read and offline_access. Register the preview and production addresses. Exact addresses on the Email page.
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `GOOGLE_OAUTH_CLIENT_ID` (optional) | No | Google Cloud → APIs & Services → Credentials. |
+| `GOOGLE_OAUTH_CLIENT_SECRET` (optional) | Yes | Same place. |
+| `MS_OAUTH_CLIENT_ID` (optional) | No | Entra → App registrations → the app's Application (client) ID. |
+| `MS_OAUTH_CLIENT_SECRET` (optional) | Yes | Entra → the app → Certificates & secrets (the secret's Value). |
+| `CC_MAIL_KEY` (optional) | Yes | Any long random value; encrypts the saved connections (otherwise one derived from CC_LINK_SECRET). Changing it means everyone reconnects. |
+
 ### AI for Command Center (Anthropic)
 
 Make a separate workspace in the Anthropic Console for Command Center, with its own monthly spend limit, and ask Anthropic for zero data retention on it (it handles client messages and notes). The public chat keeps its own key.

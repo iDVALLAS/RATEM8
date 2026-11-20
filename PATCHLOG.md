@@ -3846,3 +3846,111 @@ cut-offs, stop on reply, starters, an AI builder). The owner's decisions
     - phones measure 390px, with no errors
 - **Next:** D52 company email, D53 texting set up by Command Center, D54
   voicemail drops.
+
+## D52 — Your own Gmail or Microsoft 365, send-only (2026-11-20)
+
+The owner's go-ahead (2026-11-20): "green light for connecting gmail and
+microsoft 365", with the D51 decision "Direct, send-only". The logo under
+LoanM8 waits ("leave as is").
+
+- **Connecting** (`lib/mail/*`, `/mlo/email`, Settings → Email):
+  - **Connect Gmail** or **Connect Microsoft 365** signs in with Google
+    or Microsoft and asks for one permission: sending as you. Gmail asks
+    for `gmail.send` only; Microsoft for `Mail.Send` (plus `User.Read` and
+    `offline_access`). Neither can read the inbox, contacts or calendar.
+  - The standard sign-in flow with PKCE and a one-time state, held in a
+    sealed 10-minute cookie (`lm8_cc_mail`, path `/api/cc/mail`) tied to
+    the person who started it (`lib/mail/flow.ts`).
+  - Routes: `/api/cc/mail/start?provider=` and
+    `/api/cc/mail/callback/[provider]` (open under the site lock; both
+    check the signed-in person).
+  - If Google's screen lets them untick sending, or no lasting token
+    comes back, nothing is saved and the page says why.
+  - The tokens are kept encrypted (AES-256-GCM, `lib/mail/seal.ts`, key
+    from `CC_MAIL_KEY` or derived from `CC_LINK_SECRET`) in `cc_mailboxes`.
+  - "Send me a test" and "Disconnect" (Google's permission is revoked;
+    Microsoft's is removed from the account's app list).
+- **Sending** (`lib/mail/service.ts`, `sendEmail` in
+  `lib/messaging/email.ts`):
+  - Once connected, every email to a client (contact page, Concierge,
+    campaigns) goes from **their own address** through the Gmail API or
+    Microsoft Graph, with the signature and the required footer as
+    before. It lands in their Sent folder (their company keeps it), and
+    replies go straight to them.
+  - Without a mailbox, email goes through Resend as before.
+  - Access tokens are refreshed a minute before they run out; a 401 gets
+    one retry with a fresh token; Microsoft's rotated refresh token is
+    kept.
+  - **If the provider refuses the connection** (permission removed,
+    password change): the mailbox is marked "needs reconnecting", the
+    person gets one email from the platform address, and sending stops.
+    **It never falls back to another address.** Campaign email steps
+    wait (`retryAt`, 6 hours) instead of being skipped. A sending limit
+    or a slow provider waits an hour.
+  - Plain-text messages built with no way to inject headers
+    (`lib/mail/mime.ts`).
+- **Replies:** Command Center can't read email, so a contact in a
+  campaign shows **"They replied"** on their page. It ends their
+  follow-up campaigns (keep-in-touch ones carry on). Text replies and
+  STOP are still caught automatically.
+- **Setup everywhere:**
+  - Checklist: "Your email is connected" (once the owner has set up
+    either provider), and for the owner "Loan officers can connect Gmail
+    and Microsoft 365".
+  - Launch checklist, phase 1: "Gmail and Microsoft 365 (send-only)",
+    with every setting and whether it's Sensitive
+    (`docs/COMMAND_CENTER_LAUNCH.md` regenerated).
+  - The setup assistant knows the status, the exact redirect addresses,
+    and the Google Cloud and Entra steps (official links added), and
+    `/mlo/setup-help?topic=mailbox` opens on it.
+  - Contact, Concierge and Campaign pages check each person's own email
+    (`emailReadyFor`), with links to connect or reconnect.
+- **Owner setup (once):**
+  - **Google Cloud:**
+    - An OAuth client of type Web application, with the Gmail API on and
+      the scope `gmail.send`.
+    - Redirect URI `(site)/api/cc/mail/callback/google` for the preview
+      and production addresses.
+    - Google checks the app's brand before people outside your own
+      Workspace can use it. `gmail.send` is a sensitive scope, so no
+      security assessment is needed.
+  - **Microsoft Entra:**
+    - An app for accounts in any organization, with the Web redirect URI
+      `(site)/api/cc/mail/callback/microsoft`.
+    - A client secret, and the delegated Graph permissions `Mail.Send`,
+      `User.Read` and `offline_access`.
+    - Some companies need their IT admin to approve the app once.
+  - **Vercel:**
+    - `GOOGLE_OAUTH_CLIENT_ID` (not Sensitive)
+    - `GOOGLE_OAUTH_CLIENT_SECRET` (Sensitive)
+    - `MS_OAUTH_CLIENT_ID` (not Sensitive)
+    - `MS_OAUTH_CLIENT_SECRET` (Sensitive)
+    - optional: `CC_MAIL_KEY` (Sensitive) and `MS_OAUTH_TENANT`
+- **Verified:**
+  - 15 new tests:
+    - token sealing and tampering
+    - header injection
+    - send-only scopes with PKCE
+    - the granted-permission check
+    - the return trip tied to person, state and time
+    - Gmail connect, refusals and send with refresh
+    - reconnect with no fallback
+    - the 401 retry and the sending-limit case
+    - Microsoft connect, send and rotated token
+    - disconnect and revoke
+    - `sendEmail` from the mailbox, waiting while broken, and with
+      nothing connected
+  - `npm run verify`.
+  - **In the browser** (Command Center QA, with a dummy Google client):
+    - the Email page shows Connect Gmail and the redirect address
+    - start sends you to accounts.google.com
+    - a bad state comes back with a message
+    - the contact page says "Connect your email" when nothing is
+      connected
+    - 390px with no sideways scroll
+- **Not yet:**
+  - Live sign-in with real Google and Microsoft apps (needs the owner's
+    registrations).
+  - Automatic email reply tracking: that would need reading the inbox,
+    which this patch deliberately doesn't ask for.
+- **Next:** D53 texting set up by Command Center, D54 voicemail drops.

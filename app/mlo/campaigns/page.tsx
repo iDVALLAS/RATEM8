@@ -7,7 +7,7 @@ import { campaignsOn, summaries } from "@/lib/campaigns/service";
 import { STARTERS } from "@/lib/campaigns/library";
 import { companyOfMlo, singleCompany } from "@/lib/accounts/company";
 import { serviceForCompany, twilioConfig } from "@/lib/messaging/twilio";
-import { emailOn } from "@/lib/messaging/email";
+import { emailReadyFor } from "@/lib/messaging/email";
 import { FlashBox } from "../MloChrome";
 import { aiCampaignAction, newCampaignAction } from "./actions";
 import "../mlo.css";
@@ -33,7 +33,8 @@ export default async function Campaigns({ searchParams }: { searchParams: Promis
   }
   const list = await summaries(me);
   const textReady = !!twilioConfig() && !!serviceForCompany(companyOfMlo(me.mloId), singleCompany());
-  const emailReady = emailOn();
+  const mail = await emailReadyFor(me);
+  const emailReady = mail.ready;
   return (
     <PageShell>
       <div className="mlo-wrap">
@@ -44,7 +45,7 @@ export default async function Campaigns({ searchParams }: { searchParams: Promis
           <p className="mlo-note">A campaign is a few texts, emails and reminders spaced out over days, sent for you. Each message still goes through your contact rules first (permission, do-not-call, quiet hours in their time zone, state rules), and a reply ends a follow-up campaign.</p>
           <ul className="cp-ready">
             <li className={textReady ? "is-on" : ""}><strong>Texting</strong> {textReady ? "connected" : <>not connected yet · <Link href="/mlo/setup-help?topic=texting">set it up</Link></>}</li>
-            <li className={emailReady ? "is-on" : ""}><strong>Email</strong> {emailReady ? "connected" : <>not connected yet · <Link href="/mlo/setup-help?topic=email">set it up</Link></>}</li>
+            <li className={emailReady ? "is-on" : ""}><strong>Email</strong> {mail.reconnect ? <>needs reconnecting · <Link href="/mlo/email">reconnect</Link> (email steps wait meanwhile)</> : emailReady ? (mail.via === "mailbox" ? `from ${mail.from}` : <>connected · <Link href="/mlo/email">send from your own mailbox</Link></>) : <>not connected yet · <Link href="/mlo/email">connect your email</Link></>}</li>
             <li className="is-on"><strong>Reminders for you</strong> always on</li>
             {!campaignsOn() ? <li><strong>All campaigns are switched off</strong> for the platform (CC_CAMPAIGNS)</li> : null}
           </ul>

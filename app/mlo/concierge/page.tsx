@@ -11,7 +11,7 @@ import Ask from "./Ask";
 import { segmentLabel } from "@/lib/messaging/segments";
 import { signature } from "@/lib/messaging/service";
 import Tell from "./Tell";
-import { emailOn } from "@/lib/messaging/email";
+import { emailOn, emailReadyFor } from "@/lib/messaging/email";
 import { allowanceFor } from "@/lib/ai/meter";
 import { approveAction, approveEmailAction, dismissAction, forgetFromDeskAction, keepAction, settingsAction, sweepAction, taskDoneAction } from "./actions";
 import "../mlo.css";
@@ -32,6 +32,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
   const tasks = [...openTasks.filter((t) => t.lane === "personal"), ...openTasks.filter((t) => t.lane !== "personal")];
   const people = await Promise.all([...new Set([...drafts.map((d) => d.contactId), ...tasks.map((t) => t.contactId), ...toKeep.map((m) => m.contactId)])].map((id) => contactStore().get(id)));
   const sig = me ? signature(me) : "";
+  const emailReady = me ? (await emailReadyFor(me)).ready : emailOn();
   const ai = me ? await allowanceFor(me.id) : null;
   const nameOf = (id: string) => {
     const c = people.find((p) => p?.id === id);
@@ -82,7 +83,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                         <div className="mlo-row-form">
                           <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Approve and send</button>
                         </div>
-                        {emailOn() && people.find((x) => x?.id === d.contactId)?.email ? (
+                        {emailReady && people.find((x) => x?.id === d.contactId)?.email ? (
                           <details className="mlo-details" open={!d.gate.allowed}>
                             <summary>{d.gate.allowed ? "Send it as an email instead" : "Texting isn't allowed now: send it as an email"}</summary>
                             <label className="mlo-field"><span>Subject</span><input name="subject" className="mlo-input" maxLength={78} placeholder={d.purpose === "service" ? "A quick update on your loan" : "Checking in"} /></label>

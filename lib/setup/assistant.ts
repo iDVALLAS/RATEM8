@@ -15,6 +15,7 @@
  * are limited to this site and a short list of official pages. Without
  * the AI it still answers, with the next steps written out.
  */
+import { providerConfig, redirectUri } from "@/lib/mail/oauth";
 import Anthropic from "@anthropic-ai/sdk";
 import type { User } from "@/lib/accounts/store";
 import { isAdmin } from "@/lib/accounts/auth";
@@ -45,6 +46,10 @@ export const OFFICIAL_LINKS = [
   "https://telemarketing.donotcall.gov",
   "https://www.reassigned.us",
   "https://zapier.com",
+  "https://console.cloud.google.com",
+  "https://entra.microsoft.com",
+  "https://myaccount.google.com",
+  "https://myapps.microsoft.com",
 ];
 
 const SECRET_PATTERNS: RegExp[] = [
@@ -114,6 +119,8 @@ export async function setupFacts(user: User, origin: string): Promise<Facts> {
     lines.push(`- Brand: ${w.brand}`, `- Campaign use case: ${w.useCase}`, `- Campaign description (paste as is): ${w.description}`, `- How people opt in (paste as is): ${w.optIn}`, `- Sample messages: ${w.samples.map((m, n) => `(${n + 1}) ${m}`).join(" ")}`, `- Opt-out: ${w.keywords} HELP reply: "${w.help}"`, `- Opt-out confirmation (Advanced Opt-Out, before 2026-11-25; it may only confirm): "${w.optOutConfirmation}"`);
     lines.push(`- Full wording page: ${origin}/mlo/texting (owners and team leads).`);
   }
+  lines.push("", `Email (send-only connection to their own mailbox, page ${origin}/mlo/email): Gmail ${providerConfig("google") ? "available" : "not set up by the owner yet"}, Microsoft 365 ${providerConfig("microsoft") ? "available" : "not set up by the owner yet"}. They press Connect, sign in, and allow sending only; Command Center never reads their inbox. If their company's Microsoft admin must approve apps, they ask IT to approve "LoanM8 Command Center". Email replies aren't seen by Command Center: they press "They replied" on the contact's page to stop follow-up campaigns.`);
+  if (owner) lines.push(`Owner setup for email: Google Cloud OAuth client (Web application), Gmail API enabled, scope gmail.send, authorized redirect URI ${redirectUri(origin, "google")}; Microsoft Entra app (accounts in any organizational directory), Web redirect URI ${redirectUri(origin, "microsoft")}, a client secret, delegated Microsoft Graph permissions Mail.Send, User.Read, offline_access. Then Vercel: GOOGLE_OAUTH_CLIENT_ID (not Sensitive), GOOGLE_OAUTH_CLIENT_SECRET (Sensitive), MS_OAUTH_CLIENT_ID (not Sensitive), MS_OAUTH_CLIENT_SECRET (Sensitive), and redeploy. Register the production address's redirect URIs too.`);
   if (owner) {
     lines.push("", "Platform settings in Vercel (which are set; values are never shown):");
     for (const [n, phase] of PHASES.entries()) {
@@ -130,7 +137,7 @@ export async function setupFacts(user: User, origin: string): Promise<Facts> {
   return { text: lines.join("\n"), items, owner };
 }
 
-const SYSTEM = `You are the setup assistant inside LoanM8 Command Center, a CRM for licensed mortgage loan officers. You help one person finish setting up Command Center and the outside services it uses: texting (Twilio, business texting registration), email (Resend), the loan system connection, permission and do-not-call records, the Concierge, and the Vercel settings on the launch checklist.
+const SYSTEM = `You are the setup assistant inside LoanM8 Command Center, a CRM for licensed mortgage loan officers. You help one person finish setting up Command Center and the outside services it uses: texting (Twilio, business texting registration), email (connecting their own Gmail or Microsoft 365 mailbox, and the platform Resend address), the loan system connection, permission and do-not-call records, the Concierge, and the Vercel settings on the launch checklist.
 
 How to help:
 - Work only from the FACTS block for what is set up, what isn't, addresses, setting names and exact wording. Don't guess at their status; it's in the facts, refreshed every turn.

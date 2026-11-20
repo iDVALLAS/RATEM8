@@ -117,7 +117,21 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await openContact('Ann Lee');
     const n = await page.locator('#email').count();
     console.log('email composer:', n ? 'shown' : 'none (no email on file)');
+    const send = page.locator('#email').getByRole('button', { name: 'Send email' });
+    if (n && await send.isDisabled()) { console.log('email: not connected here (no mailbox or Resend):', (await page.locator('#email .mlo-note').last().innerText()).slice(0, 80)); return; }
     if (n) { await page.locator('#email input[name=subject]').fill('Re: checking in'); await page.locator('#email textarea').fill('Hi Ann, just checking in.'); await page.locator('#email').getByRole('button', { name: 'Send email' }).click(); await page.waitForURL(/f=/); console.log('email (bad subject):', await flash()); }
+  });
+  await step('email page (D52)', async () => {
+    await page.goto(B + '/mlo/email');
+    const t = await page.locator('main').innerText();
+    console.log('email page:', t.includes('Connect Gmail') ? 'Connect Gmail shown' : 'no connect button', '|', t.includes('/api/cc/mail/callback/google') ? 'redirect URI shown' : 'no redirect URI');
+    if (!t.includes('Send only.')) problems.push('[email page] missing how-it-works');
+    const r = await page.request.get(B + '/api/cc/mail/start?provider=google', { maxRedirects: 0 });
+    const loc = r.headers()['location'] ?? '';
+    console.log('start:', r.status(), loc.slice(0, 60));
+    if (!loc.startsWith('https://accounts.google.com/')) problems.push('[email start] did not go to Google');
+    const cb = await page.request.get(B + '/api/cc/mail/callback/google?code=x&state=wrong', { maxRedirects: 0 });
+    if (!/\/mlo\/email\?f=/.test(cb.headers()['location'] ?? '')) problems.push('[email callback] bad state did not come back with a message');
   });
   await step('membership: set up, fee, say, idea, spend', async () => {
     const go = () => page.goto(B + '/mlo/network');

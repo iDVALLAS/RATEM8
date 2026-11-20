@@ -79,7 +79,7 @@ export default function Editor({ campaign, action, textReady, emailReady }: { ca
       <section className="mlo-section">
         <h2>Steps</h2>
         {!textReady && d.steps.some((s) => s.channel === "text") ? <p className="mlo-flash mlo-flash--err">Texting isn&apos;t connected yet, so text steps will be skipped. <a href="/mlo/setup-help?topic=texting">Set it up with the assistant</a>.</p> : null}
-        {!emailReady && d.steps.some((s) => s.channel === "email") ? <p className="mlo-flash mlo-flash--err">Email isn&apos;t connected yet, so email steps will be skipped. <a href="/mlo/setup-help?topic=email">Set it up with the assistant</a>.</p> : null}
+        {!emailReady && d.steps.some((s) => s.channel === "email") ? <p className="mlo-flash mlo-flash--err">Email isn&apos;t ready, so email steps won&apos;t go out. <a href="/mlo/email">Connect your email</a>.</p> : null}
         <ol className="cp-steps">
           {d.steps.map((s, i) => {
             total += s.waitDays;

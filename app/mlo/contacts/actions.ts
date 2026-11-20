@@ -10,7 +10,8 @@ import { sendEmail } from "@/lib/messaging/email";
 import { z } from "zod";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
-import { deleteContact, importBatch, MAX_BATCH, recordConsent, unlockContacts, type ImportResult } from "@/lib/contacts/service";
+import { canSee, deleteContact, importBatch, MAX_BATCH, recordConsent, unlockContacts, type ImportResult } from "@/lib/contacts/service";
+import { onContactReply } from "@/lib/campaigns/service";
 import { contactStore } from "@/lib/contacts/store";
 import { UNLOCK_ATTESTATION } from "@/lib/contacts/attestation";
 import { CHANNELS, EVIDENCE, PROVENANCE, PURPOSES } from "@/lib/contacts/store";
@@ -98,6 +99,15 @@ export async function sendEmailAction(fd: FormData): Promise<void> {
   const purpose = fd.get("purpose") === "marketing" ? "marketing" : "service";
   const res = await sendEmail(actor, contactId, String(fd.get("subject") ?? ""), String(fd.get("body") ?? ""), purpose);
   redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: res.ok, lines: [res.ok ? "Email sent. Replies go to your inbox." : res.error] })}#conversation`);
+}
+
+/** D52: they answered by email or phone; end their follow-up campaigns. */
+export async function contactRepliedAction(contactId: string): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const c = await contactStore().get(contactId);
+  const n = c && canSee(actor, c) ? await onContactReply(c.id, false) : 0;
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: true, lines: [n ? `Stopped ${n} follow-up campaign${n === 1 ? "" : "s"} for them.` : "No follow-up campaigns to stop (keep-in-touch campaigns carry on)."] })}#email`);
 }
 
 /** D4: line type from Twilio Lookup. */

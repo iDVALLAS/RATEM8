@@ -55,6 +55,7 @@ export const DESTS: Dest[] = [
   { key: "network", href: "/mlo/network", label: "Membership", icon: "network", group: "grow", desc: "People you brought in, your production share, AI use and your area's marketing.", account: true },
   { key: "expenses", href: "/mlo/expenses", label: "Expenses", icon: "receipt", group: "business", desc: "Talk or snap a receipt. A tax-ready report for your CPA at year end.", account: true },
   { key: "report", href: "/mlo/report", label: "Weekly report", icon: "chart", group: "business", desc: "Your week in numbers: reached, replies, drafts, loans moved." },
+  { key: "email", href: "/mlo/email", label: "Email", icon: "send", group: "settings", desc: "Connect your Gmail or Microsoft 365, so emails to clients go from your own address.", account: true },
   { key: "signature", href: "/mlo/signature", label: "Email signature", icon: "pen", group: "settings", desc: "Your sign-off under every email you send from here.", account: true },
   { key: "messages", href: "/mlo/messages", label: "Messages clients get", icon: "message", group: "settings", desc: "Every automatic message a client can get from you, word for word." },
   { key: "rules", href: "/mlo/rules", label: "Contact rules", icon: "shield", group: "settings", desc: "Quiet hours, caps, do-not-call and state rules every message passes." },

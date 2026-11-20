@@ -25,7 +25,7 @@ export default async function SetupHelp({ searchParams }: { searchParams: Promis
   }
   const items = await checklist(me);
   const pick = topic ? items.find((i) => i.id === topic) : undefined;
-  const firstAsk = pick && !pick.done ? `Help me with this step: ${pick.label}.` : topic === "texting" ? "Help me set up texting with Twilio." : null;
+  const firstAsk = pick && !pick.done ? `Help me with this step: ${pick.label}.` : topic === "texting" ? "Help me set up texting with Twilio." : topic === "mailbox" ? "Help me connect my email (Gmail or Microsoft 365)." : null;
   const done = items.filter((i) => i.done).length;
   const groups = (Object.keys(GROUP_LABELS) as SetupItem["group"][]).filter((g) => items.some((i) => i.group === g));
   return (
