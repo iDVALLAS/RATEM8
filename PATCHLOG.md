@@ -4176,3 +4176,27 @@ backgrounds".
   - `npm run verify`.
   - 4× close-ups in night, dim and paper, plus the full bar and the phone
     in light: no sideways scroll.
+
+### D53.3 — The owner's exact logo (2026-11-20)
+
+The owner: "Use this exact logo" (a transparent PNG of the MLO COMMAND
+badge with "POWERED BY LoanM8" drawn in, and no orb).
+
+- **The file:** `public/brand/mlo-command-logo.png` is the master,
+  trimmed of empty margin only. The web copies are `mlo-command-logo.webp`
+  plus `-320` and `-640`.
+  - `app/mlo/Brand.tsx` is now just that image, linked, with the same
+    labels.
+  - The earlier two-layer version (cut-out badge, SVG orb, vector
+    "Powered by" text) is removed, along with its files and CSS.
+- **No pulse:** this artwork has no orb, so nothing animates. A pulsing
+  orb behind it can be added back if the owner wants.
+- **Size:** 62px tall on desktop (about 155px wide), 50px on phones.
+- **Pops on every background:** a soft green glow on dark and dim, and a
+  soft dark shadow on light. These are effects on the image; the artwork
+  itself is unchanged.
+- **Verified:**
+  - `npm run verify`.
+  - 3× close-ups in night, dim and paper, plus the bar, the phone (night
+    and paper) and sign-in: no sideways scroll, no errors, and the bar's
+    menu still fits at full width.

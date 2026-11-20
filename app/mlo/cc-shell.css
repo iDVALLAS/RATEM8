@@ -104,25 +104,9 @@
 .cc-bar { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--bg) 92%, transparent); border-bottom: 1px solid var(--rule); padding-top: env(safe-area-inset-top, 0px); }
 .cc-bar__in { max-width: none; margin: 0 auto; display: flex; align-items: center; gap: 14px; min-height: 68px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .cc-brand { position: relative; display: inline-flex; align-items: center; gap: 0; color: var(--fg); text-decoration: none; flex: none; }
-/* The MLO Command logo (owner's artwork): the orb breathes behind the badge. */
-.cc-app, .cc-auth { --cc-logo-hi: #64CAA4; --cc-logo-mid: #3FA986; --cc-logo-lo: #135F4B; --cc-logo-halo: #3FB48C; }
-.cc-logo { position: relative; display: block; height: 62px; aspect-ratio: 830 / 410; flex: none; }
-.cc-logo__orb, .cc-logo__badge { position: absolute; inset: 0; width: 100%; height: 100%; }
-.cc-logo__orb { overflow: visible; }
-.cc-logo__pulse { transform-box: view-box; transform-origin: 413px 203px; animation: cc-logo-breathe 3s ease-in-out infinite; will-change: transform; }
-.cc-logo__halo { animation: cc-logo-halo 3s ease-in-out infinite; }
-@keyframes cc-logo-breathe { 0%, 100% { transform: scale(0.92); } 50% { transform: scale(1.08); } }
-@keyframes cc-logo-halo { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .cc-logo__pulse, .cc-logo__halo { animation: none; } }
-/* "Powered by LoanM8" inside the logo, where the owner's artwork has it (small and to the right, by design). */
-.cc-logo__powered { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.cc-logo__pb { font: 500 15px var(--font-mono, ui-monospace, monospace); letter-spacing: 5px; fill: var(--muted); }
-.cc-logo__lm { font: 600 27px var(--font-geist-sans), system-ui, sans-serif; letter-spacing: -0.5px; fill: var(--fg); }
-.cc-logo__m8 { font: 600 27px var(--font-geist-sans), system-ui, sans-serif; letter-spacing: -0.5px; fill: var(--color-m8-green); }
-/* Pops on every background: a deeper glow on dark, a soft shadow on light. */
-.cc-logo__badge { filter: drop-shadow(0 0 6px rgba(93, 202, 165, 0.35)); }
-[data-theme="paper"] .cc-logo__badge { filter: drop-shadow(0 3px 6px rgba(4, 52, 44, 0.35)); }
-[data-theme="paper"] .cc-app, [data-theme="paper"] .cc-auth { --cc-logo-halo: #1D9E75; }
+/* The MLO Command logo, exactly as supplied. It pops on every background: a soft green glow on dark, a soft shadow on light. */
+.cc-logo { display: block; height: 62px; width: auto; aspect-ratio: 1600 / 641; flex: none; filter: drop-shadow(0 0 6px rgba(93, 202, 165, 0.3)); }
+[data-theme="paper"] .cc-logo { filter: drop-shadow(0 3px 6px rgba(4, 52, 44, 0.35)); }
 .cc-m8 { color: var(--color-m8-green); }
 .cc-nav { display: flex; align-items: center; gap: 2px; margin: 0 auto; padding: 4px; border-radius: 999px; background: var(--cc-nav-bg); min-width: 0; }
 .cc-nav__btn { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 13px; border-radius: 999px; border: 0; background: transparent; color: var(--cc-nav-fg); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; white-space: nowrap; }
@@ -174,7 +158,7 @@
 .cc-sheet__icon { position: relative; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--cc-card-2); color: var(--accent); }
 .cc-sheet__item.is-active .cc-sheet__icon { background: var(--cc-hi); color: var(--cc-hi-text); }
 @media (max-width: 380px) { .cc-sheet__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 520px) { .cc-bar__in { min-height: 56px; gap: 10px; } .cc-pilot { display: none; } .cc-logo { height: 52px; } }
+@media (max-width: 520px) { .cc-bar__in { min-height: 56px; gap: 10px; } .cc-pilot { display: none; } .cc-logo { height: 50px; } }
 
 .cc-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; max-width: 80rem; width: 100%; margin: 0 auto; padding: 20px max(16px, env(safe-area-inset-left, 0px)) 28px max(16px, env(safe-area-inset-right, 0px)); color: var(--muted); font-size: 13px; border-top: 1px solid var(--rule); }
 .cc-foot a { color: var(--muted); }
