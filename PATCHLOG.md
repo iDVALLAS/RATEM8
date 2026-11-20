@@ -5119,3 +5119,19 @@ overlays". It should handle:
     sideways scroll at 390px.
 - **Not verified live:** no AI key in this session. The web search tool and
   PDF reading follow the documented API shapes.
+
+## D64 — The team card with the LOA featured (layout B) (2026-11-20)
+
+The owner picked layout B from three mockups: the slide, the featured
+tile, and tabs.
+- **The card on sign-in and sign-up** (`app/mlo/CcAuthShell.tsx`):
+  - The Loan Officer Assistant leads the grid as a large tile, two columns
+    by two rows, outlined in the highlight color.
+  - It has a "New" badge, its name, a line on what it does (copy in
+    `CC_LOA_TILE`, `lib/content/command-center.ts`), and a five-step file
+    bar: contract, disclosures, title, approval, close. The bar is
+    decorative and hidden from screen readers.
+  - The other eight members fill in around it.
+  - On narrower screens it spans the full width above two columns.
+- **Verified:** `npm run verify`. Screenshots at 1440px in night and paper
+  and at 390px; no sideways scroll.

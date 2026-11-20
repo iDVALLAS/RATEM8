@@ -17,6 +17,13 @@ export const CC_PITCH = "Your contacts, your mailbox and your data stay yours, a
 export const CC_TEAM_TITLE = "A whole team working your business";
 export const CC_TEAM_LINE = "Your Concierge team finds business, keeps every loan moving, builds your realtor partnerships, markets you, coaches you and runs your numbers, every day. Compliance checks every word first, and nothing goes out or gets spent unless you've said yes.";
 
+/** D64 (owner chose layout B): the LOA's featured tile in the team grid. */
+export const CC_LOA_TILE = {
+  badge: "New",
+  line: "Works every file from contract to close. Talk to it: it knows Fannie Mae, Freddie Mac and your lenders' overlays, and it reads the purchase agreement, title, approval and escrow fees for you.",
+  steps: ["Contract", "Disclosures", "Title", "Approval", "Close"],
+} as const;
+
 /** The channels and tools, newest first. Only what's live; M8 calls stay off the pitch until they're turned on. */
 export const CC_POINTS = [
   { icon: "video", text: "Video messages with captions. Every word checked, and you see who watched." },
