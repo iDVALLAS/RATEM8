@@ -131,7 +131,7 @@ export default function CcTopBar({ admin, signedIn, pilot = false, name, email, 
       <a href="#main" className="skip-link">Skip to content</a>
       <header className="cc-bar">
         <div className="cc-bar__in" ref={barRef}>
-          <Brand href="/mlo" label="LoanM8 Command Center home" />
+          <Brand href="/mlo" label="MLO Command, powered by LoanM8: home" />
           {pilot ? <Link href="/mlo/welcome" className="cc-pilot" title="You're in the pilot. Tell the owner about anything odd.">Pilot</Link> : null}
           <nav className="cc-nav" aria-label="Command Center" ref={navRef}>
             <Link href="/mlo" className={`cc-nav__btn ${current === "home" ? "is-active" : ""}`} aria-current={current === "home" ? "page" : undefined} title="Home"><Icon name="home" size={18} /><span className="cc-nav__label">Home</span></Link>

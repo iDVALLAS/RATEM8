@@ -4093,3 +4093,42 @@ phrasing", with members' ownership of LoanM8 itself tabled for later.
 - **Next:** D54 video messages, D55 texting set up by Command Center, D56
   voicemail drops. Tabled: whether members get any ownership in LoanM8
   (securities counsel first).
+
+## D53.2 — The MLO Command logo, with a breathing orb (2026-11-20)
+
+The owner: "Here is the logo that i want with the background removed and
+the orb pulsing", "in place of all logos on the left", and "the background
+around the perimeter of the design not the inside background removed".
+
+- **The artwork** (the owner's image, "MLO COMMAND", powered by LoanM8) is
+  split into two layers:
+  - **The badge:** `public/brand/mlo-command-badge.webp` (830×410) and
+    `-360.webp`.
+    - Only the black around the outside is removed. The frame's dark
+      inside panels, the letters, the crosshairs and the corner stripes
+      are kept.
+    - A soft outer glow comes from the neon lines.
+    - Cut from the frame's outline: the frame is closed, the inside is
+      filled, and the ring is added.
+    - The "Powered by LoanM8" line in the image is cut out, because it's
+      unreadable at bar size.
+  - **The orb:** drawn in SVG behind the badge (`app/mlo/Brand.tsx`), with
+    the artwork's colors as tokens (`--cc-logo-*` in `cc-shell.css`).
+    - It breathes on a 4s cycle like the M8 orb's idle, between 0.97 and
+      1.04 scale with its glow, transform and opacity only.
+    - No motion under reduced motion.
+- **Where:** the top left of every Command Center page, and the sign-in,
+  code, sign-up and confirm pages.
+  - Desktop: 56px tall.
+  - Phones: 50px.
+  - "Powered by LoanM8" shows as live text (M8 in M8 Green) beside it when
+    there's room: the full-width bar, and sign-in at ≥600px.
+  - The public LoanM8 site is unchanged.
+- The labels say "MLO Command, powered by LoanM8". Page text elsewhere
+  still says "LoanM8 Command Center" until the owner says whether to
+  rename it.
+- **Verified:**
+  - `npm run verify`.
+  - Screenshots at 1440 and 390px, in dark and light, plus sign-in: no
+    sideways scroll and no errors.
+  - The pulse runs (the scale changes over time).

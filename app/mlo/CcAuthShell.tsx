@@ -26,7 +26,7 @@ export default function CcAuthShell({ children, wide = false }: { children: Reac
       <a href="#main" className="skip-link">Skip to content</a>
       <header className="cc-bar">
         <div className="cc-bar__in">
-          <Brand href="/sign-in" label="LoanM8 Command Center sign in" />
+          <Brand href="/sign-in" label="MLO Command, powered by LoanM8: sign in" />
           <div className="cc-bar__end cc-auth__end"><ThemeToggle /></div>
         </div>
       </header>
