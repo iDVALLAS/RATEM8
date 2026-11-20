@@ -4499,3 +4499,24 @@ be the standard color we use".
   - Screenshots in night, dim and paper at 1440, phones in night and
     paper, and sign-in in paper: no sideways scroll, no errors, and the
     menu fits at full width.
+
+### D54.2 follow-up: the owner's icon (2026-11-20)
+
+The owner: "switch to icon to this with a black rounded square icon and use
+it instead".
+- **The file:** the owner's black rounded-square MLO Command Center
+  artwork. The white around it is made transparent (filled from the edges,
+  softened 1px), so the rounded corners sit on any tab or home screen.
+- **Where:** `public/brand/mlo-command-center-icon.png` (master) and
+  `-32/48/180/192/512.png`.
+  - New file names, so browsers don't keep the cached old icon.
+  - Set on `/mlo`, `/sign-in` and `/sign-up` through
+    `lib/content/mlo-command-meta.ts`.
+  - The previous icons are removed.
+- **Not used yet:** the stacked "MLO Command Center" logo sent at the same
+  time. Its checkerboard is drawn into the image (RGB, no transparency),
+  so it needs a transparent export before it can be placed anywhere.
+- **Verified:**
+  - `npm run verify`.
+  - The sign-in page links the new 32/48/192px icons and the 180px Apple
+    icon, and they load (200).
