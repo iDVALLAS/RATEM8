@@ -169,3 +169,22 @@ export async function aiMapAction(input: { fileName: string; kind: string; colum
   const { aiMapColumns } = await import("@/lib/contacts/ai-map");
   return aiMapColumns(actor, input);
 }
+
+/** D67: check the rules and get the link that opens Messages on the loan officer's own phone. */
+export async function phoneTextAction(contactId: string, input: { body: string; purpose: string }): Promise<{ ok: true; href: string; body: string } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in again." };
+  const { textFromPhone } = await import("@/lib/messaging/phone");
+  const r = await textFromPhone(actor, contactId, String(input.body ?? ""), input.purpose === "marketing" ? "marketing" : "service");
+  if (r.ok) return r;
+  return { ok: false, error: r.retryAt ? `${r.error} Their window opens ${new Date(r.retryAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", weekday: "short", hour: "numeric", minute: "2-digit" })} Pacific.` : r.error };
+}
+
+/** D67: they texted STOP (or asked to be left alone) on the loan officer's own phone. */
+export async function phoneStopAction(contactId: string): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const { phoneStop } = await import("@/lib/messaging/phone");
+  const ok = await phoneStop(actor, contactId);
+  redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok, lines: [ok ? "Recorded: no more texts or calls to this number, from anyone in Command Center." : "Couldn't record that."] })}#conversation`);
+}

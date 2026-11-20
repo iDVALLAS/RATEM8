@@ -164,6 +164,8 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     by key and are logged like hand-logged calls.
     D66.2: Command Center's Google key is `CC_GOOGLE_CLOUD_API_KEY` (`googleKey("cc")`, falls back to
     `GOOGLE_CLOUD_API_KEY`, which stays the public site's).
+    D67 Text from my phone (`lib/messaging/phone.ts`, contact page): same gate and sign-off as a Twilio text,
+    logged, then `sms:` opens Messages on the LO's own phone; "They asked to stop" records a phone STOP.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.

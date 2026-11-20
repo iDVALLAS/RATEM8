@@ -25,7 +25,8 @@ import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { checkLineAction, consentAction, contactRepliedAction, deleteContactAction, dncAction, draftClientLinkAction, rndAction, rotateClientLinkAction, sendEmailAction, sendTextAction } from "../actions";
+import { checkLineAction, consentAction, contactRepliedAction, deleteContactAction, dncAction, draftClientLinkAction, phoneStopAction, rndAction, rotateClientLinkAction, sendEmailAction, sendTextAction } from "../actions";
+import PhoneText from "./PhoneText";
 import { emailReadyFor } from "@/lib/messaging/email";
 import { campaignStore } from "@/lib/campaigns/store";
 import { cardStore } from "@/lib/cards/store";
@@ -249,7 +250,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
           ) : (
             <p className="mlo-note">No texts yet.</p>
           )}
-          {!texting ? <p className="mlo-note">Texting turns on when the Twilio keys are in Vercel.</p> : null}
+          {!texting ? <p className="mlo-note">Texting from Command Center turns on with the Twilio setup. Until then, text from your own phone below.</p> : null}
           <form action={sendTextAction} className="mlo-grid" style={{ marginTop: 12 }}>
             <input type="hidden" name="contactId" value={c.id} />
             <label className="mlo-field">
@@ -265,6 +266,15 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
             </div>
             <p className="mlo-note">Your first text, and every offer, ends with who it&apos;s from and “Reply STOP to opt out.”</p>
           </form>
+          {c.phone ? (
+            <>
+              <PhoneText contactId={c.id} first={c.firstName} maxLength={MAX_TEXT} serviceOk={gate.text.service.allowed} marketingOk={gate.text.marketing.allowed} />
+              <form action={phoneStopAction.bind(null, c.id)} className="mlo-row-form" style={{ marginTop: 8 }}>
+                <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>They asked to stop</button>
+                <span className="mlo-note">They texted STOP or asked you to stop, on your own phone. Turns off texts and calls to this number in Command Center.</span>
+              </form>
+            </>
+          ) : null}
           {c.email ? (
             <form action={sendEmailAction} className="mlo-grid" style={{ marginTop: 18 }} id="email">
               <input type="hidden" name="contactId" value={c.id} />

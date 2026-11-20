@@ -5391,3 +5391,27 @@ Owner: "promote".
   preview build.
 - loanm8.com checked after: `/api/health` 200 (chat on), `/sign-in` 200, the D65 Zapier route answers
   401 without a key, the D66 forms route answers 401 signed out.
+
+## D67 — Text from my phone (2026-11-20)
+
+Owner: "build the text from my phone button in addition to the standard Twilio option."
+
+- **Files:** `lib/messaging/phone.ts`, `lib/messaging/phone.test.ts`, `app/mlo/contacts/[id]/PhoneText.tsx`,
+  `app/mlo/contacts/actions.ts` (`phoneTextAction`, `phoneStopAction`), `app/mlo/contacts/[id]/page.tsx`.
+- **On each contact with a phone number:** "Text {first} from my phone" with the same purpose choice as a
+  Twilio text. Command Center runs the same contact rules (permission, opt-outs, do-not-call, quiet hours,
+  the daily limit), writes the same text (first text and every offer end with who it's from and "Reply STOP
+  to opt out"; SSNs and account numbers taken out), logs it on the contact, and opens Messages on the loan
+  officer's phone with it filled in (`sms:<number>?&body=…`, which works on iPhone and Android). They press
+  send; it goes from their own number. "Open Messages again" and "Copy the text" are there if the phone
+  didn't open it.
+- **"They asked to stop":** for a STOP texted to the loan officer's own phone. It records the opt-out the
+  same way a STOP to Twilio does (texts and calls off for that number everywhere in Command Center,
+  campaigns ended).
+- No Twilio needed for this. Twilio texting (D56) stays for automatic texts: campaigns, reminders, M8.
+- **Verified:** `npm run verify` (633 tests, 3 new: rules first, the link and sign-off, SSN removed, logged
+  with the loan officer's phone as the sender, another loan officer refused, a phone STOP turns off texts
+  and calls). Browser at 390: the form renders, a lead with no permission is refused with the reason, no
+  sideways scroll, no page errors.
+- **Known limits:** Command Center logs the text when Messages opens; it can't see whether it was sent.
+  Replies stay on the phone.
