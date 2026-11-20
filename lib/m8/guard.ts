@@ -159,3 +159,31 @@ export function guardReply(text: string, pricedRates: Set<string>, userStated: S
   if (quoted && !partial && (!/\bAPR\b/.test(text) || !/commitment to lend/i.test(text))) return { ok: false, reason: "rate-without-apr" };
   return { ok: true };
 }
+
+// ─── D67.1: no "G'day" ─────────────────────────────────────────
+// The owner's prompt says "without regional slang (never \"G'day\")", and the
+// model still opens with it now and then (the name M8 reads as "mate"). This
+// swaps it for "Hi" as the reply streams, so the borrower never sees it.
+const GDAY = /\bG['’]?day\b/gi;
+/** Text ending in what could still become "G'day" once the next piece arrives. */
+const GDAY_PARTIAL = /\bG(?:['’]?(?:d(?:a(?:y)?)?)?)?$/i;
+
+export const fixGreeting = (s: string): string => s.replace(GDAY, (m) => (m[0] === "g" ? "hi" : "Hi"));
+
+/** Streams text through the swap, holding back only a tail that could still turn into the slang. */
+export function greetingFilter(): { push(t: string): string; flush(): string } {
+  let pending = "";
+  return {
+    push(t) {
+      const fixed = fixGreeting(pending + t);
+      const hold = fixed.match(GDAY_PARTIAL)?.[0] ?? "";
+      pending = hold;
+      return fixed.slice(0, fixed.length - hold.length);
+    },
+    flush() {
+      const out = fixGreeting(pending);
+      pending = "";
+      return out;
+    },
+  };
+}

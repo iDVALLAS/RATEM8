@@ -5415,3 +5415,15 @@ Owner: "build the text from my phone button in addition to the standard Twilio o
   sideways scroll, no page errors.
 - **Known limits:** Command Center logs the text when Messages opens; it can't see whether it was sent.
   Replies stay on the phone.
+
+## D67.1 — M8 never says "G'day" (2026-11-20)
+
+The remote red team before promoting D67 failed one case: R50 ("greeting: no G'day"). Re-run three times,
+it failed once. The owner's prompt already says "never G'day"; the model slips now and then.
+
+- **Files:** `lib/m8/guard.ts` (`fixGreeting`, `greetingFilter`), `lib/m8/pipeline.ts`, `lib/m8/greeting.test.ts`.
+- M8's reply passes through a small filter as it streams: "G'day" (any spelling) becomes "Hi" before the
+  borrower sees or hears it, and the saved transcript gets the same text. Only the word is swapped; the
+  owner's prompt is unchanged.
+- **Verified:** `npm run verify`; new tests for every spelling and for the word arriving in pieces while
+  streaming; the remote red team against the D67.1 preview before promote.

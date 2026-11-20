@@ -15,7 +15,7 @@ import { copy } from "@/lib/copy";
 import { CONFIG } from "@/lib/config";
 import { redactChatInput, type RedactionKind } from "./redact";
 import { isAbusive } from "./moderation";
-import { guardReply, userPercentages, type GuardReason } from "./guard";
+import { fixGreeting, greetingFilter, guardReply, userPercentages, type GuardReason } from "./guard";
 import { M8_TOOLS, pricedRates, runTool, type PricingResult, type ToolContext } from "./tools";
 import type { ChatAction, M8Event, M8Message, PricingCard } from "./shared";
 
@@ -104,6 +104,13 @@ export async function runM8Turn(opts: {
     let blockedValue: string | undefined;
     const sep = reply && !reply.endsWith("\n") ? "\n\n" : "";
     let roundText = "";
+    const greet = greetingFilter();
+    let sent = false;
+    const send = (out: string) => {
+      if (!out) return;
+      emit({ text: (sent ? "" : sep) + out });
+      sent = true;
+    };
     stream.on("text", (t: string) => {
       if (blocked) return;
       roundText += t;
@@ -114,7 +121,7 @@ export async function runM8Turn(opts: {
         stream.abort();
         return;
       }
-      emit({ text: (roundText === t ? sep : "") + t });
+      send(greet.push(t));
     });
     let final: Anthropic.Messages.Message;
     try {
@@ -124,6 +131,8 @@ export async function runM8Turn(opts: {
       throw e;
     }
     if (blocked) return fail(blocked, blockedValue);
+    send(greet.flush());
+    roundText = fixGreeting(roundText);
     tokens += (final.usage?.input_tokens ?? 0) + (final.usage?.output_tokens ?? 0);
     usage.input_tokens += final.usage?.input_tokens ?? 0;
     usage.output_tokens += final.usage?.output_tokens ?? 0;
