@@ -44,6 +44,8 @@ export const DESTS: Dest[] = [
   { key: "inbox", href: "/mlo/inbox", label: "Inbox", icon: "inbox", group: "day", desc: "Every reply in one place. STOP is honored instantly." },
   { key: "calls", href: "/mlo/calls", label: "Call session", icon: "phone", group: "day", desc: "A focused calling hour: the next person, why, one tap for how it went." },
   { key: "contacts", href: "/mlo/contacts", label: "Contacts", icon: "users", group: "people", desc: "Past clients, leads, sphere and agents, with what you may do for each.", match: /^\/mlo\/contacts(?!\/import|\/permission)/ },
+  // D69: agents had no way in once the page's own tabs were hidden.
+  { key: "agentlist", href: "/mlo/contacts?kind=agent", label: "Agents", icon: "users", group: "people", desc: "Real estate agents you work with, and the agent lists you've imported.", match: /^$/ },
   { key: "import", href: "/mlo/contacts/import", label: "Import", icon: "upload", group: "people", desc: "Drop Excel, CSV or phone contacts. Matched, cleaned and merged for you.", account: true },
   { key: "permission", href: "/mlo/contacts/permission", label: "Permission", icon: "check", group: "people", desc: "Record consent you already hold, and do-not-call checks, in bulk.", account: true },
   { key: "leads", href: "/mlo/leads", label: "Leads", icon: "lead", group: "people", desc: "New leads from your lead vendors, with where each came from." },

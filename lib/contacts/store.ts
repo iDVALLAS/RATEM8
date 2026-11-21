@@ -29,7 +29,7 @@ export type Evidence = (typeof EVIDENCE)[number];
 export const PROVENANCE = ["personal", "own_closings", "prior_employer", "agent_partner", "lead_vendor", "unknown"] as const;
 export type Provenance = (typeof PROVENANCE)[number];
 
-export type Contact = Omit<ImportRecord, "attestedOptIns"> & {
+export type Contact = Omit<ImportRecord, "attestedOptIns" | "optOuts"> & {
   id: string;
   provenance: Provenance;
   /** True while the loan officer hasn't cleared a prior-employer list. Nothing is sent to a locked contact. */

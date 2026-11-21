@@ -67,17 +67,53 @@ export function splitName(raw: string | undefined): [string, string] {
   return i === -1 ? [s, ""] : [s.slice(0, i), s.slice(i + 1)];
 }
 
-export function isoDate(raw: string | undefined): string | null {
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/** Days in a month (1–12) of a year, leap years included. */
+const daysIn = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+
+/** A real calendar date as YYYY-MM-DD, or null. Never rolls over ("02/30" is not March 2). */
+function ymd(y: number, m: number, d: number): string | null {
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return null;
+  if (y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > daysIn(y, m)) return null;
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/** "99" → 1999 and "21" → 2021: a two-digit year from next year on is the last century. */
+function fullYear(yy: string, now: Date): number {
+  const n = Number(yy);
+  if (yy.length !== 2) return n;
+  return n >= (now.getUTCFullYear() % 100) + 1 ? 1900 + n : 2000 + n;
+}
+
+/**
+ * A date from an imported cell, as YYYY-MM-DD, or null when it can't be read
+ * for sure (D69: a month over 12 or a day past the month's end is refused,
+ * never rolled into the next month). Reads ISO dates, US month/day/year,
+ * "Jan 5 2020", "5 Jan 2020" and Excel serial numbers. A bare year is read
+ * only for fields that allow one (as January 1 of that year).
+ */
+export function isoDate(raw: string | undefined, opts: { allowYear?: boolean; now?: Date } = {}): string | null {
   const s = (raw ?? "").trim();
   if (!s) return null;
+  const now = opts.now ?? new Date();
   // D42: an Excel date stored as a plain number (days since 1899-12-30).
   if (/^\d{5}(\.\d+)?$/.test(s)) {
     const n = Number(s);
     return n >= 2_000 && n <= 80_000 ? new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86_400_000).toISOString().slice(0, 10) : null;
   }
-  const us = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(s);
-  const d = us ? new Date(Date.UTC(Number(us[3].length === 2 ? `20${us[3]}` : us[3]), Number(us[1]) - 1, Number(us[2]))) : new Date(s);
-  if (Number.isNaN(d.getTime())) return null;
-  const y = d.getUTCFullYear();
-  return y >= 1900 && y <= 2100 ? d.toISOString().slice(0, 10) : null;
+  if (/^\d{4}$/.test(s)) return opts.allowYear ? ymd(Number(s), 1, 1) : null;
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ][\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$/.exec(s);
+  if (iso) return ymd(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+  const us = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})(?:\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)?$/.exec(s);
+  if (us) return ymd(fullYear(us[3], now), Number(us[1]), Number(us[2]));
+  const monthOf = (w: string) => {
+    const i = MONTHS.indexOf(w.slice(0, 3).toLowerCase());
+    return i >= 0 && /^[a-z]+$/i.test(w) ? i + 1 : 0;
+  };
+  const mdy = /^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/.exec(s);
+  if (mdy) return monthOf(mdy[1]) ? ymd(Number(mdy[3]), monthOf(mdy[1]), Number(mdy[2])) : null;
+  const dmy = /^(\d{1,2})\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})$/.exec(s);
+  if (dmy) return monthOf(dmy[2]) ? ymd(Number(dmy[3]), monthOf(dmy[2]), Number(dmy[1])) : null;
+  return null;
 }

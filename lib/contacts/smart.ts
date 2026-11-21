@@ -18,7 +18,7 @@
  *  - toCleanCsv: the cleaned list as a CSV anyone can open.
  */
 import type { Csv } from "./csv";
-import { autoMap, fieldsFor, type Field, type ImportKind, type ImportRecord, type Mapping } from "./mapping";
+import { autoMap, fieldsFor, headerAllowed, type Field, type ImportKind, type ImportRecord, type Mapping } from "./mapping";
 import { cleanEmail, cleanState, isoDate, toE164 } from "./normalize";
 
 // ---- vCard ----
@@ -128,7 +128,8 @@ export function smartMap(csv: Csv, kind: ImportKind): Mapping {
     if (!s) return;
     if (s === "name" && nameMapped) return;
     if (s === "money" && kind === "agents") return;
-    const field = SNIFF_FIELD[s].find((f) => allowed.has(f) && m[f] === undefined);
+    // D69: contents never put a co-borrower's or spouse's column into the person's own name, phone or email.
+    const field = SNIFF_FIELD[s].find((f) => allowed.has(f) && m[f] === undefined && headerAllowed(f, csv.headers[i] ?? ""));
     if (field) {
       m[field] = i;
       used.add(i);
@@ -167,7 +168,7 @@ export function mergeRecords(lists: ImportRecord[][]): { records: ImportRecord[]
     for (const r of list) {
       const hit = keyOf(r).map((k) => index.get(k)).find((x) => x !== undefined);
       if (hit === undefined) {
-        out.push({ ...r, tags: [...r.tags] });
+        out.push({ ...r, tags: [...r.tags], ...(r.optOuts ? { optOuts: { ...r.optOuts } } : {}) });
         for (const k of keyOf(r)) index.set(k, out.length - 1);
         continue;
       }
@@ -181,7 +182,10 @@ export function mergeRecords(lists: ImportRecord[][]): { records: ImportRecord[]
       else if (r.phone && r.phone !== a.phone && !a.phone2) a.phone2 = r.phone;
       if (a.relationship === "other" && r.relationship !== "other") a.relationship = r.relationship;
       a.tags = [...new Set([...a.tags, ...r.tags])].slice(0, 20);
-      a.attestedOptIns = [...new Set([...a.attestedOptIns, ...r.attestedOptIns])];
+      // D69: an opt-out in any copy wins over an opt-in in any other.
+      if (r.optOuts) a.optOuts = { ...r.optOuts, ...a.optOuts };
+      const phoneStopped = !!(a.optOuts?.text || a.optOuts?.call);
+      a.attestedOptIns = [...new Set([...a.attestedOptIns, ...r.attestedOptIns])].filter((c) => (c === "email" ? !a.optOuts?.email : !phoneStopped));
       for (const k of keyOf(a)) index.set(k, hit);
     }
   }
@@ -190,6 +194,9 @@ export function mergeRecords(lists: ImportRecord[][]): { records: ImportRecord[]
   return { records: out, merged };
 }
 
+/** D69: "text; call; email" for the channels a person opted out of, so the cleaned file keeps them. */
+const optedOutOf = (r: ImportRecord) => (["text", "call", "email"] as const).filter((c) => r.optOuts?.[c]).join("; ");
+
 /** The cleaned list as CSV. Cells that would run as spreadsheet formulas are quoted. */
 export function toCleanCsv(records: ImportRecord[]): string {
   const q = (v: string | number | null | undefined) => {
@@ -197,7 +204,7 @@ export function toCleanCsv(records: ImportRecord[]): string {
     const safe = /^[=+\-@]/.test(t) ? `'${t}` : t;
     return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   };
-  const head = ["First name", "Last name", "Email", "Mobile", "Other phone", "Street", "City", "State", "ZIP", "Relationship", "Tags", "Notes", "Loan closed on", "Loan amount", "Note rate"];
-  const rows = records.map((r) => [r.firstName, r.lastName, r.email, r.phone, r.phone2, r.street, r.city, r.state, r.zip, r.relationship, r.tags.join("; "), r.notes, r.loan?.closedOn, r.loan?.amount, r.loan?.noteRate].map(q).join(","));
+  const head = ["First name", "Last name", "Email", "Mobile", "Other phone", "Street", "City", "State", "ZIP", "Relationship", "Tags", "Notes", "Loan closed on", "Loan amount", "Note rate", "Opted out of"];
+  const rows = records.map((r) => [r.firstName, r.lastName, r.email, r.phone, r.phone2, r.street, r.city, r.state, r.zip, r.relationship, r.tags.join("; "), r.notes, r.loan?.closedOn, r.loan?.amount, r.loan?.noteRate, optedOutOf(r)].map(q).join(","));
   return [head.join(","), ...rows].join("\n") + "\n";
 }

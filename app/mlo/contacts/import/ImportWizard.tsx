@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { parseCsv, MAX_ROWS, type Csv } from "@/lib/contacts/csv";
-import { buildRecords, fieldsFor, RELATIONSHIP_LABELS, type Field, type ImportKind, type ImportRecord, type Mapping, type RowProblem } from "@/lib/contacts/mapping";
+import { buildRecords, fieldsFor, guardOptOuts, RELATIONSHIP_LABELS, stopsEverything, type Field, type ImportKind, type ImportRecord, type Mapping, type RowProblem } from "@/lib/contacts/mapping";
+import { contactsImportCopy as ic } from "@/lib/content/contacts-import";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { mergeRecords, parseVcf, relationshipFromName, shapes, smartMap, toCleanCsv, toTable } from "@/lib/contacts/smart";
 import { browserInflate, readXlsx } from "@/lib/contacts/xlsx";
@@ -64,16 +65,25 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
   const [reading, setReading] = useState(false);
   const [paste, setPaste] = useState("");
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [result, setResult] = useState<{ created: number; merged: number; skipped: number } | null>(null);
+  const [result, setResult] = useState<{ created: number; merged: number; skipped: number; optedOut: number } | null>(null);
+  // D69: where a stopped import picks up again (the first person not yet sent), and what was already done.
+  const [resume, setResume] = useState<{ at: number; sum: { created: number; merged: number; skipped: number; optedOut: number } } | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
 
   const fields = fieldsFor(kind);
   const built = useMemo(() => {
-    const per = items.map((it) => ({ it, ...buildRecords(it.table, it.mapping, kind, { defaultRelationship: it.rel }) }));
+    const per = items.map((it) => ({ it, ...buildRecords(it.table, it.mapping, kind, { defaultRelationship: it.rel, fileName: it.name }) }));
     const merged = mergeRecords(per.map((p) => p.records));
     const problems: (RowProblem & { file: string })[] = per.flatMap((p) => p.problems.map((x) => ({ ...x, file: p.it.name })));
-    return { per, records: merged.records.slice(0, MAX_TOTAL), merged: merged.merged, problems, over: merged.records.length > MAX_TOTAL };
+    const warns = per.flatMap((p) => p.warnings);
+    const warnings = { zip: warns.filter((w) => w.reason.startsWith("ZIP")).length, date: warns.filter((w) => w.reason.startsWith("date")).length, tags: warns.filter((w) => w.reason.startsWith("tags")).length };
+    const records = merged.records.slice(0, MAX_TOTAL);
+    // D69: people whose file says stop, for the notice before import.
+    const stopAll = records.filter((r) => stopsEverything(r)).length;
+    const stopPhone = records.filter((r) => r.optOuts && !stopsEverything(r) && (r.optOuts.text || r.optOuts.call)).length;
+    const stopEmail = records.filter((r) => r.optOuts && !stopsEverything(r) && r.optOuts.email).length;
+    return { per, records, merged: merged.merged, problems, warnings, stopAll, stopPhone, stopEmail, over: merged.records.length > MAX_TOTAL };
   }, [items, kind]);
 
   const addTables = async (tables: { name: string; table: Csv }[]) => {
@@ -88,13 +98,14 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
           const used = new Set(Object.values(m));
           for (const [f, col] of Object.entries(base.mapping) as [Field, number][]) if (m[f] === undefined && !used.has(col)) m[f] = col;
           if (m.firstName !== undefined && m.lastName !== undefined) delete m.fullName;
-          next.push({ ...base, mapping: m, rel: base.rel ?? ai.relationship, by: "m8" });
+          next.push({ ...base, mapping: guardOptOuts(base.table.headers, m), rel: base.rel ?? ai.relationship, by: "m8" });
           continue;
         }
       }
       next.push(base);
     }
     setItems((cur) => [...cur, ...next]);
+    setResume(null);
   };
 
   const onFiles = async (list: FileList | File[] | null) => {
@@ -138,26 +149,31 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
   };
 
   const run = async () => {
-    if (!provenance) return setErrors(["Pick where these lists came from first."]);
+    if (!provenance) return setErrors([ic.pickSource]);
     setErrors([]);
     const records: ImportRecord[] = built.records;
     const total = records.length;
-    const sum = { created: 0, merged: built.merged, skipped: built.problems.length };
-    setProgress({ done: 0, total });
+    // D69: resuming starts where the last run stopped, keeping what it already counted.
+    const start = resume && resume.at < total ? resume.at : 0;
+    const sum = start && resume ? { ...resume.sum } : { created: 0, merged: built.merged, skipped: built.problems.length, optedOut: 0 };
+    setProgress({ done: start, total });
     const source = items.length === 1 ? items[0].name : `${items.length} files`;
-    for (let i = 0; i < total; i += BATCH) {
-      const res = await importBatchAction({ kind, source, provenance, records: records.slice(i, i + BATCH) });
+    for (let i = start; i < total; i += BATCH) {
+      const res = await importBatchAction({ kind, source, provenance, records: records.slice(i, i + BATCH), offset: i });
       if (!res.ok) {
         setErrors([res.error]);
         setProgress(null);
+        setResume({ at: i, sum: { ...sum } });
         return;
       }
       sum.created += res.result.created;
       sum.merged += res.result.merged;
       sum.skipped += res.result.skipped;
+      sum.optedOut += res.result.optedOut;
       setProgress({ done: Math.min(i + BATCH, total), total });
     }
     setProgress(null);
+    setResume(null);
     setResult(sum);
     setItems([]);
   };
@@ -168,6 +184,7 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
         <h2>Imported</h2>
         <p className="mlo-note">{result.created.toLocaleString("en-US")} new · {result.merged.toLocaleString("en-US")} merged (duplicates in your files, or people you already had) · {result.skipped.toLocaleString("en-US")} skipped (no way to reach them).</p>
         <p className="mlo-note">Everyone starts as <strong>relationship only</strong>: you can call them yourself, but M8 won&apos;t text or call anyone until their permission is recorded with proof.</p>
+        {result.optedOut ? <p className="mlo-note">{ic.resultOptedOut(result.optedOut)}</p> : null}
         {provenance === "prior_employer" ? <p className="mlo-note">Because these came from a previous employer&apos;s system, they&apos;re <strong>on hold</strong> until you confirm on the Contacts page that you&apos;re allowed to use the list.</p> : null}
         <p style={{ marginTop: 12 }} className="mlo-row-form">
           <Link href={kind === "agents" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn" style={{ marginTop: 0 }}>See them</Link>
@@ -216,6 +233,14 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
               {built.problems.length ? ` (for example ${built.problems[0].file}, row ${built.problems[0].row}: ${built.problems[0].reason})` : ""}. Phones, emails, states and dates are cleaned; names are split; people are sorted by last name.
               {built.over ? ` Only the first ${MAX_TOTAL.toLocaleString("en-US")} are imported at once; import the rest after.` : ""}
             </p>
+            {built.stopAll || built.stopPhone || built.stopEmail ? (
+              <div className="mlo-flash mlo-flash--ok" role="status">
+                {built.stopAll ? <p>{ic.optOutAll(built.stopAll)}</p> : null}
+                {built.stopPhone ? <p>{ic.optOutPhone(built.stopPhone)}</p> : null}
+                {built.stopEmail ? <p>{ic.optOutEmail(built.stopEmail)}</p> : null}
+              </div>
+            ) : null}
+            {built.warnings.zip || built.warnings.date || built.warnings.tags ? <p className="mlo-note">{ic.warnings(built.warnings)}</p> : null}
             <ol className="im-files">
               {built.per.map(({ it, records, problems }) => (
                 <li key={it.id} className="cc-card">
@@ -236,7 +261,7 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
                       {(Object.entries(fields) as [Field, string][]).map(([f, label]) => (
                         <label key={f} className="mlo-field">
                           <span>{label}</span>
-                          <select className="mlo-select" value={it.mapping[f] ?? ""} onChange={(e) => setItems((cur) => cur.map((x) => (x.id === it.id ? { ...x, mapping: { ...x.mapping, [f]: e.target.value === "" ? undefined : Number(e.target.value) } } : x)))}>
+                          <select className="mlo-select" value={it.mapping[f] ?? ""} onChange={(e) => setItems((cur) => cur.map((x) => (x.id === it.id ? { ...x, mapping: guardOptOuts(x.table.headers, { ...x.mapping, [f]: e.target.value === "" ? undefined : Number(e.target.value) }) } : x)))}>
                             <option value="">Not in this file</option>
                             {it.table.headers.map((h, i) => <option key={i} value={i}>{h}</option>)}
                           </select>
@@ -244,7 +269,7 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
                       ))}
                     </div>
                   </details>
-                  <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setItems((cur) => cur.filter((x) => x.id !== it.id))}>Remove this list</button>
+                  <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => { setItems((cur) => cur.filter((x) => x.id !== it.id)); setResume(null); }}>Remove this list</button>
                 </li>
               ))}
             </ol>
@@ -279,11 +304,17 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
               ))}
             </div>
             <div className="mlo-row-form" style={{ marginTop: 12 }}>
-              <button type="button" className="mlo-btn" style={{ marginTop: 0 }} disabled={!built.records.length || !!progress || !provenance} onClick={run}>
-                {progress ? `Importing… ${progress.done.toLocaleString("en-US")} of ${progress.total.toLocaleString("en-US")}` : `Import ${built.records.length.toLocaleString("en-US")} people`}
+              <button type="button" className="mlo-btn" style={{ marginTop: 0 }} disabled={!built.records.length || !!progress || !provenance} onClick={run} aria-describedby={!provenance ? "im-pick-source" : undefined}>
+                {progress
+                  ? `Importing… ${progress.done.toLocaleString("en-US")} of ${progress.total.toLocaleString("en-US")}`
+                  : resume && resume.at < built.records.length
+                    ? ic.resume(resume.at + 1)
+                    : `Import ${built.records.length.toLocaleString("en-US")} people`}
               </button>
               <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={!built.records.length} onClick={download}>Download cleaned CSV</button>
             </div>
+            {!provenance && built.records.length ? <p id="im-pick-source" className="mlo-note" style={{ marginTop: 8 }}>{ic.pickSource}</p> : null}
+            {resume && !progress && resume.at > 0 && resume.at < built.records.length ? <p className="mlo-note" style={{ marginTop: 8 }}>{ic.resumeNote(resume.at)}</p> : null}
           </section>
         </>
       ) : null}

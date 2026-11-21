@@ -16,6 +16,7 @@ import { randomBytes } from "node:crypto";
 import type { User } from "@/lib/accounts/store";
 import { singleCompany } from "@/lib/accounts/company";
 import { accountStore } from "@/lib/accounts/store";
+import { contactsImportCopy } from "@/lib/content/contacts-import";
 import type { ImportKind, ImportRecord } from "./mapping";
 import { CHANNELS, contactStore, PURPOSES, type Channel, type ConsentEntry, type Contact, type Evidence, type Provenance, type Purpose } from "./store";
 
@@ -43,20 +44,40 @@ export function canSee(user: User, c: Contact): boolean {
 }
 export const scopeOf = bookOf;
 
-export type ImportResult = { created: number; merged: number; skipped: number };
+export type ImportResult = { created: number; merged: number; skipped: number; optedOut: number };
+
+/** D69: a refusal the loan officer can act on (shown as is). */
+export class ImportRefused extends Error {}
+
+/**
+ * D69: whose book an import lands in. An assistant imports into the book of
+ * the loan officer they assist (before, their imports went to their own
+ * empty book, where nobody saw them); everyone else into their own.
+ */
+export function importOwner(actor: User): string {
+  if (actor.role === "assistant") {
+    if (!actor.assistsUserId) throw new ImportRefused(contactsImportCopy.noBook);
+    return actor.assistsUserId;
+  }
+  return actor.id;
+}
+
+const latestOf = (entries: ConsentEntry[], channel: Channel, purpose: Purpose): ConsentEntry | null =>
+  entries.filter((e) => e.channel === channel && e.purpose === purpose).sort((a, b) => a.at.localeCompare(b.at)).pop() ?? null;
 
 /** One batch of an import (the browser sends the file in batches of up to 500). */
 export async function importBatch(actor: User, kind: ImportKind, records: ImportRecord[], source: string, provenance: Provenance = "unknown", now = new Date()): Promise<ImportResult> {
   const store = contactStore();
   const at = now.toISOString();
-  const out: ImportResult = { created: 0, merged: 0, skipped: 0 };
+  const owner = importOwner(actor);
+  const out: ImportResult = { created: 0, merged: 0, skipped: 0, optedOut: 0 };
   for (const r of records.slice(0, MAX_BATCH)) {
     if (!r || (!r.phone && !r.email)) {
       out.skipped++;
       continue;
     }
-    const { attestedOptIns, ...fields } = r;
-    const dup = await store.findDuplicate(actor.id, r.phone, r.email);
+    const { attestedOptIns, optOuts, ...fields } = r;
+    const dup = await store.findDuplicate(owner, r.phone, r.email);
     let contact: Contact;
     if (dup) {
       // Fill blanks, never overwrite what's there; tags are combined.
@@ -74,18 +95,35 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
       contact = merged;
       out.merged++;
     } else {
-      contact = { ...fields, id: id(), ownerUserId: actor.id, kind: kind === "agents" ? "agent" : "contact", provenance, locked: provenance === "prior_employer", source: `import: ${source}`.slice(0, 160), createdAt: at, updatedAt: at };
+      contact = { ...fields, id: id(), ownerUserId: owner, kind: kind === "agents" ? "agent" : "contact", provenance, locked: provenance === "prior_employer", source: `import: ${source}`.slice(0, 160), createdAt: at, updatedAt: at };
       out.created++;
     }
     await store.put(contact);
+    // D69: one consent log read per contact, so a re-import doesn't add the same answer twice.
+    const log = dup ? await store.consents(contact.id) : [];
+    const write = async (e: Omit<ConsentEntry, "contactId" | "at" | "actor">) => {
+      const last = latestOf(log, e.channel, e.purpose);
+      if (last && last.granted === e.granted && last.evidence === e.evidence) return;
+      // An import's "yes" is only the loan officer's word: it never undoes a recorded stop, or replaces stronger proof.
+      if (e.granted && e.evidence === "attested" && last) return;
+      const entry: ConsentEntry = { ...e, contactId: contact.id, at, actor: actor.email };
+      await store.addConsent(entry);
+      log.push(entry);
+    };
+    // D69: an opt-out in the file is a revocation, recorded the way recordConsent revokes (texts or calls stop every phone channel).
+    const stops = optOuts ?? {};
+    const revoke: [Channel, string][] = [];
+    const phoneStop = stops.text ?? stops.call;
+    if (phoneStop) for (const ch of PHONE) revoke.push([ch, phoneStop]);
+    if (stops.email) revoke.push(["email", stops.email]);
+    if (revoke.length) out.optedOut++;
     for (const ch of attestedOptIns) {
-      const channels: Channel[] = ch === "call" ? ["call"] : [ch];
-      for (const channel of channels)
-        for (const purpose of PURPOSES)
-          await store.addConsent({ contactId: contact.id, channel, purpose, granted: true, evidence: "attested", proof: `opt-in column in ${source}`.slice(0, 200), at, actor: actor.email });
+      if (ch === "email" ? stops.email : phoneStop) continue;
+      for (const purpose of PURPOSES) await write({ channel: ch, purpose, granted: true, evidence: "attested", proof: `opt-in column in ${source}`.slice(0, 200) });
     }
+    for (const [channel, where] of revoke) for (const purpose of PURPOSES) await write({ channel, purpose, granted: false, evidence: "revoked", proof: `import: ${where}`.slice(0, 200) });
   }
-  await accountStore().audit({ at, actor: actor.email, action: `contacts.import.${kind}`, detail: { ...out, source: source.slice(0, 80), provenance } });
+  await accountStore().audit({ at, actor: actor.email, action: `contacts.import.${kind}`, detail: { ...out, source: source.slice(0, 80), provenance, ...(owner !== actor.id ? { book: owner } : {}) } });
   return out;
 }
 

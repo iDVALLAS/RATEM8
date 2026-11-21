@@ -5455,3 +5455,54 @@ Owner: "promote" (twice).
 - Production deployments of the exact commits, created from Git: 72a32a0 (D67.1), then 57485ea (D68).
 - loanm8.com checked after each: `/api/health` 200 with the chat on, `/sign-in` 200, the deployment READY
   on the loanm8.com alias.
+
+## D69 — Contact data safety fixes (2026-11-21)
+
+Spec: "### D69" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. Owner: "build all".
+
+- **Files:** `lib/contacts/mapping.ts`, `lib/contacts/smart.ts`, `lib/contacts/service.ts`, `lib/contacts/normalize.ts`,
+  `lib/contacts/ai-map.ts`, `lib/contacts/store.ts` (type only), `lib/contacts/issues.ts` (new),
+  `lib/content/contacts-import.ts` (new), `app/mlo/contacts/actions.ts`, `app/mlo/contacts/import/ImportWizard.tsx`,
+  `app/mlo/cc-shell.css`, `app/mlo/MloChrome.tsx`, `app/mlo/nav.ts`; tests `lib/contacts/mapping.test.ts`,
+  `service.test.ts`, `normalize.test.ts` (new), `contacts.test.ts` (result now also counts `optedOut`).
+- **Opt-outs are revocations.** New fields `optOutText`, `optOutCall`, `optOutEmail`, `doNotContact` (contacts and
+  agent lists), matched before the opt-ins. A header with an opt-out word (`OPT_OUT_HEADER`) can only feed an
+  opt-out field: `headerAllowed()` in `autoMap`/`smartMap`, `guardOptOuts()` after M8's match, after a hand change
+  in "Change matches", and again inside `buildRecords`, so no path turns "SMS Opt Out" into permission. M8's
+  field list carries the same rule. A row's opt-out drops the matching opt-in (texts or calls drop both phone
+  opt-ins; email only email), and one file's opt-out beats another file's opt-in when they're merged.
+  `importBatch` writes `granted:false`, evidence `revoked`, proof `import: <file> column <header>`, for every
+  channel and purpose the way `recordConsent` revokes (texts or calls: call, AI call and text). The cleaned CSV
+  keeps an "Opted out of" column.
+- **No duplicate consent rows:** a write is skipped when the latest entry for that channel and purpose has the same
+  answer and evidence. An import's attested "yes" is written only when nothing is on file, so it never undoes a
+  stop or replaces stronger proof (before, a re-import could re-grant someone who had said stop).
+- **Wizard notice:** "N people in your file asked not to be contacted…" (all channels), plus a texts-and-calls-only
+  and an email-only line so the words match what is turned off. The result screen counts who was marked.
+- **Paging and tabs show again:** `.cc-app .mlo-nav--legacy` is the hidden class (the tenant picker); the Contacts
+  type tabs, Contacts Next/Previous and the Pricing scenario links are visible. "Agents" is in the People menu
+  (`/mlo/contacts?kind=agent`).
+- **Assistants' imports** go to the book of the loan officer they assist (`importOwner`), for duplicates and
+  ownership; the audit keeps the assistant's email and adds `book`. An unassigned assistant is refused in words.
+- **One value can't fail a batch:** tags 60 characters, 20 per person; a ZIP only if `12345` or `12345-6789`, else
+  blank with a warning; the server's first problem comes back as "Row 12: Tags is too long." (field names only,
+  no values); a stopped import's button becomes "Resume from person X".
+- **Dates:** `isoDate` parses ISO, US m/d/y, "Jan 5 2020", "5 Jan 2020" and Excel serials itself, refuses a month
+  over 12 or a day past the month's end, reads a two-digit year from next year on as 19yy, accepts a bare year only
+  with `allowYear` (no field uses it yet). Unreadable dates are blank and counted in the wizard.
+- **Patterns:** tags `^(tags?|labels?|groups?|lists?)$|\btags?\b` ("Listing Agent" no longer); co-borrower/spouse
+  headers never feed name, phone or email (by name or by contents); note rate and loan amount as specified.
+- **Verified:** `npm run verify` passes (658 tests, 23 new for D69). Browser at 1280: the Bonzo fixture shows the
+  notice, "SMS Opt Out → Opted out of texts", "Do Not Call → Opted out of calls"; the Import button is disabled
+  with "Pick where these lists came from to continue."; after import Pat Quinn shows **Do not contact** and Lou
+  Reed **Relationship only**. With 69 contacts (memory store) Next shows at 390 and 1280 and goes to page 2, Previous
+  shows there; the Contact type tabs, the Agents menu link and the Pricing scenario links are visible; 390 has no
+  sideways scroll; no page errors. `node scripts/qa/command-center.mjs`: PROBLEMS none (it needs
+  `GOOGLE_OAUTH_CLIENT_ID`/`SECRET` set to any value for its "email start goes to Google" step; without them that
+  one step fails, unrelated to D69).
+- **Decisions:** a non-empty opt-out cell counts unless it plainly says no (a date or "x" means they asked);
+  an opt-out header naming no single channel ("DND", "Opted Out", "Unsubscribed") stops everything; a second opt-out
+  column for a channel already matched falls back to Do not contact rather than being dropped.
+- **Known issues:** the reappearing page tabs use the old pill style until D72; "Resume from person X" was checked
+  in tests of the error text only (with the clamps nothing in the fixtures fails a batch now).
+- **Next up:** D70 (LOA switches), after the owner's sign-off.

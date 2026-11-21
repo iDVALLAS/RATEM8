@@ -16,7 +16,7 @@ export function MloNav(_props: { current: NavKey; tenantId: string; admin?: bool
 export function TenantPicker({ tenants, current, base, extra = "" }: { tenants: Tenant[]; current: string; base: string; extra?: string }) {
   if (tenants.length < 2) return <p className="mlo-note">{mloContent.tenantLabel}: {tenants[0]?.brokerageName}</p>;
   return (
-    <nav className="mlo-nav" aria-label={mloContent.tenantLabel}>
+    <nav className="mlo-nav mlo-nav--legacy" aria-label={mloContent.tenantLabel}>
       {tenants.map((t) => (
         <Link key={t.id} href={`${base}?t=${encodeURIComponent(t.id)}${extra}`} aria-current={t.id === current ? "page" : undefined}>
           {t.brokerageName} · {t.states.join(", ")}

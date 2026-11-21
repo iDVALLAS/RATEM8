@@ -10,7 +10,8 @@ import { sendEmail } from "@/lib/messaging/email";
 import { z } from "zod";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
-import { canSee, deleteContact, importBatch, MAX_BATCH, recordConsent, unlockContacts, type ImportResult } from "@/lib/contacts/service";
+import { canSee, deleteContact, importBatch, ImportRefused, MAX_BATCH, recordConsent, unlockContacts, type ImportResult } from "@/lib/contacts/service";
+import { importIssueText } from "@/lib/contacts/issues";
 import { onContactReply } from "@/lib/campaigns/service";
 import { contactStore } from "@/lib/contacts/store";
 import { UNLOCK_ATTESTATION } from "@/lib/contacts/attestation";
@@ -34,16 +35,27 @@ const Record_ = z.object({
   loan: z.object({ closedOn: s(10).nullable(), amount: n, noteRate: n }).nullable(),
   agent: z.object({ brokerage: s(120).nullable(), units: n, volume: n, buyerUnits: n, listingUnits: n, avgPrice: n, topLender: s(120).nullable() }).nullable(),
   attestedOptIns: z.array(z.enum(["text", "call", "email"])).max(3),
+  // D69: where each opt-out came from ("<file> column <header>").
+  optOuts: z.object({ text: s(200).optional(), call: s(200).optional(), email: s(200).optional() }).optional(),
 });
-const Batch = z.object({ kind: z.enum(["contacts", "agents"]), source: s(160), provenance: z.enum(PROVENANCE), records: z.array(Record_).max(MAX_BATCH) });
+const Batch = z.object({ kind: z.enum(["contacts", "agents"]), source: s(160), provenance: z.enum(PROVENANCE), records: z.array(Record_).max(MAX_BATCH), offset: z.number().int().min(0).max(1_000_000).optional() });
 
 /** One batch from the import wizard. Returns counts; never echoes data back. */
 export async function importBatchAction(input: unknown): Promise<{ ok: true; result: ImportResult } | { ok: false; error: string }> {
   const actor = await currentUser();
   if (!actor) return { ok: false, error: "Sign in again." };
   const parsed = Batch.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "Some rows didn't look right. Check the column matches and try again." };
-  return { ok: true, result: await importBatch(actor, parsed.data.kind, parsed.data.records, parsed.data.source, parsed.data.provenance) };
+  if (!parsed.success) {
+    // D69: say which person and which field, in plain words (field names only; no values are echoed).
+    const offset = typeof (input as { offset?: unknown })?.offset === "number" ? Math.max(0, Math.floor((input as { offset: number }).offset)) : 0;
+    return { ok: false, error: importIssueText(parsed.error.issues[0], offset) };
+  }
+  try {
+    return { ok: true, result: await importBatch(actor, parsed.data.kind, parsed.data.records, parsed.data.source, parsed.data.provenance) };
+  } catch (e) {
+    if (e instanceof ImportRefused) return { ok: false, error: e.message };
+    throw e;
+  }
 }
 
 export async function consentAction(fd: FormData): Promise<void> {

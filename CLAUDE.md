@@ -168,6 +168,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     logged, then `sms:` opens Messages on the LO's own phone; "They asked to stop" records a phone STOP.
     D68: long `.mlo-section`s (heading first, ~a screen tall) get a fold arrow from `app/mlo/Folds.tsx`
     (attributes only, CSS arrow, remembered per page); First day is a `<details>` fold; softer cards.
+    D69 import safety (`lib/contacts/mapping.ts`): an opt-out header (`OPT_OUT_HEADER`) only feeds an opt-out field
+    (`guardOptOuts`), and a file's opt-out is written as a revocation; an import's attested yes never overrides a stop;
+    assistants import into `assistsUserId`'s book. `.mlo-nav--legacy` is the hidden nav class; `.mlo-nav` shows.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
