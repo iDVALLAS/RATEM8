@@ -5676,3 +5676,13 @@ Full-auto sends with the next morning run by default, "Send in 15 minutes" per i
   forms stay manual (Forms on the loan); a refinance's emails say "the subject property" until the loan carries an
   address; the per-instance once-a-minute throttle on page views is in memory.
 - **Next up:** D72 (button alignment and shared form CSS), after the owner's sign-off.
+
+## Promote — D69 to production (2026-11-21)
+
+Owner: "promote D69".
+
+- Remote M8 red team against the D69 preview (e18a243): 43 of 43.
+- Production deployment of the exact commit e18a243 (D69), created from Git, not a promote of the
+  preview. D70 and D71 were committed after it and are not in production.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200,
+  `/api/health` 200, `/chat` 307 (tester lock).
