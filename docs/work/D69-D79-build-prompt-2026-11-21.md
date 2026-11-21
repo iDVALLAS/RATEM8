@@ -48,6 +48,7 @@ Every button and form should line up on both phone and desktop.
 | D77 | Contact page and contacts list rebuilt; add, edit and merge a contact | The biggest everyday CRM gap |
 | D78 | Saved lists, filters, bulk actions, campaigns from a list or tag | How Bonzo and Follow Up Boss are worked |
 | D79 | Inbox you can reply from, plus a new-lead alert | Speed to lead |
+| D80 | Loan details on contacts, lists M8 suggests at import, and "Ask M8 for a list" | Owner asked 2026-11-21: "All loans closed at 7.2%–9%", "loans with ARMs", separate lists like Real Estate Contacts and 2025 Closed Loans |
 | Later | Lead stage board, phone install and push, weekly agent digest, inline Concierge suggestions, missed-call text-back, page merges | See the end of §2 |
 
 The suggested order put the LOA first. D69 goes ahead of it because two "must" findings are live compliance and data-loss bugs. D69 is small.
@@ -781,6 +782,68 @@ The progress bar reads "1 Add files · 2 Check columns · 3 Fix and tag · 4 Whe
 **Verify:** the inbox at 390 and 1280; send a test lead through the intake route and check the alert in the memory or no-op sender.
 
 **Done when:** an LO can answer, finish and snooze conversations from the inbox, and hears about a new lead within a minute.
+
+---
+
+### D80 — Loan details on contacts, lists suggested at import, "Ask M8 for a list"
+
+**Why.** The owner asked (2026-11-21): after an import and inside Contacts, M8 should pull up lists on request ("all loans closed with a rate from 7.2% to 9%", "loans with ARMs"), look over an imported file, sort people into the right lists when it fits, and offer separate lists such as "Real estate contacts" and "2025 closed loans". Today a contact keeps only closed date, loan amount and note rate. Tell your Concierge (`lib/concierge/tell.ts` `find_clients`) filters by name, relationship, closed year, state, tag and quiet days only. D78's saved lists have no rate range or loan type. None of this exists yet.
+
+**Depends on:** D73 (tags), D74 (column cards), D78 (saved lists, filter engine).
+
+**1. More loan fields on a contact** (`lib/contacts/mapping.ts` `CONTACT_FIELDS`, `SYNONYMS`, `ai-map.ts` `MAP_SYSTEM`, `normalize.ts`, `store.ts`)
+- `loanProgram` (normalized to `conventional | fha | va | usda | jumbo | heloc | non_qm | other`)
+- `rateType` (`fixed | arm`), read from "Program", "Product", "Loan Type", "Amortization" ("5/1 ARM", "7/6 ARM", "30 yr fixed")
+- `armFirstChange` (date) and `armMargin` only when a column has them
+- `termMonths` ("30 yr" gives 360)
+- `loanPurpose` (`purchase | refi | cash_out`), `occupancy`, `propertyType`
+- `lender` (the investor or wholesale lender, from the file only)
+- When a loan syncs in from the pipeline, fill the same fields from `Loan` (`lib/pipeline/store.ts` `loanType`, `purpose`).
+- Never add age, date of birth, race, ethnicity, sex, marital or familial status, national origin, religion or disability as fields, filters or list rules (fair lending). A column that holds one maps to "Don't import" and is never offered.
+
+**2. One filter engine** (`lib/contacts/filter.ts`, pure, shared by both stores)
+- `ListRule = { relationship?, kind?, tagsAny?, tagsAll?, state?, closedFrom?, closedTo?, rateMin?, rateMax?, amountMin?, amountMax?, program?[], rateType?, armChangeWithinDays?, purpose?, lender?, addedWithinDays?, importId?, quietDays?, permission?, hasClosedDate? }`
+- `matches(contact, rule)` and a Neon SQL builder with bound parameters only. Rates compare as numbers (7.2 = 7.200%).
+- `describeRule(rule)` gives the plain chips ("Note rate 7.200% to 9.000%").
+- D78's saved lists store a `ListRule`. Lists are live: a person who later fits the rule joins it. "Freeze this list" keeps today's people as a tag instead.
+
+**3. "Ask M8 for a list"** (Contacts page, top; also a Concierge `find_clients` upgrade)
+- The LO types a request. The model gets the request and the field list only, never any contact, and returns a `ListRule` through a zod-checked tool (same pattern as `find_clients`).
+- Show the rule as editable chips before running it ("M8 read that as: …"). The filter runs on the server. The model never sees results.
+- Refuse a protected-trait request in plain words ("Lists can't be built on age, family status or other protected traits."), reusing the D8.1 protected-topic lane before any model call.
+- With no AI key, the chips still work by hand.
+- Result bar: Save as a list, Add to campaign (gate still applies), Call session, Download (formula-safe).
+- Rates in the results are each client's own closed rate, shown to the LO only. Never put a rate into a message or campaign merge field (no rate advertising; TILA/Reg Z trigger terms).
+- Update `find_clients` in `lib/concierge/tell.ts` to take the same `ListRule`, so "draft a check-in to my ARM clients adjusting next year" works there too.
+
+**4. Lists suggested at import** (`ImportWizard.tsx` step 3, new `app/mlo/contacts/import/ListsStep.tsx`)
+- In the browser, count per column: relationship and kind, closed year, program, rate type, rate bands (under 5%, 5–6.99%, 7% and up), state. Only these counts and the column names go to the model, never names, phones, emails or rows.
+- The model proposes up to 8 lists as `{name, rule}`; the code checks each rule, counts it locally and drops any with 0 people or a protected trait. With no AI key, fixed suggestions from the same counts: "Real estate agents", "<year> closed loans" for the two most recent years, "ARM loans", "FHA and VA", "Rate 7% and up".
+- Agents found in a client file are moved to Agents (kind agent), never client lists, and get no client messages.
+- Each suggestion is a checkbox row with its rule, count and "Rename or edit". "Describe another list" uses the same Ask M8 box.
+- Chosen lists are saved as live lists (D78) and appear as tabs on Contacts. The done screen links each one.
+
+**Copy** in `lib/content/contacts.ts`; no rate claims, no "best", "save", urgency.
+
+**Compliance.**
+- Contact data never reaches the model, in Ask or at import; only the request, field names and local counts.
+- Protected traits are never fields, rules or lists.
+- Rates are shown to the LO only and never inserted into outgoing text.
+- Every send from a list goes through `gateFor` / `sendText` / `sendEmail`.
+- RETR agent data is never sent to the model (counts of a RETR file's columns are not sent either; RETR imports get only the fixed suggestions).
+
+**Tests:**
+- "5/1 ARM", "7/6 ARM", "30 Yr Fixed", "FHA 30" normalize correctly; "30 yr" gives 360 months;
+- `matches` and the SQL builder agree on 30 generated contacts for rate ranges, years, programs and ARM change windows;
+- the Ask tool output for "closed 7.2 to 9 percent" gives `rateMin 7.2, rateMax 9, hasClosedDate true` (with a fake model);
+- a protected-trait request is refused with no model call;
+- the import suggester never sends a name, phone or email (spy on the request body);
+- agents in a client file land in Agents;
+- a live list picks up a contact added later; a frozen list doesn't.
+
+**Verify.** Import `tests/fixtures/import/past-clients-messy.csv` plus a file with a Program column at 1280 and 390, accept the suggested lists, then ask for "all loans closed with a rate from 7.2% to 9%" and "ARM loans", save one, and add it to a campaign (gate skips people without permission). Screenshots of each step.
+
+**Done when:** an LO can ask for a list in plain words and see the exact rule, save it, act on it, and an import offers sensible separate lists without the AI seeing anyone's details.
 
 ---
 
