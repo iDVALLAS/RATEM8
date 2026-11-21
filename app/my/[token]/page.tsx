@@ -82,8 +82,8 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
             </tbody>
           </table>
           <div className="mlo-row-form" style={{ marginTop: 10 }}>
-            <form action={stopAction.bind(null, token, "phone")}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Stop texts and calls</button></form>
-            <form action={stopAction.bind(null, token, "email")}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Stop email</button></form>
+            <form action={stopAction.bind(null, token, "phone")}><button type="submit" className="mlo-btn">Stop texts and calls</button></form>
+            <form action={stopAction.bind(null, token, "email")}><button type="submit" className="mlo-btn mlo-btn--ghost">Stop email</button></form>
           </div>
           <p className="mlo-note">Stopping works right away. You can also reply STOP to any text.</p>
         </section>
@@ -95,7 +95,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
               <label className="mlo-check"><input type="checkbox" name="service" defaultChecked={v.consent.text.service.granted} /> <span>Updates about my loan</span></label>
               <label className="mlo-check"><input type="checkbox" name="marketing" defaultChecked={v.consent.text.marketing.granted} /> <span>Occasional check-ins and offers</span></label>
               <label className="mlo-check"><input type="checkbox" name="agree" /> <span>{consentWording(v, masked)}</span></label>
-              <div><button type="submit" className="mlo-btn">Save</button></div>
+              <div className="mlo-actions"><button type="submit" className="mlo-btn">Save</button></div>
             </form>
           </section>
         ) : null}
@@ -108,7 +108,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
                 {v.notes.map((n) => (
                   <tr key={n.id}>
                     <th scope="row">{n.fact}<br /><span className="mlo-note">From: “{n.quote}”{n.expiresAt ? ` · deleted on its own ${day(n.expiresAt)}` : ""}</span></th>
-                    <td><form action={forgetNoteAction.bind(null, token, n.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Delete</button></form></td>
+                    <td><form action={forgetNoteAction.bind(null, token, n.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Delete</button></form></td>
                   </tr>
                 ))}
               </tbody>

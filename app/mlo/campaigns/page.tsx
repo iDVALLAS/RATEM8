@@ -59,7 +59,7 @@ export default async function Campaigns({ searchParams }: { searchParams: Promis
               <span>Describe what you want, and M8 writes it</span>
               <textarea name="goal" rows={2} maxLength={800} required className="mlo-textarea" placeholder="Follow up with open-house sign-ins for two weeks, then check in monthly." />
             </label>
-            <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Write it with M8</button>
+            <button type="submit" className="mlo-btn">Write it with M8</button>
           </form>
           <p className="eyebrow" style={{ marginTop: 18 }}>Or start from one of these</p>
           <div className="cp-starters">

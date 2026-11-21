@@ -8,7 +8,7 @@
 .sh-empty { display: grid; gap: 12px; color: var(--fg-soft); }
 .sh-empty p { margin: 0; }
 .sh-starters { display: flex; flex-wrap: wrap; gap: 8px; }
-.sh-chip { min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--rule-strong); background: transparent; color: var(--fg); font: inherit; font-size: 14px; cursor: pointer; }
+.sh-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--rule-strong); background: transparent; color: var(--fg); font: inherit; font-size: 14px; cursor: pointer; }
 .sh-chip:hover, .sh-chip:focus-visible { border-color: var(--accent); }
 .sh-msg { display: grid; gap: 4px; max-width: 92%; }
 .sh-msg--user { justify-self: end; }

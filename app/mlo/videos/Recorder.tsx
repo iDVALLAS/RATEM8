@@ -179,8 +179,8 @@ export default function Recorder({ folder, checkReady }: { folder: string; check
   return (
     <div className="vid-rec">
       <div className="mlo-row-form" role="tablist" aria-label="How to add a video">
-        <button type="button" role="tab" aria-selected={mode === "record"} className={`mlo-btn ${mode === "record" ? "" : "mlo-btn--ghost"}`} style={{ marginTop: 0 }} onClick={() => setMode("record")} disabled={!!busy || recording}>Record</button>
-        <button type="button" role="tab" aria-selected={mode === "upload"} className={`mlo-btn ${mode === "upload" ? "" : "mlo-btn--ghost"}`} style={{ marginTop: 0 }} onClick={() => { stopCamera(); setMode("upload"); }} disabled={!!busy || recording}>Upload a video</button>
+        <button type="button" role="tab" aria-selected={mode === "record"} className={`mlo-btn ${mode === "record" ? "" : "mlo-btn--ghost"}`} onClick={() => setMode("record")} disabled={!!busy || recording}>Record</button>
+        <button type="button" role="tab" aria-selected={mode === "upload"} className={`mlo-btn ${mode === "upload" ? "" : "mlo-btn--ghost"}`} onClick={() => { stopCamera(); setMode("upload"); }} disabled={!!busy || recording}>Upload a video</button>
       </div>
 
       {!take && mode === "record" ? (
@@ -190,7 +190,7 @@ export default function Recorder({ folder, checkReady }: { folder: string; check
           {live && !recording ? <button type="button" className="mlo-btn" onClick={startRecording}>Start recording</button> : null}
           {recording ? (
             <div className="mlo-row-form">
-              <button type="button" className="mlo-btn" style={{ marginTop: 0 }} onClick={stopRecording}>Stop</button>
+              <button type="button" className="mlo-btn" onClick={stopRecording}>Stop</button>
               <span className="vid-clock" aria-live="off"><span className="vid-dot" aria-hidden /> {clock(elapsed)} · {clock(left)} left</span>
             </div>
           ) : null}
@@ -213,8 +213,8 @@ export default function Recorder({ folder, checkReady }: { folder: string; check
             <input className="mlo-input" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Congrats on closing!" />
           </label>
           <div className="mlo-row-form">
-            <button type="button" className="mlo-btn" style={{ marginTop: 0 }} onClick={save} disabled={!!busy || !checkReady}>Save and check</button>
-            <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => setTake(null)} disabled={!!busy}>{mode === "record" ? "Record again" : "Pick another"}</button>
+            <button type="button" className="mlo-btn" onClick={save} disabled={!!busy || !checkReady}>Save and check</button>
+            <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setTake(null)} disabled={!!busy}>{mode === "record" ? "Record again" : "Pick another"}</button>
           </div>
           {!checkReady ? <p className="mlo-note">Saving waits until the word check is set up (see below).</p> : null}
         </div>
@@ -250,7 +250,7 @@ export function CheckAgain({ id, url }: { id: string; url: string }) {
   }
   return (
     <>
-      <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={go} disabled={busy}>{busy ? "Checking…" : "Run the word check"}</button>
+      <button type="button" className="mlo-btn mlo-btn--ghost" onClick={go} disabled={busy}>{busy ? "Checking…" : "Run the word check"}</button>
       {err ? <span className="mlo-note" role="alert">{err}</span> : null}
     </>
   );

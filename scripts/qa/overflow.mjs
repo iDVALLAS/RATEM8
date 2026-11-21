@@ -2,9 +2,12 @@
 // http://localhost:3100 started with NEXT_PUBLIC_STEALTH_MODE=false.
 // Env: QA_CHROME = path to a Chromium binary (optional; Playwright's own
 // browser is used when unset), QA_OUT = folder for screenshots.
+// D72: overflow is read from body.scrollWidth too (html{overflow-x:clip} hides it from documentElement),
+// and a few Command Center pages are checked when the server allows the dev sign-in (CC_DEV_LOGIN=1).
 import fs from "node:fs";
 import { chromium } from "playwright";
 const base = "http://localhost:3100";
+const ccRoutes = ["/mlo/cards", "/mlo/email", "/mlo/rules", "/mlo/team", "/mlo/network", "/mlo/contacts/<id>"];
 const routes = ["/","/second-look","/join","/agents","/investors","/calculators","/calculators/points-breakeven","/calculators/refinance-breakeven","/calculators/rent-vs-buy","/calculators/affordability","/states/washington","/states/oregon","/states/texas","/principles","/rates","/loan-estimate","/sample-brief","/chat","/ai","/privacy","/terms","/disclosures","/tools","/tools/points"];
 const shots = new Set(["/","/second-look","/join","/agents","/investors","/calculators/points-breakeven","/principles","/rates","/loan-estimate","/sample-brief","/chat","/ai","/states/washington","/disclosures"]);
 const out = process.argv[2] || process.env.QA_OUT || "/tmp/loanm8-qa";
@@ -14,9 +17,18 @@ for (const [name, vp] of [["m", { width: 390, height: 844 }], ["d", { width: 128
   const ctx = await browser.newContext({ viewport: vp, deviceScaleFactor: 1, reducedMotion: "no-preference" });
   const page = await ctx.newPage();
   const errors = [];
+  // Command Center pages need a signed-in owner; the contact page needs someone in the book.
+  const cc = [];
+  const login = await page.goto(base + "/api/cc/dev-login?email=owner@example.com");
+  if (login && login.ok() && new URL(page.url()).pathname.startsWith("/mlo")) {
+    await page.goto(base + "/mlo/contacts", { waitUntil: "networkidle" });
+    const id = await page.locator('table a[href^="/mlo/contacts/"]').first().getAttribute("href").catch(() => null);
+    for (const r of ccRoutes) if (!r.includes("<id>") || id) cc.push(r.includes("<id>") ? id.replace(/[?#].*$/, "") : r);
+    if (!id) console.log(`${name} /mlo/contacts/<id> skipped: no contacts yet (run command-center.mjs first)`);
+  } else console.log(`${name} Command Center pages skipped: start the server with CC_DEV_LOGIN=1`);
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
-  for (const r of routes) {
+  for (const r of [...routes, ...cc]) {
     await page.goto(base + r, { waitUntil: "networkidle" });
     // scroll through to trigger scenes
     const h = await page.evaluate(() => document.documentElement.scrollHeight);
@@ -24,7 +36,7 @@ for (const [name, vp] of [["m", { width: 390, height: 844 }], ["d", { width: 128
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(400);
     const ov = await page.evaluate(() => {
-      const sw = document.documentElement.scrollWidth, cw = document.documentElement.clientWidth;
+      const sw = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth), cw = document.documentElement.clientWidth;
       const bad = [];
       if (sw > cw + 1) {
         for (const el of document.querySelectorAll("body *")) {

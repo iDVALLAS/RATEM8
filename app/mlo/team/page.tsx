@@ -83,77 +83,83 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
             ) : null}
             <section className="mlo-section">
               <h2>People</h2>
-              <table className="mlo-table">
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.id}>
-                      <th scope="row">
-                        {u.name}
-                        <br />
-                        <span className="mlo-note">{u.email}</span>
-                      </th>
-                      <td>
-                        <span className={`mlo-pill ${u.status === "disabled" ? "mlo-pill--off" : ""}`}>{u.status === "disabled" ? "Disabled" : ROLE_LABELS[u.role]}</span>
-                        {u.role === "assistant" ? <><br /><span className="mlo-note">Works for {nameOf(u.assistsUserId)}</span></> : null}
-                        <br /><span className="mlo-note">{mfa.has(u.id) ? "Code from phone: on" : "Code from phone: off"}</span>
-                      </td>
-                      <td>
-                        {canManage(me, u.role) && u.id !== me.id ? (
-                          <form action={updateAction} className="mlo-row-form">
-                            <input type="hidden" name="userId" value={u.id} />
-                            <select name="role" defaultValue={u.role} className="mlo-select" aria-label={`Role for ${u.name}`}>
-                              {ROLES.filter((r) => canManage(me, r)).map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                            </select>
-                            {u.role === "assistant" ? (
-                              <select name="assists" defaultValue={u.assistsUserId ?? ""} className="mlo-select" aria-label={`Who ${u.name} works for`}>
-                                <option value="">Pick a loan officer</option>
-                                {books.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              <div className="mlo-scroll">
+                <table className="mlo-table">
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id}>
+                        <th scope="row">
+                          {u.name}
+                          <br />
+                          <span className="mlo-note">{u.email}</span>
+                        </th>
+                        <td>
+                          <span className={`mlo-pill ${u.status === "disabled" ? "mlo-pill--off" : ""}`}>{u.status === "disabled" ? "Disabled" : ROLE_LABELS[u.role]}</span>
+                          {u.role === "assistant" ? <><br /><span className="mlo-note">Works for {nameOf(u.assistsUserId)}</span></> : null}
+                          <br /><span className="mlo-note">{mfa.has(u.id) ? "Code from phone: on" : "Code from phone: off"}</span>
+                        </td>
+                        <td>
+                          {canManage(me, u.role) && u.id !== me.id ? (
+                            <form action={updateAction} className="mlo-row-form">
+                              <input type="hidden" name="userId" value={u.id} />
+                              <select name="role" defaultValue={u.role} className="mlo-select" aria-label={`Role for ${u.name}`}>
+                                {ROLES.filter((r) => canManage(me, r)).map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
                               </select>
-                            ) : null}
-                            <select name="status" defaultValue={u.status} className="mlo-select" aria-label={`Status for ${u.name}`}>
-                              <option value="active">Active</option>
-                              <option value="disabled">Disabled</option>
-                            </select>
-                            <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Save</button>
-                            {mfa.has(u.id) ? <button type="submit" formAction={resetMfaAction.bind(null, u.id)} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Reset phone code</button> : null}
-                          </form>
-                        ) : (
-                          <span className="mlo-note">{u.id === me.id ? "You" : ""}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                              {u.role === "assistant" ? (
+                                <select name="assists" defaultValue={u.assistsUserId ?? ""} className="mlo-select" aria-label={`Who ${u.name} works for`}>
+                                  <option value="">Pick a loan officer</option>
+                                  {books.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                </select>
+                              ) : null}
+                              <select name="status" defaultValue={u.status} className="mlo-select" aria-label={`Status for ${u.name}`}>
+                                <option value="active">Active</option>
+                                <option value="disabled">Disabled</option>
+                              </select>
+                              <button type="submit" className="mlo-btn">Save</button>
+                              {mfa.has(u.id) ? <button type="submit" formAction={resetMfaAction.bind(null, u.id)} className="mlo-btn mlo-btn--ghost">Reset phone code</button> : null}
+                            </form>
+                          ) : (
+                            <span className="mlo-note">{u.id === me.id ? "You" : ""}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
             {me.role === "owner" ? (
               <section className="mlo-section">
                 <h2>Books</h2>
                 <p className="mlo-note">{singleCompany() ? "Every loan officer is under one sponsor, so you can open any book." : "Loan officers here are under more than one sponsoring company, so client details stay inside each book: you see counts only."}</p>
-                <table className="mlo-table">
-                  <thead><tr><th>Loan officer</th><th>Contacts</th><th>Active loans</th><th>Drafts waiting</th></tr></thead>
-                  <tbody>
-                    {bookCounts.map((b) => (
-                      <tr key={b.id}><th scope="row">{b.name}</th><td>{b.contacts}</td><td>{b.loans}</td><td>{b.drafts}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="mlo-scroll">
+                  <table className="mlo-table">
+                    <thead><tr><th>Loan officer</th><th>Contacts</th><th>Active loans</th><th>Drafts waiting</th></tr></thead>
+                    <tbody>
+                      {bookCounts.map((b) => (
+                        <tr key={b.id}><th scope="row">{b.name}</th><td>{b.contacts}</td><td>{b.loans}</td><td>{b.drafts}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </section>
             ) : null}
             {me.role === "owner" ? (
               <section className="mlo-section">
                 <h2>Recent activity</h2>
-                <table className="mlo-table">
-                  <tbody>
-                    {audit.map((a, i) => (
-                      <tr key={i}>
-                        <th scope="row">{new Date(a.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}</th>
-                        <td>{a.actor}</td>
-                        <td>{a.action}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="mlo-scroll">
+                  <table className="mlo-table">
+                    <tbody>
+                      {audit.map((a, i) => (
+                        <tr key={i}>
+                          <th scope="row">{new Date(a.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}</th>
+                          <td>{a.actor}</td>
+                          <td>{a.action}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </section>
             ) : null}
           </>

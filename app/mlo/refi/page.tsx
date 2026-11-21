@@ -57,11 +57,11 @@ export default async function RefiWatch({ searchParams }: { searchParams: Promis
               <p className="mlo-note">
                 For your eyes only, and only estimates: from each loan&apos;s original amount, note rate and closing date, assuming a 30-year fixed loan paid on schedule. Price their real scenario (today&apos;s balance, value, credit and costs) before you say anything about rates or savings to a client.
               </p>
-              <form className="mlo-grid mlo-grid--2" method="get">
-                <label className="mlo-field"><span>Compare with this rate (%){priced ? `: today's priced example is ${priced.rate}% for a ${priced.label}, priced ${new Date(priced.pricedAt).toLocaleDateString("en-US")}` : ": no priced example today, so enter your own"}</span><input name="ref" inputMode="decimal" defaultValue={refRate || ""} placeholder="6.25" /></label>
-                <label className="mlo-field"><span>Estimated closing costs ($)</span><input name="cost" inputMode="numeric" defaultValue={cost} /></label>
-                <label className="mlo-field"><span>Show rates at least this much higher (points)</span><input name="gap" inputMode="decimal" defaultValue={minGap} /></label>
-                <div><button type="submit" className="mlo-btn">Update</button></div>
+              <form className="mlo-row-form" method="get">
+                <label className="mlo-field" style={{ flex: "1 1 220px" }}><span>Compare with this rate (%){priced ? `: today's priced example is ${priced.rate}% for a ${priced.label}, priced ${new Date(priced.pricedAt).toLocaleDateString("en-US")}` : ": no priced example today, so enter your own"}</span><input name="ref" inputMode="decimal" defaultValue={refRate || ""} placeholder="6.25" /></label>
+                <label className="mlo-field" style={{ flex: "1 1 220px" }}><span>Estimated closing costs ($)</span><input name="cost" inputMode="numeric" defaultValue={cost} /></label>
+                <label className="mlo-field" style={{ flex: "1 1 220px" }}><span>Show rates at least this much higher (points)</span><input name="gap" inputMode="decimal" defaultValue={minGap} /></label>
+                <button type="submit" className="mlo-btn">Update</button>
               </form>
             </section>
 

@@ -187,8 +187,8 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
         {result.optedOut ? <p className="mlo-note">{ic.resultOptedOut(result.optedOut)}</p> : null}
         {provenance === "prior_employer" ? <p className="mlo-note">Because these came from a previous employer&apos;s system, they&apos;re <strong>on hold</strong> until you confirm on the Contacts page that you&apos;re allowed to use the list.</p> : null}
         <p style={{ marginTop: 12 }} className="mlo-row-form">
-          <Link href={kind === "agents" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn" style={{ marginTop: 0 }}>See them</Link>
-          {kind === "contacts" ? <Link href="/mlo/contacts/permission" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Record the permission you hold</Link> : null}
+          <Link href={kind === "agents" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn">See them</Link>
+          {kind === "contacts" ? <Link href="/mlo/contacts/permission" className="mlo-btn mlo-btn--ghost">Record the permission you hold</Link> : null}
         </p>
       </section>
     );
@@ -304,14 +304,14 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
               ))}
             </div>
             <div className="mlo-row-form" style={{ marginTop: 12 }}>
-              <button type="button" className="mlo-btn" style={{ marginTop: 0 }} disabled={!built.records.length || !!progress || !provenance} onClick={run} aria-describedby={!provenance ? "im-pick-source" : undefined}>
+              <button type="button" className="mlo-btn" disabled={!built.records.length || !!progress || !provenance} onClick={run} aria-describedby={!provenance ? "im-pick-source" : undefined}>
                 {progress
                   ? `Importing… ${progress.done.toLocaleString("en-US")} of ${progress.total.toLocaleString("en-US")}`
                   : resume && resume.at < built.records.length
                     ? ic.resume(resume.at + 1)
                     : `Import ${built.records.length.toLocaleString("en-US")} people`}
               </button>
-              <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={!built.records.length} onClick={download}>Download cleaned CSV</button>
+              <button type="button" className="mlo-btn mlo-btn--ghost" disabled={!built.records.length} onClick={download}>Download cleaned CSV</button>
             </div>
             {!provenance && built.records.length ? <p id="im-pick-source" className="mlo-note" style={{ marginTop: 8 }}>{ic.pickSource}</p> : null}
             {resume && !progress && resume.at > 0 && resume.at < built.records.length ? <p className="mlo-note" style={{ marginTop: 8 }}>{ic.resumeNote(resume.at)}</p> : null}

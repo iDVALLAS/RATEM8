@@ -60,9 +60,9 @@ export default async function Automations({ searchParams }: { searchParams: Prom
                   </div>
                 </section>
               ))}
-              <div><button type="submit" className="mlo-btn">Save</button></div>
+              <div className="mlo-actions"><button type="submit" className="mlo-btn">Save</button></div>
             </form>
-            <form action={runNowAction}><button type="submit" className="mlo-btn mlo-btn--ghost">Check my book now</button></form>
+            <form action={runNowAction} className="mlo-actions"><button type="submit" className="mlo-btn mlo-btn--ghost">Check my book now</button></form>
 
             <section className="mlo-section" id="recent">
               <h2>Recently fired</h2>

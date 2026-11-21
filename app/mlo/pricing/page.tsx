@@ -76,7 +76,7 @@ export default async function MloPricing({ searchParams }: Props) {
         </form>
 
         {scenarios.length ? (
-          <nav className="mlo-nav" aria-label={c.scenario}>
+          <nav className="cc-tabs-inline" aria-label={c.scenario}>
             {scenarios.map((x) => (
               <Link key={x.id} href={`/mlo/pricing?t=${encodeURIComponent(tenant.id)}&s=${x.id}`} aria-current={x.id === scenario?.id ? "page" : undefined}>{x.title} · {x.location}</Link>
             ))}

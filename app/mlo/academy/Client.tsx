@@ -63,9 +63,9 @@ export function Practice({ sessionId, opening, tryTo }: { sessionId: string; ope
       <form className="mlo-grid" onSubmit={(e) => { e.preventDefault(); void send(); }}>
         <label className="mlo-field"><span>What you&apos;d say</span><textarea className="mlo-textarea" rows={2} maxLength={1000} value={text} onChange={(e) => setText(e.target.value)} /></label>
         <div className="mlo-row-form">
-          <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={busy || text.trim().length < 2}>{busy ? "…" : "Say it"}</button>
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={busy || !turns.length} onClick={async () => { setBusy(true); setCoach(await coachAction(sessionId, turns)); setBusy(false); }}>Coach me</button>
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => { setTurns([]); setCoach(null); setErr(null); }}>Start over</button>
+          <button type="submit" className="mlo-btn" disabled={busy || text.trim().length < 2}>{busy ? "…" : "Say it"}</button>
+          <button type="button" className="mlo-btn mlo-btn--ghost" disabled={busy || !turns.length} onClick={async () => { setBusy(true); setCoach(await coachAction(sessionId, turns)); setBusy(false); }}>Coach me</button>
+          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => { setTurns([]); setCoach(null); setErr(null); }}>Start over</button>
         </div>
       </form>
       {err ? <p className="mlo-flash mlo-flash--err" role="status">{err}</p> : null}

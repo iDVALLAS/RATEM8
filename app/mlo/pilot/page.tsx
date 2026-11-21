@@ -46,9 +46,9 @@ export default async function Pilot({ searchParams }: { searchParams: Promise<{ 
             {pilotOn() ? " The Pilot label shows in everyone's top bar while CC_PILOT is \"true\"." : " Set CC_PILOT to \"true\" in Vercel to show a Pilot label in everyone's top bar and the pilot welcome."}
           </p>
           <p className="mlo-row-form" style={{ marginTop: 10 }}>
-            <Link className="mlo-btn" href="/mlo/signups" style={{ marginTop: 0 }}>Sign-ups to review</Link>
-            <Link className="mlo-btn mlo-btn--ghost" href="/mlo/team" style={{ marginTop: 0 }}>Invite someone directly</Link>
-            <Link className="mlo-btn mlo-btn--ghost" href="/mlo/welcome" style={{ marginTop: 0 }}>See what they see</Link>
+            <Link className="mlo-btn" href="/mlo/signups">Sign-ups to review</Link>
+            <Link className="mlo-btn mlo-btn--ghost" href="/mlo/team">Invite someone directly</Link>
+            <Link className="mlo-btn mlo-btn--ghost" href="/mlo/welcome">See what they see</Link>
           </p>
         </section>
 

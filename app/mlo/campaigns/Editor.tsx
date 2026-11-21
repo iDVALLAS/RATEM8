@@ -114,13 +114,13 @@ export default function Editor({ campaign, action, textReady, emailReady }: { ca
           })}
         </ol>
         <div className="mlo-row-form">
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => add("text")}>+ Text</button>
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => add("email")}>+ Email</button>
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => add("task")}>+ Task for me</button>
+          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => add("text")}>+ Text</button>
+          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => add("email")}>+ Email</button>
+          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => add("task")}>+ Task for me</button>
         </div>
         <p className="mlo-note">Voicemail drops are coming next. Texts include who you are and how to opt out, and emails get your signature and the required footer.</p>
       </section>
-      <div className="cp-savebar"><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Save</button></div>
+      <div className="cp-savebar"><button type="submit" className="mlo-btn">Save</button></div>
     </form>
   );
 }

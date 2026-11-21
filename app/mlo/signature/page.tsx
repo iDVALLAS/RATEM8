@@ -39,7 +39,7 @@ export default async function SignaturePage({ searchParams }: { searchParams: Pr
           <form action={saveSignatureAction} className="mlo-grid" style={{ marginTop: 14 }}>
             <Editor initial={saved || suggestion} suggestion={suggestion} footer={emailFooter(me, "https://…/my/…")} />
             <div className="mlo-row-form">
-              <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>{saved ? "Save" : "Save my signature"}</button>
+              <button type="submit" className="mlo-btn">{saved ? "Save" : "Save my signature"}</button>
               {saved ? <span className="mlo-note">To turn it off, clear the box and save.</span> : <span className="mlo-note">Not saved yet: this is a starting point from your details.</span>}
             </div>
           </form>

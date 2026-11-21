@@ -164,7 +164,7 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
               <li key={o.id}>
                 <span><strong>{o.lender}</strong> · {o.title} · {o.chars.toLocaleString("en-US")} characters · {o.createdAt.slice(0, 10)}</span>
                 <details><summary className="mlo-note">See the rules</summary><pre className="loa-rules">{o.rules}</pre></details>
-                <form action={removeOverlayAction.bind(null, o.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Remove</button></form>
+                <form action={removeOverlayAction.bind(null, o.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Remove</button></form>
               </li>
             ))}
           </ul>
@@ -189,7 +189,7 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
             {library.map((x) => (
               <li key={x.id}>
                 <span><span className="loa-tag">{FORM_KIND_LABELS[x.kind]}</span><a href={`/api/cc/forms/${encodeURIComponent(x.id)}`} target="_blank" rel="noopener">{x.name}</a> · {x.fields.length ? `${x.fields.length} fillable fields` : "not fillable"}</span>
-                <form action={removeFormAction.bind(null, null, x.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Remove</button></form>
+                <form action={removeFormAction.bind(null, null, x.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Remove</button></form>
               </li>
             ))}
           </ul>

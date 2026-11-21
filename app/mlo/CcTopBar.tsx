@@ -179,7 +179,7 @@ export default function CcTopBar({ admin, signedIn, pilot = false, name, email, 
 
       {signedIn ? (
         <>
-          <button type="button" className="cc-fab" onClick={openReport}><Icon name="flag" size={16} /><span>Report a problem</span></button>
+          <button type="button" className="cc-fab" aria-label="Report a problem" onClick={openReport}><Icon name="flag" size={16} /><span aria-hidden="true">Report a problem</span></button>
           <ReportDialog />
         </>
       ) : null}

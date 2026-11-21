@@ -5686,3 +5686,93 @@ Owner: "promote D69".
   preview. D70 and D71 were committed after it and are not in production.
 - loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200,
   `/api/health` 200, `/chat` 307 (tester lock).
+
+## D72 — Button alignment and shared form CSS (2026-11-21)
+
+Spec: "### D72" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. The owner's ask: "go through the site and fix any
+buttons that are not aligned in any design". The spec's 12 changes, then a sweep of every Command Center page, the
+sign-in and sign-up pages and a client's own page at 390 and 1280 in Night and Paper with a new audit.
+
+- **Files:** `app/mlo/mlo.css`, `app/mlo/cc-shell.css`, `app/mlo/scripts/scripts.css`, `app/mlo/setup-help/setup-help.css`,
+  `app/mlo/loa/loa.css`, `app/mlo/templates/templates.css`; the 165 inline ` style={{ marginTop: 0 }}` /
+  ` style={{ marginTop: 0, justifySelf: "start" }}` patches removed from 45 files under `app/mlo` (and 3 no-op ones from
+  `app/my/[token]/page.tsx`); `app/mlo/contacts/page.tsx`, `pricing/page.tsx`, `templates/page.tsx`, `refi/page.tsx`,
+  `scripts/page.tsx`, `network/page.tsx`, `team/page.tsx`, `rules/page.tsx`, `launch/page.tsx`, `automations/page.tsx`,
+  `FirstDay.tsx`, `CcTopBar.tsx`, `loa/LoaPanel.tsx`, `lib/content/mlo.ts`; new `app/mlo/forms-css.test.ts` and
+  `scripts/qa/buttons.mjs`; `scripts/qa/overflow.mjs` and `scripts/qa/command-center.mjs` extended.
+- **1. Margins from the layout:** `.mlo-btn` has `margin-top: 0`. A button stacked straight in a section keeps 14px
+  (`.mlo-section:not(.mlo-grid):not(.mlo-row-form) > .mlo-btn`, and in a plain `form` inside a section or `.mlo-details`),
+  8px in a card (`.cc-card > .mlo-btn`, a plain or grid form in a card). The old `.cc-card .mlo-btn`, `.mlo-voice`,
+  `.cc-actions`, `.cs-head` and four LOA margin resets are gone. New `.mlo-actions` (a button row with 14px above) for
+  page-level buttons that had relied on the old default (Automations' Save and "Check my book now", First day's "Hide
+  this from Home", the client page's Save, so that page looks as it did).
+- **2. One control height:** buttons, `.mlo-input`/`.mlo-select` and `.mlo-field` boxes are 44px (`--cc-control-h`;
+  buttons were 46 from padding, field boxes 41); button text 15px, line-height 1.2, centred. `.cc-row__go` 40px (44px
+  under 1100px), setup-assistant chips and Report a problem's kind chips 44px.
+- **3. Grid forms:** `.mlo-grid > .mlo-btn` (and `.cc-report__form`, `.ac-quiz`) start-aligned: 24 buttons that
+  stretched to 1058px at 1280 (Concierge Save and Ask, Connections, Expenses, LOA library, Network, Pilot, Team invite,
+  Templates, Welcome, Training, the contact page's Record it, the forms page) are now their own width.
+- **4. Labeled fields in a row:** `.mlo-row-form:has(> .mlo-field)` lines up on the boxes' bottom edge. Refi's filter
+  is a row (`flex: 1 1 220px` labels, bare Update button). Academy's Save targets / Log week, Expenses' Show and
+  Permission's Update the count now sit level with their boxes (they were 3px low and 46 vs 41px).
+- **5. Nothing wider than the screen:** `.mlo-grid` `minmax(0, 1fr)` (`--2` two `minmax(0, 1fr)`), inputs and selects
+  `max-width: 100%; min-width: 0`, buttons `max-width: 100%`, `.cc-app code` and `.mlo-list li` wrap anywhere, `.cc-today`
+  `minmax(0, 1fr)`. Tables in Network (9), Team (3), Rules (2) and Launch sit in `.mlo-scroll`; Launch's settings tables
+  stack on phones (`.mlo-table--stack`: the name on its own line, Sensitive and Set under it). Fixed at 390: the contact
+  page (435px, the permission form), the loan page (426px, the LOA upload row), Team (521), Network (601), Rules (415),
+  Cards (471), Email (557), Launch (533).
+- **6. Tabs:** `.cc-tabs-inline` (40px pills, `aria-current="page"` filled with the nav's own "you are here" colours:
+  lime in Night, black in Paper) on Contacts (contact type), Pricing (scenarios) and Templates (kinds; it had no
+  `aria-current`). Contacts: "Import contacts" (was "Import a CSV") is the primary button beside the search box, Search is
+  ghost, and paging is ghost Previous / Next buttons in a row.
+- **7. Summaries:** every `<details>` summary in Command Center is a 44px tap target. See Decisions.
+- **8. Long labels:** Scripts' Today cards say "Build script" with the goal on its own note line ("Goal: Home
+  anniversary"); Setup's long save label is "Save"; under 520px buttons get a 22px radius so a wrapped label still looks right.
+- **9. Button-only rows on phones** share the line evenly. See Decisions.
+- **10. Disabled buttons:** a flat grey pill (`--cc-card-2`, `--muted` text, `not-allowed`) instead of a half-faded highlight.
+- **11. Native controls:** checkboxes and radios 18px in the highlight (`accent-color`; Pine on Paper); the file
+  picker's button is a ghost pill and a boxed file field keeps it inside the 44px box.
+- **12. Report a problem:** a 44px round flag button (`aria-label="Report a problem"`); its words show on hover and focus.
+- **QA additions:** `scripts/qa/buttons.mjs` opens 58 pages (every `/mlo` route, a contact, a loan and its forms,
+  `/sign-in`, `/sign-up`, `/sign-up/confirm`, a client's page) at 390/1280 in Night and Paper (232 page views) and fails on:
+  anything past the right edge that no scroll box holds (body.scrollWidth plus an element sweep), a control cut off by a
+  clipping box, a top margin on a button in a flex row, a button crowded under the box above it (under 6px), a button
+  beside a field (flex row or grid with columns) not the same height or bottom within 1px, uneven button heights on one
+  line, and a `.mlo-btn` over 600px outside the sign-in card. `QA_JSON` dumps every button for a before/after diff,
+  `QA_OUT` takes the screenshots. `overflow.mjs` reads body.scrollWidth too and, with `CC_DEV_LOGIN=1`, checks `/mlo/cards`,
+  `/mlo/email`, `/mlo/rules`, `/mlo/team`, `/mlo/network` and a contact page. `command-center.mjs`'s overflow checks
+  read body.scrollWidth too.
+- **Tests:** `app/mlo/forms-css.test.ts` (4): no `marginTop: 0` in any `app/mlo` TSX; `.mlo-btn` has margin-top 0, 44px,
+  max-width 100% and field boxes 44px; no CSS under `app/mlo` gives a `.mlo-btn` a top margin except the two layout
+  rules; grids use `minmax(0, 1fr)` and inputs can shrink.
+- **Verified:** `npm run verify` passes (698 tests). `grep -rn "marginTop: 0" app/mlo` returns nothing.
+  `buttons.mjs`: before 176 problems (16 overflows, 4 cut off, 48 stretched, 28 top margins in a row, 62 height and 14
+  bottom-edge mismatches), after: none, in Night and Paper. `command-center.mjs`: PROBLEMS none. `overflow.mjs`: every
+  public page ok at 390 and 1280, as before; the six Command Center pages ok. The public site doesn't load either
+  stylesheet (checked `/`, `/chat`, `/join`, `/second-look`); its screenshots differ only by animation frames.
+- **What changed visually:** stretched submit buttons are their own width; buttons beside fields are level with them
+  and 44px like them; field boxes are 3px taller; buttons in a grid form sit 10px under the last field (the grid's gap;
+  those wrapped in a `<div>` had 24px); tabs are filled pills; Contacts has the Import contacts button by the search;
+  Scripts' cards show the goal as a line; checkboxes are in the highlight colour; disabled buttons are grey; summaries
+  are taller; on phones, rows of only buttons fill the line evenly (two to a line at 390) and wrapped tables scroll
+  inside their card; the Report a problem pill is a round button. Nothing changed on the public site. Page heights
+  (Night, before → after, px): Academy 3123 → 3129 / 2049 → 2040 (390 / 1280); Expenses 4253 → 4243 / 2723 → 2731;
+  Permission 3154 → 3147 / 2318 → 2330; Refi 1215 → 1202 / 900 → 900; Concierge 3819 → 3771 / 2475 → 2427; Team
+  2756 → 2758 / 2206 → 2208; a contact 10625 → 10553 / 6807 → 6777; a loan 14147 → 14301 / 9860 → 10087 (the 44px
+  summaries); LOA 12249 → 12215 / 6556 → 6530; Contacts 1498 → 1456 / 915 → 900; Home 15786 → 15872 / 6103 → 6133;
+  Launch 12224 → 14444 at 390 (it no longer runs off the screen, so its tables wrap).
+- **Screenshots** (full page, 390 and 1280, Night and Paper): before `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d72/before/`, after `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d72/after/`
+  (`mlo_academy-*`, `mlo_expenses-*`, `mlo_contacts_permission-*`, `mlo_refi-*`, `mlo_concierge-*`, `mlo_team-*`,
+  `contact-*`, plus the loan page, `/mlo/loa`, Contacts, Pricing, Templates, Scripts, Home, sign-in and the client page).
+- **Decisions:** (a) Summaries: the spec's `display: flex` drops the native open/closed triangle and the spaces between
+  a summary's words and links, so a plain summary stays a list item with `min-height: 44px` and 10px top and bottom
+  padding; summaries that were already flex (`.mlo-details`, the folds, `.cc-sechead`) and the ghost-button summary keep
+  their look. (b) Phones: the spec's `flex: 1 1 100%` put every button of a button-only row on its own line (the loan
+  page grew 1,870px: Done / Doesn't apply stacked on each of 18 checklist items), so they take `flex: 1 1 120px`: equal
+  widths, two to a line at 390, a lone button full width. (c) The 14px rule applies to a plain `form` (no class) and
+  not to grid or row sections, rather than `form:not(.mlo-row-form):not(.mlo-grid)`: a form with its own layout class
+  (Campaigns' "Write it with M8", a two-column grid) would otherwise get 14px and sit lower than its field. (d) Report
+  a problem's words appear without a width animation (motion rule: transforms and opacity only).
+- **Known gaps:** the contacts table still breaks phone numbers over lines at 390 (the D77 rebuild); Dim was not swept
+  (it shares Night's rules); LOA's small `.loa-btn-sm` (36px) buttons are unchanged by design.
+- **Next up:** D73 (tags at import, on each contact, in the list, in bulk), after the owner's sign-off.

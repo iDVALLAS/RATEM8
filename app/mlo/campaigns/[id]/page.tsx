@@ -45,8 +45,8 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           </div>
           <div className="mlo-row-form">
             {c.status === "active"
-              ? <form action={campaignStatusAction.bind(null, c.id, "paused")}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Pause</button></form>
-              : <form action={campaignStatusAction.bind(null, c.id, "active")}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={!!problem}>Turn it on</button></form>}
+              ? <form action={campaignStatusAction.bind(null, c.id, "paused")}><button type="submit" className="mlo-btn mlo-btn--ghost">Pause</button></form>
+              : <form action={campaignStatusAction.bind(null, c.id, "active")}><button type="submit" className="mlo-btn" disabled={!!problem}>Turn it on</button></form>}
           </div>
         </div>
         <FlashBox flash={decodeFlash(f)} />
@@ -65,7 +65,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
               <option value="agent">All agents</option>
               <option value="other">Everyone else</option>
             </select>
-            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Add them</button>
+            <button type="submit" className="mlo-btn mlo-btn--ghost">Add them</button>
           </form>
           <p className="mlo-note">People already in this campaign aren&apos;t added twice. Anyone without permission for a step&apos;s channel is skipped for that step, and the reason is shown here.</p>
           {people.length === 0 ? <p className="mlo-note" style={{ marginTop: 10 }}>Nobody yet.</p> : (
@@ -81,7 +81,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
                         <td>{p ? <Link href={`/mlo/contacts/${p.id}`}>{[p.firstName, p.lastName].filter(Boolean).join(" ") || "(no name)"}</Link> : "(removed)"}</td>
                         <td>{e.status === "active" ? `Step ${Math.min(e.stepIndex + 1, c.steps.length)} of ${c.steps.length}, ${when(e.nextAt)}` : e.status === "done" ? "Finished" : `Stopped: ${e.reason}`}</td>
                         <td className="mlo-note">{last ? `${when(last.at)} · ${last.note}` : "Nothing yet"}</td>
-                        <td>{e.status === "active" ? <form action={stopEnrollmentAction.bind(null, c.id, e.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Take out</button></form> : null}</td>
+                        <td>{e.status === "active" ? <form action={stopEnrollmentAction.bind(null, c.id, e.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Take out</button></form> : null}</td>
                       </tr>
                     );
                   })}

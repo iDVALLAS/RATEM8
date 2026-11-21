@@ -92,7 +92,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
                 <option value="service">About their loan or account</option>
                 <option value="marketing">An offer or check-in</option>
               </select>
-              <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Send</button>
+              <button type="submit" className="mlo-btn">Send</button>
             </div>
             <p className="mlo-note">It goes through your contact rules like any text or email: permission, quiet hours, caps and STOP. You can also send from a contact&apos;s page.</p>
           </form>
@@ -112,7 +112,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
                   <div className="vid-body">
                     <form action={renameVideoAction.bind(null, x.id)} className="mlo-row-form">
                       <input name="title" className="mlo-input vid-title" defaultValue={x.title} maxLength={80} aria-label="Name" />
-                      <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Rename</button>
+                      <button type="submit" className="mlo-btn mlo-btn--ghost">Rename</button>
                     </form>
                     <p className="mlo-note">
                       {clock(x.durationSec)} · added {when(x.createdAt)} ·{" "}

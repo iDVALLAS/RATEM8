@@ -76,22 +76,26 @@ export default async function Membership({ searchParams }: { searchParams: Promi
             <section className="mlo-section">
               <h2>Your membership</h2>
               {st.member ? (
-                <table className="mlo-table mlo-table--plain"><tbody>
-                  <tr><th scope="row">Area</th><td>{st.member.area}</td></tr>
-                  <tr><th scope="row">Monthly fee</th><td>{$(st.member.feeCents)}</td></tr>
-                  <tr><th scope="row">Member since</th><td>{st.member.joinedOn}</td></tr>
-                  <tr><th scope="row">Credit you can use</th><td>{$(st.credit.usable)}{st.credit.held ? <span className="mlo-note"> · {$(st.credit.held)} held until the plan is approved</span> : null}</td></tr>
-                </tbody></table>
+                <div className="mlo-scroll">
+                  <table className="mlo-table mlo-table--plain"><tbody>
+                    <tr><th scope="row">Area</th><td>{st.member.area}</td></tr>
+                    <tr><th scope="row">Monthly fee</th><td>{$(st.member.feeCents)}</td></tr>
+                    <tr><th scope="row">Member since</th><td>{st.member.joinedOn}</td></tr>
+                    <tr><th scope="row">Credit you can use</th><td>{$(st.credit.usable)}{st.credit.held ? <span className="mlo-note"> · {$(st.credit.held)} held until the plan is approved</span> : null}</td></tr>
+                  </tbody></table>
+                </div>
               ) : <p className="mlo-note">The owner sets up your membership (area and fee). Ask them if it&apos;s missing.</p>}
             </section>
 
             <section className="mlo-section">
               <h2>Loan officers you brought in ({st.recruits.length})</h2>
               {st.recruits.length === 0 ? <p className="mlo-note">None yet. When someone you brought in joins, the owner links them to you here.</p> : (
-                <table className="mlo-table">
-                  <thead><tr><th>Who</th><th>Member since</th><th>Rate now</th><th>Credit so far</th></tr></thead>
-                  <tbody>{st.recruits.map((r) => <tr key={r.userId}><td>{r.name}{r.active ? "" : " (left)"}</td><td>{r.joinedOn}</td><td>{pct(r.rateNow)}</td><td>{$(r.creditCents)}</td></tr>)}</tbody>
-                </table>
+                <div className="mlo-scroll">
+                  <table className="mlo-table">
+                    <thead><tr><th>Who</th><th>Member since</th><th>Rate now</th><th>Credit so far</th></tr></thead>
+                    <tbody>{st.recruits.map((r) => <tr key={r.userId}><td>{r.name}{r.active ? "" : " (left)"}</td><td>{r.joinedOn}</td><td>{pct(r.rateNow)}</td><td>{$(r.creditCents)}</td></tr>)}</tbody>
+                  </table>
+                </div>
               )}
             </section>
 
@@ -108,10 +112,12 @@ export default async function Membership({ searchParams }: { searchParams: Promi
             <section className="mlo-section" id="production">
               <h2>Your production share</h2>
               {myShare.length === 0 ? <p className="mlo-note">No closed loans from loan officers you brought in, this month or last.</p> : (
-                <table className="mlo-table">
-                  <thead><tr><th>Month</th><th>Who</th><th>Closed loans</th><th>Volume</th><th>Share</th></tr></thead>
-                  <tbody>{myShare.map((l) => <tr key={`${l.month}-${l.recruitUserId}`}><td>{l.month}</td><td>{shareNames[l.recruitUserId]}{l.level > 1 ? ` (level ${l.level})` : ""}</td><td>{l.loans}</td><td>{$(l.volume * 100)}</td><td>{$(l.cents)}{productionOn() ? "" : " (tracked)"}</td></tr>)}</tbody>
-                </table>
+                <div className="mlo-scroll">
+                  <table className="mlo-table">
+                    <thead><tr><th>Month</th><th>Who</th><th>Closed loans</th><th>Volume</th><th>Share</th></tr></thead>
+                    <tbody>{myShare.map((l) => <tr key={`${l.month}-${l.recruitUserId}`}><td>{l.month}</td><td>{shareNames[l.recruitUserId]}{l.level > 1 ? ` (level ${l.level})` : ""}</td><td>{l.loans}</td><td>{$(l.volume * 100)}</td><td>{$(l.cents)}{productionOn() ? "" : " (tracked)"}</td></tr>)}</tbody>
+                  </table>
+                </div>
               )}
             </section>
 
@@ -120,10 +126,12 @@ export default async function Membership({ searchParams }: { searchParams: Promi
                 <h2>{st.coop.area}: your area&apos;s marketing</h2>
                 <p className="mlo-note">{st.coop.members} {st.coop.members === 1 ? "member" : "members"} · {$(st.coop.inCents)} in · {$(st.coop.spentCents)} spent · <strong>{$(st.coop.balanceCents)} available</strong></p>
                 {st.coop.spends.length ? (
-                  <table className="mlo-table" style={{ marginTop: 10 }}>
-                    <thead><tr><th>Month</th><th>What</th><th>Where</th><th>Cost</th></tr></thead>
-                    <tbody>{st.coop.spends.map((s) => <tr key={s.id}><td>{s.month}</td><td>{s.what}<br /><span className="mlo-note">Receipt: {s.proof}</span></td><td>{CHANNEL_LABELS[s.channel]}</td><td>{$(s.cents)}</td></tr>)}</tbody>
-                  </table>
+                  <div className="mlo-scroll">
+                    <table className="mlo-table" style={{ marginTop: 10 }}>
+                      <thead><tr><th>Month</th><th>What</th><th>Where</th><th>Cost</th></tr></thead>
+                      <tbody>{st.coop.spends.map((s) => <tr key={s.id}><td>{s.month}</td><td>{s.what}<br /><span className="mlo-note">Receipt: {s.proof}</span></td><td>{CHANNEL_LABELS[s.channel]}</td><td>{$(s.cents)}</td></tr>)}</tbody>
+                    </table>
+                  </div>
                 ) : <p className="mlo-note">Nothing spent yet.</p>}
               </section>
             ) : null}
@@ -142,10 +150,12 @@ export default async function Membership({ searchParams }: { searchParams: Promi
                   <button type="submit" className="mlo-btn">Save my split</button>
                 </form>
                 {st.plan && st.plan.rows.length ? (
-                  <table className="mlo-table" style={{ marginTop: 14 }}>
-                    <thead><tr><th>Channel</th><th>Members&apos; plan</th><th>Actually spent</th></tr></thead>
-                    <tbody>{st.plan.rows.map((r) => <tr key={r.channel}><td>{CHANNEL_LABELS[r.channel]}</td><td>{r.planPct}%</td><td>{r.spentPct}%</td></tr>)}</tbody>
-                  </table>
+                  <div className="mlo-scroll">
+                    <table className="mlo-table" style={{ marginTop: 14 }}>
+                      <thead><tr><th>Channel</th><th>Members&apos; plan</th><th>Actually spent</th></tr></thead>
+                      <tbody>{st.plan.rows.map((r) => <tr key={r.channel}><td>{CHANNEL_LABELS[r.channel]}</td><td>{r.planPct}%</td><td>{r.spentPct}%</td></tr>)}</tbody>
+                    </table>
+                  </div>
                 ) : null}
                 <form action={ideaAction} className="mlo-grid" style={{ marginTop: 18 }}>
                   <label className="mlo-field"><span>Suggest something local (a sponsorship, an event, a mailer)</span><textarea name="text" rows={2} maxLength={400} className="mlo-textarea" required /></label>
@@ -164,10 +174,12 @@ export default async function Membership({ searchParams }: { searchParams: Promi
               <h2>National marketing</h2>
               <p className="mlo-note">{$(st.national.inCents)} in · {$(st.national.spentCents)} spent · {$(st.national.balanceCents)} available. The owner decides national spending; every member sees it.</p>
               {st.national.spends.length ? (
-                <table className="mlo-table" style={{ marginTop: 10 }}>
-                  <thead><tr><th>Month</th><th>What</th><th>Where</th><th>Cost</th></tr></thead>
-                  <tbody>{st.national.spends.map((s) => <tr key={s.id}><td>{s.month}</td><td>{s.what}</td><td>{CHANNEL_LABELS[s.channel]}</td><td>{$(s.cents)}</td></tr>)}</tbody>
-                </table>
+                <div className="mlo-scroll">
+                  <table className="mlo-table" style={{ marginTop: 10 }}>
+                    <thead><tr><th>Month</th><th>What</th><th>Where</th><th>Cost</th></tr></thead>
+                    <tbody>{st.national.spends.map((s) => <tr key={s.id}><td>{s.month}</td><td>{s.what}</td><td>{CHANNEL_LABELS[s.channel]}</td><td>{$(s.cents)}</td></tr>)}</tbody>
+                  </table>
+                </div>
               ) : null}
             </section>
 
@@ -175,55 +187,59 @@ export default async function Membership({ searchParams }: { searchParams: Promi
               <>
                 <section className="mlo-section" id="members">
                   <h2>Members (owner and team leads)</h2>
-                  <table className="mlo-table">
-                    <thead><tr><th>Who</th><th>Membership</th><th>This month</th></tr></thead>
-                    <tbody>
-                      {users.map((u) => {
-                        const m = memberOf(u.id);
-                        const b = balances.find((x) => x.id === u.id);
-                        return (
-                          <tr key={u.id}>
-                            <th scope="row">{u.name}<br /><span className="mlo-note">{m?.recruitedBy ? `Brought in by ${nameOf(m.recruitedBy)}` : "Joined directly"}{b && (b.usable || b.held) ? ` · credit ${$(b.usable)}${b.held ? ` (+${$(b.held)} held)` : ""}` : ""}</span></th>
-                            <td>
-                              <form action={setMemberAction} className="mlo-row-form">
-                                <input type="hidden" name="userId" value={u.id} />
-                                <input name="area" defaultValue={m?.area ?? ""} placeholder="Service area" className="mlo-input" aria-label={`Area for ${u.name}`} required />
-                                <input name="fee" type="number" min={0} step="0.01" defaultValue={m ? (m.feeCents / 100).toFixed(2) : ""} placeholder="Fee $" className="mlo-input" style={{ maxWidth: 110 }} aria-label={`Monthly fee for ${u.name}`} required />
-                                <input name="joinedOn" type="date" defaultValue={m?.joinedOn ?? u.createdAt.slice(0, 10)} className="mlo-input" aria-label={`Joined on, ${u.name}`} required />
-                                <select name="plan" defaultValue={m?.plan ?? "capped"} className="mlo-select" aria-label={`AI plan for ${u.name}`}>
-                                  {(Object.keys(AI_PLANS) as (keyof typeof AI_PLANS)[]).map((p) => <option key={p} value={p}>{AI_PLANS[p].label} ({$(AI_PLANS[p].allowanceCents)} AI)</option>)}
-                                </select>
-                                <select name="recruitedBy" defaultValue={m?.recruitedBy ?? ""} className="mlo-select" aria-label={`Who brought ${u.name} in`}>
-                                  <option value="">Joined directly</option>
-                                  {users.filter((x) => x.id !== u.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                                </select>
-                                <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Save</button>
-                              </form>
-                            </td>
-                            <td>
-                              {m ? (
-                                <form action={paymentAction} className="mlo-row-form">
+                  <div className="mlo-scroll">
+                    <table className="mlo-table">
+                      <thead><tr><th>Who</th><th>Membership</th><th>This month</th></tr></thead>
+                      <tbody>
+                        {users.map((u) => {
+                          const m = memberOf(u.id);
+                          const b = balances.find((x) => x.id === u.id);
+                          return (
+                            <tr key={u.id}>
+                              <th scope="row">{u.name}<br /><span className="mlo-note">{m?.recruitedBy ? `Brought in by ${nameOf(m.recruitedBy)}` : "Joined directly"}{b && (b.usable || b.held) ? ` · credit ${$(b.usable)}${b.held ? ` (+${$(b.held)} held)` : ""}` : ""}</span></th>
+                              <td>
+                                <form action={setMemberAction} className="mlo-row-form">
                                   <input type="hidden" name="userId" value={u.id} />
-                                  <input name="month" type="month" defaultValue={month()} className="mlo-input" aria-label={`Month paid, ${u.name}`} required />
-                                  <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Fee paid</button>
+                                  <input name="area" defaultValue={m?.area ?? ""} placeholder="Service area" className="mlo-input" aria-label={`Area for ${u.name}`} required />
+                                  <input name="fee" type="number" min={0} step="0.01" defaultValue={m ? (m.feeCents / 100).toFixed(2) : ""} placeholder="Fee $" className="mlo-input" style={{ maxWidth: 110 }} aria-label={`Monthly fee for ${u.name}`} required />
+                                  <input name="joinedOn" type="date" defaultValue={m?.joinedOn ?? u.createdAt.slice(0, 10)} className="mlo-input" aria-label={`Joined on, ${u.name}`} required />
+                                  <select name="plan" defaultValue={m?.plan ?? "capped"} className="mlo-select" aria-label={`AI plan for ${u.name}`}>
+                                    {(Object.keys(AI_PLANS) as (keyof typeof AI_PLANS)[]).map((p) => <option key={p} value={p}>{AI_PLANS[p].label} ({$(AI_PLANS[p].allowanceCents)} AI)</option>)}
+                                  </select>
+                                  <select name="recruitedBy" defaultValue={m?.recruitedBy ?? ""} className="mlo-select" aria-label={`Who brought ${u.name} in`}>
+                                    <option value="">Joined directly</option>
+                                    {users.filter((x) => x.id !== u.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                                  </select>
+                                  <button type="submit" className="mlo-btn">Save</button>
                                 </form>
-                              ) : <span className="mlo-note">Set up first</span>}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                              </td>
+                              <td>
+                                {m ? (
+                                  <form action={paymentAction} className="mlo-row-form">
+                                    <input type="hidden" name="userId" value={u.id} />
+                                    <input name="month" type="month" defaultValue={month()} className="mlo-input" aria-label={`Month paid, ${u.name}`} required />
+                                    <button type="submit" className="mlo-btn mlo-btn--ghost">Fee paid</button>
+                                  </form>
+                                ) : <span className="mlo-note">Set up first</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                   {teamAi.length ? <p className="mlo-note">AI this month: {teamAi.sort((a, b) => b.costMicros - a.costMicros).map((t) => `${users.find((u) => u.id === t.userId)?.name ?? (t.userId.startsWith("mlo:") ? "Borrower chat (no account yet)" : "Someone")} ${$(Math.round(t.costMicros / 10_000))}`).join(" · ")} · total {$(Math.round(teamAi.reduce((n, t) => n + t.costMicros, 0) / 10_000))}</p> : null}
                   <p className="mlo-note">“Fee paid” uses their credit first, then sets aside the marketing shares and works out credit for whoever brought them in. Recorded payments can&apos;t be edited.</p>
                 </section>
 
                 <section className="mlo-section" id="coop">
                   <h2>Record marketing spending</h2>
-                  <table className="mlo-table mlo-table--plain"><tbody>
-                    {areaBudgets.map((b) => <tr key={b.area}><th scope="row">{b.area}</th><td>{$(b.balanceCents)} available · {b.plan.voters} {b.plan.voters === 1 ? "member has" : "members have"} set a split{b.plan.rows.length ? `: ${b.plan.rows.filter((r) => r.planPct).map((r) => `${CHANNEL_LABELS[r.channel]} ${r.planPct}%`).join(", ")}` : ""}</td></tr>)}
-                    <tr><th scope="row">{NATIONAL}</th><td>{$(st.national.balanceCents)} available</td></tr>
-                  </tbody></table>
+                  <div className="mlo-scroll">
+                    <table className="mlo-table mlo-table--plain"><tbody>
+                      {areaBudgets.map((b) => <tr key={b.area}><th scope="row">{b.area}</th><td>{$(b.balanceCents)} available · {b.plan.voters} {b.plan.voters === 1 ? "member has" : "members have"} set a split{b.plan.rows.length ? `: ${b.plan.rows.filter((r) => r.planPct).map((r) => `${CHANNEL_LABELS[r.channel]} ${r.planPct}%`).join(", ")}` : ""}</td></tr>)}
+                      <tr><th scope="row">{NATIONAL}</th><td>{$(st.national.balanceCents)} available</td></tr>
+                    </tbody></table>
+                  </div>
                   <form action={spendAction} className="mlo-grid" style={{ marginTop: 12 }}>
                     <div className="mlo-row-form">
                       <select name="area" className="mlo-select" aria-label="Which budget" required defaultValue="">
@@ -249,10 +265,12 @@ export default async function Membership({ searchParams }: { searchParams: Promi
                   <h2>Production share statement for the sponsor ({thisMonth})</h2>
                   <p className="mlo-note">The sponsoring company pays the production share through its payroll under its written compensation plan; LoanM8 never pays it. {productionOn() ? "The plan is on." : "The plan isn't approved yet, so this is for tracking only."}</p>
                   {sponsorThis && sponsorThis.lines.length ? (
-                    <table className="mlo-table">
-                      <thead><tr><th>Recruiter</th><th>Recruit</th><th>Level</th><th>Volume</th><th>Share</th></tr></thead>
-                      <tbody>{sponsorThis.lines.map((l) => <tr key={`${l.recruiterUserId}-${l.recruitUserId}`}><td>{shareNames[l.recruiterUserId]}</td><td>{shareNames[l.recruitUserId]}</td><td>{l.level}</td><td>{$(l.volume * 100)}</td><td>{$(l.cents)}</td></tr>)}</tbody>
-                    </table>
+                    <div className="mlo-scroll">
+                      <table className="mlo-table">
+                        <thead><tr><th>Recruiter</th><th>Recruit</th><th>Level</th><th>Volume</th><th>Share</th></tr></thead>
+                        <tbody>{sponsorThis.lines.map((l) => <tr key={`${l.recruiterUserId}-${l.recruitUserId}`}><td>{shareNames[l.recruiterUserId]}</td><td>{shareNames[l.recruitUserId]}</td><td>{l.level}</td><td>{$(l.volume * 100)}</td><td>{$(l.cents)}</td></tr>)}</tbody>
+                      </table>
+                    </div>
                   ) : <p className="mlo-note">Nothing this month yet.</p>}
                   <p className="mlo-note" style={{ marginTop: 8 }}><a href={`/api/cc/override/csv?month=${thisMonth}`}>Download this month&apos;s statement (CSV)</a> · <a href={`/api/cc/override/csv?month=${lastMonth}`}>last month</a></p>
                 </section>
@@ -267,9 +285,9 @@ export default async function Membership({ searchParams }: { searchParams: Promi
                           <p>{i.text}</p>
                           <form className="mlo-row-form">
                             <input name="reply" className="mlo-input" placeholder="Your reply (needed to decline)" maxLength={400} aria-label="Reply" />
-                            {i.status === "open" ? <button type="submit" formAction={answerIdeaAction.bind(null, i.id, "approved")} className="mlo-btn" style={{ marginTop: 0 }}>Approve</button> : null}
-                            {i.status === "approved" ? <button type="submit" formAction={answerIdeaAction.bind(null, i.id, "done")} className="mlo-btn" style={{ marginTop: 0 }}>Mark done</button> : null}
-                            <button type="submit" formAction={answerIdeaAction.bind(null, i.id, "declined")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Decline</button>
+                            {i.status === "open" ? <button type="submit" formAction={answerIdeaAction.bind(null, i.id, "approved")} className="mlo-btn">Approve</button> : null}
+                            {i.status === "approved" ? <button type="submit" formAction={answerIdeaAction.bind(null, i.id, "done")} className="mlo-btn">Mark done</button> : null}
+                            <button type="submit" formAction={answerIdeaAction.bind(null, i.id, "declined")} className="mlo-btn mlo-btn--ghost">Decline</button>
                           </form>
                         </li>
                       ))}

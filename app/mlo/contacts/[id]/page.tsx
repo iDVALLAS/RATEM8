@@ -183,8 +183,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                   <label className="mlo-field"><span>How they told you</span><input name="proof" maxLength={300} placeholder="Said yes by text, Nov 18" defaultValue={c.partnerUpdates?.allowed ? c.partnerUpdates.proof : ""} /></label>
                 </div>
                 <div className="mlo-row-form">
-                  <button type="submit" formAction={partnerUpdatesAction.bind(null, "yes")} className="mlo-btn" style={{ marginTop: 0 }}>Their agent may get updates</button>
-                  {c.partnerUpdates?.allowed ? <button type="submit" formAction={partnerUpdatesAction.bind(null, "no")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Stop updates</button> : null}
+                  <button type="submit" formAction={partnerUpdatesAction.bind(null, "yes")} className="mlo-btn">Their agent may get updates</button>
+                  {c.partnerUpdates?.allowed ? <button type="submit" formAction={partnerUpdatesAction.bind(null, "no")} className="mlo-btn mlo-btn--ghost">Stop updates</button> : null}
                 </div>
                 {agents.length === 0 ? <p className="mlo-note">Import your agents first (Contacts → Import → Agents).</p> : null}
               </form>
@@ -207,8 +207,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                 <p className="mlo-note">{c.firstName || "They"} can see who has their information and what permission is on file, stop texts or calls in one tap, give permission for texts themselves, and delete what your Concierge noted. It&apos;s a private link: share it only with them.</p>
                 <code className="mlo-code" style={{ display: "block", overflowWrap: "anywhere", margin: "8px 0" }}>{clientUrl}</code>
                 <div className="mlo-row-form">
-                  <form action={draftClientLinkAction.bind(null, c.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Draft a text with it</button></form>
-                  <form action={rotateClientLinkAction.bind(null, c.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Make a new link</button></form>
+                  <form action={draftClientLinkAction.bind(null, c.id)}><button type="submit" className="mlo-btn">Draft a text with it</button></form>
+                  <form action={rotateClientLinkAction.bind(null, c.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Make a new link</button></form>
                 </div>
               </>
             ) : <p className="mlo-note">Client pages turn on with CC_LINK_SECRET (Sensitive) or the database in Vercel.</p>}
@@ -226,8 +226,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                   <tr key={m.id}>
                     <th scope="row">{m.status === "pending" ? <span className="mlo-pill">Waiting for you</span> : null} {m.fact}<br /><span className="mlo-note">“{m.quote}” · {m.kind} · {new Date(m.createdAt).toLocaleDateString("en-US")}{m.expiresAt ? ` · forgets ${m.expiresAt.slice(0, 10)}` : ""}</span></th>
                     <td className="mlo-row-form">
-                      {m.status === "pending" ? <form action={keepAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={c.id} /><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Keep</button></form> : null}
-                      <form action={forgetAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={c.id} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Forget</button></form>
+                      {m.status === "pending" ? <form action={keepAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={c.id} /><button type="submit" className="mlo-btn">Keep</button></form> : null}
+                      <form action={forgetAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={c.id} /><button type="submit" className="mlo-btn mlo-btn--ghost">Forget</button></form>
                     </td>
                   </tr>
                 ))}
@@ -262,7 +262,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                 <option value="service">About their loan or account ({gate.text.service.allowed ? "allowed now" : "not now"})</option>
                 <option value="marketing">An offer or check-in ({gate.text.marketing.allowed ? "allowed now" : "not now"})</option>
               </select>
-              <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={!texting}>Send text</button>
+              <button type="submit" className="mlo-btn" disabled={!texting}>Send text</button>
             </div>
             <p className="mlo-note">Your first text, and every offer, ends with who it&apos;s from and “Reply STOP to opt out.”</p>
           </form>
@@ -270,7 +270,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
             <>
               <PhoneText contactId={c.id} first={c.firstName} maxLength={MAX_TEXT} serviceOk={gate.text.service.allowed} marketingOk={gate.text.marketing.allowed} />
               <form action={phoneStopAction.bind(null, c.id)} className="mlo-row-form" style={{ marginTop: 8 }}>
-                <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>They asked to stop</button>
+                <button type="submit" className="mlo-btn mlo-btn--ghost">They asked to stop</button>
                 <span className="mlo-note">They texted STOP or asked you to stop, on your own phone. Turns off texts and calls to this number in Command Center.</span>
               </form>
             </>
@@ -292,7 +292,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                   <option value="service">About their loan or account ({gate.email.service.allowed ? "allowed now" : "not now"})</option>
                   <option value="marketing">An offer or check-in ({gate.email.marketing.allowed ? "allowed now" : "not now"})</option>
                 </select>
-                <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={!mail.ready}>Send email</button>
+                <button type="submit" className="mlo-btn" disabled={!mail.ready}>Send email</button>
               </div>
               <p className="mlo-note">
                 {mail.reconnect ? <><Link href="/mlo/email">Reconnect your email</Link> to send. Nothing goes from another address meanwhile.</> : mail.via === "mailbox" ? `Sent from ${mail.from}; it lands in your Sent folder and replies come to you.` : mail.ready ? <>Sent in your name; replies come to your own inbox. <Link href="/mlo/email">Connect your own mailbox</Link> to send from your address.</> : <><Link href="/mlo/email">Connect your email</Link> to send.</>}{" "}
@@ -305,12 +305,12 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               {c.noMail ? (
                 <>
                   <span className="mlo-note">No cards by mail for them.</span>
-                  <form action={noMailAction.bind(null, c.id, false)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Cards are OK again</button></form>
+                  <form action={noMailAction.bind(null, c.id, false)}><button type="submit" className="mlo-btn mlo-btn--ghost">Cards are OK again</button></form>
                 </>
               ) : (
                 <>
-                  <Link className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} href={`/mlo/cards?c=${encodeURIComponent(c.id)}`}>Send a card</Link>
-                  <form action={noMailAction.bind(null, c.id, true)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>No cards by mail</button></form>
+                  <Link className="mlo-btn mlo-btn--ghost" href={`/mlo/cards?c=${encodeURIComponent(c.id)}`}>Send a card</Link>
+                  <form action={noMailAction.bind(null, c.id, true)}><button type="submit" className="mlo-btn mlo-btn--ghost">No cards by mail</button></form>
                 </>
               )}
               <span className="mlo-note">{cards.length ? `Cards: ${cards.map((o) => `${o.kind === "notecard" ? "notecard" : "postcard"} ${new Date(o.sentAt ?? o.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}`).join(", ")}.` : c.street ? "No cards sent yet." : "Add a mailing address to send a card."}</span>
@@ -340,7 +340,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                       <option value="service">About their loan or account</option>
                       <option value="marketing">An offer or check-in</option>
                     </select>
-                    <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Send video</button>
+                    <button type="submit" className="mlo-btn">Send video</button>
                   </div>
                 </form>
               ) : (
@@ -360,7 +360,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                     <option value="service">About their loan ({gate.ai_call.service.allowed ? "allowed now" : "not now"})</option>
                     <option value="marketing" disabled={!optOutLine()}>An offer or check-in ({gate.ai_call.marketing.allowed ? "allowed now" : "not now"})</option>
                   </select>
-                  <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Leave a voicemail</button>
+                  <button type="submit" className="mlo-btn mlo-btn--ghost">Leave a voicemail</button>
                 </form>
               ) : (
                 <p className="mlo-note"><Link href="/mlo/voicemail">Record a voicemail</Link> to leave {c.firstName || "them"} a message without calling.</p>
@@ -371,7 +371,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
           {aiCallsOn() ? (
             <div id="m8-calls" style={{ marginTop: 18 }}>
               <form action={aiCallAction.bind(null, c.id)} className="mlo-row-form">
-                <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={!c.phone}>Have M8 call with a loan update</button>
+                <button type="submit" className="mlo-btn mlo-btn--ghost" disabled={!c.phone}>Have M8 call with a loan update</button>
                 <span className="mlo-note">An AI call ({gate.ai_call.service.allowed ? "allowed now" : "not now"}): needs their permission with proof (written, or a yes on a recorded call) and a loan in progress. M8 checks it&apos;s them first, says only what their own page says, and passes anything else to you.</span>
               </form>
               {m8Calls.map((k) => (
@@ -384,7 +384,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
           ) : null}
           {inCampaigns.length ? (
             <form action={contactRepliedAction.bind(null, c.id)} className="mlo-row-form" style={{ marginTop: 14 }}>
-              <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>They replied</button>
+              <button type="submit" className="mlo-btn mlo-btn--ghost">They replied</button>
               <span className="mlo-note">In {inCampaigns.length} campaign{inCampaigns.length === 1 ? "" : "s"}. Answered an email or called back? This stops their follow-up campaigns (keep-in-touch ones carry on).</span>
             </form>
           ) : null}
@@ -477,7 +477,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
           <h2 id="phone-checks">Phone checks</h2>
           <form action={checkLineAction} className="mlo-row-form">
             <input type="hidden" name="contactId" value={c.id} />
-            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={!c.phone}>Check line type (mobile or landline)</button>
+            <button type="submit" className="mlo-btn mlo-btn--ghost" disabled={!c.phone}>Check line type (mobile or landline)</button>
           </form>
           <form action={dncAction} className="mlo-row-form" style={{ marginTop: 12 }}>
             <input type="hidden" name="contactId" value={c.id} />
@@ -486,7 +486,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               <option value="yes">On a do-not-call list</option>
             </select>
             <input name="source" placeholder="Checked with (your DNC vendor or the registry)" className="mlo-input" style={{ flex: "1 1 240px" }} />
-            <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Record check</button>
+            <button type="submit" className="mlo-btn">Record check</button>
           </form>
           <p className="mlo-note">A check is good for 31 days. Marketing by phone needs one.</p>
           <form action={rndAction} className="mlo-row-form" style={{ marginTop: 12 }}>
@@ -498,7 +498,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
             </select>
             <label className="mlo-note">since <input type="date" name="since" className="mlo-input" defaultValue={c.rnd?.since ?? ""} required /></label>
             <input name="source" placeholder="Checked with (the FCC database or your vendor)" className="mlo-input" style={{ flex: "1 1 200px" }} />
-            <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Record check</button>
+            <button type="submit" className="mlo-btn">Record check</button>
           </form>
           <p className="mlo-note">{c.rnd ? `Reassigned Numbers Database: ${c.rnd.result === "yes" ? "disconnected" : c.rnd.result === "no" ? "not disconnected" : "no data"} since ${c.rnd.since} (${c.rnd.source}, checked ${fmt(c.rnd.checkedAt)}).` : "Reassigned Numbers Database: not checked."} Texts and M8 calls need a check when their permission or last message is more than 90 days old: check from that date. It&apos;s good for 30 days.</p>
         </section>

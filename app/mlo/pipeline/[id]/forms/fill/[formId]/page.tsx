@@ -49,8 +49,8 @@ export default async function FillPage({ params, searchParams }: { params: Promi
               ))}
             </div>
             <div className="mlo-row-form">
-              <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Save the filled copy on this loan</button>
-              <a href={`/api/cc/forms/${encodeURIComponent(plan.form.id)}`} target="_blank" rel="noopener" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>See the blank form</a>
+              <button type="submit" className="mlo-btn">Save the filled copy on this loan</button>
+              <a href={`/api/cc/forms/${encodeURIComponent(plan.form.id)}`} target="_blank" rel="noopener" className="mlo-btn mlo-btn--ghost">See the blank form</a>
             </div>
           </form>
         </section>

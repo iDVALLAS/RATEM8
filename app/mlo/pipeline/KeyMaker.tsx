@@ -15,7 +15,6 @@ export default function KeyMaker({ endpoint, what = "loan updates", defaultLabel
         <button
           type="button"
           className="mlo-btn"
-          style={{ marginTop: 0 }}
           onClick={async () => {
             const r = await createKeyAction(label);
             if ("key" in r) setKey(r.key);

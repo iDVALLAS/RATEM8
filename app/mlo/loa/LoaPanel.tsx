@@ -117,8 +117,8 @@ export default function LoaPanel({ loan, file, journey, settings, purpose, canEd
           <select name="kind" className="mlo-select" aria-label="What it is" defaultValue={c ? (f.title ? (f.approvalReceivedAt ? "escrow_fees" : "conditional_approval") : "title_commitment") : "purchase_agreement"}>
             {DOC_KINDS.map((k) => <option key={k} value={k}>{DOC_LABELS[k]}</option>)}
           </select>
-          <input type="file" name="doc" accept="application/pdf" className="mlo-input" aria-label="The PDF" style={{ flex: 1, minWidth: 0 }} />
-          <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Read it</button>
+          <input type="file" name="doc" accept="application/pdf" className="mlo-input" aria-label="The PDF" style={{ flex: "1 1 220px" }} />
+          <button type="submit" className="mlo-btn">Read it</button>
         </div>
         <details><summary className="mlo-note">No PDF? Paste the text instead</summary><textarea name="text" rows={4} className="mlo-textarea" aria-label="The document's text" /></details>
       </form>
@@ -199,17 +199,17 @@ export default function LoaPanel({ loan, file, journey, settings, purpose, canEd
           <div className="mlo-row-form">
             <input name="email" type="email" className="mlo-input" placeholder="Email" aria-label="Email" />
             <input name="phone" type="tel" className="mlo-input" placeholder="Phone" aria-label="Phone" />
-            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Save</button>
+            <button type="submit" className="mlo-btn mlo-btn--ghost">Save</button>
           </div>
         </form>
       </details>
 
       <h3 id="drafts">Emails to escrow and title</h3>
       <div className="mlo-row-form">
-        <form action={makeDraftAction.bind(null, loan.id, "escrow_fees")}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Draft: ask escrow for fees</button></form>
-        <form action={makeDraftAction.bind(null, loan.id, "open_escrow")}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Draft: open escrow</button></form>
-        <form action={makeDraftAction.bind(null, loan.id, "open_title")}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Draft: open title</button></form>
-        {payoffsOpen ? <form action={makeDraftAction.bind(null, loan.id, "payoffs")}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Draft: payoffs to escrow</button></form> : null}
+        <form action={makeDraftAction.bind(null, loan.id, "escrow_fees")}><button type="submit" className="mlo-btn mlo-btn--ghost">Draft: ask escrow for fees</button></form>
+        <form action={makeDraftAction.bind(null, loan.id, "open_escrow")}><button type="submit" className="mlo-btn mlo-btn--ghost">Draft: open escrow</button></form>
+        <form action={makeDraftAction.bind(null, loan.id, "open_title")}><button type="submit" className="mlo-btn mlo-btn--ghost">Draft: open title</button></form>
+        {payoffsOpen ? <form action={makeDraftAction.bind(null, loan.id, "payoffs")}><button type="submit" className="mlo-btn mlo-btn--ghost">Draft: payoffs to escrow</button></form> : null}
       </div>
       {drafts.map((d) => (
         <form key={d.id} action={sendDraftAction.bind(null, loan.id, d.id)} className="loa-draft" style={{ marginTop: 10 }}>
@@ -219,8 +219,8 @@ export default function LoaPanel({ loan, file, journey, settings, purpose, canEd
           <input name="subject" className="mlo-input" defaultValue={d.subject} aria-label="Subject" required />
           <textarea name="body" rows={7} className="mlo-textarea" defaultValue={d.body} aria-label="Message" required />
           <div className="mlo-row-form">
-            <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Send</button>
-            <button type="submit" formAction={discardDraftAction.bind(null, loan.id, d.id)} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} formNoValidate>Set aside</button>
+            <button type="submit" className="mlo-btn">Send</button>
+            <button type="submit" formAction={discardDraftAction.bind(null, loan.id, d.id)} className="mlo-btn mlo-btn--ghost" formNoValidate>Set aside</button>
             <span className="mlo-note">Goes from your own mailbox when it&apos;s connected, with your signature.</span>
           </div>
         </form>
@@ -277,7 +277,7 @@ export default function LoaPanel({ loan, file, journey, settings, purpose, canEd
               <li key={x.id}>
                 <span><span className="loa-tag">{x.kind}</span>{x.payoff ? <span className="loa-tag">pay off</span> : null}{x.text}</span>
                 {x.payoff ? (
-                  x.status === "cleared" ? <span className="mlo-note">Cleared</span> : <form action={titleItemAction.bind(null, loan.id, x.id, x.status === "open" ? "payoff_requested" : "cleared")}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>{x.status === "open" ? "Payoff requested" : "Cleared"}</button></form>
+                  x.status === "cleared" ? <span className="mlo-note">Cleared</span> : <form action={titleItemAction.bind(null, loan.id, x.id, x.status === "open" ? "payoff_requested" : "cleared")}><button type="submit" className="mlo-btn mlo-btn--ghost">{x.status === "open" ? "Payoff requested" : "Cleared"}</button></form>
                 ) : <span />}
               </li>
             ))}
@@ -298,7 +298,7 @@ export default function LoaPanel({ loan, file, journey, settings, purpose, canEd
                   {list.map((x) => (
                     <li key={x.id}>
                       <span><span className="loa-tag">{x.status}</span>{x.text} <span className="mlo-note">· prior to {x.priorTo}</span></span>
-                      {NEXT[x.status] ? <form action={conditionAction.bind(null, loan.id, x.id, NEXT[x.status]!)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>{NEXT_LABEL[x.status]}</button></form> : <span className="mlo-note">✓</span>}
+                      {NEXT[x.status] ? <form action={conditionAction.bind(null, loan.id, x.id, NEXT[x.status]!)}><button type="submit" className="mlo-btn mlo-btn--ghost">{NEXT_LABEL[x.status]}</button></form> : <span className="mlo-note">✓</span>}
                     </li>
                   ))}
                 </ul>

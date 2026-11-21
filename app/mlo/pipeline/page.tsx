@@ -89,7 +89,7 @@ export default async function Pipeline() {
                         <th scope="row">{k.label}</th>
                         <td className="mlo-note">made {new Date(k.createdAt).toLocaleDateString("en-US")}</td>
                         <td>
-                          <form action={deleteKeyAction}><input type="hidden" name="hash" value={k.hash} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Turn off</button></form>
+                          <form action={deleteKeyAction}><input type="hidden" name="hash" value={k.hash} /><button type="submit" className="mlo-btn mlo-btn--ghost">Turn off</button></form>
                         </td>
                       </tr>
                     ))}

@@ -35,17 +35,19 @@ export default async function Launch() {
                   <p className="cc-card__title">{s.title}</p>
                   <p className="mlo-note">{s.detail}{s.outside ? ` (${s.outside})` : ""}</p>
                   {s.env?.length ? (
-                    <table className="mlo-table mlo-table--plain" style={{ marginTop: 6 }}>
-                      <tbody>
-                        {s.env.map((e) => (
-                          <tr key={e.name}>
-                            <th scope="row"><code>{e.name}</code>{e.optional ? <span className="mlo-note"> (optional)</span> : null}<br /><span className="mlo-note">{e.note}</span></th>
-                            <td className="mlo-note">{e.sensitive ? "Sensitive" : "Not sensitive"}</td>
-                            <td><span className={`mlo-pill ${envStatus(e.name) ? "" : "mlo-pill--off"}`}>{envStatus(e.name) ? "Set" : "Not set"}</span></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div className="mlo-scroll">
+                      <table className="mlo-table mlo-table--plain mlo-table--stack" style={{ marginTop: 6 }}>
+                        <tbody>
+                          {s.env.map((e) => (
+                            <tr key={e.name}>
+                              <th scope="row"><code>{e.name}</code>{e.optional ? <span className="mlo-note"> (optional)</span> : null}<br /><span className="mlo-note">{e.note}</span></th>
+                              <td className="mlo-note">{e.sensitive ? "Sensitive" : "Not sensitive"}</td>
+                              <td><span className={`mlo-pill ${envStatus(e.name) ? "" : "mlo-pill--off"}`}>{envStatus(e.name) ? "Set" : "Not set"}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   ) : null}
                 </li>
               ))}

@@ -104,7 +104,7 @@ export default async function TeamSetup({ searchParams }: { searchParams: Promis
           </section>
 
           <div className="mlo-row-form" style={{ marginTop: 14 }}>
-            <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Save</button>
+            <button type="submit" className="mlo-btn">Save</button>
           </div>
         </form>
 
@@ -124,12 +124,12 @@ export default async function TeamSetup({ searchParams }: { searchParams: Promis
                   {p.approved ? (
                     <>
                       <span className="mlo-note">Approved: sends on its own.</span>
-                      <form action={playbookAction.bind(null, p.id, false)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Take back</button></form>
+                      <form action={playbookAction.bind(null, p.id, false)}><button type="submit" className="mlo-btn mlo-btn--ghost">Take back</button></form>
                     </>
                   ) : (
                     <>
                       {p.stale ? <span className="mlo-note">The wording changed since you approved it.</span> : null}
-                      <form action={playbookAction.bind(null, p.id, true)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Approve</button></form>
+                      <form action={playbookAction.bind(null, p.id, true)}><button type="submit" className="mlo-btn">Approve</button></form>
                     </>
                   )}
                 </div>
@@ -145,14 +145,14 @@ export default async function TeamSetup({ searchParams }: { searchParams: Promis
               <span>Canceled or expired listings (CSV): an MLS hot sheet or a vendor export with the address and the listing agent&apos;s name, email and phone</span>
               <input type="file" name="file" accept=".csv,text/csv" className="mlo-input" required />
             </label>
-            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0, justifySelf: "start" }}>Add listings</button>
+            <button type="submit" className="mlo-btn mlo-btn--ghost">Add listings</button>
           </form>
           <form action={newAgentsAction} className="mlo-grid" style={{ marginTop: 14 }}>
             <label className="mlo-field">
               <span>Agents new to the area (CSV): a roster from your MLS or a brokerage, with name and email or phone</span>
               <input type="file" name="file" accept=".csv,text/csv" className="mlo-input" required />
             </label>
-            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0, justifySelf: "start" }}>Add new agents</button>
+            <button type="submit" className="mlo-btn mlo-btn--ghost">Add new agents</button>
           </form>
           <p className="mlo-note" style={{ marginTop: 10 }}>Your team never uses RETR production numbers: RETR&apos;s terms bar using its data in automated processes. It works only from your own history with agents you add here or who worked a loan with you.</p>
         </section>

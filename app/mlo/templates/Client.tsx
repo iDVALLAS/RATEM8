@@ -10,7 +10,6 @@ function Copy({ text }: { text: string }) {
     <button
       type="button"
       className="mlo-btn mlo-btn--ghost"
-      style={{ marginTop: 0 }}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);
@@ -72,7 +71,7 @@ export function AnswerThis() {
           <option value="client">A client or buyer</option>
           <option value="agent">A real estate agent</option>
         </select>
-        <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={busy || said.trim().length < 4}>{busy ? "Thinking…" : "Help me answer"}</button>
+        <button type="submit" className="mlo-btn" disabled={busy || said.trim().length < 4}>{busy ? "Thinking…" : "Help me answer"}</button>
       </div>
       {r && !r.ok ? <div className="mlo-flash mlo-flash--err" role="status">{r.error}</div> : null}
       {r && r.ok ? (
@@ -109,7 +108,6 @@ export function MakeOne({ save, canShare }: { save: (fd: FormData) => void | Pro
           <button
             type="button"
             className="mlo-btn mlo-btn--ghost"
-            style={{ marginTop: 0 }}
             disabled={busy || what.trim().length < 8}
             onClick={async () => {
               setBusy(true);

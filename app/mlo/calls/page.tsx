@@ -46,7 +46,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
               {q.ready.length ? (
                 (await hookStore().list(me.id).catch(() => [])).some((h) => h.event === "call_list") ? (
                   <form action={sendToDialerAction} className="mlo-row-form" style={{ marginTop: 8 }}>
-                    <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Send this list to my dialer</button>
+                    <button type="submit" className="mlo-btn mlo-btn--ghost">Send this list to my dialer</button>
                     <span className="mlo-note">Through your Zapier hook. Only the people above who can be called now.</span>
                   </form>
                 ) : (
@@ -61,9 +61,9 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                 <h2><Link href={`/mlo/contacts/${next.contact.id}`}>{name(next.contact)}</Link></h2>
                 <p className="mlo-note">{next.card.title}. {next.card.reason}</p>
                 <div className="mlo-row-form">
-                  <a className="mlo-btn" style={{ marginTop: 0 }} href={`tel:${next.contact.phone}`}>Call {formatPhone(next.contact.phone)}</a>
+                  <a className="mlo-btn" href={`tel:${next.contact.phone}`}>Call {formatPhone(next.contact.phone)}</a>
                   {next.scriptId ? (
-                    <Link className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} href={`/mlo/scripts?id=${next.scriptId}#script`}>Open their script</Link>
+                    <Link className="mlo-btn mlo-btn--ghost" href={`/mlo/scripts?id=${next.scriptId}#script`}>Open their script</Link>
                   ) : (
                     <form action={buildScriptAction}>
                       <input type="hidden" name="contactId" value={next.contact.id} />
@@ -81,7 +81,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
                   <label className="mlo-field"><span>A note (optional; no account numbers or SSNs)</span><input name="note" maxLength={400} /></label>
                   <div className="mlo-row-form">
                     {CALL_RESULTS.map((r) => (
-                      <button key={r} type="submit" formAction={logCallAction.bind(null, r)} className={r === "reached" || r === "booked" ? "mlo-btn" : "mlo-btn mlo-btn--ghost"} style={{ marginTop: 0 }}>{CALL_RESULT_LABELS[r]}</button>
+                      <button key={r} type="submit" formAction={logCallAction.bind(null, r)} className={r === "reached" || r === "booked" ? "mlo-btn" : "mlo-btn mlo-btn--ghost"}>{CALL_RESULT_LABELS[r]}</button>
                     ))}
                   </div>
                   <p className="mlo-note">Logging moves you to the next person. “Asked not to be contacted” and “Wrong number” record a stop for calls and texts.</p>

@@ -97,7 +97,7 @@ export default function Chat({ firstAsk, topic }: { firstAsk: string | null; top
           placeholder="Ask, or say “done” when you finish a step"
           className="mlo-textarea"
         />
-        <button type="submit" className="mlo-btn" disabled={pending || !draft.trim()} style={{ marginTop: 0 }}>Send</button>
+        <button type="submit" className="mlo-btn" disabled={pending || !draft.trim()}>Send</button>
       </form>
       <p className="mlo-note">AI assistant: it can be wrong, so check each step against what you see. Never paste passwords or keys here; they belong in Vercel.</p>
     </div>

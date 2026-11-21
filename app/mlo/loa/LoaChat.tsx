@@ -113,11 +113,11 @@ export default function LoaChat({ loans, lenders, defaultLoanId, mic, voice }: {
         <textarea className="mlo-textarea" rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask your LOA…" aria-label="Your question" onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(text); } }} />
         <div className="mlo-row-form">
           {mic ? (
-            <button type="button" className={`mlo-btn mlo-btn--ghost loa-mic ${m.state === "listening" ? "is-on" : ""}`} style={{ marginTop: 0 }} onClick={() => (m.state === "listening" ? void m.stop() : void m.start())} disabled={busy || m.state === "working"} aria-pressed={m.state === "listening"}>
+            <button type="button" className={`mlo-btn mlo-btn--ghost loa-mic ${m.state === "listening" ? "is-on" : ""}`} onClick={() => (m.state === "listening" ? void m.stop() : void m.start())} disabled={busy || m.state === "working"} aria-pressed={m.state === "listening"}>
               {m.state === "listening" ? `Listening… ${m.seconds}s` : m.state === "working" ? "Hearing…" : "🎙 Speak"}
             </button>
           ) : null}
-          <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={busy || !text.trim()}>Ask</button>
+          <button type="submit" className="mlo-btn" disabled={busy || !text.trim()}>Ask</button>
           {mic && voice ? (
             <label className="mlo-check" style={{ padding: 0 }}>
               <input type="checkbox" checked={talk} onChange={(e) => { setTalk(e.target.checked); if (e.target.checked && m.state === "idle") void m.start(); }} /> Talk mode (it answers out loud and listens again)

@@ -45,9 +45,9 @@ export default async function Templates({ searchParams }: { searchParams: Promis
 
             <section className="mlo-section" id="list">
               <h2>Templates ({shown.length})</h2>
-              <nav className="tp-kinds" aria-label="Kinds">
-                <Link href="/mlo/templates#list" className={`mlo-pill ${kind ? "mlo-pill--off" : ""}`}>All</Link>
-                {KINDS.map((x) => <Link key={x} href={`/mlo/templates?k=${x}#list`} className={`mlo-pill ${kind === x ? "" : "mlo-pill--off"}`}>{KIND_LABELS[x]}</Link>)}
+              <nav className="cc-tabs-inline" aria-label="Kinds">
+                <Link href="/mlo/templates#list" aria-current={kind ? undefined : "page"}>All</Link>
+                {KINDS.map((x) => <Link key={x} href={`/mlo/templates?k=${x}#list`} aria-current={kind === x ? "page" : undefined}>{KIND_LABELS[x]}</Link>)}
               </nav>
               <ol className="tp-list">
                 {shown.map((t) => (

@@ -33,8 +33,8 @@ export default async function LetterPage({ params, searchParams }: { params: Pro
             <label className="mlo-field"><span>Title</span><input name="title" className="mlo-input" defaultValue={d.title} maxLength={140} required /></label>
             <label className="mlo-field"><span>The letter</span><textarea name="body" className="mlo-textarea" rows={24} defaultValue={d.body} required style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 13 }} /></label>
             <div className="mlo-row-form">
-              <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Save as PDF on this loan</button>
-              <Link href={`${back}#letters`} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Cancel</Link>
+              <button type="submit" className="mlo-btn">Save as PDF on this loan</button>
+              <Link href={`${back}#letters`} className="mlo-btn mlo-btn--ghost">Cancel</Link>
             </div>
           </form>
         </section>

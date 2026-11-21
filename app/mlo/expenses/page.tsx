@@ -83,8 +83,8 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
                 <div className="ex-tile"><span className="ex-tile__k">Next estimated tax payment</span><span className="ex-tile__v">{nice(nextEstimatedDate(today))}</span></div>
               </div>
               <p className="mlo-row-form" style={{ marginTop: 12 }}>
-                <Link href={`/mlo/expenses/report?year=${year}`} className="mlo-btn" style={{ marginTop: 0 }}>Year-end report for your CPA</Link>
-                <a href={`/api/cc/expenses/csv?year=${year}`} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Download CSV</a>
+                <Link href={`/mlo/expenses/report?year=${year}`} className="mlo-btn">Year-end report for your CPA</Link>
+                <a href={`/api/cc/expenses/csv?year=${year}`} className="mlo-btn mlo-btn--ghost">Download CSV</a>
               </p>
             </section>
 
@@ -104,8 +104,8 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
                       <form action={saveEntryAction.bind(null, d.id)} className="mlo-grid">
                         <EntryFields e={d} today={today} />
                         <div className="mlo-row-form">
-                          <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Confirm</button>
-                          <button type="submit" formAction={removeEntryAction.bind(null, d.id)} formNoValidate className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Delete</button>
+                          <button type="submit" className="mlo-btn">Confirm</button>
+                          <button type="submit" formAction={removeEntryAction.bind(null, d.id)} formNoValidate className="mlo-btn mlo-btn--ghost">Delete</button>
                         </div>
                       </form>
                     </li>
@@ -142,7 +142,7 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
                         <td>{e.date}</td>
                         <td>{e.kind === "income" ? "Income" : e.kind === "charity" ? "Charity miles" : CATEGORIES[e.category].label}{e.vendor ? ` · ${e.vendor}` : ""}<br /><span className="mlo-note">{e.purpose}{e.miles !== null ? ` · ${e.miles} mi` : ""}{e.businessPct < 100 ? ` · ${e.businessPct}% business` : ""}{e.receiptId ? " · receipt" : ""}</span></td>
                         <td>{$(e.amountCents)}</td>
-                        <td><form action={removeEntryAction.bind(null, e.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} aria-label={`Delete ${e.date} ${e.vendor}`}>Delete</button></form></td>
+                        <td><form action={removeEntryAction.bind(null, e.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" aria-label={`Delete ${e.date} ${e.vendor}`}>Delete</button></form></td>
                       </tr>
                     ))}
                   </tbody>

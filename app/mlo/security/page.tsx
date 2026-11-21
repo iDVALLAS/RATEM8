@@ -68,7 +68,7 @@ export default async function Security({ searchParams }: { searchParams: Promise
                 {mfaRequired() ? <p className="mlo-note">The owner requires it. If you lost your phone, use a recovery code, or ask the owner to reset it on Team.</p> : (
                   <form action={disableAction} className="mlo-row-form">
                     <input name="code" required inputMode="numeric" autoComplete="one-time-code" maxLength={11} className="mlo-input" aria-label="A current code or a recovery code" placeholder="Current code" />
-                    <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Turn off</button>
+                    <button type="submit" className="mlo-btn mlo-btn--ghost">Turn off</button>
                   </form>
                 )}
               </section>

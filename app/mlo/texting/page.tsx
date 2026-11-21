@@ -62,10 +62,10 @@ export default async function TextingSetup({ searchParams }: { searchParams: Pro
                       <td>{steps.filter((x) => x.done).length} of {steps.length}{r.phoneNumber ? <><br /><span className="mlo-note">{r.phoneNumber}</span></> : null}</td>
                       <td>
                         <div className="mlo-row-form">
-                          {r.status === "review" ? <form action={approveTextingAction.bind(null, r.company)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Approve and start</button></form> : null}
-                          {r.status === "working" ? <form action={checkTextingAction.bind(null, r.company, "/mlo/texting#companies")}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Check now</button></form> : null}
-                          {r.status === "attention" && r.approvedAt ? <form action={retryTextingAction.bind(null, r.company, "/mlo/texting#companies")}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Send again</button></form> : null}
-                          {r.status !== "draft" && r.status !== "review" ? <form action={stopTextingAction.bind(null, r.company)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>{r.status === "stopped" ? "Turn back on" : "Turn off"}</button></form> : null}
+                          {r.status === "review" ? <form action={approveTextingAction.bind(null, r.company)}><button type="submit" className="mlo-btn">Approve and start</button></form> : null}
+                          {r.status === "working" ? <form action={checkTextingAction.bind(null, r.company, "/mlo/texting#companies")}><button type="submit" className="mlo-btn mlo-btn--ghost">Check now</button></form> : null}
+                          {r.status === "attention" && r.approvedAt ? <form action={retryTextingAction.bind(null, r.company, "/mlo/texting#companies")}><button type="submit" className="mlo-btn mlo-btn--ghost">Send again</button></form> : null}
+                          {r.status !== "draft" && r.status !== "review" ? <form action={stopTextingAction.bind(null, r.company)}><button type="submit" className="mlo-btn mlo-btn--ghost">{r.status === "stopped" ? "Turn back on" : "Turn off"}</button></form> : null}
                         </div>
                       </td>
                     </tr>

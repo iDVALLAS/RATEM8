@@ -54,11 +54,11 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
               )}
               <div className="mlo-row-form" style={{ marginTop: 12, flexWrap: "wrap", gap: 10 }}>
                 {box.status === "connected" ? (
-                  <form action={testMailAction}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Send me a test</button></form>
+                  <form action={testMailAction}><button type="submit" className="mlo-btn">Send me a test</button></form>
                 ) : on.includes(box.provider) ? (
-                  <a className="mlo-btn" style={{ marginTop: 0 }} href={`/api/cc/mail/start?provider=${box.provider}`}>Reconnect {box.label}</a>
+                  <a className="mlo-btn" href={`/api/cc/mail/start?provider=${box.provider}`}>Reconnect {box.label}</a>
                 ) : null}
-                <form action={disconnectMailAction}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Disconnect</button></form>
+                <form action={disconnectMailAction}><button type="submit" className="mlo-btn mlo-btn--ghost">Disconnect</button></form>
               </div>
             </>
           ) : on.length ? (
@@ -66,7 +66,7 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
               <p className="mlo-note" style={{ marginTop: 8 }}>Connect the mailbox your company gave you. You&apos;ll sign in with Google or Microsoft and allow one thing: sending email as you.</p>
               <div className="mlo-row-form" style={{ marginTop: 12, flexWrap: "wrap", gap: 10 }}>
                 {on.map((p) => (
-                  <a key={p} className="mlo-btn" style={{ marginTop: 0 }} href={`/api/cc/mail/start?provider=${p}`}>Connect {PROVIDER_LABEL[p]}</a>
+                  <a key={p} className="mlo-btn" href={`/api/cc/mail/start?provider=${p}`}>Connect {PROVIDER_LABEL[p]}</a>
                 ))}
               </div>
             </>

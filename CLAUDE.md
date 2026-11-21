@@ -180,6 +180,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     and sent by `sendQueued` with the morning run, `/api/cc/loa/tick` (CRON_SECRET; not in vercel.json, Hobby is daily) or the
     LO's next page view (`after()` in CcShell); every send re-checked, else LO-Auth with the reason; 15/day, 3 per address;
     contacts only via the gate; log "What your LOA did" (`LoaFile.auto`, no bodies or addresses); `CC_LOA_AUTO="false"`.
+    D72 buttons and forms (`mlo.css`, end of `cc-shell.css`): a button has no margin of its own (the section, card or
+    `.mlo-actions` row gives it), 44px buttons and boxes, grid-form buttons keep their width, labeled rows line up on the
+    boxes, nothing wider than the screen, `.cc-tabs-inline` tabs; never patch `style={{ marginTop: 0 }}` (a test fails);
+    `node scripts/qa/buttons.mjs` audits every page at 390/1280 in Night and Paper.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -288,7 +292,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 694 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 698 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -818,6 +822,7 @@ node scripts/qa/fonts.mjs       # fallback fonts, synthesized bold/italic, sub-1
 node scripts/qa/footer.mjs      # scroll to the footer; nothing may cover the state chips
 node scripts/qa/about.mjs       # nav "About" lands on #about clear of the sticky nav
 node scripts/qa/command-center.mjs  # D28: every /mlo page at 390/1280 plus each screen's main flow (start the server with CC_DEV_LOGIN=1 CC_LINK_SECRET=qa-secret MLO_OWNER_EMAIL=owner@example.com)
+node scripts/qa/buttons.mjs     # D72: button and form alignment, overflow and cut-off controls on every /mlo page (same server)
 ```
 
 The QA scripts need Playwright available to Node (`npm i -D playwright`

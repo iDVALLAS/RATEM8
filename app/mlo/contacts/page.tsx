@@ -50,10 +50,9 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
           </section>
         ) : (
           <>
-            <nav className="mlo-nav" aria-label="Contact type">
+            <nav className="cc-tabs-inline" aria-label="Contact type">
               <Link href="/mlo/contacts" aria-current={kind === "contact" ? "page" : undefined}>Clients and contacts</Link>
               <Link href="/mlo/contacts?kind=agent" aria-current={kind === "agent" ? "page" : undefined}>Agents</Link>
-              <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`}>Import a CSV</Link>
               {kind === "contact" ? <Link href="/mlo/contacts/permission">Record permission for past clients</Link> : null}
               {kind === "contact" ? <Link href="/mlo/leads">Lead sources</Link> : null}
             </nav>
@@ -77,12 +76,13 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
                   {Object.entries(RELATIONSHIP_LABELS).filter(([k]) => k !== "agent").map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                 </select>
               ) : null}
-              <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Search</button>
+              <button type="submit" className="mlo-btn mlo-btn--ghost">Search</button>
+              <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`} className="mlo-btn">Import contacts</Link>
             </form>
             <section className="mlo-section">
               {total === 0 ? (
                 <p className="mlo-note">
-                  Nobody here yet. <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`}>Import a CSV</Link> to start.
+                  Nobody here yet. <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`}>Import contacts</Link> to start.
                 </p>
               ) : (
                 <>
@@ -106,10 +106,12 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
                       })}
                     </tbody>
                   </table>
-                  <nav className="mlo-nav" aria-label="Pages">
-                    {page > 0 ? <Link href={qs({ p: String(page - 1) })}>Previous</Link> : null}
-                    {(page + 1) * PAGE < total ? <Link href={qs({ p: String(page + 1) })}>Next</Link> : null}
-                  </nav>
+                  {page > 0 || (page + 1) * PAGE < total ? (
+                    <nav className="mlo-row-form" aria-label="Pages" style={{ marginTop: 12 }}>
+                      {page > 0 ? <Link href={qs({ p: String(page - 1) })} className="mlo-btn mlo-btn--ghost">Previous</Link> : null}
+                      {(page + 1) * PAGE < total ? <Link href={qs({ p: String(page + 1) })} className="mlo-btn mlo-btn--ghost">Next</Link> : null}
+                    </nav>
+                  ) : null}
                 </>
               )}
             </section>

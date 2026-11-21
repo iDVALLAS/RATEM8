@@ -34,11 +34,11 @@ export default function Debrief({ contactId, micOn }: { contactId: string; micOn
       </label>
       <div className="mlo-row-form">
         {micOn ? (
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={mic.state === "working"} onClick={() => (mic.state === "listening" ? void mic.stop() : void mic.start())}>
+          <button type="button" className="mlo-btn mlo-btn--ghost" disabled={mic.state === "working"} onClick={() => (mic.state === "listening" ? void mic.stop() : void mic.start())}>
             {mic.state === "listening" ? `Stop (${mic.seconds}s)` : mic.state === "working" ? "Writing it down…" : "Dictate"}
           </button>
         ) : null}
-        <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={busy || note.trim().length < 8}>{busy ? "Saving…" : "Save the note"}</button>
+        <button type="submit" className="mlo-btn" disabled={busy || note.trim().length < 8}>{busy ? "Saving…" : "Save the note"}</button>
       </div>
       {msg ? <p className="mlo-note" role="status">{msg}</p> : null}
       {r ? (

@@ -66,7 +66,7 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
         {status.reconnect ? <p className="mlo-flash mlo-flash--err">Thanks.io stopped accepting Command Center&apos;s connection. Connect it again.</p> : null}
         <p>Connect your own Thanks.io account. Cards are printed, written in a handwriting style and mailed by Thanks.io, and paid from your Thanks.io account (you see the price before anything is sent).</p>
         <div className="mlo-row-form" style={{ marginTop: 12 }}>
-          <a className="mlo-btn" style={{ marginTop: 0 }} href="/api/cc/cards/start">{status.reconnect ? "Reconnect Thanks.io" : "Connect Thanks.io"}</a>
+          <a className="mlo-btn" href="/api/cc/cards/start">{status.reconnect ? "Reconnect Thanks.io" : "Connect Thanks.io"}</a>
           <span className="mlo-note">No account yet? Make one at thanks.io first, and add a payment method there.</span>
         </div>
       </section>,
@@ -92,8 +92,8 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
             </div>
             <p className="mlo-note" style={{ marginTop: 10 }}>{o.radius ? <>To: the {o.radius.found} homes nearest {o.radius.address} ({AUDIENCES[o.radius.audience as Audience] ?? "every home"}). Thanks.io buys this list when you send (included in the price).</> : <>To: {names.filter(Boolean).join(", ")}{o.contactIds.length > 60 ? ` and ${o.contactIds.length - 60} more` : ""}.</>} From: your name, at your company&apos;s address.</p>
             <div className="mlo-row-form" style={{ marginTop: 12 }}>
-              <form action={sendCardsAction.bind(null, o.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Send {o.radius ? o.radius.found : o.contactIds.length} card{(o.radius ? o.radius.found : o.contactIds.length) === 1 ? "" : "s"} for {money(o.estimateCents)}</button></form>
-              <form action={discardCardsAction.bind(null, o.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Don&apos;t send</button></form>
+              <form action={sendCardsAction.bind(null, o.id)}><button type="submit" className="mlo-btn">Send {o.radius ? o.radius.found : o.contactIds.length} card{(o.radius ? o.radius.found : o.contactIds.length) === 1 ? "" : "s"} for {money(o.estimateCents)}</button></form>
+              <form action={discardCardsAction.bind(null, o.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Don&apos;t send</button></form>
             </div>
           </section>
           {o.skipped.length ? (
@@ -168,7 +168,7 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
             </div>
           ) : <p className="mlo-note">Add a postcard design in Thanks.io (Image Templates) first.</p>}
           <label className="mlo-field"><span>Message (no names: these are neighbors you haven&apos;t met)</span><textarea name="message" rows={5} maxLength={CARD_MAX} className="mlo-textarea" defaultValue={neighborStarter} required /></label>
-          <button type="submit" className="mlo-btn" style={{ marginTop: 0, justifySelf: "start" }}>Find the homes and price it</button>
+          <button type="submit" className="mlo-btn">Find the homes and price it</button>
         </form>
       </section>
       <section className="mlo-section" aria-labelledby="hist-h">
@@ -191,7 +191,7 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
             </table>
           </div>
         ) : <p className="mlo-note">Nothing yet. Delivery status is in your Thanks.io dashboard.</p>}
-        <form action={disconnectThanksAction} style={{ marginTop: 12 }}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Disconnect Thanks.io</button></form>
+        <form action={disconnectThanksAction} style={{ marginTop: 12 }}><button type="submit" className="mlo-btn mlo-btn--ghost">Disconnect Thanks.io</button></form>
       </section>
     </>,
   );

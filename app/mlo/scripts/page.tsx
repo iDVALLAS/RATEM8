@@ -66,11 +66,12 @@ export default async function Scripts({ searchParams }: { searchParams: Promise<
                     <li key={c.contactId} className="cc-card">
                       <p className="cc-card__title"><Link href={`/mlo/contacts/${c.contactId}#script`}>{c.title}</Link></p>
                       <p className="mlo-note">{c.reason}</p>
+                      <p className="mlo-note">Goal: {GOAL_LABELS[GOAL_FOR[c.kind] ?? "auto"]}</p>
                       <form action={buildScriptAction} className="mlo-row-form">
                         <input type="hidden" name="contactId" value={c.contactId} />
                         <input type="hidden" name="from" value="scripts" />
                         <input type="hidden" name="goal" value={GOAL_FOR[c.kind] ?? "auto"} />
-                        <BuildButton label={`Script: ${GOAL_LABELS[GOAL_FOR[c.kind] ?? "auto"]}`} />
+                        <BuildButton label="Build script" />
                       </form>
                     </li>
                   ))}

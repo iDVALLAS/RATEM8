@@ -13,7 +13,7 @@ export default function Editor({ initial, suggestion, footer }: { initial: strin
           <textarea name="signature" rows={8} maxLength={600} value={text} onChange={(e) => setText(e.target.value)} className="mlo-textarea sig-text" />
         </label>
         <div className="mlo-row-form">
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => setText(suggestion)}>Start from my details</button>
+          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setText(suggestion)}>Start from my details</button>
           <span className="mlo-note">{text.length}/600</span>
         </div>
       </div>

@@ -53,14 +53,14 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     for (const st of ['Application Taken', 'Initial Disclosures Sent']) await page.request.post(B + '/api/pipeline/inbound', { headers: { 'X-CC-Key': key }, data: { loanNumber: 'L-1', borrowerFirstName: 'Bo', borrowerLastName: 'Park', borrowerPhone: '425-555-2222', loanStatus: st, loanPurpose: 'Purchase', applicationDate: '2026-11-17', closingDate: '2026-12-04', buyerAgentName: 'Al Agent' } });
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
-  // Every page, both widths.
+  // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
   const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {
       const r = await page.goto(B + p);
       if (!r || r.status() >= 400) problems.push(`[${p} @${w}] status ${r && r.status()}`);
-      if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)) problems.push(`[${p} @${w}] horizontal overflow`);
+      if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push(`[${p} @${w}] horizontal overflow`);
       if ((await page.locator('h1').count()) !== 1) problems.push(`[${p} @${w}] h1 count ${await page.locator('h1').count()}`);
     });
   }
@@ -145,7 +145,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     if (!/Goes out at \d{1,2}:\d{2} [AP]M PT, or when you next open Command Center/.test(f2)) problems.push('[loa: full-auto] Send in 15 minutes did not show the time: ' + f2);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(B + '/mlo/loa#going'); await page.locator('#needs .loa-queue__item--auto').first().scrollIntoViewIfNeeded(); await shot('queue-390.png');
-    if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)) problems.push('[loa: full-auto] sideways scroll on the queue at 390px');
+    if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push('[loa: full-auto] sideways scroll on the queue at 390px');
     const u3 = page.url(); await page.locator('#needs .loa-queue__item--auto').first().getByRole('button', { name: 'Stop' }).click(); await page.waitForURL((u) => u.href !== u3);
     console.log('stop:', await flash());
     if ((await page.locator('#needs .loa-queue__item--auto').count()) !== 0) problems.push('[loa: full-auto] Stop left the message in the queue');
@@ -153,7 +153,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     const log2 = await page.locator('#autolog').innerText();
     console.log('log:', log2.replace(/\n/g, ' | ').slice(0, 260));
     if (!/Stopped/.test(log2)) problems.push('[loa: full-auto] the log does not show Stopped');
-    if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)) problems.push('[loa: full-auto] sideways scroll on the loan at 390px');
+    if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push('[loa: full-auto] sideways scroll on the loan at 390px');
     await page.setViewportSize({ width: 1280, height: 900 });
     const t = await page.request.get(B + '/api/cc/loa/tick');
     if (t.status() !== 404) problems.push('[loa: tick] answered without the secret: ' + t.status());

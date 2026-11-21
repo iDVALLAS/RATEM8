@@ -50,8 +50,8 @@ export default async function Connections({ searchParams }: { searchParams: Prom
                 <li key={h.id}>
                   <span><span className="loa-tag">{EVENTS[h.event].label}</span>{h.label} · {h.host}{h.lastAt ? ` · last ${h.lastOk ? "delivered" : "failed"} ${h.lastAt.slice(0, 16).replace("T", " ")}` : ""}</span>
                   <span className="mlo-row-form">
-                    <form action={testHookAction.bind(null, h.event)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Send a test</button></form>
-                    <form action={removeHookAction.bind(null, h.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Remove</button></form>
+                    <form action={testHookAction.bind(null, h.event)}><button type="submit" className="mlo-btn mlo-btn--ghost">Send a test</button></form>
+                    <form action={removeHookAction.bind(null, h.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Remove</button></form>
                   </span>
                 </li>
               ))}
@@ -94,9 +94,9 @@ export default async function Connections({ searchParams }: { searchParams: Prom
                     </label>
                   ))}
                   <div className="mlo-row-form">
-                    <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Save</button>
-                    {s.key === "encompass" && c ? <button type="submit" formAction={testConnectionAction.bind(null, s.key)} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Test</button> : null}
-                    {c ? <button type="submit" formAction={removeConnectionAction.bind(null, s.key)} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} formNoValidate>Remove</button> : null}
+                    <button type="submit" className="mlo-btn">Save</button>
+                    {s.key === "encompass" && c ? <button type="submit" formAction={testConnectionAction.bind(null, s.key)} className="mlo-btn mlo-btn--ghost">Test</button> : null}
+                    {c ? <button type="submit" formAction={removeConnectionAction.bind(null, s.key)} className="mlo-btn mlo-btn--ghost" formNoValidate>Remove</button> : null}
                   </div>
                 </form>
               ) : null}

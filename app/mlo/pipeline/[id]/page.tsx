@@ -67,7 +67,7 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
               <option value="">The loan officer</option>
               {team.filter((u) => u.id !== loan.ownerUserId).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
-            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Save</button>
+            <button type="submit" className="mlo-btn mlo-btn--ghost">Save</button>
             <span className="mlo-note">Processor steps go to {processor?.name ?? "the loan officer"}.</span>
           </form>
           <p className="mlo-note">{jv.done} of {jv.total} steps done{jv.current ? <>. Next: <a href={`#s-${jv.current.key}`}>step {jv.current.key}, {jv.current.title}</a> ({WHO_LABELS[jv.current.who]})</> : ". All done."} · <a href="#loa">Your LOA on this file</a></p>
@@ -113,19 +113,19 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
                         <form action={lockAction.bind(null, "lock")} className="mlo-row-form">
                           <input type="hidden" name="loanId" value={loan.id} />
                           <span className="mlo-note">{j.lock ? `${j.lock.decision === "lock" ? "Locked" : "Floating"} (confirmed by ${j.lock.by})` : "Your call:"}</span>
-                          <button type="submit" formAction={lockAction.bind(null, "lock")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Lock</button>
-                          <button type="submit" formAction={lockAction.bind(null, "float")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Float</button>
+                          <button type="submit" formAction={lockAction.bind(null, "lock")} className="mlo-btn mlo-btn--ghost">Lock</button>
+                          <button type="submit" formAction={lockAction.bind(null, "float")} className="mlo-btn mlo-btn--ghost">Float</button>
                         </form>
                       ) : (
                         <form action={stepAction.bind(null, "done")} className="mlo-row-form">
                           <input type="hidden" name="loanId" value={loan.id} />
                           <input type="hidden" name="key" value={s.key} />
                           {isDone || st?.status === "na" ? (
-                            <button type="submit" formAction={stepAction.bind(null, "todo")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Reopen</button>
+                            <button type="submit" formAction={stepAction.bind(null, "todo")} className="mlo-btn mlo-btn--ghost">Reopen</button>
                           ) : (
                             <>
-                              <button type="submit" formAction={stepAction.bind(null, "done")} className="mlo-btn" style={{ marginTop: 0 }}>Done</button>
-                              <button type="submit" formAction={stepAction.bind(null, "na")} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Doesn&apos;t apply</button>
+                              <button type="submit" formAction={stepAction.bind(null, "done")} className="mlo-btn">Done</button>
+                              <button type="submit" formAction={stepAction.bind(null, "na")} className="mlo-btn mlo-btn--ghost">Doesn&apos;t apply</button>
                             </>
                           )}
                         </form>
@@ -134,10 +134,10 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
                         <form action={messageAction}>
                           <input type="hidden" name="loanId" value={loan.id} />
                           <input type="hidden" name="key" value={s.key} />
-                          <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={s.guard === "intent_to_proceed" && !j.dates.intentToProceedOn}>Draft the borrower text</button>
+                          <button type="submit" className="mlo-btn mlo-btn--ghost" disabled={s.guard === "intent_to_proceed" && !j.dates.intentToProceedOn}>Draft the borrower text</button>
                         </form>
                       ) : null}
-                      {s.documents ? <a className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} href="#docs">Documents</a> : null}
+                      {s.documents ? <a className="mlo-btn mlo-btn--ghost" href="#docs">Documents</a> : null}
                     </div>
                     {s.guard === "intent_to_proceed" && !j.dates.intentToProceedOn ? <p className="mlo-note">Waiting for step 14B: record when they said they intend to proceed (Clocks, above).</p> : null}
                   </li>
@@ -172,7 +172,7 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
                             <select name="status" defaultValue={d.status} className="mlo-select" aria-label={`Status of ${d.name}`}>
                               {(Object.keys(DOC_STATUS) as (keyof typeof DOC_STATUS)[]).map((k) => <option key={k} value={k}>{DOC_STATUS[k]}</option>)}
                             </select>
-                            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Save</button>
+                            <button type="submit" className="mlo-btn mlo-btn--ghost">Save</button>
                           </form>
                         </td>
                       </tr>
@@ -184,7 +184,7 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
                 <form action={requestDocsAction}>
                   <input type="hidden" name="loanId" value={loan.id} />
                   <input type="hidden" name="phase" value={phase} />
-                  <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={!docsBy(phase).some((d) => d.status === "needed")}>Draft the request to the borrower</button>
+                  <button type="submit" className="mlo-btn" disabled={!docsBy(phase).some((d) => d.status === "needed")}>Draft the request to the borrower</button>
                 </form>
               </div>
               {docsBy(phase).some((d) => d.status === "needed" || d.status === "requested") ? (

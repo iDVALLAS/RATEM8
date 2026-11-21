@@ -55,7 +55,7 @@ export default async function Welcome({ searchParams }: { searchParams: Promise<
         <FirstDay steps={first.steps} done={first.done} pilot={pilot} canHide={false} />
         {first.hidden ? (
           <form action={firstDayAction.bind(null, false)} style={{ marginTop: 10 }}>
-            <button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Show it on Home again</button>
+            <button type="submit" className="mlo-btn mlo-btn--ghost">Show it on Home again</button>
           </form>
         ) : null}
 

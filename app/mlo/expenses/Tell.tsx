@@ -39,13 +39,13 @@ export default function Tell({ micOn, aiOn }: { micOn: boolean; aiOn: boolean })
           <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} maxLength={4000} className="mlo-textarea" placeholder={"$84 lunch with an agent at Daniel's yesterday\nDrove 32 miles to a closing in Bellevue\nNMLS renewal $30, E&O insurance $1,100"} />
         </label>
         <div className="mlo-row-form">
-          <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={busy !== null || text.trim().length < 3}>{busy === "tell" ? "Reading…" : "Add"}</button>
+          <button type="submit" className="mlo-btn" disabled={busy !== null || text.trim().length < 3}>{busy === "tell" ? "Reading…" : "Add"}</button>
           {micOn ? (
-            <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={mic.state === "working"} onClick={() => (mic.state === "listening" ? void mic.stop() : void mic.start())}>
+            <button type="button" className="mlo-btn mlo-btn--ghost" disabled={mic.state === "working"} onClick={() => (mic.state === "listening" ? void mic.stop() : void mic.start())}>
               {mic.state === "listening" ? `Stop (${mic.seconds}s)` : mic.state === "working" ? "Writing it down…" : "Say it"}
             </button>
           ) : null}
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} disabled={busy !== null} onClick={() => fileRef.current?.click()}>{busy === "receipt" ? "Reading the receipt…" : "Snap a receipt"}</button>
+          <button type="button" className="mlo-btn mlo-btn--ghost" disabled={busy !== null} onClick={() => fileRef.current?.click()}>{busy === "receipt" ? "Reading the receipt…" : "Snap a receipt"}</button>
           <input
             ref={fileRef}
             type="file"

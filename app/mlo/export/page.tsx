@@ -33,7 +33,7 @@ export default async function ExportPage() {
               <li>Expenses, income, mileage and receipt files</li>
             </ul>
             <form method="post" action="/api/cc/export" style={{ marginTop: 14 }}>
-              <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Download everything (.zip)</button>
+              <button type="submit" className="mlo-btn">Download everything (.zip)</button>
             </form>
             <p className="mlo-note" style={{ marginTop: 10 }}>Only your own book. Passwords, connection keys and sign-in codes are never included. We email you a note each time a download is made, in case it wasn&apos;t you. It contains your clients&apos; personal information: keep it somewhere safe and delete copies you don&apos;t need.</p>
           </section>

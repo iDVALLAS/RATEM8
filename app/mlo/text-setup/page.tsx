@@ -134,11 +134,11 @@ export default async function TextSetupPage({ searchParams }: { searchParams: Pr
             <label className="mlo-check"><input type="checkbox" name="attest" /> I&apos;m allowed to register {co.name} for business texting, and these details are correct.</label>
             <div className="mlo-row-form">
               {s?.status === "attention" && s.approvedAt ? (
-                <button type="submit" formAction={fixAndRetryTextingAction} className="mlo-btn" style={{ marginTop: 0 }}>Save and send again</button>
+                <button type="submit" formAction={fixAndRetryTextingAction} className="mlo-btn">Save and send again</button>
               ) : (
-                <button type="submit" formAction={saveTextingAction.bind(null, true)} className="mlo-btn" style={{ marginTop: 0 }}>{isOwner ? "Start registering" : "Send for approval"}</button>
+                <button type="submit" formAction={saveTextingAction.bind(null, true)} className="mlo-btn">{isOwner ? "Start registering" : "Send for approval"}</button>
               )}
-              <button type="submit" formAction={saveTextingAction.bind(null, false)} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} formNoValidate>Save for later</button>
+              <button type="submit" formAction={saveTextingAction.bind(null, false)} className="mlo-btn mlo-btn--ghost" formNoValidate>Save for later</button>
             </div>
           </form>
         </section>

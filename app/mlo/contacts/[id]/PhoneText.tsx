@@ -53,7 +53,7 @@ export default function PhoneText({ contactId, first, maxLength, serviceOk, mark
           <option value="service">About their loan or account ({serviceOk ? "allowed now" : "not now"})</option>
           <option value="marketing">An offer or check-in ({marketingOk ? "allowed now" : "not now"})</option>
         </select>
-        <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={busy || !body.trim()}>{busy ? "Checking…" : "Open in Messages"}</button>
+        <button type="submit" className="mlo-btn" disabled={busy || !body.trim()}>{busy ? "Checking…" : "Open in Messages"}</button>
       </div>
       <p className="mlo-note">The same checks as any text, then Messages opens on your phone with it written; you press send, and it goes from your own number. Replies come to your phone. If they text STOP, press &ldquo;They asked to stop&rdquo; below.</p>
       {msg ? (
@@ -61,8 +61,8 @@ export default function PhoneText({ contactId, first, maxLength, serviceOk, mark
           <p>{msg.text}</p>
           {msg.ok && msg.href ? (
             <p className="mlo-row-form" style={{ marginTop: 6 }}>
-              <a href={msg.href} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Open Messages again</a>
-              <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => void copy()}>Copy the text</button>
+              <a href={msg.href} className="mlo-btn mlo-btn--ghost">Open Messages again</a>
+              <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => void copy()}>Copy the text</button>
             </p>
           ) : null}
           {msg.ok && msg.body ? <p className="mlo-note" style={{ whiteSpace: "pre-wrap", userSelect: "all" }}>{msg.body}</p> : null}

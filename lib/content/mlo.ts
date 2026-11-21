@@ -21,7 +21,7 @@ export const mloContent = {
     helocOnly: "HELOC only (automated: one credit bureau, Plaid for income). Not used in first-mortgage scenarios",
     playbook: "4 · Lender playbook",
     playbookNote: "Your notes appear after the three options as \"Your loan officer's notes\", with the lender shown by letter. They never change ranking or which lenders appear. Notes about borrowers, places, or protected characteristics are rejected.",
-    save: "Save lenders, playbook and rate rule",
+    save: "Save",
     comp: "Rate rule",
     compNote: "How each lender's rate grid (borrower-paid pricing) becomes the options a borrower sees. Your compensation is the same on every option: at each rate the lender's rebate pays part of it and the borrower pays the rest in points; a rebate above your target goes back to the borrower as a credit. Each lender offers its lowest rate within the points cap, and its lowest rate with no points.",
     compTarget: "Your compensation, % of loan",

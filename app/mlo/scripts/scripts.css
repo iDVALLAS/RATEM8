@@ -1,7 +1,6 @@
 /* D9 call scripts: laid out to read from during a call, and to print. */
 .cs-script { display: grid; gap: 12px; }
 .cs-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
-.cs-head .mlo-btn { margin-top: 0; }
 .cs-eyebrow { font-family: var(--font-jetbrains), monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .cs-block { padding: 12px 14px; border: 1px solid var(--rule); border-radius: 12px; min-width: 0; }
 .cs-block h3 { font-family: var(--font-jetbrains), monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--label-accent, var(--accent)); margin-bottom: 6px; font-weight: 500; }

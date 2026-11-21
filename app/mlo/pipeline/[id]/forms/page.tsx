@@ -46,8 +46,8 @@ export default async function LoanFormsPage({ params, searchParams }: { params: 
                 <li key={x.id}>
                   <span><span className="loa-tag">{FORM_KIND_LABELS[x.kind]}</span><a href={`/api/cc/forms/${encodeURIComponent(x.id)}`} target="_blank" rel="noopener">{x.name}</a> · {SOURCE[x.source]} · {kb(x.bytes)}</span>
                   <span className="mlo-row-form">
-                    {x.fields.length ? <Link href={`${base}/fill/${encodeURIComponent(x.id)}`} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Fill again</Link> : null}
-                    <form action={removeFormAction.bind(null, loan.id, x.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Remove</button></form>
+                    {x.fields.length ? <Link href={`${base}/fill/${encodeURIComponent(x.id)}`} className="mlo-btn mlo-btn--ghost">Fill again</Link> : null}
+                    <form action={removeFormAction.bind(null, loan.id, x.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Remove</button></form>
                   </span>
                 </li>
               ))}
@@ -61,7 +61,7 @@ export default async function LoanFormsPage({ params, searchParams }: { params: 
             {LETTERS.map((l) => (
               <li key={l.kind}>
                 <span><strong>{l.label}</strong> · <span className="mlo-note">{l.about}</span></span>
-                <Link href={`${base}/letter/${l.kind}`} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Write it</Link>
+                <Link href={`${base}/letter/${l.kind}`} className="mlo-btn mlo-btn--ghost">Write it</Link>
               </li>
             ))}
           </ul>
@@ -74,7 +74,7 @@ export default async function LoanFormsPage({ params, searchParams }: { params: 
               {fillable.map((x) => (
                 <li key={x.id}>
                   <span><span className="loa-tag">{FORM_KIND_LABELS[x.kind]}</span>{x.name} · {x.fields.length} fields</span>
-                  <Link href={`${base}/fill/${encodeURIComponent(x.id)}`} className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Fill for this loan</Link>
+                  <Link href={`${base}/fill/${encodeURIComponent(x.id)}`} className="mlo-btn mlo-btn--ghost">Fill for this loan</Link>
                 </li>
               ))}
             </ul>

@@ -106,13 +106,13 @@ export default function VoicemailRecorder({ ready }: { ready: boolean }) {
         <div className="mlo-row-form">
           {recording ? (
             <>
-              <button type="button" className="mlo-btn" style={{ marginTop: 0 }} onClick={stop}>Stop</button>
+              <button type="button" className="mlo-btn" onClick={stop}>Stop</button>
               <span className="mlo-note" aria-live="off">{clock(elapsed)} · {clock(Math.max(0, MAX_VM_SECONDS - elapsed))} left</span>
             </>
           ) : (
             <>
-              <button type="button" className="mlo-btn" style={{ marginTop: 0 }} onClick={start}>Record</button>
-              <label className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>
+              <button type="button" className="mlo-btn" onClick={start}>Record</button>
+              <label className="mlo-btn mlo-btn--ghost">
                 Pick an audio file
                 <input type="file" accept="audio/*" className="sr-only" onChange={(e) => e.target.files?.[0] && takeFrom(e.target.files[0])} />
               </label>
@@ -127,8 +127,8 @@ export default function VoicemailRecorder({ ready }: { ready: boolean }) {
             <input className="mlo-input" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Appraisal is in" />
           </label>
           <div className="mlo-row-form">
-            <button type="button" className="mlo-btn" style={{ marginTop: 0 }} onClick={save} disabled={busy || !ready}>{busy ? "Checking…" : "Save and check"}</button>
-            <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => setTake(null)} disabled={busy}>Record again</button>
+            <button type="button" className="mlo-btn" onClick={save} disabled={busy || !ready}>{busy ? "Checking…" : "Save and check"}</button>
+            <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setTake(null)} disabled={busy}>Record again</button>
           </div>
         </>
       )}

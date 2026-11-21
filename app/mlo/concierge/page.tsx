@@ -82,7 +82,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                         <input type="hidden" name="id" value={d.id} />
                         <textarea name="body" defaultValue={d.body} rows={3} maxLength={640} className="mlo-textarea" aria-label="Draft" />
                         <div className="mlo-row-form">
-                          <button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Approve and send</button>
+                          <button type="submit" className="mlo-btn">Approve and send</button>
                         </div>
                         {emailReady && people.find((x) => x?.id === d.contactId)?.email ? (
                           <details className="mlo-details" open={!d.gate.allowed}>
@@ -108,7 +108,7 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                       <tr key={t.id}>
                         <th scope="row">{t.lane === "personal" ? <span className="mlo-pill">Reply yourself</span> : t.lane === "promise" ? <span className="mlo-pill">Your promise</span> : null} <Link href={`/mlo/contacts/${t.contactId}#conversation`}>{t.title}</Link><br /><span className="mlo-note">{t.why}</span></th>
                         <td className="mlo-note">{t.due ? `due ${t.due}` : ""}</td>
-                        <td><form action={taskDoneAction}><input type="hidden" name="id" value={t.id} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Done</button></form></td>
+                        <td><form action={taskDoneAction}><input type="hidden" name="id" value={t.id} /><button type="submit" className="mlo-btn mlo-btn--ghost">Done</button></form></td>
                       </tr>
                     ))}
                   </tbody>
@@ -126,8 +126,8 @@ export default async function Concierge({ searchParams }: { searchParams: Promis
                       <tr key={m.id}>
                         <th scope="row"><Link href={`/mlo/contacts/${m.contactId}#memory`}>{nameOf(m.contactId)}</Link>: {m.fact}<br /><span className="mlo-note">“{m.quote}” · {m.kind}</span></th>
                         <td className="mlo-row-form">
-                          <form action={keepAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={m.contactId} /><input type="hidden" name="from" value="desk" /><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Keep</button></form>
-                          <form action={forgetFromDeskAction}><input type="hidden" name="id" value={m.id} /><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Forget</button></form>
+                          <form action={keepAction}><input type="hidden" name="id" value={m.id} /><input type="hidden" name="contactId" value={m.contactId} /><input type="hidden" name="from" value="desk" /><button type="submit" className="mlo-btn">Keep</button></form>
+                          <form action={forgetFromDeskAction}><input type="hidden" name="id" value={m.id} /><button type="submit" className="mlo-btn mlo-btn--ghost">Forget</button></form>
                         </td>
                       </tr>
                     ))}

@@ -93,7 +93,7 @@ export default function Builder({ action, people, designs, styles, starters, sig
       <fieldset className="mlo-section cd-step">
         <legend>3 · The words</legend>
         <div className="cd-starters">
-          {starters.map((s) => <button key={s.id} type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => setMessage(s.message)}>{s.label}</button>)}
+          {starters.map((s) => <button key={s.id} type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setMessage(s.message)}>{s.label}</button>)}
         </div>
         <label className="mlo-field" style={{ marginTop: 10 }}>
           <span>Message ({message.length} of {max}) · {"{first}"} becomes each person&apos;s first name</span>
@@ -119,8 +119,8 @@ export default function Builder({ action, people, designs, styles, starters, sig
             {GROUPS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
           <input className="mlo-input" type="search" placeholder="Find a name" aria-label="Find a name" value={q} onChange={(e) => setQ(e.target.value)} />
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => selectShown(true)} disabled={!shownMailable}>Select all {shownMailable ? `(${shownMailable})` : ""}</button>
-          <button type="button" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }} onClick={() => selectShown(false)}>Clear</button>
+          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => selectShown(true)} disabled={!shownMailable}>Select all {shownMailable ? `(${shownMailable})` : ""}</button>
+          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => selectShown(false)}>Clear</button>
         </div>
         <ul className="cd-people">
           {visible.map((p) => (
@@ -140,7 +140,7 @@ export default function Builder({ action, people, designs, styles, starters, sig
 
       <div className="cd-bar">
         <span><strong>{picked.size}</strong> picked</span>
-        <button type="submit" className="mlo-btn" style={{ marginTop: 0 }} disabled={!picked.size || !design}>Check the price</button>
+        <button type="submit" className="mlo-btn" disabled={!picked.size || !design}>Check the price</button>
         <span className="mlo-note">Nothing is sent or charged yet.</span>
       </div>
     </form>
