@@ -9,7 +9,7 @@
 .loa-tasks li.is-urgent { border-color: var(--accent); }
 .loa-tasks a { color: var(--fg); text-decoration: none; }
 .loa-chat { display: grid; gap: 12px; }
-.loa-log { display: grid; gap: 10px; max-height: 60vh; overflow: auto; padding: 4px; }
+.loa-log { display: grid; gap: 10px; max-height: 60svh; overflow: auto; overscroll-behavior: contain; padding: 4px; }
 .loa-msg { padding: 10px 14px; border-radius: 16px; max-width: 46rem; line-height: 1.55; }
 .loa-msg p { margin: 0; white-space: pre-wrap; }
 .loa-msg--user { justify-self: end; background: var(--bg-sunken); border-bottom-right-radius: 4px; }

@@ -10,6 +10,7 @@ import { FlashBox } from "../../../../../MloChrome";
 import { fillAction } from "../../actions";
 import "../../../../../mlo.css";
 import "../../../../../loa/loa.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Fill a form", robots: { index: false, follow: false } };
@@ -26,8 +27,7 @@ export default async function FillPage({ params, searchParams }: { params: Promi
   return (
     <PageShell>
       <div className="mlo-wrap loa-forms">
-        <p className="eyebrow">MLO Command Center · <Link href={`${back}#fill`}>Forms for this loan</Link></p>
-        <h1 className="tagline text-4xl">{plan.form.name}</h1>
+        <PageHead k="pipeline" eyebrow={<><Link href={`${back}#fill`}>Forms for this loan</Link></>} title={plan.form.name} />
         <FlashBox flash={decodeFlash(f)} />
         <section className="mlo-section">
           <p className="mlo-note" style={{ maxWidth: 720 }}>{plan.fields.length} fields. Your LOA filled {matched} from the file; check each one and fill what it couldn&apos;t. Fields for Social Security numbers, birth dates, account numbers and signatures stay blank for the borrower. The copy stays fillable.</p>

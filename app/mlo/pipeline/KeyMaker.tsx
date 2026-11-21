@@ -2,12 +2,20 @@
 
 import { useState } from "react";
 import { createKeyAction } from "./actions";
+import { TechSteps } from "../NotOnYet";
 
-/** Makes an intake key and shows it once (D6). */
-export default function KeyMaker({ endpoint, what = "loan updates", defaultLabel = "ARIVE" }: { endpoint: string; what?: string; defaultLabel?: string }) {
+/**
+ * Makes a connection key and shows it once (D6). D76: as one connection
+ * address (the key rides in it), so a loan officer pastes a single thing
+ * into Zapier or their vendor. The header form is in the owner's
+ * technical steps.
+ */
+export default function KeyMaker({ endpoint, defaultLabel = "ARIVE", owner = false, button = "Make my connection address" }: { endpoint: string; what?: string; defaultLabel?: string; owner?: boolean; button?: string }) {
   const [label, setLabel] = useState(defaultLabel);
   const [key, setKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const address = key ? `${endpoint}${endpoint.includes("?") ? "&" : "?"}key=${key}` : "";
   return (
     <div className="mlo-grid">
       <div className="mlo-row-form">
@@ -21,18 +29,33 @@ export default function KeyMaker({ endpoint, what = "loan updates", defaultLabel
             else setError(r.error);
           }}
         >
-          Make a connection key
+          {button}
         </button>
       </div>
       {error ? <p className="mlo-flash mlo-flash--err" role="alert">{error}</p> : null}
       {key ? (
         <div className="mlo-flash mlo-flash--ok" role="status">
-          <p><strong>Copy this now; it won&apos;t be shown again.</strong></p>
-          <p className="mlo-note">Send {what} (POST, JSON) to:</p>
-          <code className="mlo-code">{endpoint}</code>
-          <p className="mlo-note">with the header <code>X-CC-Key</code> set to:</p>
-          <code className="mlo-code">{key}</code>
-          <p className="mlo-note">If it only takes a web address, use: <code className="mlo-code">{`${endpoint}?key=${key}`}</code></p>
+          <p><strong>Copy this now; it won&apos;t be shown again.</strong> Keep it private, like a password.</p>
+          <code className="mlo-code">{address}</code>
+          <div className="mlo-actions">
+            <button
+              type="button"
+              className="mlo-btn mlo-btn--ghost"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(address);
+                  setCopied(true);
+                } catch {
+                  setCopied(false);
+                }
+              }}
+            >
+              {copied ? "Copied" : "Copy the address"}
+            </button>
+          </div>
+          <TechSteps owner={owner}>
+            <p className="mlo-note">For a system that takes a header instead: POST JSON to <code className="mlo-code">{endpoint}</code> with the header <code>X-CC-Key</code> set to <code className="mlo-code">{key}</code>.</p>
+          </TechSteps>
         </div>
       ) : null}
     </div>

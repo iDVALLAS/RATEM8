@@ -5,12 +5,14 @@ import { requireViewer } from "@/lib/mlo/page-auth";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { contactStore } from "@/lib/contacts/store";
 import { videoStore } from "@/lib/videos/store";
-import { DEFAULT_NOTE, NEEDS_TOKEN, NOTE_MAX, ownMedia, prefixFor, transcribeOn, uploadsOn, videosOn } from "@/lib/videos/service";
+import { DEFAULT_NOTE, NEEDS_TOKEN, UPLOADS_OFF, NOTE_MAX, ownMedia, prefixFor, transcribeOn, uploadsOn, videosOn } from "@/lib/videos/service";
 import { emailReadyFor } from "@/lib/messaging/email";
 import { twilioConfig } from "@/lib/messaging/twilio";
 import { FlashBox } from "../MloChrome";
 import Recorder, { CheckAgain } from "./Recorder";
 import { deleteVideoAction, renameVideoAction, sendVideoAction } from "./actions";
+import PageHead from "../PageHead";
+import NotOnYet, { TechSteps } from "../NotOnYet";
 import "../mlo.css";
 import "./videos.css";
 
@@ -28,20 +30,19 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
   const shell = (body: React.ReactNode) => (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Video messages</h1>
+        <PageHead k="videos" title="Video messages" how={me && videosOn() ? <p className="mlo-note">A short video says more than a text. Record one here, or upload one from your phone. Before it can be sent, what you say is checked by the same rules as every text and email, and turned into captions. Each person gets their own link, so you see who watched.</p> : undefined} />
         <FlashBox flash={decodeFlash(sp.f)} />
         {body}
       </div>
     </PageShell>
   );
   if (!me) return shell(<section className="mlo-section"><p className="mlo-note">Sign in with your own account to make video messages.</p></section>);
+  const owner = me.role === "owner";
   if (!videosOn())
     return shell(
-      <section className="mlo-section">
-        <h2>Turn on video messages</h2>
-        <p className="mlo-note">Videos are kept in a private Vercel Blob store: only you, and the people you send a link to, can play them. The owner turns it on once: in Vercel, open the project, then Storage, then Create, then Blob, choose Private, and connect it to this project with &ldquo;Add a read-write token env var&rdquo; ticked. Vercel adds BLOB_STORE_ID and BLOB_READ_WRITE_TOKEN (Sensitive) for you. Then redeploy.</p>
-      </section>,
+      <NotOnYet what="videos" icon="video" owner={owner}>
+        <p className="mlo-note">Videos are kept in a private Vercel Blob store: only the loan officer, and the people they send a link to, can play them. In Vercel, open the project, then Storage, then Create, then Blob, choose Private, and connect it to this project with &ldquo;Add a read-write token env var&rdquo; ticked. Vercel adds BLOB_STORE_ID and BLOB_READ_WRITE_TOKEN (Sensitive) for you. Then redeploy.</p>
+      </NotOnYet>,
     );
 
   const [videos, sends, people, mail] = await Promise.all([videoStore().videosFor(me.id, 50), videoStore().sendsFor(me.id, 200), contactStore().list({ ownerUserId: me.id, limit: 500 }), emailReadyFor(me)]);
@@ -53,12 +54,11 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
 
   return shell(
     <>
-      <p className="mlo-note" style={{ maxWidth: 680 }}>A short video says more than a text. Record one here, or upload one from your phone. Before it can be sent, what you say is checked by the same rules as every text and email, and turned into captions. Each person gets their own link, so you see who watched.</p>
-
       <section className="mlo-section" id="new">
         <h2>New video</h2>
-        {!checkReady ? <p className="mlo-note">The word check needs Google Speech-to-Text: the owner sets Command Center&apos;s Google key (CC_GOOGLE_CLOUD_API_KEY) with the Speech-to-Text API on.</p> : null}
-        {uploadsOn() ? <Recorder folder={prefixFor(me.id)} checkReady={checkReady} /> : <p className="mlo-note">{NEEDS_TOKEN}</p>}
+        {!checkReady ? <p className="mlo-note">The word check isn&apos;t turned on yet, so videos wait until it is.</p> : null}
+        {!checkReady ? <TechSteps owner={owner}><p className="mlo-note">The word check needs Google Speech-to-Text: set Command Center&apos;s Google key (CC_GOOGLE_CLOUD_API_KEY) with the Speech-to-Text API on.</p></TechSteps> : null}
+        {uploadsOn() ? <Recorder folder={prefixFor(me.id)} checkReady={checkReady} /> : <><p className="mlo-note">{UPLOADS_OFF}</p><TechSteps owner={owner}><p className="mlo-note">{NEEDS_TOKEN}</p></TechSteps></>}
       </section>
 
       {ready.length ? (

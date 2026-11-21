@@ -21,9 +21,11 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const B = 'http://localhost:3100';
-const STATIC = ['/mlo', '/mlo/academy', '/mlo/agents', '/mlo/agents/setup', '/mlo/automations', '/mlo/calls', '/mlo/campaigns', '/mlo/cards', '/mlo/concierge', '/mlo/connections', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/email', '/mlo/expenses', '/mlo/expenses/report', '/mlo/export', '/mlo/inbox', '/mlo/launch', '/mlo/leads', '/mlo/loa', '/mlo/messages', '/mlo/network', '/mlo/pilot', '/mlo/pipeline', '/mlo/pricing', '/mlo/pricing/receive', '/mlo/refi', '/mlo/refi?ref=5.75', '/mlo/report', '/mlo/rules', '/mlo/scripts', '/mlo/security', '/mlo/setup', '/mlo/setup-help', '/mlo/signature', '/mlo/signups', '/mlo/team', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/text-setup', '/mlo/texting', '/mlo/training', '/mlo/videos', '/mlo/voice', '/mlo/voicemail', '/mlo/welcome', '/mlo/academy/p1', '/mlo/academy/p5', '/mlo/academy/l2'];
+const STATIC = ['/mlo', '/mlo/campaigns?new=1', '/mlo/connections?sys=arive', '/mlo/academy', '/mlo/agents', '/mlo/agents/setup', '/mlo/automations', '/mlo/calls', '/mlo/campaigns', '/mlo/cards', '/mlo/concierge', '/mlo/connections', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/email', '/mlo/expenses', '/mlo/expenses/report', '/mlo/export', '/mlo/inbox', '/mlo/launch', '/mlo/leads', '/mlo/loa', '/mlo/messages', '/mlo/network', '/mlo/pilot', '/mlo/pipeline', '/mlo/pricing', '/mlo/pricing/receive', '/mlo/refi', '/mlo/refi?ref=5.75', '/mlo/report', '/mlo/rules', '/mlo/scripts', '/mlo/security', '/mlo/setup', '/mlo/setup-help', '/mlo/signature', '/mlo/signups', '/mlo/team', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/text-setup', '/mlo/texting', '/mlo/training', '/mlo/videos', '/mlo/voice', '/mlo/voicemail', '/mlo/welcome', '/mlo/academy/p1', '/mlo/academy/p5', '/mlo/academy/l2'];
 const AUTH = ['/sign-in', '/sign-up', '/sign-up/confirm'];
 const SHOTS = new Set(['/mlo/academy', '/mlo/expenses', '/mlo/contacts/permission', '/mlo/refi', '/mlo/concierge', '/mlo/team', 'contact', 'loan', '/mlo/loa', '/mlo/contacts', '/mlo/pricing', '/mlo/templates', '/mlo/scripts', '/mlo', '/sign-in', 'client page']);
+// D76: audited a second time with every <details> open.
+const OPEN_ALL = new Set(['/mlo', '/mlo/automations', '/mlo/concierge', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/campaigns?new=1', '/mlo/inbox', '/mlo/calls', '/mlo/agents', '/mlo/email', '/mlo/pipeline', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/rules', '/mlo/leads']);
 const out = process.env.QA_OUT || '';
 if (out) fs.mkdirSync(out, { recursive: true });
 const only = (process.env.QA_ONLY || '').split(',').filter(Boolean);
@@ -150,8 +152,10 @@ function audit() {
   }
   await sp.goto(B + '/mlo/pipeline');
   if (!(await sp.getByRole('link', { name: 'Bo Park' }).count())) {
-    await sp.getByRole('button', { name: 'Make a connection key' }).click();
-    const key = (await sp.locator('code.mlo-code').nth(1).innerText()).trim();
+    // D76: connection addresses are made on Connections (the key rides in the address).
+    await sp.goto(B + '/mlo/connections?sys=arive');
+    await sp.locator('#arive').getByRole('button', { name: 'Make my connection address' }).click();
+    const key = new URL((await sp.locator('#arive code.mlo-code').first().innerText()).trim()).searchParams.get('key') ?? '';
     await sp.request.post(B + '/api/pipeline/inbound', { headers: { 'X-CC-Key': key }, data: { loanNumber: 'L-1', borrowerFirstName: 'Bo', borrowerLastName: 'Park', borrowerPhone: '425-555-2222', loanStatus: 'Application Taken', loanPurpose: 'Purchase', applicationDate: '2026-11-17', closingDate: '2026-12-04', buyerAgentName: 'Al Agent' } });
     await sp.goto(B + '/mlo/pipeline');
   }
@@ -182,6 +186,14 @@ function audit() {
         total++;
         for (const p of [...new Set(res.problems)]) problems.push(`[${where}] ${p}`);
         json[where] = { height: res.height, buttons: res.dump };
+        // D76: pages whose work sits in folds are audited again with every fold open.
+        if (OPEN_ALL.has(label)) {
+          await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+          await page.waitForTimeout(100);
+          const all = await page.evaluate(audit);
+          total++;
+          for (const p of [...new Set(all.problems)]) problems.push(`[${where} folds open] ${p}`);
+        }
         if (out && SHOTS.has(label)) await page.screenshot({ path: path.join(out, `${label.replace(/\W+/g, '_').replace(/^_|_$/g, '') || 'home'}-${w}-${theme}.png`), fullPage: true });
       } catch (e) { problems.push(`[${where}] FAILED: ${e.message.split('\n')[0]}`); }
     }

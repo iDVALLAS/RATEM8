@@ -59,7 +59,7 @@ describe("Video messages (D55)", () => {
     // D65.1: the private store's id alone runs the server side; the browser upload still needs the token, and says how to add it.
     process.env.BLOB_STORE_ID = "store_test";
     expect(videosOn()).toBe(true);
-    expect(uploadRules(me, "videos/lo1/123.webm")).toMatchObject({ ok: false, error: expect.stringMatching(/read-write token/) });
+    expect(uploadRules(me, "videos/lo1/123.webm")).toMatchObject({ ok: false, error: expect.stringMatching(/Uploading isn.t turned on yet/) });
     delete process.env.BLOB_STORE_ID;
     expect(videosOn()).toBe(false);
   });

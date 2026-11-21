@@ -9,6 +9,7 @@ import { OWNER_RULES, TRAINING_MAX_CHARS, TRAINING_SETTINGS_ID } from "@/lib/pro
 import { saveTrainingAction } from "../actions";
 import { FlashBox, MloNav } from "../MloChrome";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "M8 training", robots: { index: false, follow: false } };
@@ -28,8 +29,7 @@ export default async function MloTraining({ searchParams }: { searchParams: Prom
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">{mloContent.title}</p>
-        <h1 className="tagline text-4xl">{mloContent.nav.training}</h1>
+        <PageHead k="training" title={mloContent.nav.training} />
         <MloNav current="training" tenantId={tenant.id} />
         <FlashBox flash={decodeFlash(f)} />
         {!store.writable ? <div className="mlo-flash mlo-flash--err" role="alert">{store.reason}</div> : null}

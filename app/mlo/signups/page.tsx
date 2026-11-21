@@ -11,6 +11,7 @@ import type { SignUp } from "@/lib/registry/store";
 import { FlashBox } from "../MloChrome";
 import { approveAction, declineAction } from "./actions";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Sign-ups", robots: { index: false, follow: false } };
@@ -55,8 +56,7 @@ export default async function SignUps({ searchParams }: { searchParams: Promise<
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Sign-ups</h1>
+        <PageHead k="signups" title="Sign-ups" />
         <FlashBox flash={decodeFlash(f)} />
         <section className="mlo-section">
           <p className="mlo-note">Loan officers sign themselves up at <a href={link}>{link}</a>. Send that link to anyone you want in the pilot. Each one confirms their email, then waits here for you.</p>

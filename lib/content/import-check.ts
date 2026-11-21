@@ -16,7 +16,7 @@ export const importCheckCopy = {
   linesDone: "Every number from this import has a recent phone-type check.",
   lineDone: (r: { checked: number; failed: number; left: number }) =>
     [`Phone type checked for ${people(r.checked)}.`, r.failed ? `${r.failed.toLocaleString("en-US")} couldn't be checked.` : "", r.left ? `${r.left.toLocaleString("en-US")} left: tap again for the next batch.` : ""].filter(Boolean).join(" "),
-  noTwilio: "Phone-type checks need the Twilio keys in Vercel.",
+  noTwilio: "Phone-type checks aren't turned on yet. Your owner turns them on with texting.",
   setUp: "Set up texting",
   dncTitle: "Do-not-call checks for these people",
 } as const;

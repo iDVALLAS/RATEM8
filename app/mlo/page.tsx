@@ -22,6 +22,11 @@ import { decodeFlash } from "@/lib/mlo/flash";
 import { GROUPS, hrefOf, visibleDests, type GroupKey, type IconName } from "./nav";
 import { Icon } from "./icons";
 import { TileArt } from "./art";
+import { callQueue } from "@/lib/calls/session";
+import { topBlocker } from "@/lib/calls/blockers";
+import { repliesWaiting } from "@/lib/messaging/replies";
+import { textingReadyFor } from "@/lib/texting/ready";
+import { CALL_FIX, HOME } from "@/lib/content/cc-pages";
 import "./mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +55,10 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
         allowanceFor(me.id).catch(() => null),
       ])
     : [0, 0, 0, 0, 0, null];
-  const replies = today?.cards.filter((c) => c.kind === "reply").length ?? 0;
+  // D76: the call button says what's true: people ready to call, or how many need one fix first.
+  const [queue, replies, texting] = me && today ? await Promise.all([callQueue(me, new Date(), today.cards).catch(() => null), repliesWaiting(me).catch(() => 0), textingReadyFor(me).catch(() => false)]) : [null, 0, false];
+  const blocker = queue && !queue.ready.length ? topBlocker(queue.blocked.map((x) => x.reason)) : null;
+  const call = !queue ? { href: "/mlo/calls", label: HOME.callNone } : queue.ready.length ? { href: "/mlo/calls", label: HOME.callReady(queue.ready.length) } : queue.blocked.length ? { href: "/mlo/calls#blocked", label: HOME.callBlocked(queue.blocked.length) } : { href: "/mlo/calls", label: HOME.callNone };
   const deadlines = today?.cards.filter((c) => c.kind === "journey").length ?? 0;
   const first = me?.name.split(" ")[0] ?? "";
   const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hour12: false }).format(new Date()));
@@ -67,8 +75,51 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
     inbox: replies ? `${replies} waiting for a reply` : "No replies waiting",
   };
   const badge: Record<string, number> = { concierge: drafts, inbox: replies, expenses: expDrafts };
-  const dests = visibleDests({ admin: v.admin, signedIn: !!me }).filter((d) => d.key !== "home");
+  // D76: Home shows "Your day" and "People"; the rest fold under "Everything else". Platform (admin) tiles stay off Home.
+  const dests = visibleDests({ admin: v.admin, signedIn: !!me }).filter((d) => d.key !== "home" && !d.admin);
   const groups = (Object.keys(GROUPS) as GroupKey[]).map((g) => ({ g, items: dests.filter((d) => d.group === g) })).filter((x) => x.items.length);
+  const MAIN: GroupKey[] = ["day", "people"];
+  const tiles = (items: typeof dests) => (
+    <div className="cc-tiles">
+      {items.map((d) => (
+        <Link key={d.key} href={hrefOf(d, tenant.id)} className="cc-tile">
+          <TileArt name={d.key} fallback={<Icon name={d.icon} size={32} />} />
+          <span className="cc-tile__body">
+            <span className="cc-tile__head">
+              <span className="cc-tile__icon"><Icon name={d.icon} size={18} /></span>
+              <span className="cc-tile__label">{d.label}</span>
+              {badge[d.key] ? <span className="cc-badge cc-tile__badge">{badge[d.key]}</span> : null}
+            </span>
+            <span className="cc-tile__desc">{d.desc}</span>
+            {stat[d.key] ? <span className="cc-tile__stat">{stat[d.key]}</span> : null}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+
+  // D76: the first few people show; the rest of today's list is one tap away.
+  const FIRST = 6;
+  const row = (card: TodayCard, i: number) => {
+    const tel = telHref(phones[i] ?? undefined);
+    const href = card.contactId ? `/mlo/contacts/${card.contactId}` : "/mlo/pipeline";
+    const go =
+      card.next === "reply" || card.next === "text" ? { href: `${href}#conversation`, label: card.next === "reply" ? "Reply" : texting ? "Text" : HOME.openWord }
+      : card.next === "call" && tel ? { href: tel, label: `Call ${formatPhone(phones[i])}` }
+      : card.next === "record_permission" ? { href: `${href}#permission`, label: "Record what they said" }
+      : card.loanId ? { href: `/mlo/pipeline/${card.loanId}${card.kind === "journey" ? "#clocks" : ""}`, label: "Open the journey" }
+      : { href, label: "Open" };
+    return (
+      <li key={`${card.contactId}-${card.kind}-${i}`} className="cc-row">
+        <span className={`cc-row__icon ${HOT.includes(card.kind) ? "cc-row__icon--hot" : ""}`}><Icon name={KIND_ICON[card.kind] ?? "users"} size={20} /></span>
+        <span style={{ minWidth: 0 }}>
+          <Link href={href} className="cc-row__title" style={{ color: "inherit", textDecoration: "none" }}>{card.title}</Link>
+          <div className="cc-row__why">{card.reason}</div>
+        </span>
+        <a className={`cc-row__go ${i === 0 ? "cc-row__go--hi" : ""}`} href={go.href}>{go.label}</a>
+      </li>
+    );
+  };
 
   return (
     <CcShell>
@@ -96,9 +147,10 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
                 {deadlines ? <Link className="cc-chip" href="/mlo/pipeline"><Icon name="lock" size={16} /><strong>{deadlines}</strong> {deadlines === 1 ? "deadline" : "deadlines"}</Link> : null}
               </div>
               <div className="cc-actions">
-                <Link className="mlo-btn" href="/mlo/calls">Start calling</Link>
+                <Link className="mlo-btn" href={call.href}>{call.label}</Link>
                 <Link className="mlo-btn mlo-btn--ghost" href="/mlo/contacts/import">Import contacts</Link>
               </div>
+              {blocker ? <p className="cc-blocker"><Link className="cc-chip cc-chip--warn" href="/mlo/calls#blocked">{CALL_FIX[blocker.kind].chip}<strong>{blocker.count}</strong></Link></p> : null}
             </div>
             <div className="cc-insight">
               <div className="cc-insight__top"><span className="cc-insight__icon"><Icon name="spark" size={22} /></span><h2>Your Concierge</h2></div>
@@ -118,54 +170,38 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
             ) : today.cards.length === 0 ? (
               <div className="cc-panel"><p className="mlo-note">You&apos;re caught up: no replies waiting and nothing time-sensitive across {today.people.toLocaleString("en-US")} people.</p></div>
             ) : (
-              <ol className="cc-list">
-                {today.cards.map((card, i) => {
-                  const tel = telHref(phones[i] ?? undefined);
-                  const href = card.contactId ? `/mlo/contacts/${card.contactId}` : "/mlo/pipeline";
-                  const go =
-                    card.next === "reply" || card.next === "text" ? { href: `${href}#conversation`, label: card.next === "reply" ? "Reply" : "Text" }
-                    : card.next === "call" && tel ? { href: tel, label: `Call ${formatPhone(phones[i])}` }
-                    : card.next === "record_permission" ? { href: `${href}#permission`, label: "Record what they said" }
-                    : card.loanId ? { href: `/mlo/pipeline/${card.loanId}${card.kind === "journey" ? "#clocks" : ""}`, label: "Open the journey" }
-                    : { href, label: "Open" };
-                  return (
-                    <li key={`${card.contactId}-${card.kind}-${i}`} className="cc-row">
-                      <span className={`cc-row__icon ${HOT.includes(card.kind) ? "cc-row__icon--hot" : ""}`}><Icon name={KIND_ICON[card.kind] ?? "users"} size={20} /></span>
-                      <span style={{ minWidth: 0 }}>
-                        <Link href={href} className="cc-row__title" style={{ color: "inherit", textDecoration: "none" }}>{card.title}</Link>
-                        <div className="cc-row__why">{card.reason}</div>
-                      </span>
-                      <a className={`cc-row__go ${i === 0 ? "cc-row__go--hi" : ""}`} href={go.href}>{go.label}</a>
-                    </li>
-                  );
-                })}
-              </ol>
+              <>
+                <ol className="cc-list">{today.cards.slice(0, FIRST).map((card, i) => row(card, i))}</ol>
+                {today.cards.length > FIRST ? (
+                  <details className="cc-more">
+                    <summary>{HOME.more(today.cards.length - FIRST)}</summary>
+                    <ol className="cc-list" start={FIRST + 1}>{today.cards.slice(FIRST).map((card, i) => row(card, i + FIRST))}</ol>
+                  </details>
+                ) : null}
+              </>
             )}
             {today.ref ? <p className="mlo-note" style={{ marginTop: 8 }}>Refinance comparisons use today&apos;s priced example ({today.ref.rate}%, {today.ref.label}), for your eyes only.</p> : null}
           </section>
         ) : null}
 
-        {groups.map(({ g, items }) => (
+        {groups.filter((x) => MAIN.includes(x.g)).map(({ g, items }) => (
           <section key={g} className="cc-group" aria-labelledby={`g-${g}`}>
             <h2 id={`g-${g}`}>{GROUPS[g]}</h2>
-            <div className="cc-tiles">
-              {items.map((d) => (
-                <Link key={d.key} href={hrefOf(d, tenant.id)} className="cc-tile">
-                  <TileArt name={d.key} fallback={<Icon name={d.icon} size={32} />} />
-                  <span className="cc-tile__body">
-                    <span className="cc-tile__head">
-                      <span className="cc-tile__icon"><Icon name={d.icon} size={18} /></span>
-                      <span className="cc-tile__label">{d.label}</span>
-                      {badge[d.key] ? <span className="cc-badge cc-tile__badge">{badge[d.key]}</span> : null}
-                    </span>
-                    <span className="cc-tile__desc">{d.desc}</span>
-                    {stat[d.key] ? <span className="cc-tile__stat">{stat[d.key]}</span> : null}
-                  </span>
-                </Link>
-              ))}
-            </div>
+            {tiles(items)}
           </section>
         ))}
+
+        {groups.some((x) => !MAIN.includes(x.g)) ? (
+          <details className="cc-all cc-fold">
+            <summary className="cc-sechead"><h2>{HOME.everythingElse}</h2><span className="cc-fold__arrow" aria-hidden="true" /></summary>
+            {groups.filter((x) => !MAIN.includes(x.g)).map(({ g, items }) => (
+              <section key={g} className="cc-group" aria-labelledby={`g-${g}`}>
+                <h3 id={`g-${g}`}>{GROUPS[g]}</h3>
+                {tiles(items)}
+              </section>
+            ))}
+          </details>
+        ) : null}
 
         {setup && setupDone < setup.length ? (
           <section aria-label="Setup">

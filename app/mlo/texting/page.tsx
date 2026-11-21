@@ -13,6 +13,7 @@ import { textingStore } from "@/lib/texting/store";
 import { FEES, stepsOf, textSetupOn } from "@/lib/texting/service";
 import { approveTextingAction, checkTextingAction, retryTextingAction, stopTextingAction } from "../text-setup/actions";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Texting setup", robots: { index: false, follow: false } };
@@ -38,13 +39,12 @@ export default async function TextingSetup({ searchParams }: { searchParams: Pro
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Texting setup</h1>
+        <PageHead k="texting" title="Texting setup" />
         <MloNav current="setup" tenantId={tenant.id} admin={v.admin} signedIn={!!v.user} />
         <FlashBox flash={decodeFlash(f)} />
 
         <section className="mlo-section" id="companies">
-          <h2>Companies Command Center registers (D56)</h2>
+          <h2>Companies Command Center registers</h2>
           <p className="mlo-note">
             Loan officers fill in their company&apos;s details on <a href="/mlo/text-setup">Texting for your company</a>; you approve the fees here, and Command Center does the Twilio steps in a subaccount per company. {FEES}
             {textSetupOn() ? "" : " Not ready yet: it needs TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_PRIMARY_PROFILE_SID (your own approved primary business profile in Twilio Trust Hub, as the platform)."}

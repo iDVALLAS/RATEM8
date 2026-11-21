@@ -10,6 +10,7 @@ import Editor from "./Editor";
 import { saveSignatureAction } from "./actions";
 import "../mlo.css";
 import "./signature.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Email signature", robots: { index: false, follow: false } };
@@ -31,8 +32,7 @@ export default async function SignaturePage({ searchParams }: { searchParams: Pr
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Email signature</h1>
+        <PageHead k="signature" title="Email signature" />
         <FlashBox flash={decodeFlash(f)} />
         <section className="mlo-section">
           <p className="mlo-note">It goes under every email you send from Command Center, from a contact&apos;s page and from your Concierge&apos;s drafts. Under it, Command Center always adds the lines the law asks for: your NMLS number, your company and its address, Equal Housing Opportunity, and a link to stop emails. Texts keep their own short sign-off.</p>

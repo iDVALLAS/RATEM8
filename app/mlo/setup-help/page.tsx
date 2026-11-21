@@ -4,6 +4,8 @@ import PageShell from "@/app/mlo/CcShell";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { checklist, GROUP_LABELS, type SetupItem } from "@/lib/setup/checklist";
 import Chat from "./Chat";
+import PageHead from "../PageHead";
+import { SETUP_FIRST_ASK } from "@/lib/content/cc-pages";
 import "../mlo.css";
 import "./setup-help.css";
 
@@ -25,14 +27,13 @@ export default async function SetupHelp({ searchParams }: { searchParams: Promis
   }
   const items = await checklist(me);
   const pick = topic ? items.find((i) => i.id === topic) : undefined;
-  const firstAsk = pick && !pick.done ? `Help me with this step: ${pick.label}.` : topic === "texting" ? "Help me set up texting with Twilio." : topic === "mailbox" ? "Help me connect my email (Gmail or Microsoft 365)." : topic === "cards" ? "Help me set up cards by mail with Thanks.io." : null;
+  const firstAsk = pick && !pick.done ? `Help me with this step: ${pick.label}.` : topic ? SETUP_FIRST_ASK[topic] ?? null : null;
   const done = items.filter((i) => i.done).length;
   const groups = (Object.keys(GROUP_LABELS) as SetupItem["group"][]).filter((g) => items.some((i) => i.group === g));
   return (
     <PageShell>
       <div className="mlo-wrap sh-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Setup assistant</h1>
+        <PageHead k="setuphelp" title="Setup assistant" />
         <div className="sh-grid">
           <section className="mlo-section sh-main" aria-label="Chat with the setup assistant">
             <Chat firstAsk={firstAsk} topic={topic ?? null} />

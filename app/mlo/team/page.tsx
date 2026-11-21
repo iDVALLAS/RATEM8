@@ -13,10 +13,13 @@ import { pipelineStore } from "@/lib/pipeline/store";
 import { conciergeStore } from "@/lib/concierge/store";
 import { FlashBox, MloNav } from "../MloChrome";
 import { inviteAction, resetMfaAction, updateAction } from "./actions";
+import PageHead from "../PageHead";
+import { SUBS } from "@/lib/content/cc-pages";
+import { activityLabel } from "@/lib/content/activity";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Team", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "People & roles", robots: { index: false, follow: false } };
 
 /** /mlo/team — accounts and roles (D1). Owners manage everyone; team leads manage loan officers and assistants. */
 export default async function Team({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
@@ -38,8 +41,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Team</h1>
+        <PageHead k="team" title="People & roles" sub={SUBS.team} />
         <MloNav current="team" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {!me ? (
@@ -148,13 +150,13 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ f
               <section className="mlo-section">
                 <h2>Recent activity</h2>
                 <div className="mlo-scroll">
-                  <table className="mlo-table">
+                  <table className="mlo-table mlo-table--stack">
                     <tbody>
                       {audit.map((a, i) => (
                         <tr key={i}>
-                          <th scope="row">{new Date(a.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })}</th>
+                          <th scope="row">{new Date(a.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</th>
                           <td>{a.actor}</td>
-                          <td>{a.action}</td>
+                          <td>{activityLabel(a.action)}</td>
                         </tr>
                       ))}
                     </tbody>

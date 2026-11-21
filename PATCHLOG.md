@@ -6052,3 +6052,109 @@ D75: undo, import history and the do-not-call / phone-type check. Built in Comma
   `command-center.mjs` run showed a React hydration error (#418) in the D73 tags step that didn't come back on a fresh rerun or a
   targeted sweep of the same pages; noted in case it recurs.
 - **Next up:** D76 (design cleanup and plain-language pass), after the owner's sign-off.
+
+## D76 — Design cleanup and plain-language pass (2026-11-21)
+
+Spec: "### D76" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. Shorter pages on phones, the work first on each screen,
+and no developer words on the pages a loan officer uses every day. Built in Command Center styles (D72 classes, tokens only);
+the public site, orb and wordmark are unchanged.
+
+- **Files:** new `app/mlo/PageHead.tsx`, `app/mlo/NotOnYet.tsx` (`NotOnYet` + `TechSteps`), `app/mlo/automations/AutomationsForm.tsx`,
+  `app/mlo/concierge/Composer.tsx` (replaces `Ask.tsx` and `Tell.tsx`, deleted), `app/mlo/connections/HashPick.tsx`, `lib/content/cc-pages.ts`
+  (D76 wording), `lib/content/activity.ts`, `lib/calls/blockers.ts`, `lib/automations/rows.ts`, `lib/messaging/replies.ts`, `lib/texting/ready.ts`;
+  tests `app/mlo/plain-language.test.ts` (7), `lib/calls/blockers.test.ts` (3), `lib/content/activity.test.ts` (2), `lib/automations/rows.test.ts` (5).
+  Changed: `app/mlo/nav.ts`, `CcTopBar.tsx`, `CcShell.tsx`, `page.tsx` (Home), `FirstDay.tsx`, `cc-shell.css` (D76 block), `loa/LoaChat.tsx`,
+  `loa/loa.css`, `loa/page.tsx`, `calls/{page,actions}.tsx`, `inbox`, `videos`, `voicemail`, `cards`, `email`, `pipeline/{page,actions,KeyMaker}`,
+  `connections/page.tsx`, `leads`, `texting`, `team`, `setup-help/{page,Chat}`, `concierge/{page,actions}`, `automations/{page,actions}`,
+  `campaigns/{page,actions}`, `agents/page.tsx`, `agents/setup`, `welcome`, `rules`, `contacts/[id]`, `templates/Client.tsx`, `pilot`, and the
+  page head on 33 more pages; `lib/calls/session.ts` (`callQueue` takes Home's cards), `lib/contacts/service.ts` (`setContactState`),
+  `lib/connect/catalog.ts`, `lib/blob/private.ts` + `lib/videos/service.ts` (`UPLOADS_OFF`), `lib/messaging/service.ts`, `lib/clientpage/draft.ts`,
+  `lib/journey/docs.ts`, `lib/ai/meter.ts`, `lib/content/{import-check,mlo}.ts`, `concierge/actions.ts`; three tests' expected wording
+  (`tell`, `journey`, `videos`); `scripts/qa/command-center.mjs`, `scripts/qa/buttons.mjs`.
+- **Home:** only "Your day" and "People" tiles; Loans, Grow, Business and Settings fold under **Everything else**; Platform (admin) tiles
+  are never on Home. Under 640px tiles are two to a row with no picture or description; from 640px the small icon is gone where the picture
+  shows. Today's list shows six people, the rest under "See N more"; on phones a finished first-day step is just its crossed-out name.
+  The call button says what's true: **Call N people** when people are ready, else **Get N people ready to call** → `/mlo/calls#blocked`
+  with the top blocker as a chip ("Do-not-call not checked 3"), else Start calling. A row's "Text" reads **Open** while texting isn't on
+  for the company (`textingReadyFor`). The replies chip and the Inbox badge use one count (`repliesWaiting`).
+- **Call session:** "Not now" (`#blocked`) is a list of rows (stacked under 640px): who, a chip naming the blocker, the rule's own
+  reason, and one fix: **Check do-not-call** (Permission #dnc), **Record their permission** (#permission), **Add their state** (a state
+  picker in the row; `setStateAction.bind(null, contactId)` → `setContactState`, `canSee` and a real state code only), **Check the
+  number**, **Release the list**. A stop, a cap, a license or a state rule offer no fix (`lib/calls/blockers.ts` reads the gate's
+  reason; the gate still decides every call).
+- **LOA page jump:** the chat log scrolls inside its own box (`max-height: 60svh; overflow: auto`) and only once there's a
+  conversation; `/mlo/loa` opens at scrollY 0 (was 8,936 at 390 and 4,113 at 1280).
+- **Not on yet** (`NotOnYet`): an icon, one sentence, **Set it up with the assistant** → `/mlo/setup-help?topic=…` (texting, videos,
+  voicemail, cards, mailbox; the assistant opens with a matching first question), and an owner-only folded **Technical steps** with
+  today's setup text. On Inbox (replaces the red error), Videos, Voicemail, Cards and Email. Client pages, the video word check and
+  browser uploads say "isn't turned on yet" with the owner's steps folded (`TechSteps`).
+- **Plain words:** Pipeline's empty state is **No loans yet** with **Connect your loan system** → `/mlo/connections#arive`; the ARIVE
+  field list and the keys moved to Connections. "(D56)" is gone from Texting setup. People & roles' activity is in words
+  (`activityLabel`: "Imported contacts", "Account created (owner)"; every audited code has words, tested). Leads say the consent
+  fields in words (the field names are in a "Field names for your vendor" fold). Setup assistant: "Never paste passwords or keys here."
+  Contact rules no longer show variable names (owner fold). Messages a loan officer gets back no longer name the hosting service:
+  "Texting isn't turned on for your company yet.", "Client pages aren't turned on yet.", "the AI isn't turned on yet", "Uploading
+  isn't turned on yet", "Add your secure application link first (on Getting started, or ask the owner)".
+- **Concierge:** Drafts first (each as written, **Edit** folded, **Approve and send**, **Skip**; **Approve all N** for two or more that
+  can go: `approveAllAction.bind(null, ids)` sends only the drafts that were on the page, each through `approve()` exactly as one at a
+  time), then Reminders (rows), then one box **Ask or tell your Concierge** with **Ask** and **Draft it**, then Notes. Settings are a
+  fold (`#settings`), open until the Concierge is on, with switch rows (`role="switch"` checkboxes). "Sending on its own isn't turned on
+  yet." Run now is the page's action; the long intro is under (i) How this works.
+- **Automations:** each section is a fold with "3 of 8 on"; one compact row per automation (name, when it runs, the D70 switch, **Preview**
+  for the sample). Off = not drafted; LO-Auth = a draft for your OK; Full-auto only on borrower and agent updates, which share one setting
+  with the LOA's "Status updates to the client / buyer's agent" (picking Full-auto or LO-Auth on one row sets the group's other rows that
+  are on; saved through `saveAutonomy` for both loan types, only when it changed; assistants can't change Full-auto). A sticky **Save
+  changes** bar appears after a change. "Recently fired" says what ran in words ("Your LOA: Open escrow", "skipped: switched off").
+- **Campaigns:** Your campaigns first, with an empty state and **+ New campaign**; templates and "Write it with M8" are in the new-campaign
+  view (`?new=1`, "← Your campaigns"). "(CC_CAMPAIGNS)" became "All campaigns are switched off for the platform right now."
+- **Connections:** opens with **Which loan system do you use?** (ARIVE, LendingPad, Encompass, Something else). Picking one (`?sys=`, or
+  `#arive` from Pipeline via `HashPick`) shows its three steps: 1 **Make your connection address** (the key rides in the address, with Copy;
+  the header form is in the owner's fold), 2 **Set it up in ARIVE** (its steps, in plain words; sign-in details for LendingPad, Encompass
+  and Shape), 3 **Check it worked** (loans or people in so far). The rest fold under **Other systems**, each header with its state
+  (Loans are coming in (N) / Address made, no loans yet / Signed in / Not connected). Dialer results get their own address. **Your
+  connection addresses** (`#keys`) lists them with Turn off.
+- **Nav:** `/mlo/agents` is **AI assistants** (a hub: Concierge, Loan Officer Assistant, the rest of the team, each On/Off/Paused with
+  Open or Set up); `/mlo/team` is **People & roles**. Phone tabs: Home, Inbox (reply-count badge), Concierge (raised), Contacts, Pipeline,
+  More. Desktop: Inbox, Contacts and Pipeline are links of their own beside Home (left out of their menus).
+- **PageHead:** the eyebrow is the page's group in the menu ("Your day", "People", "Loans", "Settings", "Platform"), then the title, an
+  optional one-line sub and an optional main action; long intros are under (i) **How this works**. It replaces every "MLO Command Center"
+  eyebrow (pages under another keep their back link as the eyebrow). Welcome uses the real step count ("Seven steps get you working").
+- **Tests** (17 new): every `nav.ts` destination has a group label and it's the page's eyebrow; the tabs and desktop links; the new names;
+  no "Vercel" or "X-CC-Key" in Command Center content outside owner-only keys, on any non-Platform `/mlo` page outside `TechSteps`, or in
+  the messages a loan officer gets back; blocker names and fixes from the gate's own reasons; activity words for every audited code;
+  Automations rows (when it runs, Off / shared mode, reading the form, counts, recently fired in words).
+- **Verified:** `npm run verify` passes (765 tests). `node scripts/qa/command-center.mjs` on a freshly started server: PROBLEMS none (the
+  key step now goes Pipeline → Connect your loan system → Make my connection address; Concierge Skip / Draft it; Automations opens a
+  section, picks LO-Auth, checks the count and the save bar; the email and LOA owner notes are read from their folds; 10 more pages in the
+  sweep). `node scripts/qa/buttons.mjs` on a freshly started server: 372 page views (62 pages, plus 16 D76 pages again with every fold
+  open), PROBLEMS none. Scratch sweep (`d76shots.mjs`, 18 pages at 390 and 1280 in Night, Dim and Paper): no sideways scroll, no page
+  errors, `/mlo/loa` scrollY 0. No React #418 in any run.
+- **Page heights** (Night = Paper, px, before → after, 390 / 1280, same seeded book): Home 16,911 → 3,930 / 6,652 → 3,546; Automations
+  4,737 → 1,455 / 2,666 → 1,065; Concierge 4,805 → 3,798 / 2,797 → 2,344; Campaigns 2,458 → 973 / 1,360 → 900; Connections 6,121 → 2,406 /
+  4,120 → 1,561; Pipeline 1,727 → 1,242 / 1,157 → 900; Email 2,571 → 844 / 1,294 → 900; LOA 12,215 → 12,031 / 6,530 → 6,502; Inbox 844 → 901
+  / 900 → 900. Longer: Call session 2,059 → 3,090 / 1,296 → 1,626 (each "Not now" row stacks with its fix), AI assistants 2,877 → 3,533 /
+  1,488 → 1,780 (the hub), People & roles 2,758 → 3,050 (activity stacked in words).
+- **Screenshots:** before `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d76/before/`, after
+  `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d76/after/` (each page at 390/1280 in Night, Dim and Paper;
+  `heights.json` in each); the buttons audit's set in `d76/buttons/`.
+- **Renamed labels:** "Your team" → **AI assistants** (nav, page title, back link); "Team" → **People & roles** (nav, page, Pilot's link);
+  "Start calling" → **Call N people** / **Get N people ready to call** (Start calling when there's nobody); "Text" → **Open** while texting is
+  off; "Dismiss" → **Skip**; "Prepare it" + "Ask" boxes → one box with **Ask** / **Draft it**; "Tell your Concierge" + "Ask your Concierge"
+  → **Ask or tell your Concierge**; "Make a connection key" → **Make my connection address**; "Connect your loan system" section on Pipeline →
+  **No loans yet** + **Connect your loan system** button; "Start a campaign" → **+ New campaign** / **New campaign**; "Companies Command
+  Center registers (D56)" → without "(D56)"; "Recently fired" codes → words; Automations "Save" → **Save changes**; Concierge "Your
+  Concierge" settings section → **Settings** fold; eyebrow "MLO Command Center" → the page's group.
+- **Decisions:** (a) Tabs: six on phones (More stays last), so the raised Concierge is third of six rather than dead centre. (b) Desktop:
+  a new "mixed" fit shows Home, Inbox, Contacts and Pipeline as icons (named on hover and to screen readers) and keeps the menus' words,
+  so 1280 doesn't drop to icons only after adding three links. (c) Automations: Full-auto exists only on the borrower and agent rows (the
+  only ones the LOA can send); every other row's Full-auto is disabled with the reason. Sections start folded (that's how the page gets
+  under a third). (d) Connection addresses carry the key (`?key=`, which every intake already accepted), so a loan officer pastes one
+  thing; the header form is owner-only. (e) Leads keep the vendor field names in a fold, since the vendor needs them. (f) "Approve all"
+  sits behind a fold with a confirm button and is bound to the ids on the page. (g) The plain-language test reads lib/content modules
+  (owner-only keys start with "owner"; mlo.ts's setup/pricing/receive are Platform pages) and every non-Platform `/mlo` TSX file with
+  comments and `TechSteps` / `NotOnYet` children removed. (h) Today's list shows six; Home's target (under 4,000px at 390) needed that.
+  (i) "Add their state" is the one small new write (the contact's state only, from the call session); D77 brings full contact editing.
+- **Known gaps:** most page copy still lives in the page files (only D76's new and changed wording moved to `lib/content/cc-pages.ts`);
+  Concierge "Approve all" wasn't exercised in the browser with two sendable drafts (QA books have at most one, held by the contact
+  rules); LOA is still long (12,031px at 390) because its sections are its work; Call session and AI assistants got longer by design.
+- **Next up:** D77 (contact page and contacts list rebuilt; add, edit and merge), after the owner's sign-off.

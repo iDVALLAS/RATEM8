@@ -10,6 +10,7 @@ import { FlashBox } from "../../../MloChrome";
 import { undoImportAction } from "../../actions";
 import SkippedDownload from "./SkippedDownload";
 import "../../../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -33,8 +34,7 @@ export default async function ImportHistory({ searchParams }: { searchParams: Pr
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow"><Link href="/mlo/contacts">← Contacts</Link></p>
-        <h1 className="tagline text-4xl">{h.title}</h1>
+        <PageHead k="import" eyebrow={<><Link href="/mlo/contacts">← Contacts</Link></>} title={h.title} />
         <FlashBox flash={decodeFlash(f)} />
         {!me ? (
           <section className="mlo-section"><p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to see your imports.</p></section>

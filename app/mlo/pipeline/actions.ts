@@ -16,5 +16,5 @@ export async function deleteKeyAction(fd: FormData): Promise<void> {
   const me = await currentUser();
   if (!me) redirect("/sign-in");
   await pipelineStore().deleteKey(me.id, String(fd.get("hash") ?? ""));
-  redirect("/mlo/pipeline");
+  redirect("/mlo/connections#keys");
 }

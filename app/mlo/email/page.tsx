@@ -10,6 +10,8 @@ import { PROVIDER_LABEL, providersOn, redirectUri } from "@/lib/mail/oauth";
 import { requestOrigin } from "@/lib/mail/origin";
 import { FlashBox } from "../MloChrome";
 import { disconnectMailAction, testMailAction } from "./actions";
+import PageHead from "../PageHead";
+import NotOnYet, { TechSteps } from "../NotOnYet";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +38,16 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Email</h1>
+        <PageHead k="email" title="Email" how={<ul className="mlo-list">
+            <li><strong>Send only.</strong> Command Center asks for permission to send, never to read your inbox, contacts or calendar.</li>
+            <li><strong>From you.</strong> Emails from a contact&apos;s page, your Concierge and campaigns go from your address, with your <Link href="/mlo/signature">signature</Link> and the lines the law asks for (your NMLS number, your company and its address, Equal Housing Opportunity, a way to stop emails).</li>
+            <li><strong>Kept where your company keeps mail.</strong> Each one lands in your Sent folder, and replies come straight to your inbox.</li>
+            <li><strong>Replies and campaigns.</strong> Command Center can&apos;t see email replies, so when someone answers an email, open their contact page and press &quot;They replied&quot;. Their follow-up campaigns stop. Text replies and STOP are caught automatically.</li>
+            <li><strong>If it breaks</strong> (a password change, or your company removes the permission), sending stops and you get an email asking you to reconnect. It never switches to another address.</li>
+            <li><strong>Sending limits.</strong> Google Workspace allows about 2,000 emails a day per mailbox and personal Gmail about 500; Microsoft 365 about 10,000 recipients a day.</li>
+          </ul>} />
         <FlashBox flash={decodeFlash(f)} />
+        {!box && !on.length ? <NotOnYet what="mailbox" icon="mail" owner={owner} /> : null}
 
         <section className="mlo-section" aria-labelledby="box-h">
           <h2 id="box-h" className="text-xl">Your mailbox</h2>
@@ -71,29 +80,12 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
               </div>
             </>
           ) : (
-            <p className="mlo-note" style={{ marginTop: 8 }}>
-              {owner ? "Connecting Gmail and Microsoft 365 isn't set up yet. It needs one app registration with each (steps below and on the Launch checklist)." : "Connecting Gmail and Microsoft 365 isn't turned on yet. The owner sets it up once for everyone."}{" "}
-              {emailOn() ? "Until then, emails go from the platform address in your name, with replies to your own inbox." : ""} <Link href="/mlo/setup-help?topic=mailbox">Ask the setup assistant</Link>.
-            </p>
+            <p className="mlo-note" style={{ marginTop: 8 }}>{emailOn() ? "Until it's turned on, emails go from the platform address in your name, with replies to your own inbox." : "Until then, Command Center can't send emails."}</p>
           )}
         </section>
 
-        <section className="mlo-section" aria-labelledby="how-h">
-          <h2 id="how-h" className="text-xl">How it works</h2>
-          <ul className="mlo-list" style={{ marginTop: 8 }}>
-            <li><strong>Send only.</strong> Command Center asks for permission to send, never to read your inbox, contacts or calendar.</li>
-            <li><strong>From you.</strong> Emails from a contact&apos;s page, your Concierge and campaigns go from your address, with your <Link href="/mlo/signature">signature</Link> and the lines the law asks for (your NMLS number, your company and its address, Equal Housing Opportunity, a way to stop emails).</li>
-            <li><strong>Kept where your company keeps mail.</strong> Each one lands in your Sent folder, and replies come straight to your inbox.</li>
-            <li><strong>Replies and campaigns.</strong> Command Center can&apos;t see email replies, so when someone answers an email, open their contact page and press &quot;They replied&quot;. Their follow-up campaigns stop. Text replies and STOP are caught automatically.</li>
-            <li><strong>If it breaks</strong> (a password change, or your company removes the permission), sending stops and you get an email asking you to reconnect. It never switches to another address.</li>
-            <li><strong>Sending limits.</strong> Google Workspace allows about 2,000 emails a day per mailbox and personal Gmail about 500; Microsoft 365 about 10,000 recipients a day.</li>
-          </ul>
-        </section>
-
-        {owner ? (
-          <section className="mlo-section" aria-labelledby="owner-h">
-            <h2 id="owner-h" className="text-xl">Setting it up (owner, once)</h2>
-            <p className="mlo-note" style={{ marginTop: 8 }}>Each needs an app registration and two settings in Vercel, then a redeploy. <Link href="/mlo/setup-help?topic=mailbox">The setup assistant</Link> walks through it.</p>
+        <TechSteps owner={owner} open={!box && !on.length}>
+      <p className="mlo-note" style={{ marginTop: 8 }}>Each needs an app registration and two settings in Vercel, then a redeploy. <Link href="/mlo/setup-help?topic=mailbox">The setup assistant</Link> walks through it.</p>
             <ol className="mlo-list" style={{ marginTop: 8 }}>
               <li>
                 <strong>Gmail (Google Cloud):</strong> an OAuth client of type &quot;Web application&quot; with the Gmail API turned on and the scope <code>gmail.send</code>. Add this as an authorized redirect URI: <code>{redirectUri(origin, "google")}</code> (and the same path on your production address). Google reviews the app&apos;s brand before people outside your own Workspace can use it.
@@ -105,8 +97,7 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
               </li>
             </ol>
             <p className="mlo-note" style={{ marginTop: 8 }}>The saved connections are encrypted with <code>CC_MAIL_KEY</code> (Sensitive, optional; otherwise one derived from <code>CC_LINK_SECRET</code>). Changing it means everyone reconnects.</p>
-          </section>
-        ) : null}
+        </TechSteps>
       </div>
     </PageShell>
   );

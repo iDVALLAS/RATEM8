@@ -9,6 +9,7 @@ import { saveVoiceAction } from "../actions";
 import { FlashBox, MloNav } from "../MloChrome";
 import VoicePicker from "./VoicePicker";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "M8 voice", robots: { index: false, follow: false } };
@@ -27,8 +28,7 @@ export default async function MloVoice({ searchParams }: { searchParams: Promise
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">{mloContent.title}</p>
-        <h1 className="tagline text-4xl">{mloContent.nav.voice}</h1>
+        <PageHead k="voice" title={mloContent.nav.voice} />
         <MloNav current="voice" tenantId={tenant.id} />
         <FlashBox flash={decodeFlash(f)} />
         {!on ? (

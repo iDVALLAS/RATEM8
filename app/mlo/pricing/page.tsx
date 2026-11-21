@@ -16,6 +16,7 @@ import { bookmarkletUrl } from "@/lib/pricing/loansifterBookmarklet";
 import { importLoanSifterAction, publishSnapshotAction } from "../actions";
 import { FlashBox, MloNav, TenantPicker } from "../MloChrome";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Pricing snapshots", robots: { index: false, follow: false } };
@@ -45,8 +46,7 @@ export default async function MloPricing({ searchParams }: Props) {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">{mloContent.title}</p>
-        <h1 className="tagline text-4xl">{c.heading}</h1>
+        <PageHead k="pricing" title={c.heading} />
         <MloNav current="pricing" tenantId={tenant.id} />
         <TenantPicker tenants={tenants} current={tenant.id} base="/mlo/pricing" />
         <FlashBox flash={decodeFlash(f)} />

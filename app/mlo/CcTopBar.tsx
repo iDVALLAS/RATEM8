@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
-import { activeKey, GROUPS, hrefOf, TABS, visibleDests, type Dest, type GroupKey } from "./nav";
+import { activeKey, DIRECT, GROUPS, hrefOf, TABS, visibleDests, type Dest, type GroupKey } from "./nav";
 import { Icon } from "./icons";
 import { ReportDialog, openReport } from "./ReportProblem";
 import Brand from "./Brand";
@@ -14,7 +14,8 @@ import Brand from "./Brand";
  * width (fonts differ by computer): full labels with arrows, then labels
  * only, then icons with hover labels.
  */
-const FITS = ["full", "compact", "icons"] as const;
+// D76: "mixed" keeps the menus' words and shows Home, Inbox, Contacts and Pipeline as icons.
+const FITS = ["full", "compact", "mixed", "icons"] as const;
 // Runs before paint in the browser; a plain effect on the server.
 const useFitEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -83,6 +84,9 @@ export default function CcTopBar({ admin, signedIn, pilot = false, name, email, 
   const current = activeKey(path);
   const dests = visibleDests({ admin, signedIn });
   const groups = (Object.keys(GROUPS) as GroupKey[]).map((g) => ({ g, items: dests.filter((d) => d.group === g && d.key !== "home") })).filter((x) => x.items.length);
+  // D76: Inbox, Contacts and Pipeline are links of their own on desktop, so their menus leave them out.
+  const direct = DIRECT.map((k) => dests.find((d) => d.key === k)).filter((d): d is Dest => !!d);
+  const menus = groups.map(({ g, items }) => ({ g, items: items.filter((d) => !(DIRECT as readonly string[]).includes(d.key)) })).filter((x) => x.items.length);
   const [acct, setAcct] = useState(false);
   const [more, setMore] = useState(false);
   const acctRef = useRef<HTMLDivElement>(null);
@@ -124,7 +128,7 @@ export default function CcTopBar({ admin, signedIn, pilot = false, name, email, 
     ro.observe(bar);
     document.fonts?.ready.then(fit).catch(() => {});
     return () => ro.disconnect();
-  }, [admin, signedIn, pilot, badges.concierge]);
+  }, [admin, signedIn, pilot, badges.concierge, badges.inbox]);
 
   return (
     <>
@@ -134,8 +138,14 @@ export default function CcTopBar({ admin, signedIn, pilot = false, name, email, 
           <Brand href="/mlo" label="MLO Command, powered by LoanM8: home" />
           {pilot ? <Link href="/mlo/welcome" className="cc-pilot" title="You're in the pilot. Tell the owner about anything odd.">Pilot</Link> : null}
           <nav className="cc-nav" aria-label="Command Center" ref={navRef}>
-            <Link href="/mlo" className={`cc-nav__btn ${current === "home" ? "is-active" : ""}`} aria-current={current === "home" ? "page" : undefined} title="Home"><Icon name="home" size={18} /><span className="cc-nav__label">Home</span></Link>
-            {groups.map(({ g, items }) => <Menu key={g} label={GROUPS[g]} icon={MENU_ICON[g]} items={items} current={current} tenantId={tenantId} badges={badges} />)}
+            <Link href="/mlo" className={`cc-nav__btn cc-nav__btn--link ${current === "home" ? "is-active" : ""}`} aria-current={current === "home" ? "page" : undefined} title="Home"><Icon name="home" size={18} /><span className="cc-nav__label">Home</span></Link>
+            {direct.map((d) => (
+              <Link key={d.key} href={hrefOf(d, tenantId)} className={`cc-nav__btn cc-nav__btn--link ${current === d.key ? "is-active" : ""}`} aria-current={current === d.key ? "page" : undefined} title={d.label}>
+                <Icon name={d.icon} size={18} /><span className="cc-nav__label">{d.label}</span>
+                {badges[d.key] ? <span className="cc-badge" aria-label={`${badges[d.key]} waiting`}>{badges[d.key]}</span> : null}
+              </Link>
+            ))}
+            {menus.map(({ g, items }) => <Menu key={g} label={GROUPS[g]} icon={MENU_ICON[g]} items={items} current={current} tenantId={tenantId} badges={badges} />)}
           </nav>
           <div className="cc-bar__end" ref={endRef}>
             <ThemeToggle />
@@ -160,18 +170,18 @@ export default function CcTopBar({ admin, signedIn, pilot = false, name, email, 
       </header>
 
       <nav className="cc-tabs" aria-label="Command Center">
-        {TABS.map((k, i) => {
+        {TABS.map((k) => {
           const d = tab(k);
           if (!d) return null;
           const center = k === "concierge";
           return (
-            <Link key={k} href={hrefOf(d, tenantId)} className={`cc-tab ${center ? "cc-tab--center" : ""} ${current === k ? "is-active" : ""}`} aria-current={current === k ? "page" : undefined} style={{ order: center ? 2 : i < 1 ? 0 : i + 1 }}>
-              <span className="cc-tab__icon"><Icon name={d.icon} size={center ? 24 : 22} />{badges[k] ? <span className="cc-badge cc-badge--dot">{badges[k]}</span> : null}</span>
+            <Link key={k} href={hrefOf(d, tenantId)} className={`cc-tab ${center ? "cc-tab--center" : ""} ${current === k ? "is-active" : ""}`} aria-current={current === k ? "page" : undefined} aria-label={badges[k] ? `${d.label}, ${badges[k]} waiting` : undefined}>
+              <span className="cc-tab__icon"><Icon name={d.icon} size={center ? 24 : 22} />{badges[k] ? <span className="cc-badge cc-badge--dot" aria-hidden="true">{badges[k]}</span> : null}</span>
               <span className="cc-tab__label">{d.label}</span>
             </Link>
           );
         })}
-        <button type="button" className={`cc-tab ${more ? "is-active" : ""}`} style={{ order: 9 }} aria-expanded={more} onClick={() => setMore((o) => !o)}>
+        <button type="button" className={`cc-tab ${more ? "is-active" : ""}`} aria-expanded={more} onClick={() => setMore((o) => !o)}>
           <span className="cc-tab__icon"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.8" fill="currentColor" /><circle cx="12" cy="12" r="1.8" fill="currentColor" /><circle cx="18.5" cy="12" r="1.8" fill="currentColor" /></svg></span>
           <span className="cc-tab__label">More</span>
         </button>

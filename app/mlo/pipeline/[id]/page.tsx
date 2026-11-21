@@ -18,6 +18,7 @@ import { canChangeSwitches, purposeKind } from "@/lib/loa/autonomy";
 import { contactStore } from "@/lib/contacts/store";
 import "../../mlo.css";
 import "./journey.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -52,8 +53,7 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow"><Link href="/mlo/pipeline">← Pipeline</Link></p>
-        <h1 className="tagline text-4xl">{loan.borrowerName}</h1>
+        <PageHead k="pipeline" eyebrow={<><Link href="/mlo/pipeline">← Pipeline</Link></>} title={loan.borrowerName} />
         <MloNav current="pipeline" tenantId={tenant.id} admin={v.admin} signedIn />
         <FlashBox flash={decodeFlash(f)} />
 

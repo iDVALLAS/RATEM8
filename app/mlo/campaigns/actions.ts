@@ -9,7 +9,7 @@ import { importPeople } from "@/lib/contacts/imports";
 const me = async () => (await currentUser()) ?? redirect("/sign-in");
 const go = (target: string, ok: boolean, line: string) => {
   const [path, hash] = target.split("#");
-  return redirect(`${path}?f=${encodeURIComponent(encodeFlash({ ok, lines: [line] }))}${hash ? `#${hash}` : ""}`);
+  return redirect(`${path}${path.includes("?") ? "&" : "?"}f=${encodeURIComponent(encodeFlash({ ok, lines: [line] }))}${hash ? `#${hash}` : ""}`);
 };
 
 /** D51: start from a starter campaign (or blank). */
@@ -21,7 +21,7 @@ export async function newCampaignAction(starter: string | null): Promise<void> {
 /** D51: "Describe what you want" — the AI drafts it. */
 export async function aiCampaignAction(fd: FormData): Promise<void> {
   const r = await aiCreateCampaign(await me(), String(fd.get("goal") ?? ""));
-  if (!r.ok) go("/mlo/campaigns", false, r.error);
+  if (!r.ok) go("/mlo/campaigns?new=1", false, r.error);
   else go(`/mlo/campaigns/${r.campaign.id}`, r.by === "ai", r.note);
 }
 

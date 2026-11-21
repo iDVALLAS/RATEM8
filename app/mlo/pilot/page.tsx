@@ -11,6 +11,7 @@ import { FlashBox } from "../MloChrome";
 import { pilotInviteAction, triageAction } from "../pilot-actions";
 import { invitedWaiting, MAX_INVITES } from "@/lib/pilot/invite";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Pilot", robots: { index: false, follow: false } };
@@ -37,8 +38,7 @@ export default async function Pilot({ searchParams }: { searchParams: Promise<{ 
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Pilot</h1>
+        <PageHead k="pilot" title="Pilot" />
         <FlashBox flash={decodeFlash(f)} />
         <section className="mlo-section">
           <p className="mlo-note">
@@ -62,7 +62,7 @@ export default async function Pilot({ searchParams }: { searchParams: Promise<{ 
             <button type="submit" className="mlo-btn">Email their invites</button>
           </form>
           <p className="mlo-note">Each person gets their own sign-up link (good for 14 days) with their name and email filled in. They add their NMLS ID, sponsoring company and states, and it comes straight to <Link href="/mlo/signups">Sign-ups</Link> marked Invited. Open their NMLS record, tick the box, approve: they get their sign-in link. {(await invitedWaiting().catch(() => 0)) ? <strong>{await invitedWaiting()} invited sign-up(s) waiting for you now.</strong> : null}</p>
-          <p className="mlo-note">Assistants, or a loan officer whose record is already in Command Center: use <Link href="/mlo/team">Team</Link>, Add someone.</p>
+          <p className="mlo-note">Assistants, or a loan officer whose record is already in Command Center: use <Link href="/mlo/team">People &amp; roles</Link>, Add someone.</p>
         </section>
 
         <section className="mlo-section">

@@ -44,7 +44,7 @@ export default async function TeamSetup({ searchParams }: { searchParams: Promis
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="mlo-note"><Link href="/mlo/agents">← Your team</Link></p>
+        <p className="mlo-note"><Link href="/mlo/agents">← AI assistants</Link></p>
         <h1 className="tagline text-4xl">Set up your team</h1>
         <FlashBox flash={decodeFlash(f)} />
 

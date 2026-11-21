@@ -16,7 +16,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { del as blobDel, head as blobHead } from "@vercel/blob";
-import { blobAddress, blobOn, browserUploadOn, NEEDS_TOKEN } from "@/lib/blob/private";
+import { blobAddress, blobOn, browserUploadOn, NEEDS_TOKEN, UPLOADS_OFF } from "@/lib/blob/private";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { CONFIG, mloById } from "@/lib/config";
 import { companyDetails } from "@/lib/accounts/company";
@@ -41,7 +41,7 @@ const env = (k: string) => process.env[k]?.trim() || undefined;
 export const videosOn = () => blobOn() && env("CC_VIDEOS") !== "false";
 /** Recording and uploading from the browser also needs the store's read-write token. */
 export const uploadsOn = () => videosOn() && browserUploadOn();
-export { NEEDS_TOKEN };
+export { NEEDS_TOKEN, UPLOADS_OFF };
 export { transcribeOn };
 
 /** Seconds of sound checked per day across the platform (CC_VIDEO_CHECK_DAILY_SECONDS overrides). */
@@ -62,7 +62,7 @@ export const prefixFor = (userId: string) => `videos/${userId.replace(/[^A-Za-z0
 /** What the upload route allows for this pathname, or why not. */
 export function uploadRules(user: Pick<User, "id">, pathname: string): { ok: true; allowedContentTypes: string[]; maximumSizeInBytes: number } | { ok: false; error: string } {
   if (!videosOn()) return { ok: false, error: "Video messages are off." };
-  if (!browserUploadOn()) return { ok: false, error: NEEDS_TOKEN };
+  if (!browserUploadOn()) return { ok: false, error: UPLOADS_OFF };
   if (!pathname.startsWith(prefixFor(user.id)) || pathname.includes("..") || pathname.length > 200) return { ok: false, error: "Not your folder." };
   if (/-poster\.jpg$/.test(pathname)) return { ok: true, allowedContentTypes: [POSTER_TYPE], maximumSizeInBytes: 2 * 1024 * 1024 };
   if (!/\.(mp4|webm|mov)$/i.test(pathname)) return { ok: false, error: "Use an MP4, WebM or MOV file." };

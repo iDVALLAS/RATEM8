@@ -21,13 +21,15 @@ export default function LoaChat({ loans, lenders, defaultLoanId, mic, voice }: {
   const [talk, setTalk] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
-  const end = useRef<HTMLDivElement | null>(null);
+  const log = useRef<HTMLDivElement | null>(null);
   const talkRef = useRef(talk);
   talkRef.current = talk;
 
-  // A block body: newer browsers return a promise from scrollIntoView, which React would take for a cleanup function.
+  // D76: the log scrolls inside its own box, and only once there's a conversation, so opening the page never jumps.
   useEffect(() => {
-    end.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const el = log.current;
+    if (!el || (msgs.length === 0 && !busy)) return;
+    el.scrollTop = el.scrollHeight;
   }, [msgs, busy]);
 
   const speak = useCallback(async (t: string) => {
@@ -96,7 +98,7 @@ export default function LoaChat({ loans, lenders, defaultLoanId, mic, voice }: {
         </label>
       </div>
 
-      <div className="loa-log" aria-live="polite">
+      <div className="loa-log" aria-live="polite" ref={log}>
         {msgs.length === 0 ? <p className="mlo-note">Ask anything a senior processor would know. For example: &ldquo;Can they use a gift for the whole down payment on a 2-unit?&rdquo;, &ldquo;What&apos;s still open on the Garcia file?&rdquo;, &ldquo;When does the CD have to go out?&rdquo;</p> : null}
         {msgs.map((x, i) => (
           <div key={i} className={`loa-msg loa-msg--${x.role}`}>
@@ -106,7 +108,6 @@ export default function LoaChat({ loans, lenders, defaultLoanId, mic, voice }: {
           </div>
         ))}
         {busy ? <p className="mlo-note">Your LOA is looking it up…</p> : null}
-        <div ref={end} />
       </div>
 
       <form className="loa-ask" onSubmit={(e) => { e.preventDefault(); void send(text); }}>

@@ -3,7 +3,7 @@ import type { FirstDayStep } from "@/lib/pilot/service";
 import { firstDayAction } from "./pilot-actions";
 import { Icon } from "./icons";
 
-/** D44: "Your first day" — six steps, checked against the real state. */
+/** D44: "Your first day" — its steps, checked against the real state. */
 export default function FirstDay({ steps, done, pilot, canHide = true }: { steps: FirstDayStep[]; done: number; pilot: boolean; canHide?: boolean }) {
   const pct = Math.round((done / steps.length) * 100);
   return (
@@ -21,7 +21,7 @@ export default function FirstDay({ steps, done, pilot, canHide = true }: { steps
               <span>
                 <span className="cc-first__label">{s.label}</span>
                 <span className="sr-only">{s.done ? " (done)" : " (to do)"}</span>
-                <span className="cc-first__why" style={{ display: "block" }}>{s.why}</span>
+                <span className="cc-first__why">{s.why}</span>
               </span>
             </Link>
           </li>

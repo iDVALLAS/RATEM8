@@ -6,6 +6,7 @@ import { requireViewer } from "@/lib/mlo/page-auth";
 import { LABELS, weeklyFor, type WeekNumbers } from "@/lib/report/weekly";
 import { MloNav } from "../MloChrome";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Weekly report", robots: { index: false, follow: false } };
@@ -19,8 +20,7 @@ export default async function Report() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Your week</h1>
+        <PageHead k="report" title="Your week" />
         <MloNav current="report" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         {!me || !w ? (
           <section className="mlo-section"><p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to see your report.</p></section>

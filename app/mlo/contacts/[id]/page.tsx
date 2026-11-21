@@ -46,6 +46,9 @@ import { aiCallAction } from "../aicall-actions";
 import { clientLink } from "@/lib/clientpage/link";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
+import PageHead from "@/app/mlo/PageHead";
+import { TechSteps } from "@/app/mlo/NotOnYet";
+import { NOT_ON_YET } from "@/lib/content/cc-pages";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -101,8 +104,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow"><Link href={c.kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"}>← {c.kind === "agent" ? "Agents" : "Contacts"}</Link></p>
-        <h1 className="tagline text-4xl">{`${c.firstName} ${c.lastName}`.trim() || c.email || "(no name)"}</h1>
+        <PageHead k="contacts" eyebrow={<><Link href={c.kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"}>← {c.kind === "agent" ? "Agents" : "Contacts"}</Link></>} title={<>{`${c.firstName} ${c.lastName}`.trim() || c.email || "(no name)"}</>} />
         <MloNav current="contacts" tenantId={tenant.id} admin={v.admin} signedIn />
         <FlashBox flash={decodeFlash(f)} />
 
@@ -217,7 +219,12 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
                   <form action={rotateClientLinkAction.bind(null, c.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">Make a new link</button></form>
                 </div>
               </>
-            ) : <p className="mlo-note">Client pages turn on with CC_LINK_SECRET (Sensitive) or the database in Vercel.</p>}
+            ) : (
+              <>
+                <p className="mlo-note">{NOT_ON_YET.clientpage.line}</p>
+                <TechSteps owner={v.user.role === "owner"}><p className="mlo-note">Client pages turn on with CC_LINK_SECRET (Sensitive) or the database in Vercel.</p></TechSteps>
+              </>
+            )}
           </section>
         ) : null}
 

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { headers } from "next/headers";
 import PageShell from "@/app/mlo/CcShell";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
@@ -8,9 +7,9 @@ import { scopeOf } from "@/lib/contacts/service";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { alertsFor, learnPace } from "@/lib/pipeline/guardian";
 import { MloNav } from "../MloChrome";
-import KeyMaker from "./KeyMaker";
 import { myNextSteps } from "@/lib/journey/engine";
-import { deleteKeyAction } from "./actions";
+import { PIPELINE, SUBS } from "@/lib/content/cc-pages";
+import PageHead from "../PageHead";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -22,20 +21,16 @@ const money = (n: number | null) => (n === null ? "" : `$${Math.round(n).toLocal
 export default async function Pipeline() {
   const v = await requireViewer();
   const tenant = listTenants()[0];
-  const h = await headers();
-  const endpoint = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}/api/pipeline/inbound`;
   const me = v.user;
   const loans = me ? await pipelineStore().list(scopeOf(me)) : [];
   const pace = learnPace(loans);
   const now = new Date();
   const active = loans.filter((l) => !l.closed && !l.dead);
-  const keys = me ? await pipelineStore().keys(me.id) : [];
   const mine = me ? await myNextSteps(me, now) : [];
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Pipeline</h1>
+        <PageHead k="pipeline" title="Pipeline" sub={SUBS.pipeline} action={me && loans.length ? <Link className="mlo-btn mlo-btn--ghost" href="/mlo/connections#arive">Your loan system</Link> : undefined} />
         <MloNav current="pipeline" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         {!me ? (
           <section className="mlo-section"><p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to see your loans.</p></section>
@@ -52,9 +47,14 @@ export default async function Pipeline() {
               </section>
             ) : null}
             <section className="mlo-section">
-              <h2>Active loans ({active.length})</h2>
-              {active.length === 0 ? (
-                <p className="mlo-note">No loans yet. Connect your loan system below and new updates will appear here.</p>
+              <h2>{loans.length === 0 ? PIPELINE.empty : `Active loans (${active.length})`}</h2>
+              {loans.length === 0 ? (
+                <>
+                  <p className="mlo-note">{PIPELINE.emptyLine}</p>
+                  <div className="mlo-actions"><Link className="mlo-btn" href="/mlo/connections#arive">{PIPELINE.connect}</Link></div>
+                </>
+              ) : active.length === 0 ? (
+                <p className="mlo-note">No active loans right now.</p>
               ) : (
                 <table className="mlo-table mlo-table--plain">
                   <tbody>
@@ -73,29 +73,6 @@ export default async function Pipeline() {
                   </tbody>
                 </table>
               )}
-            </section>
-            <section className="mlo-section">
-              <h2>Connect your loan system</h2>
-              <p className="mlo-note">
-                <strong>ARIVE:</strong> in Zapier, use the ARIVE trigger “Loan Status Updated in ARIVE” (and “New Loan”), then a “Webhooks by Zapier” POST action to the address below, with your key as the X-CC-Key header and these fields: loan number, borrower first name, last name, email and phone, loan status, loan purpose, loan type, loan amount, interest rate, application date, lock expiration date, appraisal date, clear to close date, closing date, buyer&apos;s agent name. ARIVE&apos;s own field names work.
-              </p>
-              <p className="mlo-note">Loans come in as your own clients; when a loan closes, the borrower becomes a past client with the loan&apos;s date, amount and rate. Nothing is ever sent to anyone automatically.</p>
-              <KeyMaker endpoint={endpoint} />
-              {keys.length ? (
-                <table className="mlo-table mlo-table--plain" style={{ marginTop: 12 }}>
-                  <tbody>
-                    {keys.map((k) => (
-                      <tr key={k.hash}>
-                        <th scope="row">{k.label}</th>
-                        <td className="mlo-note">made {new Date(k.createdAt).toLocaleDateString("en-US")}</td>
-                        <td>
-                          <form action={deleteKeyAction}><input type="hidden" name="hash" value={k.hash} /><button type="submit" className="mlo-btn mlo-btn--ghost">Turn off</button></form>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : null}
             </section>
           </>
         )}

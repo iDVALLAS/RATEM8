@@ -67,7 +67,7 @@ describe("Tell your Concierge (D15)", () => {
   });
 
   it("says what it needs without a key", async () => {
-    expect((await tell(me, "text everyone", { now: NOW })).answer).toMatch(/AI key isn.t in Vercel/);
+    expect((await tell(me, "text everyone", { now: NOW })).answer).toMatch(/AI isn.t turned on yet/);
     expect((await tell(me, "   ", { now: NOW, call: null })).answer).toMatch(/Tell me what/);
   });
 });

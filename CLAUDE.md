@@ -204,6 +204,13 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     (type UNDO, bound): deletes untouched created people (consent rows kept, append-only), keeps anyone messaged, with other consent or
     any stop, restores snapshots, takes back the import's own "yes" with a new entry; `?import=` on Contacts, Record permission (DNC
     list + Twilio phone-type checks with the cost) and Campaigns; `countLocked`/`unlockAll` release every held person in one UPDATE.
+    D76 design pass (`app/mlo/PageHead.tsx`, `NotOnYet.tsx` + owner-only `TechSteps`, `lib/content/cc-pages.ts`): eyebrow = the page's nav group,
+    long intros under "How this works"; Home shows Your day + People tiles (rest under Everything else, 2 columns and no art under 640px),
+    "Call N people" / "Get N people ready to call" (`lib/calls/blockers.ts`, fixes on /mlo/calls#blocked); nav: AI assistants (hub),
+    People & roles, phone tabs Home/Inbox/Concierge/Contacts/Pipeline/More (Inbox badge `repliesWaiting`), desktop direct links + "mixed" fit;
+    Concierge drafts first, one Ask/Draft it box, settings fold; Automations rows with the D70 switch (Full-auto only borrower/agent updates,
+    shared with the LOA), save bar; Connections "Which loan system do you use?" + 3 steps, keys there (address carries `?key=`);
+    no "Vercel"/"X-CC-Key" on daily pages (`app/mlo/plain-language.test.ts`).
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -312,7 +319,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 748 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 765 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

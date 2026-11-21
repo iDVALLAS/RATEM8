@@ -15,6 +15,7 @@ import { listTenants } from "@/lib/pricing/tenants";
 import { saveSettingsAction } from "../actions";
 import { FlashBox, MloNav, TenantPicker } from "../MloChrome";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "MLO setup", robots: { index: false, follow: false } };
@@ -44,8 +45,7 @@ export default async function MloSetup({ searchParams }: Props) {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">{mloContent.title}</p>
-        <h1 className="tagline text-4xl">{c.heading}</h1>
+        <PageHead k="setup" title={c.heading} />
         <MloNav current="setup" tenantId={tenant.id} />
         <TenantPicker tenants={tenants} current={tenant.id} base="/mlo/setup" />
         <FlashBox flash={decodeFlash(f)} />

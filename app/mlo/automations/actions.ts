@@ -3,15 +3,40 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
-import { RECIPES } from "@/lib/automations/recipes";
+import { readRows } from "@/lib/automations/rows";
 import { runDaily, saveAutomations, setPartnerUpdates } from "@/lib/automations/engine";
 
 const me = async () => (await currentUser()) ?? redirect("/sign-in");
 
+/**
+ * D76: each automation is Off, LO-Auth or (borrower and agent updates only)
+ * Full-auto. Which ones are on is saved here; Full-auto vs LO-Auth for the
+ * borrower and agent updates is the LOA's shared switch, saved through the
+ * LOA (both loan types), only when it changed.
+ */
 export async function saveAutomationsAction(fd: FormData): Promise<void> {
   const u = await me();
-  await saveAutomations(u, RECIPES.filter((r) => fd.get(r.id) === "on").map((r) => r.id));
-  redirect(`/mlo/automations?f=${encodeFlash({ ok: true, lines: ["Saved. Loan updates draft as your loans move; the rest run each morning."] })}`);
+  const { enabled, shared } = readRows((id) => fd.get(id));
+  await saveAutomations(u, enabled);
+  const lines = ["Saved. Loan updates go out as your loans move; the rest run each morning."];
+  const { autonomyOf, saveAutonomy } = await import("@/lib/loa/service");
+  const { capByKey, officerMode, canChangeSwitches } = await import("@/lib/loa/autonomy");
+  const a = await autonomyOf(u.id).catch(() => null);
+  const input: { purchase: Record<string, string>; refi: Record<string, string> } = { purchase: {}, refi: {} };
+  for (const [cap, want] of Object.entries(shared) as [("client_updates" | "agent_updates"), "auto" | "approve"][]) {
+    const c = capByKey(cap);
+    const now = a ? (["purchase", "refi"] as const).filter((t) => c.applies[t]).map((t) => officerMode(c, t, a.modes)) : [];
+    if (now.length && now.every((m) => m === want)) continue;
+    for (const t of ["purchase", "refi"] as const) if (c.applies[t]) input[t][cap] = want;
+  }
+  if (Object.keys(input.purchase).length || Object.keys(input.refi).length) {
+    if (!canChangeSwitches(u, u.id)) lines.push("Full-auto stays as the loan officer set it.");
+    else {
+      const r = await saveAutonomy(u, input);
+      if (!r.ok) lines.push(r.error);
+    }
+  }
+  redirect(`/mlo/automations?f=${encodeFlash({ ok: true, lines })}`);
 }
 
 export async function runNowAction(): Promise<void> {

@@ -22,7 +22,7 @@ export async function sweepAction(): Promise<void> {
   const u = await me();
   const r = await sweep(u);
   if (r.mode === "off") back(false, ["Turn the Concierge on first."]);
-  back(true, [`Looked at ${r.people} ${r.people === 1 ? "person" : "people"}: ${r.proposals} draft${r.proposals === 1 ? "" : "s"}, ${r.tasks} reminder${r.tasks === 1 ? "" : "s"}, ${r.remembered} note${r.remembered === 1 ? "" : "s"} to keep or forget${r.personal ? `, ${r.personal} to answer personally` : ""}${r.mode === "template" ? " (simple templates: add the Anthropic key in Vercel for written drafts)" : ""}.`, ...r.refused.slice(0, 5).map((x) => `Held back: ${x}`)]);
+  back(true, [`Looked at ${r.people} ${r.people === 1 ? "person" : "people"}: ${r.proposals} draft${r.proposals === 1 ? "" : "s"}, ${r.tasks} reminder${r.tasks === 1 ? "" : "s"}, ${r.remembered} note${r.remembered === 1 ? "" : "s"} to keep or forget${r.personal ? `, ${r.personal} to answer personally` : ""}${r.mode === "template" ? " (simple templates: written drafts start once the AI is turned on)" : ""}.`, ...r.refused.slice(0, 5).map((x) => `Held back: ${x}`)]);
 }
 
 export async function approveAction(fd: FormData): Promise<void> {
@@ -31,6 +31,28 @@ export async function approveAction(fd: FormData): Promise<void> {
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   const r = await approve(u, String(fd.get("id") ?? ""), fd.has("body") ? String(fd.get("body")) : null, `${origin}/api/twilio/status`);
   back(r.ok, [r.ok ? "Sent." : r.error], "#drafts");
+}
+
+/**
+ * D76: "Approve all" — sends, as written, the drafts that were on the page
+ * and could go (bound to their ids, so nothing newer slips in). Each one is
+ * approved the same way as one at a time: re-checked, then through the
+ * contact rules. Anything that can't go stays on the desk.
+ */
+export async function approveAllAction(ids: string, fd: FormData): Promise<void> {
+  void fd;
+  const u = await me();
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+  const list = ids.split(",").filter((x) => /^[\w-]{1,80}$/.test(x)).slice(0, 100);
+  let sent = 0;
+  const held: string[] = [];
+  for (const id of list) {
+    const r = await approve(u, id, null, `${origin}/api/twilio/status`);
+    if (r.ok) sent++;
+    else held.push(r.error);
+  }
+  back(sent > 0 || !held.length, [`Sent ${sent} of ${list.length}.`, ...(held.length ? [`${held.length} stayed on your desk: ${held[0]}`] : [])], "#drafts");
 }
 
 /** D33: the same draft, by email. */

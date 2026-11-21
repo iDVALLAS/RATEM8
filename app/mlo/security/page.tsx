@@ -11,6 +11,7 @@ import Confirm from "./Confirm";
 import QRCode from "qrcode";
 import { disableAction, startAction } from "./actions";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Sign-in security", robots: { index: false, follow: false } };
@@ -30,8 +31,7 @@ export default async function Security({ searchParams }: { searchParams: Promise
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Sign-in security</h1>
+        <PageHead k="security" title="Sign-in security" />
         <MloNav current="security" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {required && !on ? <div className="mlo-flash mlo-flash--err" role="alert">The owner requires a second sign-in step for everyone. Set it up here to continue.</div> : null}

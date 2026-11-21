@@ -12,12 +12,18 @@ import { Practice } from "../academy/Client";
 import { GIFT_RULES } from "@/lib/agents/runner";
 import { FlashBox } from "../MloChrome";
 import { giftAction, moveDismissAction, moveDoneAction, runNowAction, sendDraftAction } from "./actions";
+import PageHead from "../PageHead";
+import { Icon } from "../icons";
+import { AGENTS_HUB, SUBS } from "@/lib/content/cc-pages";
+import { conciergeStore } from "@/lib/concierge/store";
+import { autonomyOf } from "@/lib/loa/service";
+import { loaAutoOn } from "@/lib/loa/autonomy";
 import "../mlo.css";
 import "./agents.css";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
-export const metadata: Metadata = { title: "Your team", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "AI assistants", robots: { index: false, follow: false } };
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }) : "not yet");
 
@@ -66,7 +72,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
   if (!me) {
     return (
       <PageShell>
-        <div className="mlo-wrap"><h1 className="tagline text-4xl">Your team</h1><p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to see your team.</p></div>
+        <div className="mlo-wrap"><h1 className="tagline text-4xl">{AGENTS_HUB.title}</h1><p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to see your AI assistants.</p></div>
       </PageShell>
     );
   }
@@ -81,14 +87,34 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
   const rest = open.filter((m) => !top.includes(m));
   const byAgent = (k: string) => open.filter((m) => m.agent === k).length;
   const p = card.plan;
+  // D76: the hub: each assistant with its on or off.
+  const [cs, loa] = await Promise.all([conciergeStore().settings(me.id).catch(() => null), autonomyOf(me.id).catch(() => null)]);
+  const loaPaused = !!loa?.pausedUntil && Date.parse(loa.pausedUntil) > Date.now();
+  const hub = [
+    { key: "concierge", icon: "spark" as const, ...AGENTS_HUB.concierge, on: !!cs?.enabled, state: cs?.enabled ? AGENTS_HUB.on : AGENTS_HUB.off, href: "/mlo/concierge", go: AGENTS_HUB.open },
+    { key: "loa", icon: "pipeline" as const, ...AGENTS_HUB.loa, on: !loaPaused, state: loaPaused || !loaAutoOn() ? AGENTS_HUB.paused : AGENTS_HUB.on, href: "/mlo/loa", go: AGENTS_HUB.open },
+    { key: "team", icon: "users" as const, ...AGENTS_HUB.team, on: s.enabled, state: s.enabled ? AGENTS_HUB.on : AGENTS_HUB.off, href: s.enabled ? "#team-h" : "/mlo/agents/setup", go: s.enabled ? AGENTS_HUB.open : AGENTS_HUB.setUp },
+  ];
 
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
+        <PageHead k="agents" title={AGENTS_HUB.title} sub={SUBS.agents} />
+        <ul className="cc-hub">
+          {hub.map((h) => (
+            <li key={h.key} className="cc-hub__item">
+              <span className="cc-hub__icon" aria-hidden="true"><Icon name={h.icon} size={20} /></span>
+              <span className="cc-hub__text">
+                <span className="cc-hub__name">{h.name} <span className={`cc-state ${h.on && h.state === AGENTS_HUB.on ? "is-on" : ""}`}>{h.state}</span></span>
+                <span className="mlo-note">{h.what}</span>
+              </span>
+              <Link className="mlo-btn mlo-btn--ghost" href={h.href}>{h.go}</Link>
+            </li>
+          ))}
+        </ul>
         <div className="ag-head">
           <div>
-            <h1 className="tagline text-4xl">Your Concierge team</h1>
+            <h2 className="cc-hub__team" id="team">{AGENTS_HUB.teamHead}</h2>
             <p className="mlo-note">{s.enabled ? `On · last run ${when(s.lastRunAt)} · ${open.length} waiting for you · ${sent.length} sent this week` : "Off. Turn it on in Set up; nothing runs until you do."}</p>
           </div>
           <div className="mlo-row-form">

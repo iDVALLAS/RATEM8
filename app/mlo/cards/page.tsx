@@ -13,6 +13,8 @@ import { AUDIENCES, cardsOn, cardsRedirect, type Audience } from "@/lib/cards/th
 import { FlashBox } from "../MloChrome";
 import Builder, { type PickPerson } from "./Builder";
 import { discardCardsAction, disconnectThanksAction, neighborhoodAction, prepareCardsAction, sendCardsAction } from "./actions";
+import PageHead from "../PageHead";
+import NotOnYet from "../NotOnYet";
 import "../mlo.css";
 import "./cards.css";
 
@@ -31,8 +33,7 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
   const shell = (body: React.ReactNode) => (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Cards by mail</h1>
+        <PageHead k="cards" title="Cards by mail" />
         <FlashBox flash={decodeFlash(sp.f)} />
         {body}
       </div>
@@ -43,19 +44,13 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
 
   if (!cardsOn()) {
     return shell(
-      <section className="mlo-section">
-        <p>Send handwritten-style notecards and postcards (holiday cards, thank-yous, home anniversaries) to people you pick, or a whole group, through Thanks.io.</p>
-        {me.role === "owner" ? (
-          <ol className="mlo-list">
-            <li>In Thanks.io (dashboard.thanks.io), open Settings → API Access, and under OAuth Applications click <strong>Create Application</strong>.</li>
-            <li>Redirect address: <code>{cardsRedirect(origin)}</code> (and the same path on your production address).</li>
-            <li>In Vercel: <code>THANKSIO_CLIENT_ID</code> (not Sensitive) and <code>THANKSIO_CLIENT_SECRET</code> (Sensitive), then redeploy.</li>
-          </ol>
-        ) : (
-          <p className="mlo-note">It isn&apos;t turned on yet. The owner connects Command Center to Thanks.io once; then you connect your own Thanks.io account.</p>
-        )}
-        <p className="mlo-note"><Link href="/mlo/setup-help?topic=cards">Ask the setup assistant</Link>.</p>
-      </section>,
+      <NotOnYet what="cards" icon="mail" owner={me.role === "owner"}>
+        <ol className="mlo-list">
+          <li>In Thanks.io (dashboard.thanks.io), open Settings → API Access, and under OAuth Applications click <strong>Create Application</strong>.</li>
+          <li>Redirect address: <code>{cardsRedirect(origin)}</code> (and the same path on your production address).</li>
+          <li>In Vercel: <code>THANKSIO_CLIENT_ID</code> (not Sensitive) and <code>THANKSIO_CLIENT_SECRET</code> (Sensitive), then redeploy.</li>
+        </ol>
+      </NotOnYet>,
     );
   }
 

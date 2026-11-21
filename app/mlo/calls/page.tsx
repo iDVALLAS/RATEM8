@@ -11,7 +11,11 @@ import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../MloChrome";
 import { BuildButton } from "../scripts/Buttons";
 import { buildScriptAction } from "../scripts/actions";
-import { logCallAction, sendToDialerAction } from "./actions";
+import { logCallAction, sendToDialerAction, setStateAction } from "./actions";
+import { blockerOf, fixHref } from "@/lib/calls/blockers";
+import { CALL_FIX, SUBS } from "@/lib/content/cc-pages";
+import { US_STATES } from "@/lib/us-states";
+import PageHead from "../PageHead";
 import { hookStore } from "@/lib/zapier/service";
 import "../mlo.css";
 
@@ -32,8 +36,7 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Call session</h1>
+        <PageHead k="calls" title="Call session" sub={SUBS.calls} how={<p className="mlo-note">One person at a time, from Today. Each call is checked against your contact rules first (permission, do-not-call, today&apos;s limit, quiet hours where they live). You dial; nothing rings on its own and no recorded voicemails are dropped.</p>} />
         <MloNav current="calls" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {!me || !q ? (
@@ -42,7 +45,6 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
           <>
             <section className="mlo-section">
               <h2>{q.ready.length ? `${q.ready.length} to call now` : "Nobody to call right now"}{q.done ? ` · ${q.done} done today` : ""}</h2>
-              <p className="mlo-note">One person at a time, from Today. Each call is checked against your contact rules first (permission, do-not-call, today&apos;s limit, quiet hours where they live). You dial; nothing rings on its own and no recorded voicemails are dropped.</p>
               {q.ready.length ? (
                 (await hookStore().list(me.id).catch(() => [])).some((h) => h.event === "call_list") ? (
                   <form action={sendToDialerAction} className="mlo-row-form" style={{ marginTop: 8 }}>
@@ -101,18 +103,38 @@ export default async function Calls({ searchParams }: { searchParams: Promise<{ 
             ) : null}
 
             {q.blocked.length ? (
-              <section className="mlo-section">
+              <section className="mlo-section" id="blocked">
                 <h2>Not now ({q.blocked.length})</h2>
-                <table className="mlo-table mlo-table--plain">
-                  <tbody>
-                    {q.blocked.map((x) => (
-                      <tr key={x.contact.id}>
-                        <th scope="row"><Link href={`/mlo/contacts/${x.contact.id}#permission`}>{name(x.contact)}</Link><br /><span className="mlo-note">{x.card.title}</span></th>
-                        <td className="mlo-note">{x.reason}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <ul className="cc-blocked">
+                  {q.blocked.map((x) => {
+                    const kind = blockerOf(x.reason);
+                    const fix = CALL_FIX[kind];
+                    const href = fixHref(kind, x.contact.id);
+                    return (
+                      <li key={x.contact.id} className="cc-blocked__row">
+                        <div className="cc-blocked__who">
+                          <Link href={`/mlo/contacts/${x.contact.id}#permission`}>{name(x.contact)}</Link>
+                          <span className="mlo-note">{x.card.title}</span>
+                        </div>
+                        <div className="cc-blocked__why">
+                          <span className="mlo-pill mlo-pill--off">{fix.chip}</span>
+                          <span className="mlo-note">{x.reason}</span>
+                        </div>
+                        {kind === "state" ? (
+                          <form action={setStateAction.bind(null, x.contact.id)} className="mlo-row-form cc-blocked__fix">
+                            <select name="state" className="mlo-select" aria-label={`${CALL_FIX.pickState}: ${name(x.contact)}`} required defaultValue="">
+                              <option value="" disabled>{CALL_FIX.pickState}</option>
+                              {US_STATES.map((st) => <option key={st.code} value={st.code}>{st.name}</option>)}
+                            </select>
+                            <button type="submit" className="mlo-btn mlo-btn--ghost">{fix.label}</button>
+                          </form>
+                        ) : href && fix.label ? (
+                          <div className="cc-blocked__fix"><Link className="mlo-btn mlo-btn--ghost" href={href}>{fix.label}</Link></div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
               </section>
             ) : null}
           </>

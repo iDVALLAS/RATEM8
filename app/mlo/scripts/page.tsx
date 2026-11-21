@@ -14,6 +14,7 @@ import { BuildButton } from "./Buttons";
 import { buildScriptAction, practiceScriptAction } from "./actions";
 import "../mlo.css";
 import "./scripts.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -36,8 +37,7 @@ export default async function Scripts({ searchParams }: { searchParams: Promise<
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Call scripts</h1>
+        <PageHead k="scripts" title="Call scripts" />
         <MloNav current="scripts" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {!me ? (

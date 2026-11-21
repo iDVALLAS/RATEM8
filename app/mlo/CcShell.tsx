@@ -6,6 +6,7 @@ import { conciergeStore } from "@/lib/concierge/store";
 import CcTopBar from "./CcTopBar";
 import Folds from "./Folds";
 import { pilotOn } from "@/lib/pilot/service";
+import { repliesWaiting } from "@/lib/messaging/replies";
 import "./cc-shell.css";
 
 /**
@@ -19,7 +20,7 @@ export default async function CcShell({ children }: { children: React.ReactNode;
   const user = await currentUser().catch(() => null);
   const basic = user ? null : await adminActor().catch(() => null);
   const admin = user ? isAdmin(user) : !!basic;
-  const drafts = user ? (await conciergeStore().proposals(user.id, "pending").catch(() => [])).length : 0;
+  const [drafts, replies] = user ? await Promise.all([conciergeStore().proposals(user.id, "pending").then((x) => x.length).catch(() => 0), repliesWaiting(user).catch(() => 0)]) : [0, 0];
   // D71: the loan officer's own Full-auto messages that are due go out after this page is sent (never slows it).
   if (user && user.role !== "assistant") {
     after(async () => {
@@ -29,7 +30,7 @@ export default async function CcShell({ children }: { children: React.ReactNode;
   }
   return (
     <div className="cc-app">
-      <CcTopBar admin={admin} signedIn={!!user} pilot={pilotOn()} name={user?.name ?? (basic ? "Shared admin login" : "")} email={user?.email ?? ""} role={user ? ROLE_LABELS[user.role] : ""} tenantId={listTenants()[0]?.id ?? ""} badges={{ concierge: drafts }} />
+      <CcTopBar admin={admin} signedIn={!!user} pilot={pilotOn()} name={user?.name ?? (basic ? "Shared admin login" : "")} email={user?.email ?? ""} role={user ? ROLE_LABELS[user.role] : ""} tenantId={listTenants()[0]?.id ?? ""} badges={{ concierge: drafts, inbox: replies }} />
       <main id="main" className="cc-main">{children}</main>
       <Folds />
       <footer className="cc-foot">

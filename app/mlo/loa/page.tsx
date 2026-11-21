@@ -22,6 +22,8 @@ import { FORM_KIND_LABELS, FORM_KINDS, OFFICIAL_FORMS } from "@/lib/forms/catalo
 import { libraryFor } from "@/lib/forms/service";
 import "../mlo.css";
 import "./loa.css";
+import PageHead from "@/app/mlo/PageHead";
+import { TechSteps } from "@/app/mlo/NotOnYet";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -36,8 +38,7 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
   const shell = (body: React.ReactNode) => (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center · Your team</p>
-        <h1 className="tagline text-4xl">Your Loan Officer Assistant</h1>
+        <PageHead k="loa" title="Your Loan Officer Assistant" />
         <FlashBox flash={decodeFlash(sp.f)} />
         {body}
       </div>
@@ -145,7 +146,7 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
               ))}
             </div>
             <p className="mlo-note">{aw.whenNote}</p>
-            {me.role === "owner" ? <p className="mlo-note loa-ownernote">{aw.ownerCallerNote}</p> : null}
+            <TechSteps owner={me.role === "owner"}><p className="mlo-note loa-ownernote">{aw.ownerCallerNote}</p></TechSteps>
           </div>
         ) : null}
       </section>

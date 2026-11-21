@@ -12,6 +12,8 @@ import { transcribeOn } from "@/lib/videos/transcribe";
 import { FlashBox } from "../MloChrome";
 import VoicemailRecorder from "./Recorder";
 import { deleteVoicemailAction, dropAction } from "./actions";
+import PageHead from "../PageHead";
+import NotOnYet from "../NotOnYet";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -28,15 +30,19 @@ export default async function VoicemailPage({ searchParams }: { searchParams: Pr
   const shell = (body: React.ReactNode) => (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Voicemail drops</h1>
+        <PageHead k="voicemail" title="Voicemail drops" how={me && voicemailOn() ? <p className="mlo-note">Record a short voicemail once and leave it for one person or many. Command Center calls each number, waits for the voicemail beep, and plays your message. If they pick up, they hear it too, and can press 9 to stop. Each call goes through your contact rules as a recorded-voice call: permission with proof for loan updates, written permission for offers, the do-not-call lists, quiet hours and caps.</p> : undefined} />
         <FlashBox flash={decodeFlash(sp.f)} />
         {body}
       </div>
     </PageShell>
   );
   if (!me) return shell(<section className="mlo-section"><p className="mlo-note">Sign in with your own account to leave voicemails.</p></section>);
-  if (!voicemailOn()) return shell(<section className="mlo-section"><h2>Not on yet</h2><p className="mlo-note">Voicemail drops need Twilio (the platform&apos;s keys) and the private Vercel Blob store for the recordings (the same one video messages use). The owner sets both up from the launch checklist.</p></section>);
+  if (!voicemailOn())
+    return shell(
+      <NotOnYet what="voicemail" icon="phone" owner={me.role === "owner"}>
+        <p className="mlo-note">Voicemail drops need Twilio (the platform&apos;s keys) and the private Vercel Blob store for the recordings (the same one video messages use). Both are on the <Link href="/mlo/launch">Launch checklist</Link>.</p>
+      </NotOnYet>,
+    );
 
   const m = mloById(me.mloId);
   const co = companyDetails(m);
@@ -47,8 +53,6 @@ export default async function VoicemailPage({ searchParams }: { searchParams: Pr
 
   return shell(
     <>
-      <p className="mlo-note" style={{ maxWidth: 700 }}>Record a short voicemail once and leave it for one person or many. Command Center calls each number, waits for the voicemail beep, and plays your message. If they pick up, they hear it too, and can press 9 to stop. Each call goes through your contact rules as a recorded-voice call: permission with proof for loan updates, written permission for offers, the do-not-call lists, quiet hours and caps.</p>
-
       <section className="mlo-section">
         <h2>What every voicemail says around yours</h2>
         <ol className="mlo-note" style={{ paddingLeft: 18, display: "grid", gap: 4 }}>

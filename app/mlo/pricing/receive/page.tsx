@@ -6,6 +6,7 @@ import { extraLoanSifterOrigins } from "@/lib/pricing/loansifterOrigin";
 import { importCaptureAction } from "../../actions";
 import ReceiveClient from "./ReceiveClient";
 import "../../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Receiving from LoanSifter", robots: { index: false, follow: false } };
@@ -22,8 +23,7 @@ export default async function ReceivePage() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">{mloContent.title}</p>
-        <h1 className="tagline text-4xl">{c.heading}</h1>
+        <PageHead k="pricing" title={c.heading} />
         <ReceiveClient extraOrigins={extraLoanSifterOrigins(process.env.LOANSIFTER_ORIGINS)} importCapture={importCaptureAction} />
       </div>
     </PageShell>

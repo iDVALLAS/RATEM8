@@ -10,6 +10,7 @@ import { tagBook } from "@/lib/contacts/tagging";
 import { lookupPriceUsd } from "@/lib/messaging/twilio";
 import { contactsImportCopy } from "@/lib/content/contacts-import";
 import "../../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Import", robots: { index: false, follow: false } };
@@ -24,8 +25,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Import</h1>
+        <PageHead k="import" title="Import" />
         <MloNav current="contacts" tenantId={tenant.id} admin={v.admin} signedIn={!!v.user} />
         {v.user ? (
           <>

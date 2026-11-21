@@ -6,6 +6,7 @@ import { requireAdminPage } from "@/lib/mlo/page-auth";
 import { envStatus, LAUNCH, PHASES } from "@/lib/setup/launch";
 import { MloNav } from "../MloChrome";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Launch checklist", robots: { index: false, follow: false } };
@@ -19,8 +20,7 @@ export default async function Launch() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Launch checklist</h1>
+        <PageHead k="launch" title="Launch checklist" />
         <MloNav current="setup" tenantId={tenant.id} admin={v.admin} signedIn={!!v.user} />
         <section className="mlo-section">
           <h2>{set} of {vars.length} required settings are in Vercel</h2>

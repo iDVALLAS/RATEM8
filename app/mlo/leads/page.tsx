@@ -9,6 +9,8 @@ import { contactStore } from "@/lib/contacts/store";
 import { summarize } from "@/lib/contacts/service";
 import { FlashBox, MloNav } from "../MloChrome";
 import KeyMaker from "../pipeline/KeyMaker";
+import PageHead from "../PageHead";
+import { LEADS, SUBS } from "@/lib/content/cc-pages";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -29,8 +31,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Lead sources</h1>
+        <PageHead k="leads" title="Lead sources" sub={SUBS.leads} />
         <MloNav current="contacts" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {!me ? (
@@ -39,14 +40,14 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
           <>
             <section className="mlo-section">
               <h2>Connect a lead source</h2>
-              <p className="mlo-note">
-                Paste the address below into your lead vendor&apos;s delivery settings (Zillow, LendingTree, Bankrate and others), or into a Zapier &ldquo;Webhooks&rdquo; step from your web form. Add <code>?source=zillow</code> (or the vendor&apos;s name) so you can tell them apart. Each new lead lands in your contacts and at the top of Today. A duplicate is merged, never doubled.
-              </p>
-              <p className="mlo-note">
-                Permission: the vendor&apos;s consent wording is saved with the lead, but it counts as permission only when it names you or your company. Many forms only name &ldquo;partners&rdquo;; those leads show &ldquo;no permission yet&rdquo;. Send the consent text as <code>consent_text</code> (with <code>consent_timestamp</code> and <code>page_url</code> if the vendor has them).
-              </p>
-              <KeyMaker endpoint={endpoint} what="each lead" defaultLabel="Lead vendor" />
-              <p className="mlo-note">The same key also works for your loan system. Manage keys on <Link href="/mlo/pipeline">Pipeline</Link>.</p>
+              <p className="mlo-note">{LEADS.how} Name the address after the vendor so you can tell them apart.</p>
+              <p className="mlo-note">{LEADS.consent}</p>
+              <KeyMaker endpoint={endpoint} defaultLabel="Lead vendor" owner={me.role === "owner"} />
+              <p className="mlo-note">See and turn off your addresses on <Link href="/mlo/connections#keys">Connections</Link>.</p>
+              <details className="mlo-details">
+                <summary>Field names for your vendor</summary>
+                <p className="mlo-note">The consent wording as <code>consent_text</code>, when they agreed as <code>consent_timestamp</code>, and the web page as <code>page_url</code>. Add <code>?source=</code> and the vendor&apos;s name to the address to label each lead.</p>
+              </details>
             </section>
 
             <section className="mlo-section">

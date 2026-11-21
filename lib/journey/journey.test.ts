@@ -95,7 +95,7 @@ describe("Loan Journey (D17, D18)", () => {
     expect(await readFindings(me, loan.id, { pdf: new TextEncoder().encode("not a pdf") }, { now: NOW, call })).toMatchObject({ ok: false });
     expect(await readFindings(me, loan.id, { pdf }, { now: NOW, call })).toEqual({ ok: true, added: 3, system: "DU" });
     // Without a secure portal link on file, nothing is drafted.
-    expect(await requestDocs(me, loan.id, "initial", NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/portal link/) });
+    expect(await requestDocs(me, loan.id, "initial", NOW)).toMatchObject({ ok: false, error: expect.stringMatching(/secure application link/) });
     expect(await concierge.proposals("lo1", "pending")).toHaveLength(0);
     const body = docRequestBody("Ann", 2, "initial", "https://loanm8.com/apply", "Pat");
     expect(body).toBe("Hi Ann, I've posted the 2 items your file needs in your secure portal: https://loanm8.com/apply Please upload them there (not by text or email). Reply here with any questions. -Pat");

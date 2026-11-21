@@ -164,7 +164,7 @@ export async function recordChatUsage(mloId: string | null, model: string, u: Us
 
 /** Said wherever a feature fell back because the AI isn't available. */
 export async function aiOffReason(user: Pick<User, "id"> | null, now = new Date()): Promise<string> {
-  if (!ccAnthropicKey()) return "the AI key isn't in Vercel yet";
+  if (!ccAnthropicKey()) return "the AI isn't turned on yet";
   if (!user) return "you're not signed in";
   const a = await allowanceFor(user.id, now).catch(() => null);
   return a?.over ? `this month's AI allowance is used (it resets ${a.resetsOn})` : "the AI isn't available right now";

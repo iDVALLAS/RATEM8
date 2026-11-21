@@ -7,6 +7,8 @@ import { stateClearances } from "@/lib/messaging/service";
 import { usStateName } from "@/lib/us-states";
 import { MloNav } from "../MloChrome";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
+import { TechSteps } from "@/app/mlo/NotOnYet";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Contact rules", robots: { index: false, follow: false } };
@@ -22,8 +24,7 @@ export default async function Rules() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Contact rules</h1>
+        <PageHead k="rules" title="Contact rules" />
         <MloNav current="rules" tenantId={tenant.id} admin={v.admin} signedIn={!!v.user} />
         <section className="mlo-section">
           <h2>How every text, call and email is checked</h2>
@@ -39,13 +40,16 @@ export default async function Rules() {
         </section>
         <section className="mlo-section">
           <h2>State rules waiting for counsel</h2>
-          <p className="mlo-note">These stay closed until counsel confirms and the owner turns them on in Vercel (set the variable to exactly <code>true</code>, not Sensitive). Loan updates and other service messages aren&apos;t affected.</p>
+          <p className="mlo-note">These stay closed until counsel confirms and the owner turns them on. Loan updates and other service messages aren&apos;t affected.</p>
+          <TechSteps owner={v.user?.role === "owner"}>
+            <p className="mlo-note">In Vercel, set each one to exactly <code>true</code> (not Sensitive), then redeploy: Texas <code>GATE_TX_302_CLEARED</code>, Arizona <code>GATE_AZ_PHONE_CLEARED</code>, California <code>GATE_CA_AI_VOICE_CLEARED</code>.</p>
+          </TechSteps>
           <div className="mlo-scroll">
             <table className="mlo-table mlo-table--plain">
               <tbody>
-                <tr><th scope="row">Texas: sales calls and texts (telephone-solicitor registration, Bus. &amp; Com. ch. 302, or an exemption)</th><td>{clear.tx302 ? "Open" : "Closed"}</td><td className="mlo-note">GATE_TX_302_CLEARED</td></tr>
-                <tr><th scope="row">Arizona: sales calls and texts (A.R.S. 44-1271)</th><td>{clear.azPhone ? "Open" : "Closed"}</td><td className="mlo-note">GATE_AZ_PHONE_CLEARED</td></tr>
-                <tr><th scope="row">California: calls from M8&apos;s AI voice (Pub. Util. Code 2871–2876)</th><td>{clear.caAiVoice ? "Open" : "Closed"}</td><td className="mlo-note">GATE_CA_AI_VOICE_CLEARED</td></tr>
+                <tr><th scope="row">Texas: sales calls and texts (telephone-solicitor registration, Bus. &amp; Com. ch. 302, or an exemption)</th><td>{clear.tx302 ? "Open" : "Closed"}</td></tr>
+                <tr><th scope="row">Arizona: sales calls and texts (A.R.S. 44-1271)</th><td>{clear.azPhone ? "Open" : "Closed"}</td></tr>
+                <tr><th scope="row">California: calls from M8&apos;s AI voice (Pub. Util. Code 2871–2876)</th><td>{clear.caAiVoice ? "Open" : "Closed"}</td></tr>
               </tbody>
             </table>
           </div>

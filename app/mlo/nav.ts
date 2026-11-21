@@ -40,7 +40,7 @@ export const DESTS: Dest[] = [
   { key: "home", href: "/mlo", label: "Home", icon: "home", group: "day", desc: "Who to reach today, and everything else.", match: /^\/mlo\/?$/ },
   { key: "concierge", href: "/mlo/concierge", label: "Concierge", icon: "spark", group: "day", desc: "Drafts and reminders your AI assistant prepared. You approve every one." },
   { key: "loa", href: "/mlo/loa", label: "Your LOA", icon: "pipeline", group: "day", desc: "Your loan officer assistant: talk to it, see what needs you, and keep your lenders' overlays.", account: true },
-  { key: "agents", href: "/mlo/agents", label: "Your team", icon: "users", group: "day", desc: "Your Concierge team: finding business, keeping loans moving, partners and your Coach.", account: true },
+  { key: "agents", href: "/mlo/agents", label: "AI assistants", icon: "users", group: "day", desc: "Your Concierge, your Loan Officer Assistant and the rest of the team, each with its on or off.", account: true },
   { key: "inbox", href: "/mlo/inbox", label: "Inbox", icon: "inbox", group: "day", desc: "Every reply in one place. STOP is honored instantly." },
   { key: "calls", href: "/mlo/calls", label: "Call session", icon: "phone", group: "day", desc: "A focused calling hour: the next person, why, one tap for how it went." },
   { key: "contacts", href: "/mlo/contacts", label: "Contacts", icon: "users", group: "people", desc: "Past clients, leads, sphere and agents, with what you may do for each.", match: /^\/mlo\/contacts(?!\/import|\/permission)/ },
@@ -68,7 +68,7 @@ export const DESTS: Dest[] = [
   { key: "signature", href: "/mlo/signature", label: "Email signature", icon: "pen", group: "settings", desc: "Your sign-off under every email you send from here.", account: true },
   { key: "messages", href: "/mlo/messages", label: "Messages clients get", icon: "message", group: "settings", desc: "Every automatic message a client can get from you, word for word." },
   { key: "rules", href: "/mlo/rules", label: "Contact rules", icon: "shield", group: "settings", desc: "Quiet hours, caps, do-not-call and state rules every message passes." },
-  { key: "team", href: "/mlo/team", label: "Team", icon: "team", group: "settings", desc: "People, roles and books." },
+  { key: "team", href: "/mlo/team", label: "People & roles", icon: "team", group: "settings", desc: "Who's on Command Center, their roles and whose book they work in." },
   { key: "setuphelp", href: "/mlo/setup-help", label: "Setup assistant", icon: "wand", group: "settings", desc: "An AI that walks you through any setup step, from texting to your loan system.", account: true },
   { key: "export", href: "/mlo/export", label: "Download everything", icon: "download", group: "settings", desc: "Your whole book in one zip: contacts, permission records, messages, notes and more.", account: true },
   { key: "welcome", href: "/mlo/welcome", label: "Getting started", icon: "help", group: "settings", desc: "Your first day, what works right now, and how to report a problem.", account: true },
@@ -84,8 +84,17 @@ export const DESTS: Dest[] = [
   { key: "rates", href: "/rates", label: "View /rates", icon: "globe", group: "admin", desc: "The public rates page, as borrowers see it.", admin: true },
 ];
 
-/** Phones: the bottom tabs. Everything else is under "More". */
-export const TABS = ["home", "concierge", "contacts", "pipeline"] as const;
+/** Phones: the bottom tabs, the Concierge raised in the middle. Everything else is under "More" (D76). */
+export const TABS = ["home", "inbox", "concierge", "contacts", "pipeline"] as const;
+
+/** Desktop: links of their own in the top bar, beside Home, instead of inside a menu (D76). */
+export const DIRECT = ["inbox", "contacts", "pipeline"] as const;
+
+/** The eyebrow over a page's title: the name of its group in the menu (D76). */
+export function groupLabelOf(key: string): string | null {
+  const d = DESTS.find((x) => x.key === key);
+  return d ? GROUPS[d.group] : null;
+}
 
 export function visibleDests(o: { admin: boolean; signedIn: boolean }): Dest[] {
   return DESTS.filter((d) => (!d.admin || o.admin) && (!d.account || o.signedIn));

@@ -13,6 +13,7 @@ import { coachNoteAction, notesAction } from "../actions";
 import "../../mlo.css";
 import "../../templates/templates.css";
 import "../academy.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -36,8 +37,7 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">{TRACKS[s.track].title} · session {s.n} of {list.length}</p>
-        <h1 className="tagline text-4xl">{s.title}</h1>
+        <PageHead k="academy" eyebrow={<>{TRACKS[s.track].title} · session {s.n} of {list.length}</>} title={s.title} />
         <MloNav current="academy" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         <p className="mlo-note"><Link href="/mlo/academy">← All sessions</Link> · {s.minutes} minutes{mine?.passedAt ? " · passed" : ""}</p>

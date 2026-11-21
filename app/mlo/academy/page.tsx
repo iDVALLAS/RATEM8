@@ -11,6 +11,7 @@ import { numbersAction, weekAction } from "./actions";
 import "../mlo.css";
 import "../templates/templates.css";
 import "./academy.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Training", robots: { index: false, follow: false } };
@@ -29,8 +30,7 @@ export default async function Academy({ searchParams }: { searchParams: Promise<
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Training</h1>
+        <PageHead k="academy" title="Training" />
         <MloNav current="academy" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {!me ? (

@@ -10,6 +10,7 @@ import { companyFor, FEES, stepsOf, textSender, textSetupOn } from "@/lib/textin
 import { FlashBox } from "../MloChrome";
 import { checkTextingAction, fixAndRetryTextingAction, saveTextingAction } from "./actions";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Texting for your company", robots: { index: false, follow: false } };
@@ -33,8 +34,7 @@ export default async function TextSetupPage({ searchParams }: { searchParams: Pr
   const shell = (body: React.ReactNode) => (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Texting for your company</h1>
+        <PageHead k="textsetup" title="Texting for your company" />
         <FlashBox flash={decodeFlash(sp.f)} />
         {body}
       </div>

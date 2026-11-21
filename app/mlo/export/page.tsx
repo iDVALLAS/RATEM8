@@ -4,6 +4,7 @@ import PageShell from "@/app/mlo/CcShell";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { CC_TAGLINE } from "@/lib/content/command-center";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Download everything", robots: { index: false, follow: false } };
@@ -15,8 +16,7 @@ export default async function ExportPage() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Download everything</h1>
+        <PageHead k="export" title="Download everything" />
         {!me ? (
           <p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> to download your book.</p>
         ) : me.role === "assistant" ? (

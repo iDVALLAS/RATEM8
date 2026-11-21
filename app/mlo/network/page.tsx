@@ -15,6 +15,7 @@ import { AI_PLANS } from "@/lib/config";
 import { FlashBox, MloNav } from "../MloChrome";
 import { answerIdeaAction, ideaAction, paymentAction, prefAction, setMemberAction, spendAction } from "./actions";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Membership", robots: { index: false, follow: false } };
@@ -53,8 +54,7 @@ export default async function Membership({ searchParams }: { searchParams: Promi
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Membership</h1>
+        <PageHead k="network" title="Membership" />
         <MloNav current="network" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {!me || !st ? (

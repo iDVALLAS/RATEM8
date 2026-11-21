@@ -22,6 +22,8 @@ const env = (k: string) => process.env[k]?.trim() || undefined;
 export const blobOn = () => !!(env("BLOB_READ_WRITE_TOKEN") || env("BLOB_STORE_ID"));
 /** Browsers can upload straight to the store (that needs the read-write token, which signs their one-file pass). */
 export const browserUploadOn = () => !!env("BLOB_READ_WRITE_TOKEN");
+/** D76: what a loan officer reads when browser uploads aren't on yet (no setup words). */
+export const UPLOADS_OFF = "Uploading isn't turned on yet. Your owner finishes it once for everyone.";
 /** What the owner does when only the store id is set. */
 export const NEEDS_TOKEN =
   "The private Blob store is connected, but uploads from the browser need its read-write token. In Vercel: Storage → loanm8-private → Projects → reconnect ratem-8 with \"Add a read-write token env var\" ticked, then redeploy.";

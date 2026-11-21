@@ -27,8 +27,9 @@ const pacificDate = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "A
 export type CallItem = { card: TodayCard; contact: Contact; purpose: Purpose; allowed: boolean; reason: string | null; scriptId: string | null };
 
 /** Today's people to call: ready first (in Today's order), then those the gate blocks, with why. */
-export async function callQueue(user: User, now = new Date()): Promise<{ ready: CallItem[]; blocked: CallItem[]; done: number }> {
-  const { cards } = await todayFor(user, now);
+export async function callQueue(user: User, now = new Date(), today0?: TodayCard[]): Promise<{ ready: CallItem[]; blocked: CallItem[]; done: number }> {
+  // D76: Home passes the cards it already has, so the list is read once.
+  const cards = today0 ?? (await todayFor(user, now)).cards;
   const seen = new Set<string>();
   const today = pacificDate(now);
   const ready: CallItem[] = [];

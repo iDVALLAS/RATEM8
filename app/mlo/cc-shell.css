@@ -274,7 +274,9 @@
 .cc-first__step.is-done .cc-first__dot { background: var(--cc-hi); border-color: var(--cc-hi); }
 .cc-first__step.is-done .cc-first__label { text-decoration: line-through; color: var(--muted); }
 .cc-first__label { font-weight: 500; }
-.cc-first__why { font-size: 13.5px; color: var(--fg-soft); }
+.cc-first__why { display: block; font-size: 13.5px; color: var(--fg-soft); }
+/* D76: on phones a finished step is just its crossed-out name. */
+@media (max-width: 639px) { .cc-first__step.is-done .cc-first__why { display: none; } .cc-first__step.is-done { padding-block: 8px; } }
 .cc-live { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .cc-live li { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--rule); }
 .cc-live__state { font: 500 12px/1.6 var(--font-mono, ui-monospace, monospace); letter-spacing: .06em; text-transform: uppercase; }
@@ -616,3 +618,146 @@
 @media (max-width: 639px) { .im-history__nums { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .im-history__run .mlo-note, .im-history__run .mlo-actions { margin: 0; }
 .cc-app .im-stats + .mlo-note { margin-top: 12px; }
+
+/* ---- D76: design cleanup and plain-language pass ---- */
+/* Page head: the group as eyebrow, the title, a one-line sub, an optional main action. */
+.cc-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; }
+.cc-head__text { min-width: 0; flex: 1 1 280px; }
+.cc-head__text .eyebrow { margin: 0 0 6px; }
+.cc-head__text h1 { margin: 0; overflow-wrap: anywhere; }
+.cc-head__sub { margin: 8px 0 0; max-width: 46rem; color: var(--fg-soft); font-size: 15px; line-height: 1.45; }
+.cc-head__action { display: flex; flex-wrap: wrap; gap: 8px; }
+.cc-head__action form { margin: 0; }
+/* "How this works": a folded intro. */
+.cc-how { margin-top: 12px; max-width: 46rem; }
+.cc-app .cc-how > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px 0 6px; border-radius: 999px; color: var(--fg-soft); font-size: 14px; list-style: none; }
+.cc-how > summary::-webkit-details-marker { display: none; }
+.cc-how > summary:hover { color: var(--fg); }
+.cc-how > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cc-how__i { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; border: 1.5px solid currentColor; font: 600 12px/1 var(--font-geist-sans), system-ui, sans-serif; font-style: italic; }
+.cc-how__body { padding: 4px 4px 0; }
+.cc-how__body .mlo-note, .cc-how__body .mlo-list { margin: 0 0 8px; }
+
+/* Not on yet: an icon, one sentence, the setup assistant; the owner's technical steps folded. */
+.cc-noton__row { display: flex; align-items: flex-start; gap: 14px; }
+.cc-noton__icon { flex: none; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.cc-noton__text { display: grid; gap: 4px; min-width: 0; }
+.cc-noton__line { margin: 0; font-size: 17px; font-weight: 600; color: var(--fg); line-height: 1.35; }
+.cc-noton__text .mlo-note { margin: 0; }
+.cc-tech { margin-top: 14px; border-top: 1px solid var(--rule); padding-top: 4px; }
+.cc-app .cc-tech > summary { color: var(--muted); font-size: 13.5px; }
+.cc-tech__body { display: grid; gap: 6px; }
+.cc-tech__body .mlo-note, .cc-tech__body .mlo-list { margin: 0; }
+
+/* Home: two groups of tiles, the rest folded; on phones, small two-column tiles. */
+.cc-group h3 { margin: 6px 0 12px; font-size: 12px; font-family: var(--font-jetbrains), monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.cc-all { display: grid; gap: 18px; }
+.cc-all > summary h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.cc-all > summary { min-height: 44px; }
+@media (min-width: 640px) { .cc-tile__icon { display: none; } }
+@media (max-width: 639px) {
+  .cc-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cc-tile { border-radius: 18px; }
+  .cc-tile__art, .cc-tile__desc { display: none; }
+  .cc-tile__body { padding: 12px; gap: 4px; }
+  .cc-tile__head { gap: 8px; align-items: flex-start; }
+  .cc-tile__icon { width: 30px; height: 30px; border-radius: 10px; }
+  .cc-tile__label { font-size: 14.5px; line-height: 1.25; overflow-wrap: anywhere; min-width: 0; }
+  .cc-tile__stat { font-size: 12px; }
+}
+.cc-blocker { margin: 0; }
+.cc-chip--warn { box-shadow: inset 0 0 0 1px var(--cc-warn); }
+.cc-chip--warn strong { order: 2; }
+
+/* Call session: "Not now" rows, each with its fix; stacked on phones. */
+.cc-blocked { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.cc-blocked__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 8px 14px; align-items: center; padding: 12px 14px; border-radius: 16px; background: var(--bg-sunken); }
+.cc-blocked__who, .cc-blocked__why { display: grid; gap: 4px; min-width: 0; }
+.cc-blocked__who a { font-weight: 600; }
+.cc-blocked__why .mlo-pill { justify-self: start; }
+.cc-blocked__why .mlo-note, .cc-blocked__who .mlo-note { margin: 0; overflow-wrap: anywhere; }
+.cc-blocked__fix { justify-self: end; margin: 0; }
+.cc-blocked__fix .mlo-select { min-width: 0; max-width: 200px; }
+@media (max-width: 639px) {
+  .cc-blocked__row { grid-template-columns: minmax(0, 1fr); }
+  .cc-blocked__fix { justify-self: stretch; }
+  .cc-blocked__fix .mlo-select { max-width: none; flex: 1 1 160px; }
+}
+
+/* Switch rows (Concierge settings). */
+.cc-switches { display: grid; gap: 2px; }
+.cc-switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 52px; padding: 8px 2px; border-bottom: 1px solid var(--rule); cursor: pointer; }
+.cc-switch:last-child { border-bottom: 0; }
+.cc-switch__text { display: grid; gap: 2px; min-width: 0; color: var(--fg); font-size: 15px; }
+.cc-switch__text .mlo-note { margin: 0; font-size: 13px; }
+.cc-app .cc-switch input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 48px; height: 28px; margin: 0; border-radius: 999px; background: var(--cc-card-2); box-shadow: inset 0 0 0 1px var(--rule-strong); cursor: pointer; }
+.cc-app .cc-switch input[type="checkbox"]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 999px; background: var(--fg-soft); transform: translateX(0); }
+.cc-app .cc-switch input[type="checkbox"]:checked { background: var(--accent); box-shadow: none; }
+.cc-app .cc-switch input[type="checkbox"]:checked::after { background: var(--accent-text, var(--bg)); transform: translateX(20px); }
+.cc-app .cc-switch input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) { .cc-app .cc-switch input[type="checkbox"]::after { transition: transform 150ms ease-out; } }
+/* A draft as written, with Edit folded under it. */
+.cc-draft__body { margin: 0; padding: 10px 14px; border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0; background: var(--bg-sunken); color: var(--fg); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.45; }
+.cc-approveall { margin: 4px 0 12px; }
+
+/* Automations: one compact row per automation, sections folded with a count, a save bar after a change. */
+.cc-autogroup > summary h2 { margin: 0; }
+.cc-autogroup__n { font-weight: 400; white-space: nowrap; }
+.cc-autorows { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.cc-autorow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); grid-template-areas: "text toggle" "preview preview"; gap: 6px 14px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--bg-sunken); }
+.cc-autorow__text { grid-area: text; display: grid; gap: 2px; min-width: 0; }
+.cc-autorow__text strong { font-weight: 600; overflow-wrap: anywhere; }
+.cc-autorow__text .mlo-note { margin: 0; font-size: 13px; }
+.cc-autorow .cc-auto { grid-area: toggle; }
+.cc-autorow__preview { grid-area: preview; }
+.cc-app .cc-autorow__preview > summary { font-size: 13px; color: var(--muted); }
+.cc-autorow__preview .mlo-note { margin: 4px 0 0; }
+@media (max-width: 639px) {
+  .cc-autorow { grid-template-columns: minmax(0, 1fr); grid-template-areas: "text" "toggle" "preview"; }
+}
+.cc-savebar { position: sticky; bottom: calc(var(--cc-tabs-h, 0px) + 8px); z-index: 20; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; padding: 12px 14px; border: 1px solid var(--rule-strong); border-radius: 18px; background: var(--bg-elevated); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); }
+.cc-savebar[data-dirty="false"] { display: none; }
+.cc-savebar .mlo-note { margin: 0; }
+
+/* Connections: pick your loan system, three steps, the rest folded; each header says if it's connected. */
+.cc-pick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.cc-syshead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-width: 0; }
+.cc-syshead__name { margin: 0; font-size: 18px; font-weight: 600; color: var(--fg); }
+.cc-syshead .mlo-note { margin: 0; }
+.cc-state { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: var(--cc-card-2); color: var(--fg-soft); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+.cc-state::before { content: ""; width: 7px; height: 7px; border-radius: 99px; background: var(--muted); }
+.cc-state.is-on::before { background: var(--color-m8-green); }
+.cc-sys--fold { border-top: 1px solid var(--rule); padding-top: 6px; margin-top: 6px; }
+.cc-app .cc-sys--fold > summary { padding-block: 10px; }
+.cc-steps3 { list-style: none; counter-reset: s3; margin: 14px 0 0; padding: 0; display: grid; gap: 12px; }
+.cc-steps3 > li { counter-increment: s3; position: relative; display: grid; gap: 6px; min-width: 0; padding: 14px 16px 14px 56px; border-radius: 16px; background: var(--bg-sunken); }
+.cc-steps3 > li::before { content: counter(s3); position: absolute; left: 14px; top: 14px; width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; background: var(--accent); color: var(--accent-text, var(--bg)); font-weight: 700; font-size: 14px; }
+.cc-steps3 h3 { margin: 4px 0 0; font-size: 16px; font-weight: 600; }
+.cc-steps3 .mlo-note { margin: 0; }
+.cc-steps3__list { padding-left: 18px; display: grid; gap: 4px; }
+@media (max-width: 520px) { .cc-steps3 > li { padding: 52px 14px 14px; } }
+
+/* AI assistants hub. */
+.cc-hub { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.cc-hub__item { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "icon text" "go go"; gap: 10px 12px; align-content: start; padding: 16px; border-radius: 20px; background: var(--bg-elevated); border: 1px solid var(--rule); }
+.cc-hub__icon { grid-area: icon; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.cc-hub__text { grid-area: text; display: grid; gap: 4px; min-width: 0; }
+.cc-hub__name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-weight: 600; font-size: 16px; color: var(--fg); }
+.cc-hub__text .mlo-note { margin: 0; }
+.cc-hub__item > .mlo-btn { grid-area: go; justify-self: start; }
+.cc-hub__team { margin: 24px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em; }
+:root[data-theme="paper"] .cc-app .cc-hub__item { box-shadow: 0 2px 10px rgba(15, 60, 40, 0.05); border-color: transparent; }
+
+/* Phones: six bottom tabs (Home, Inbox, Concierge, Contacts, Pipeline, More). */
+@media (max-width: 1100px) { .cc-tabs { gap: 0; } .cc-tab { min-width: 0; } .cc-tab__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+/* Home: today's list shows six; the rest folded. */
+.cc-more { margin-top: 8px; }
+.cc-app .cc-more > summary { color: var(--accent); font-size: 14px; font-weight: 500; }
+.cc-more > .cc-list { margin-top: 8px; }
+/* Concierge reminders: the same rows as the call session's, two columns. */
+.cc-rem { grid-template-columns: minmax(0, 1fr) auto; }
+@media (max-width: 639px) { .cc-rem { grid-template-columns: minmax(0, 1fr) auto; } .cc-rem .cc-blocked__fix { justify-self: end; } }
+/* D76: the top bar's "mixed" fit: Home, Inbox, Contacts and Pipeline as icons (named on hover and to screen readers), the menus keep their words. */
+.cc-bar__in[data-fit="mixed"] .cc-nav__btn--link { padding: 0 11px; gap: 0; }
+.cc-bar__in[data-fit="mixed"] .cc-nav__btn--link .cc-nav__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cc-bar__in[data-fit="mixed"] .cc-nav__btn--link .cc-badge { margin-left: 4px; }

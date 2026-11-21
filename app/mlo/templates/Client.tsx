@@ -83,7 +83,7 @@ export function AnswerThis() {
               <Copy text={x.reply} />
             </li>
           ))}
-          {r.by === "library" ? <li className="mlo-note">From the library (M8 writes fresh answers once the AI key is in Vercel).</li> : null}
+          {r.by === "library" ? <li className="mlo-note">From the library (M8 writes fresh answers once the AI is turned on).</li> : null}
         </ol>
       ) : null}
     </form>

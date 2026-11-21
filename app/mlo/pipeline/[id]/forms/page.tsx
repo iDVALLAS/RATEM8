@@ -12,6 +12,7 @@ import { FlashBox } from "../../../MloChrome";
 import { addFormAction, removeFormAction, sendFormsAction } from "./actions";
 import "../../../mlo.css";
 import "../../../loa/loa.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Loan forms", robots: { index: false, follow: false } };
@@ -33,8 +34,7 @@ export default async function LoanFormsPage({ params, searchParams }: { params: 
   return (
     <PageShell>
       <div className="mlo-wrap loa-forms">
-        <p className="eyebrow">MLO Command Center · <Link href={`/mlo/pipeline/${encodeURIComponent(loan.id)}#loa`}>{loan.borrowerName || loan.externalId}</Link></p>
-        <h1 className="tagline text-4xl">Forms for this loan</h1>
+        <PageHead k="pipeline" eyebrow={<><Link href={`/mlo/pipeline/${encodeURIComponent(loan.id)}#loa`}>{loan.borrowerName || loan.externalId}</Link></>} title="Forms for this loan" />
         <FlashBox flash={decodeFlash(f)} />
         <p className="mlo-note" style={{ maxWidth: 720 }}>Your LOA writes the letters escrow and title need from what&apos;s on the file, fills your fillable forms, and sends them for you. You read every one first. Disclosures stay in your loan system. Social Security numbers, birth dates, account numbers and signatures are always left for the borrower.</p>
 

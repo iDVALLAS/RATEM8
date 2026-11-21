@@ -9,6 +9,7 @@ import { FlashBox } from "../../../../../MloChrome";
 import { makeLetterAction } from "../../actions";
 import "../../../../../mlo.css";
 import "../../../../../loa/loa.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Write a letter", robots: { index: false, follow: false } };
@@ -24,8 +25,7 @@ export default async function LetterPage({ params, searchParams }: { params: Pro
   return (
     <PageShell>
       <div className="mlo-wrap loa-forms">
-        <p className="eyebrow">MLO Command Center · <Link href={`${back}#letters`}>Forms for this loan</Link></p>
-        <h1 className="tagline text-4xl">{d.label}</h1>
+        <PageHead k="pipeline" eyebrow={<><Link href={`${back}#letters`}>Forms for this loan</Link></>} title={d.label} />
         <FlashBox flash={decodeFlash(f)} />
         <section className="mlo-section">
           <p className="mlo-note" style={{ maxWidth: 720 }}>{d.about} It&apos;s written from what&apos;s on the file. Anything in [brackets] wasn&apos;t there: fill it in or leave it for the reader. Read it, change what you like, and save it as a PDF on your letterhead.</p>

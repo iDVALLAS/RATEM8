@@ -38,7 +38,7 @@ export default function Chat({ firstAsk, topic }: { firstAsk: string | null; top
         return;
       }
       setTurns([...next, { role: "assistant", text: r.reply }]);
-      setNote(r.masked ? "Something you typed looked like a key or password, so it was removed before the assistant saw it. Since it was typed into a chat, make a new one in that service and put it in Vercel." : r.by === "guide" ? "The AI isn't answering right now, so these are your next steps from the checklist." : null);
+      setNote(r.masked ? "Something you typed looked like a key or password, so it was removed before the assistant saw it. Since it was typed into a chat, make a new one in that service. The owner puts keys in the platform settings, never in a chat." : r.by === "guide" ? "The AI isn't answering right now, so these are your next steps from the checklist." : null);
     });
   };
 
@@ -99,7 +99,7 @@ export default function Chat({ firstAsk, topic }: { firstAsk: string | null; top
         />
         <button type="submit" className="mlo-btn" disabled={pending || !draft.trim()}>Send</button>
       </form>
-      <p className="mlo-note">AI assistant: it can be wrong, so check each step against what you see. Never paste passwords or keys here; they belong in Vercel.</p>
+      <p className="mlo-note">AI assistant: it can be wrong, so check each step against what you see. Never paste passwords or keys here.</p>
     </div>
   );
 }

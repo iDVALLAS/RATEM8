@@ -16,6 +16,7 @@ import { randomBytes } from "node:crypto";
 import type { User } from "@/lib/accounts/store";
 import { singleCompany } from "@/lib/accounts/company";
 import { accountStore } from "@/lib/accounts/store";
+import { isUsState } from "@/lib/us-states";
 import { contactsImportCopy } from "@/lib/content/contacts-import";
 import type { ImportKind, ImportRecord } from "./mapping";
 import { applyImport, classify, type ReimportMode } from "./reimport";
@@ -232,5 +233,21 @@ export async function deleteContact(actor: User, contactId: string, now = new Da
   if (!c || !canSee(actor, c) || actor.role === "assistant") return { ok: false };
   await store.remove(contactId);
   await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "contact.delete", detail: { contactId } });
+  return { ok: true };
+}
+
+/**
+ * D76: add a contact's property state from the call session ("Add their
+ * state"), so licensing can be checked. Only someone who can see the
+ * contact; only a real state code. The contact rules then decide as before.
+ */
+export async function setContactState(actor: User, contactId: string, state: string, now = new Date()): Promise<{ ok: true } | { ok: false; error: string }> {
+  const code = state.trim().toUpperCase();
+  if (!isUsState(code)) return { ok: false, error: "Pick their property state." };
+  const store = contactStore();
+  const c = await store.get(contactId);
+  if (!c || !canSee(actor, c)) return { ok: false, error: "That contact isn't in your book." };
+  await store.put({ ...c, state: code, updatedAt: now.toISOString() });
+  await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "contact.state", detail: { contactId } });
   return { ok: true };
 }

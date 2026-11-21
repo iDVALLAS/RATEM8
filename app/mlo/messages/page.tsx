@@ -13,6 +13,7 @@ import { signature } from "@/lib/messaging/service";
 import { segmentInfo, toGsm } from "@/lib/messaging/segments";
 import { MloNav } from "../MloChrome";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "What clients see", robots: { index: false, follow: false } };
@@ -41,8 +42,7 @@ export default async function Messages() {
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">What clients see</h1>
+        <PageHead k="messages" title="What clients see" />
         <MloNav current="home" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <section className="mlo-section">
           <h2>Every message Command Center can draft</h2>

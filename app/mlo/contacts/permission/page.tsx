@@ -12,6 +12,7 @@ import { importCheckCopy as kc } from "@/lib/content/import-check";
 import { FlashBox, MloNav } from "../../MloChrome";
 import { bulkConsentAction, dncBulkAction, lineCheckImportAction, rndBulkAction } from "./actions";
 import "../../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Record permission", robots: { index: false, follow: false } };
@@ -35,8 +36,7 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow"><Link href="/mlo/contacts">← Contacts</Link></p>
-        <h1 className="tagline text-4xl">Record permission for past clients</h1>
+        <PageHead k="permission" eyebrow={<><Link href="/mlo/contacts">← Contacts</Link></>} title="Record permission for past clients" />
         <MloNav current="contacts" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(sp.f)} />
         {!me || !p ? (

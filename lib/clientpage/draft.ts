@@ -15,7 +15,7 @@ export async function draftClientLink(user: User, contactId: string, now = new D
   const c = await contactStore().get(contactId);
   if (!c || c.ownerUserId !== user.id) return { ok: false, error: "No such contact." };
   const link = clientLink(c.id, c.linkVersion ?? 0);
-  if (!link) return { ok: false, error: "Client links need CC_LINK_SECRET (or the database) in Vercel." };
+  if (!link) return { ok: false, error: "Client pages aren't turned on yet." };
   const lane = await laneFor(user, c, now);
   if (lane.kind === "skip") return { ok: false, error: `Can't draft: ${lane.why}.` };
   const me = (user.name || "").trim().split(/\s+/)[0] ?? "";

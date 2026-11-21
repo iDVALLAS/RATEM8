@@ -219,14 +219,16 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
   });
   let key = '';
   await step('pipeline key + loan + lead', async () => {
-    await page.goto(B + '/mlo/pipeline');
-    await page.getByRole('button', { name: 'Make a connection key' }).click();
-    key = (await page.locator('code.mlo-code').nth(1).innerText()).trim();
+    // D76: connection addresses are made on Connections, from the picked system's three steps.
+    await page.goto(B + '/mlo/pipeline'); await page.getByRole('link', { name: 'Connect your loan system' }).click(); await page.waitForURL(/sys=arive/);
+    await page.locator('#arive').getByRole('button', { name: 'Make my connection address' }).click();
+    key = new URL((await page.locator('#arive code.mlo-code').first().innerText()).trim()).searchParams.get('key') ?? '';
+    if (!key) problems.push('[pipeline key] no key in the connection address');
     for (const st of ['Application Taken', 'Initial Disclosures Sent']) await page.request.post(B + '/api/pipeline/inbound', { headers: { 'X-CC-Key': key }, data: { loanNumber: 'L-1', borrowerFirstName: 'Bo', borrowerLastName: 'Park', borrowerPhone: '425-555-2222', loanStatus: st, loanPurpose: 'Purchase', applicationDate: '2026-11-17', closingDate: '2026-12-04', buyerAgentName: 'Al Agent' } });
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {
@@ -253,9 +255,17 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
   await step('rnd bulk', async () => { await page.goto(B + '/mlo/contacts/permission'); const list = await page.locator('#rnd pre').innerText().catch(() => ''); const rows = list.split('\n').filter(Boolean).map((l) => `${l},no`).join('\n'); await page.locator('#rnd textarea').fill(rows || '(206) 555-1234,2020-11-20,no'); await page.locator('#rnd').getByRole('button', { name: 'Record results' }).click(); await page.waitForURL(/f=/); console.log('rnd bulk:', await flash()); });
   await step('calls: log', async () => { await page.goto(B + '/mlo/calls'); const n = await page.locator('#next').count(); console.log('calls ready:', n); if (n) { await page.locator('#next').getByRole('button', { name: 'No answer' }).click(); await page.waitForURL(/f=/); console.log('call:', await flash()); } });
   await step('concierge: settings + run', async () => { await page.goto(B + '/mlo/concierge'); await page.locator('input[name=enabled]').check(); await page.locator('input[name=voice]').fill('friendly, short'); await page.getByRole('button', { name: 'Save' }).click(); await page.waitForURL(/f=/); await page.getByRole('button', { name: 'Run now' }).click(); await page.locator('.mlo-flash', { hasText: 'Looked at' }).waitFor(); console.log('sweep:', await flash()); });
-  await step('concierge: dismiss draft', async () => { await page.goto(B + '/mlo/concierge'); const d = page.locator('#drafts').getByRole('button', { name: 'Dismiss' }); const n = await d.count(); console.log('drafts:', n); if (n) { await d.first().click(); await page.waitForURL(/f=/); console.log('dismiss:', await flash()); } });
-  await step('concierge: tell (no key)', async () => { await page.goto(B + '/mlo/concierge'); await page.locator('#tell textarea').fill('Draft a check-in to my past clients'); await page.getByRole('button', { name: 'Prepare it' }).click(); await page.locator('#tell [role=status]').waitFor(); console.log('tell:', (await page.locator('#tell [role=status]').innerText()).slice(0, 120)); });
-  await step('automations', async () => { await page.goto(B + '/mlo/automations'); await page.locator('input[name=borrower_appraisal]').check(); await page.getByRole('button', { name: 'Save' }).click(); await page.waitForURL(/f=/); console.log('auto:', await flash()); });
+  await step('concierge: dismiss draft', async () => { await page.goto(B + '/mlo/concierge'); const d = page.locator('#drafts').getByRole('button', { name: 'Skip' }); const n = await d.count(); console.log('drafts:', n); if (n) { await d.first().click(); await page.waitForURL(/f=/); console.log('dismiss:', await flash()); } });
+  await step('concierge: tell (no key)', async () => { await page.goto(B + '/mlo/concierge'); await page.locator('#tell textarea').fill('Draft a check-in to my past clients'); await page.getByRole('button', { name: 'Draft it' }).click(); await page.locator('#tell [role=status]').waitFor(); console.log('tell:', (await page.locator('#tell [role=status]').innerText()).slice(0, 120)); });
+  await step('automations', async () => {
+    // D76: folded sections with a count, one switch per row, a save bar after a change.
+    await page.goto(B + '/mlo/automations');
+    if (await page.locator('.cc-savebar').isVisible()) problems.push('[automations] the save bar shows before any change');
+    await page.locator('#borrower_updates > summary').click();
+    await page.getByRole('radiogroup', { name: 'Borrower: appraisal ordered' }).getByRole('radio', { name: 'LO-Auth' }).check();
+    console.log('auto count:', await page.locator('#borrower_updates [data-count-out]').innerText());
+    await page.getByRole('button', { name: 'Save changes' }).click(); await page.waitForURL(/f=/); console.log('auto:', await flash());
+  });
   await step('journey', async () => {
     await page.goto(B + '/mlo/pipeline'); await page.getByRole('link', { name: 'Bo Park' }).first().click(); await page.locator('#clocks').waitFor();
     await page.locator('#clocks input[name=intentToProceedOn]').fill('2026-11-18'); await page.getByRole('button', { name: 'Save dates' }).click(); await page.waitForURL(/f=/); console.log('dates:', await flash());
@@ -294,7 +304,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.goto(B + '/mlo/loa#autopilot');
     await page.getByRole('radiogroup', { name: 'Ask escrow for their fee estimate, refinance' }).getByRole('radio', { name: 'Full-auto' }).check();
     const u0 = page.url(); await page.getByRole('button', { name: 'Save switches' }).click(); await page.waitForURL((u) => u.href !== u0); console.log('refi fees full-auto:', await flash());
-    const when = await page.locator('#sendwhen').innerText();
+    const when = (await page.locator('#sendwhen').textContent()) ?? '';
     if (!when.includes('With the next morning run')) problems.push('[loa: full-auto] no "When Full-auto messages go out" setting');
     if (!when.includes('/api/cc/loa/tick')) problems.push('[loa: full-auto] the owner note about an outside 15-minute caller is missing');
     await page.goto(B + '/mlo/pipeline'); await page.getByRole('link', { name: 'Di Cho' }).first().click(); await page.locator('#loa').waitFor();
@@ -361,7 +371,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
   });
   await step('email page (D52)', async () => {
     await page.goto(B + '/mlo/email');
-    const t = await page.locator('main').innerText();
+    const t = (await page.locator('main').textContent()) ?? '';
     console.log('email page:', t.includes('Connect Gmail') ? 'Connect Gmail shown' : 'no connect button', '|', t.includes('/api/cc/mail/callback/google') ? 'redirect URI shown' : 'no redirect URI');
     if (!t.includes('Send only.')) problems.push('[email page] missing how-it-works');
     const r = await page.request.get(B + '/api/cc/mail/start?provider=google', { maxRedirects: 0 });

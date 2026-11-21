@@ -91,7 +91,7 @@ export async function sendText(actor: User, contactId: string, rawBody: string, 
   const text = redactChatInput(rawBody.trim()).text;
   if (!text) return { ok: false, error: "Write a message first." };
   if (text.length > MAX_TEXT) return { ok: false, error: `Keep it under ${MAX_TEXT} characters.` };
-  if (!twilioConfig()) return { ok: false, error: "Texting isn't connected yet. Add the Twilio keys in Vercel." };
+  if (!twilioConfig()) return { ok: false, error: "Texting isn't turned on for your company yet." };
   // D23: the sender registered for this loan officer's sponsoring company.
   const owner = c.ownerUserId === actor.id ? actor : await accountStore().userById(c.ownerUserId);
   const sender = await textSender(companyOfMlo(owner?.mloId ?? actor.mloId), singleCompany());
@@ -193,7 +193,7 @@ export async function checkLine(actor: User, contactId: string, now = new Date()
   const c = await store.get(contactId);
   if (!c || !canSee(actor, c) || !c.phone) return { ok: false, message: "No phone to check." };
   const r = await lookupLineType(c.phone);
-  if (!r) return { ok: false, message: twilioConfig() ? "Twilio couldn't check that number." : "Line checks need the Twilio keys in Vercel." };
+  if (!r) return { ok: false, message: twilioConfig() ? "Twilio couldn't check that number." : "Phone checks aren't turned on yet. Your owner turns them on with texting." };
   await store.put({ ...c, line: { ...r, checkedAt: now.toISOString() }, updatedAt: now.toISOString() });
   return { ok: true, message: `It's a ${r.type} line${r.carrier ? ` (${r.carrier})` : ""}.` };
 }

@@ -39,7 +39,7 @@ export const SYSTEMS: System[] = [
     steps: [
       "Zapier needs ARIVE's Broker Pro or Non-Del plan.",
       "In Zapier, make a Zap with the ARIVE trigger \"Loan Status Updated\" (and a second one for \"New Loan\").",
-      "Add the action \"Webhooks by Zapier\", POST, to your loan address below, with your key in the X-CC-Key header.",
+      "Add the action \"Webhooks by Zapier\" (choose POST) and paste your connection address from step 1 as the URL.",
       "Map the loan fields (loan number, borrower name, email and phone, status, purpose, type, amount, rate, application, lock, appraisal, clear-to-close and closing dates, buyer's agent). ARIVE's own field names work.",
       "Turn the Zap on. Each status change updates the loan's journey and your LOA's deadlines.",
     ],
@@ -53,7 +53,7 @@ export const SYSTEMS: System[] = [
     ],
     steps: [
       "Ask LendingPad support for Enterprise API access (it's for Lender Edition clients; they issue the keys).",
-      "Meanwhile, any automation tool your plan includes can POST loan updates to your loan address, the same way as ARIVE.",
+      "Meanwhile, any automation tool your plan includes can send loan updates to your connection address from step 1, the same way as ARIVE.",
       "Or export your pipeline to Excel or CSV and drop it on Import.",
       "Once LendingPad grants API access, save the key here and the sync is finished against your account.",
     ],
@@ -76,15 +76,15 @@ export const SYSTEMS: System[] = [
   {
     key: "shape", name: "Shape", kind: "crm", brings: "people", routes: ["webhook", "api", "import"],
     credentials: [{ key: "apiKey", label: "Shape API key", secret: true, hint: "In Shape, under the API settings." }],
-    steps: ["In Shape, add a webhook (or a Zapier step) for new and updated contacts that POSTs to your lead address with ?source=shape.", "Or export your contacts and drop the file on Import: columns are matched for you."],
+    steps: ["In Shape, add a webhook (or a Zapier step) for new and updated contacts that sends them to your connection address from step 1.", "Or export your contacts and drop the file on Import: columns are matched for you."],
   },
   {
     key: "bonzo", name: "Bonzo", kind: "crm", brings: "people", routes: ["zapier", "webhook", "import"],
-    steps: ["In Zapier, a Bonzo \"new prospect\" trigger, then \"Webhooks by Zapier\" POST to your lead address with ?source=bonzo.", "Or export your prospects and drop the file on Import."],
+    steps: ["In Zapier, a Bonzo \"new prospect\" trigger, then \"Webhooks by Zapier\" (POST) to your connection address from step 1.", "Or export your prospects and drop the file on Import."],
   },
   {
     key: "totalexpert", name: "Total Expert", kind: "crm", brings: "people", routes: ["import", "webhook"],
-    steps: ["Export your contacts from Total Expert and drop the file on Import.", "Enterprise accounts can ask Total Expert to post new contacts to your lead address."],
+    steps: ["Export your contacts from Total Expert and drop the file on Import.", "Enterprise accounts can ask Total Expert to send new contacts to your connection address from step 1."],
   },
   {
     key: "jungo", name: "Jungo (Salesforce)", kind: "crm", brings: "people", routes: ["import", "webhook"],
@@ -92,11 +92,11 @@ export const SYSTEMS: System[] = [
   },
   {
     key: "floify", name: "Floify", kind: "pos", brings: "people", routes: ["zapier", "webhook"],
-    steps: ["In Zapier, a Floify trigger for new loan applications, then \"Webhooks by Zapier\" POST to your lead address with ?source=floify."],
+    steps: ["In Zapier, a Floify trigger for new loan applications, then \"Webhooks by Zapier\" (POST) to your connection address from step 1."],
   },
   {
     key: "other", name: "Any other system", kind: "los", brings: "loans", routes: ["webhook", "zapier", "import"],
-    steps: ["Anything that can send a webhook, or a Zapier or Make step, can POST loans to your loan address and people to your lead address.", "Or export to Excel or CSV and drop it on Import."],
+    steps: ["Anything that can send a webhook, or a Zapier or Make step, can send loans to your connection address from step 1.", "Or export to Excel or CSV and drop it on Import."],
   },
 ];
 

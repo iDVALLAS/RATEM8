@@ -15,6 +15,7 @@ import Tell from "./Tell";
 import { profileAction, removeEntryAction, saveEntryAction } from "./actions";
 import "../mlo.css";
 import "./expenses.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -66,8 +67,7 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Expenses</h1>
+        <PageHead k="expenses" title="Expenses" />
         <MloNav current="expenses" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {!me || !sum ? (

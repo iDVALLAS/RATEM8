@@ -12,6 +12,8 @@ import { emailReadyFor } from "@/lib/messaging/email";
 import { FlashBox } from "../MloChrome";
 import { aiCampaignAction, enrollImportAction, newCampaignAction } from "./actions";
 import { getImport, importPeople } from "@/lib/contacts/imports";
+import PageHead from "../PageHead";
+import { CAMPAIGNS, SUBS } from "@/lib/content/cc-pages";
 import "../mlo.css";
 import "./campaigns.css";
 
@@ -22,8 +24,9 @@ export const metadata: Metadata = { title: "Campaigns", robots: { index: false, 
 const CH_ICON: Record<string, string> = { text: "Text", email: "Email", task: "Task" };
 
 /** /mlo/campaigns — follow-up campaigns by text, email and tasks (D51). */
-export default async function Campaigns({ searchParams }: { searchParams: Promise<{ f?: string; import?: string }> }) {
-  const { f, import: imp } = await searchParams;
+export default async function Campaigns({ searchParams }: { searchParams: Promise<{ f?: string; import?: string; new?: string }> }) {
+  const { f, import: imp, new: fresh } = await searchParams;
+  const making = fresh === "1";
   const v = await requireViewer();
   const me = v.user;
   if (!me) {
@@ -43,40 +46,25 @@ export default async function Campaigns({ searchParams }: { searchParams: Promis
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Campaigns</h1>
+        <PageHead
+          k="campaigns"
+          title={making ? CAMPAIGNS.newTitle : "Campaigns"}
+          eyebrow={making ? <Link href="/mlo/campaigns">{CAMPAIGNS.back}</Link> : undefined}
+          sub={making ? undefined : SUBS.campaigns}
+          action={making ? undefined : <Link className="mlo-btn" href="/mlo/campaigns?new=1">{CAMPAIGNS.newButton}</Link>}
+          how={<p className="mlo-note">{CAMPAIGNS.how}</p>}
+        />
         <FlashBox flash={decodeFlash(f)} />
-        <section className="mlo-section">
-          <p className="mlo-note">A campaign is a few texts, emails and reminders spaced out over days, sent for you. Each message still goes through your contact rules first (permission, do-not-call, quiet hours in their time zone, state rules), and a reply ends a follow-up campaign.</p>
-          <ul className="cp-ready">
-            <li className={textReady ? "is-on" : ""}><strong>Texting</strong> {textReady ? "connected" : <>not connected yet · <Link href="/mlo/setup-help?topic=texting">set it up</Link></>}</li>
-            <li className={emailReady ? "is-on" : ""}><strong>Email</strong> {mail.reconnect ? <>needs reconnecting · <Link href="/mlo/email">reconnect</Link> (email steps wait meanwhile)</> : emailReady ? (mail.via === "mailbox" ? `from ${mail.from}` : <>connected · <Link href="/mlo/email">send from your own mailbox</Link></>) : <>not connected yet · <Link href="/mlo/email">connect your email</Link></>}</li>
-            <li className="is-on"><strong>Reminders for you</strong> always on</li>
-            {!campaignsOn() ? <li><strong>All campaigns are switched off</strong> for the platform (CC_CAMPAIGNS)</li> : null}
-          </ul>
-        </section>
+        <ul className="cp-ready">
+          <li className={textReady ? "is-on" : ""}><strong>Texting</strong> {textReady ? "connected" : <>not connected yet · <Link href="/mlo/setup-help?topic=texting">set it up</Link></>}</li>
+          <li className={emailReady ? "is-on" : ""}><strong>Email</strong> {mail.reconnect ? <>needs reconnecting · <Link href="/mlo/email">reconnect</Link> (email steps wait meanwhile)</> : emailReady ? (mail.via === "mailbox" ? `from ${mail.from}` : <>connected · <Link href="/mlo/email">send from your own mailbox</Link></>) : <>not connected yet · <Link href="/mlo/email">connect your email</Link></>}</li>
+          <li className="is-on"><strong>Reminders for you</strong> always on</li>
+          {!campaignsOn() ? <li><strong>{CAMPAIGNS.off}</strong></li> : null}
+        </ul>
 
-        {run ? (
-          <section className="mlo-section" id="from-import">
-            <h2>Add the {fromImport.toLocaleString("en-US")} {fromImport === 1 ? "person" : "people"} from your import</h2>
-            <p className="mlo-note">From {run.files.join(", ")}. Pick a campaign below, or start a new one and add them from its page. Each step still goes only to people with permission for it.</p>
-            {list.length && fromImport ? (
-              <ul className="cp-list">
-                {list.map(({ campaign: c, active }) => (
-                  <li key={c.id} className="cp-pick">
-                    <span className="cp-row__main"><strong>{c.name}</strong><span className="mlo-note">{c.steps.length} {c.steps.length === 1 ? "step" : "steps"} · {active} in it</span></span>
-                    <form action={enrollImportAction.bind(null, c.id, run.id)}>
-                      <button type="submit" className="mlo-btn mlo-btn--ghost">Add them to this one</button>
-                    </form>
-                  </li>
-                ))}
-              </ul>
-            ) : <p className="mlo-note">{fromImport ? "You don't have a campaign yet. Start one below." : "Nobody from that import is in your own book."}</p>}
-          </section>
-        ) : null}
-
+        {making ? (
         <section className="mlo-section cp-new">
-          <h2>Start a campaign</h2>
+          <h2>Describe it, or pick a plan</h2>
           <form action={aiCampaignAction} className="cp-ai">
             <label className="mlo-field">
               <span>Describe what you want, and M8 writes it</span>
@@ -102,22 +90,51 @@ export default async function Campaigns({ searchParams }: { searchParams: Promis
           </div>
         </section>
 
-        <section className="mlo-section">
-          <h2>Your campaigns ({list.length})</h2>
-          {list.length === 0 ? <p className="mlo-note">None yet. Start one above.</p> : (
-            <ul className="cp-list">
-              {list.map(({ campaign: c, active, done, stopped, sent, skipped }) => (
-                <li key={c.id}>
-                  <Link href={`/mlo/campaigns/${c.id}`} className="cp-row">
-                    <span className={`cp-status cp-status--${c.status}`}>{c.status === "active" ? "On" : c.status === "paused" ? "Paused" : "Draft"}</span>
-                    <span className="cp-row__main"><strong>{c.name}</strong><span className="mlo-note">{c.steps.length} {c.steps.length === 1 ? "step" : "steps"} · {c.trigger === "new_lead" ? "every new lead" : "people you add"} · {c.kind === "followup" ? "stops on reply" : "keeps going"}</span></span>
-                    <span className="cp-row__nums"><span><b>{active}</b> in it</span><span><b>{done}</b> finished</span><span><b>{stopped}</b> stopped</span><span><b>{sent}</b> sent</span>{skipped ? <span><b>{skipped}</b> skipped</span> : null}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        ) : (
+          <>
+        {run ? (
+          <section className="mlo-section" id="from-import">
+            <h2>Add the {fromImport.toLocaleString("en-US")} {fromImport === 1 ? "person" : "people"} from your import</h2>
+            <p className="mlo-note">From {run.files.join(", ")}. Pick a campaign, or start a new one and add them from its page. Each step still goes only to people with permission for it.</p>
+            {list.length && fromImport ? (
+              <ul className="cp-list">
+                {list.map(({ campaign: c, active }) => (
+                  <li key={c.id} className="cp-pick">
+                    <span className="cp-row__main"><strong>{c.name}</strong><span className="mlo-note">{c.steps.length} {c.steps.length === 1 ? "step" : "steps"} · {active} in it</span></span>
+                    <form action={enrollImportAction.bind(null, c.id, run.id)}>
+                      <button type="submit" className="mlo-btn mlo-btn--ghost">Add them to this one</button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="mlo-note">{fromImport ? "You don't have a campaign yet. Start one with + New campaign." : "Nobody from that import is in your own book."}</p>}
+          </section>
+        ) : null}
+
+
+            <section className="mlo-section">
+              <h2>Your campaigns ({list.length})</h2>
+              {list.length === 0 ? (
+                <>
+                  <p className="mlo-note">{CAMPAIGNS.empty}</p>
+                  <div className="mlo-actions"><Link className="mlo-btn" href="/mlo/campaigns?new=1">{CAMPAIGNS.newButton}</Link></div>
+                </>
+              ) : (
+                <ul className="cp-list">
+                  {list.map(({ campaign: c, active, done, stopped, sent, skipped }) => (
+                    <li key={c.id}>
+                      <Link href={`/mlo/campaigns/${c.id}`} className="cp-row">
+                        <span className={`cp-status cp-status--${c.status}`}>{c.status === "active" ? "On" : c.status === "paused" ? "Paused" : "Draft"}</span>
+                        <span className="cp-row__main"><strong>{c.name}</strong><span className="mlo-note">{c.steps.length} {c.steps.length === 1 ? "step" : "steps"} · {c.trigger === "new_lead" ? "every new lead" : "people you add"} · {c.kind === "followup" ? "stops on reply" : "keeps going"}</span></span>
+                        <span className="cp-row__nums"><span><b>{active}</b> in it</span><span><b>{done}</b> finished</span><span><b>{stopped}</b> stopped</span><span><b>{sent}</b> sent</span>{skipped ? <span><b>{skipped}</b> skipped</span> : null}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
+        )}
       </div>
     </PageShell>
   );

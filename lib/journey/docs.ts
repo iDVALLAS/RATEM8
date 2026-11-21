@@ -160,7 +160,7 @@ export async function requestDocs(user: User, loanId: string, phase: DocItem["ph
   if (!due.length) return { ok: false, error: "Nothing on the list is waiting to be requested." };
   const mlo = mloById(user.mloId);
   const portal = mlo && hasApplicationUrl(mlo) ? mlo.applicationUrl.trim() : null;
-  if (!portal) return { ok: false, error: "Add your secure portal link first (APPLICATION_URL for your loan officer record in Vercel), so the borrower knows where to upload." };
+  if (!portal) return { ok: false, error: "Add your secure application link first (on Getting started, or ask the owner), so the borrower knows where to upload." };
   const lane = await laneFor(user, c, now);
   if (lane.kind === "skip") return { ok: false, error: `Can't draft: ${lane.why}.` };
   const me = (user.name || "").trim().split(/\s+/)[0] ?? "";

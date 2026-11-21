@@ -14,6 +14,8 @@ import { linksAction } from "../signups/actions";
 import { companyDetails } from "@/lib/accounts/company";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { FlashBox } from "../MloChrome";
+import PageHead from "../PageHead";
+import { words } from "@/lib/content/cc-pages";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -41,14 +43,13 @@ export default async function Welcome({ searchParams }: { searchParams: Promise<
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">{pilot ? "Welcome to the pilot" : "Getting started"}</h1>
+        <PageHead k="welcome" title={pilot ? "Welcome to the pilot" : "Getting started"} />
         <FlashBox flash={decodeFlash(f)} />
         <section className="mlo-section">
           <p className="mlo-note">
             {pilot
               ? "You're one of the first loan officers using Command Center with your real book. Some things will change because of what you tell us, so if anything is broken, confusing or missing, say so with Report a problem. It's at the bottom right of every page, under your initials, and in More on a phone."
-              : "Six steps get you working. Each one checks itself off when it's done."}
+              : `${words(first.steps.length)} steps get you working. Each one checks itself off when it's done.`}
           </p>
         </section>
 

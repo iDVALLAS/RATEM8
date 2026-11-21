@@ -16,6 +16,7 @@ import { tagHref } from "@/lib/contacts/tags";
 import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
 import { UNLOCK_ATTESTATION } from "@/lib/contacts/attestation";
 import "../mlo.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Contacts", robots: { index: false, follow: false } };
@@ -69,8 +70,7 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">{kind === "agent" ? "Agents" : "Contacts"}</h1>
+        <PageHead k="contacts" title={kind === "agent" ? "Agents" : "Contacts"} />
         <MloNav current="contacts" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(sp.f)} />
         {!me ? (

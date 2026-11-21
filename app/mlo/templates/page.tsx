@@ -11,6 +11,7 @@ import { AnswerThis, MakeOne, UseTemplate } from "./Client";
 import { removeTemplateAction, saveTemplateAction } from "./actions";
 import "../mlo.css";
 import "./templates.css";
+import PageHead from "@/app/mlo/PageHead";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -29,8 +30,7 @@ export default async function Templates({ searchParams }: { searchParams: Promis
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <p className="eyebrow">MLO Command Center</p>
-        <h1 className="tagline text-4xl">Templates</h1>
+        <PageHead k="templates" title="Templates" />
         <MloNav current="templates" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {!me ? (
