@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { currentUser, isAdmin, ROLE_LABELS } from "@/lib/accounts/auth";
 import { adminActor } from "@/lib/mlo/auth";
 import { listTenants } from "@/lib/pricing/tenants";
@@ -19,6 +20,13 @@ export default async function CcShell({ children }: { children: React.ReactNode;
   const basic = user ? null : await adminActor().catch(() => null);
   const admin = user ? isAdmin(user) : !!basic;
   const drafts = user ? (await conciergeStore().proposals(user.id, "pending").catch(() => [])).length : 0;
+  // D71: the loan officer's own Full-auto messages that are due go out after this page is sent (never slows it).
+  if (user && user.role !== "assistant") {
+    after(async () => {
+      const { sendQueuedOnOpen } = await import("@/lib/loa/autopilot");
+      await sendQueuedOnOpen(user).catch(() => undefined);
+    });
+  }
   return (
     <div className="cc-app">
       <CcTopBar admin={admin} signedIn={!!user} pilot={pilotOn()} name={user?.name ?? (basic ? "Shared admin login" : "")} email={user?.email ?? ""} role={user ? ROLE_LABELS[user.role] : ""} tenantId={listTenants()[0]?.id ?? ""} badges={{ concierge: drafts }} />

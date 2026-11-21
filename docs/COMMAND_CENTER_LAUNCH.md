@@ -143,6 +143,14 @@ Runs the Concierge, recipes, the morning email and the Monday report each day (t
 | --- | --- | --- |
 | `CRON_SECRET` | Yes | Any long random value. |
 
+### Your LOA's Full-auto messages (optional)
+
+D71: a Full-auto message (to escrow, title, the insurance agent, or a client through your contact rules) waits in "Going out on its own" on Your LOA, with a Stop button, then goes with the next morning run, or 15 minutes after it's ready when the loan officer picks "Send in 15 minutes". The free Vercel plan runs scheduled jobs once a day, so a 15-minute message goes out when the officer next opens Command Center, at the midday run, or the next morning. For 15-minute messages to go on time, have an outside scheduler call GET /api/cc/loa/tick every 15 minutes with the header Authorization: Bearer and your CRON_SECRET (a GitHub Actions schedule, or a service such as cron-job.org that keeps the secret). Don't add it to vercel.json on the free plan: a crons entry more often than daily fails the deploy.
+
+| Variable | Sensitive | Note |
+| --- | --- | --- |
+| `CC_LOA_AUTO` (optional) | No | Set to "false" to stop every Full-auto message at once: the work is still prepared and waits for an OK. |
+
 ### Client page links
 
 Signs each client's private page link.

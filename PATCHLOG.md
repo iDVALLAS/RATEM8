@@ -5586,3 +5586,93 @@ until D71.
   this patch (D72's button alignment); `pausedUntil` has no screen yet; the switches don't change the Automations
   engine's per-loan behaviour until D71's planner.
 - **Next up:** D71 (Full-auto planner, undo window, caps, log), after the owner's sign-off.
+
+## D71 — LOA Full-auto: planner, undo window, caps, log, kill switch (2026-11-21)
+
+Spec: "### D71" in `docs/work/D69-D79-build-prompt-2026-11-21.md`, with §4 Owner decisions (2026-11-21) taking
+precedence (decision 1: counsel cleared automatic messages to borrowers and to agents with the client's OK; decision 3:
+Full-auto sends with the next morning run by default, "Send in 15 minutes" per item and as an officer setting, a
+`/api/cc/loa/tick`, and the real send time on screen; decision 5: facts the contract didn't answer keep their jobs waiting).
+
+- **Files:** new `lib/loa/autopilot.ts`, `lib/loa/autopilot.test.ts`, `app/api/cc/loa/tick/route.ts`; changed
+  `lib/loa/store.ts`, `lib/loa/service.ts`, `lib/content/loa.ts`, `lib/pipeline/intake.ts`, `lib/digest.ts`,
+  `app/api/cc/concierge/sweep/route.ts`, `app/api/cc/campaigns/tick/route.ts`, `app/mlo/CcShell.tsx`, `app/mlo/loa/page.tsx`,
+  `LoaPanel.tsx`, `AutonomyGrid.tsx`, `actions.ts`, `loa.css`, `app/mlo/pipeline/[id]/page.tsx`,
+  `docs/COMMAND_CENTER_LAUNCH.md`, `scripts/qa/command-center.mjs`, and two D62/D70 test expectations (below).
+- **Planner:** `plan(ctx)` is pure (file, loan, journey, loan type, switches, time, plus names, the client and an agent
+  with the client's OK, the enabled recipes, the portal link and the forms-library letters read ahead). It returns
+  `Action[]` `{cap, kind: draft|send|text|task, mode, key: loa:<cap>:<loanId>[:n], to, subject, body, reason}`. Jobs:
+  escrow's fee estimate (plus one follow-up after 2 business days until the fees are in), open escrow (the Open escrow
+  letter; its wire paragraph is left out of the Full-auto version), order title, payoffs to escrow, the insurance binder,
+  the borrower's conditions (the fixed count-and-portal text, up to 2 follow-ups, 2 business days apart), client and
+  agent stage updates (Full-auto only; LO-Auth stage updates stay with the Automations engine as before, and a loan
+  whose row is Off claims the recipe so the engine skips it too), and reminders to the loan officer (deadlines within 3
+  days, the employment re-verification window, ordering the appraisal after intent to proceed). On a purchase the
+  emails start with the contract; on a refinance with the application date. Never a disclosure, lock, wire, signature
+  or any locked row.
+- **Full-auto only when** the recipient party's email is confirmed and still the one planned, the message is the
+  unedited fixed template (a fingerprint), no `[` is left, `SSN_VALUE` and `redactChatInput` find nothing (ISO dates and
+  phone numbers taken out first: the redactor reads them as account numbers), no link (to a contact: only the loan
+  officer's own), no wire or bank wording, no attachments, the client's contact rules allow it (`gateFor`, then
+  `sendText`), an agent message passes `reviewMessage` with `partnerUpdates` on file, and the loan isn't paused or held.
+  Anything else drops to LO-Auth with the reason shown ("Asks you because: …"): a draft in the approval queue for third
+  parties, a Concierge proposal for the client or agent. A Full-auto job missing a fact waits (decision 5); an email
+  that's there but came from a document is drafted for an OK instead, and confirming it later queues it on its own.
+- **Running it:** `runLoaAutopilot` after a document is read (the flash: "Asked escrow for fees. It goes out with
+  tomorrow morning's run unless you stop it."), when the loan system updates a loan's stage or dates (before the
+  Automations engine, sharing the recipe's key so a stage update goes once), after an answer on the loan (typed party,
+  Confirm, a question, Review changes), and in the morning run for each open loan. Each job is claimed once through
+  `automationStore().claim`. Planned messages with nothing left to ask for are put away (the fees came in, title was
+  read). The payoffs draft moved out of `readIntoFile` into the planner.
+- **Sending:** queued items carry `sendAfter`: the next morning run (15:00 UTC, the hour the sweep cron fires in;
+  a test ties it to vercel.json) or `undoMinutes` (15) later with "Send in 15 minutes". `sendQueued` runs in the morning
+  run, the midday tick, the new `/api/cc/loa/tick` (CRON_SECRET, 404 otherwise; not added to vercel.json, since Hobby
+  allows daily crons only) and when the loan officer opens any Command Center page (`after()` in CcShell, at most once a
+  minute, own items only, never slowing the page). Each send is claimed (`loa-send:<id>`) and re-checked first. The
+  screen shows "Goes out with tomorrow morning's run." or "Goes out at 10:17 AM PT, or when you next open Command
+  Center." An owner-only note on `/mlo/loa#sendwhen` and `docs/COMMAND_CENTER_LAUNCH.md` explain an outside
+  every-15-minutes caller (GitHub Actions schedule or cron-job.org with the secret); no workflow file was added.
+- **Caps:** `dailyAutoSends` (15) per loan officer per Pacific day across all loans, 3 a day to one address, once per
+  loan per job plus its follow-ups; over a cap the item waits for the next morning run and the log says so once a day.
+- **Kill switch:** `CC_LOA_AUTO="false"` makes every Full-auto plan as LO-Auth with the reason, and a queued item due
+  while it's off drops to LO-Auth instead of going. `CC_TEAM` doesn't touch the LOA.
+- **Screens:** `/mlo/loa#needs` now starts with "Going out on its own" (each item's real send time, Read it, **Stop**,
+  **Send in 15 minutes**), then the approval queue (with "Asks you because"); `#autopilot` replaces D70's "not yet" line
+  with the live line (or the kill-switch line) and adds "When Full-auto messages go out" (morning run / 15 minutes, the
+  loan officer only). Each loan's #loa shows its queued messages and **What your LOA did** (`LoaFile.auto`, last 100,
+  status tag, time, reason; **Draft a correction** on an email that went on its own, to the same address, with a
+  `[write the correction here]` blank; a text gets "text them a correction from their contact page").
+- **Log and audit:** `LoaFile.auto` `{at, cap, mode, action, toRole, status, reason, ref}` (statuses queued, sent,
+  stopped, held, failed, plus done for reminders), never the body or the address; audit `loa.auto.send`, `loa.auto.hold`
+  and `loa.auto.stop` with `{loanId, cap, toRole}` only.
+- **Morning email:** "Your LOA: 3 sent on their own, 4 waiting for your OK, 1 going out on its own unless you stop it."
+  (counts only, with the link to `/mlo/loa#needs`), only when there's something to say.
+- **Tests:** `lib/loa/autopilot.test.ts`, 25 cases: every spec case (one escrow fees send with a confirmed email; an
+  unconfirmed email asks; `CC_LOA_AUTO=false`; the same key fires once; the 16th send held; a placeholder asks; an SSN
+  blocked and kept out of the draft; a paused loan plans nothing; the follow-up stops once the fees are in; a refinance
+  without a contract plans no contract jobs; an approval never plans a disclosure; agent updates need `partnerUpdates`),
+  plus send times (morning vs 15 minutes, this/tomorrow morning, the vercel.json hour, no sub-daily cron), Stop, Send in
+  15 minutes and the officer setting (assistants refused), 3 per address, the kill switch at send time, a failed send,
+  confirming an email upgrades the draft, a changed confirmed email stops a queued send, a client text blocked by the
+  gate landing on the Concierge desk, the morning-email line, and the tick's CRON_SECRET guard. Two older expectations
+  changed with the behaviour, not loosened: D62's "lists what needs the loan officer" now expects the LOA's own
+  "Review and send: …" drafts instead of the "Ask escrow for their fees" / "Open title" reminders (and that the fee
+  draft goes away once the fees are read), and D70's one-tap queue test follows the fee draft by kind, since reading the
+  contract also drafts opening escrow and title now.
+- **Verified:** `npm run verify` passes (694 tests). `node scripts/qa/command-center.mjs`, extended with a Full-auto
+  step (a refinance, refi fees set to Full-auto, escrow typed in on the loan → the flash with the send time, the loan's
+  queue and log, `/mlo/loa#needs`, Send in 15 minutes with the clock time, Stop, the log's Stopped line, no sideways
+  scroll at 390px, the tick refusing a call without the secret): PROBLEMS none. In the memory store, a purchase
+  agreement fixture read with escrow's email then confirmed queued the fee request; Stop held it back; a second loan's
+  queued request run through `sendQueued` with no Resend key or mailbox failed and was logged ("didn't go out (Email
+  isn't set up yet.)") and waited for an OK. Screenshots of the queue and the log at 390 and 1280.
+- **Decisions:** borrower conditions get the table's 2 follow-ups (the general rule is one); the "no links" rule lets a
+  client text carry only the loan officer's own links (the conditions text needs the portal link); open escrow's
+  Full-auto copy drops the letter's wire paragraph (the LO-Auth copy keeps it); `Draft.to` also takes "client"/"agent"
+  so a Full-auto text waits in the same queue with the same Stop; times are shown in Pacific (the clock the runs use);
+  an assistant may Stop or move a message to 15 minutes but not change the officer setting.
+- **Known gaps:** the insurance binder can't go Full-auto until a mortgagee clause per lender is on file (the letter
+  leaves it blank); the HOA request, payoff authorization, appraisal transfer, written VOE, third-party conditions and
+  forms stay manual (Forms on the loan); a refinance's emails say "the subject property" until the loan carries an
+  address; the per-instance once-a-minute throttle on page views is in memory.
+- **Next up:** D72 (button alignment and shared form CSS), after the owner's sign-off.

@@ -13,7 +13,6 @@ export const loaSwitches = {
     { mode: "approve", text: "LO-Auth: gets it ready, you tap Approve." },
     { mode: "off", text: "Off: doesn't do it." },
   ],
-  notYet: "For now, Full-auto rows get the work ready and wait for your Approve, the same as LO-Auth. Nothing goes out without your tap yet.",
   presetsLabel: "Start from",
   presets: { recommended: "Recommended", ask: "Ask me for everything", off: "All off" },
   purchase: "Purchase",
@@ -142,4 +141,85 @@ export const loaQueueWords = {
   tasksHeading: "Deadlines and to-dos",
   empty: "Nothing is waiting for your OK.",
   flash: { sent: (via: string) => `Sent, from ${via}.`, dropped: "Set aside." },
+} as const;
+
+/**
+ * D71: Full-auto at work: the queue of messages going out on their own, the
+ * undo window, the log, and the flash after a read. Times are Pacific, the
+ * same clock as the morning run.
+ */
+export const loaAutoWords = {
+  live: "Full-auto rows now do the work on their own. Every message waits in \"Going out on its own\" first, so you can stop it.",
+  killed: "Full-auto is switched off for everyone right now. Full-auto rows get the work ready and wait for your OK, the same as LO-Auth.",
+  whenHeading: "When Full-auto messages go out",
+  whenMorning: "With the next morning run",
+  whenSoon: (m: number) => `${m} minutes after they're ready`,
+  whenNote: "Either way, each message waits in Going out on its own until then, with a Stop button.",
+  ownerCallerNote:
+    "Owner note: Command Center's scheduled runs happen once a day on the free Vercel plan. A message set to go in 15 minutes goes out when the officer next opens Command Center, or at the next run. For 15-minute sends to go on time, have an outside scheduler (a GitHub Actions schedule or cron-job.org) call /api/cc/loa/tick every 15 minutes with the CRON_SECRET as a Bearer token.",
+  queuedHeading: "Going out on its own",
+  queuedNote: "Full-auto messages wait here until they go. Stop one and it won't be sent.",
+  queuedEmpty: "Nothing is waiting to go out on its own.",
+  stop: "Stop",
+  soon: (m: number) => `Send in ${m} minutes`,
+  correction: "Draft a correction",
+  correctionNote: "An email can't be unsent. A correction goes to the same address, for you to check and send.",
+  textCorrection: "A text can't be unsent. Text them a correction from their contact page.",
+  asksBecause: "Asks you because",
+  logHeading: "What your LOA did",
+  logEmpty: "Nothing on its own yet on this loan.",
+  status: { queued: "Queued", sent: "Sent", stopped: "Stopped", held: "Waiting for you", failed: "Didn't go out", done: "Done" },
+  to: { client: "client", agent: "client's agent", lo: "you" } as Record<string, string>,
+  flash: {
+    stopped: "Stopped. It won't be sent.",
+    soon: (label: string) => `${label}. Stop it any time before then.`,
+    correction: "Drafted a correction. Check it under Emails to escrow and title, then send.",
+    when: (morning: boolean) => (morning ? "Full-auto messages now go with the next morning run." : "Full-auto messages now go 15 minutes after they're ready."),
+    notQueued: "That message isn't waiting to go anymore.",
+  },
+  morningLine: (sent: number, waiting: number, queued: number) =>
+    `Your LOA: ${sent} sent on ${sent === 1 ? "its" : "their"} own, ${waiting} waiting for your OK${queued ? `, ${queued} going out on ${queued === 1 ? "its" : "their"} own unless you stop ${queued === 1 ? "it" : "them"}` : ""}.`,
+} as const;
+
+/** D71: what each job does, for the log and the flash ("Asked escrow for fees."). */
+export const AUTO_ACTION: Record<string, string> = {
+  escrow_fees: "Asked escrow for fees",
+  escrow_fees_follow: "Followed up with escrow on fees",
+  open_escrow: "Asked escrow to open escrow",
+  order_title: "Ordered title",
+  payoffs: "Asked escrow to order payoffs",
+  insurance: "Asked for the insurance binder",
+  borrower_conditions: "Asked the borrower for their items",
+  borrower_conditions_follow: "Reminded the borrower about their items",
+  client_updates: "Sent the client a status update",
+  agent_updates: "Sent the agent a status update",
+  deadline_reminders: "Reminder",
+  voe_reminder: "Reminder: the employment re-verification window is open",
+  appraisal_reminder: "Reminder: order the appraisal",
+};
+
+/** D71: why a Full-auto job asks the loan officer instead. Plain words, shown on the item. */
+export const AUTO_WHY = {
+  unconfirmed: (who: string) => `${who}'s email came from a document and isn't confirmed yet`,
+  changed: (who: string) => `${who}'s email changed since this was ready`,
+  noEmail: (who: string) => `there's no email for ${who}`,
+  placeholder: "something in it is left to fill in",
+  sensitive: "it looks like it holds a Social Security, birth date or account number",
+  link: "it carries a link",
+  foreign: (what: string) => `it carries ${what}`,
+  wire: "it mentions wires or bank details",
+  edited: "it was changed after it was planned",
+  hold: "everything on this loan is held: a confirmed email changed",
+  killed: "Full-auto is switched off for everyone right now",
+  paused: "this loan is paused",
+  switched: "its switch is no longer Full-auto",
+  agentOk: "the client hasn't said their agent may be kept updated",
+  review: (why: string) => `the message check stopped it (${why})`,
+  check: (why: string) => `the message check stopped it (${why})`,
+  gate: (why: string) => `your contact rules stopped it (${why})`,
+  failed: (why: string) => `it didn't go out (${why})`,
+  overDay: (n: number) => `over today's limit of ${n} messages on their own; it waits for tomorrow morning's run`,
+  overPerson: "already 3 messages to this address today; it waits for tomorrow morning's run",
+  closed: "the loan is closed or no longer active",
+  moot: "it isn't needed anymore (the file already has it)",
 } as const;

@@ -4,12 +4,13 @@ import type { Loan } from "@/lib/pipeline/store";
 import type { Journey } from "@/lib/journey/store";
 import { DOC_KINDS, DOC_LABELS } from "@/lib/loa/readers";
 import { CHECKS, PARTY_ROLES, type Condition, type LoaFile } from "@/lib/loa/store";
-import { emailConfirmed, PARTY_LABELS, recompute } from "@/lib/loa/service";
+import { emailConfirmed, PARTY_LABELS, recompute, toLabel } from "@/lib/loa/service";
+import { AUTO_BY, whenLong } from "@/lib/loa/autopilot";
 import { daysUntil } from "@/lib/loa/dates";
 import { gaps as gapsOf, loanRows, type Purpose, type SwitchSettings } from "@/lib/loa/autonomy";
-import { FACT_WORDS, loaLoan as w, type FactKey } from "@/lib/content/loa";
+import { FACT_WORDS, loaAutoWords as aw, loaLoan as w, type FactKey } from "@/lib/content/loa";
 import { LoanSwitches } from "./AutonomyGrid";
-import { checkAction, conditionAction, confirmPartyAction, discardDraftAction, factAction, hoaAction, makeDraftAction, partyAction, pauseLoanAction, purposeAction, readDocAction, reviewAction, sendDraftAction, titleItemAction } from "./actions";
+import { checkAction, conditionAction, correctionAction, sendSoonAction, stopQueuedAction, confirmPartyAction, discardDraftAction, factAction, hoaAction, makeDraftAction, partyAction, pauseLoanAction, purposeAction, readDocAction, reviewAction, sendDraftAction, titleItemAction } from "./actions";
 import "./loa.css";
 
 const money = (n: number | null | undefined) => (n == null ? "—" : `$${Math.round(n).toLocaleString("en-US")}`);
@@ -41,7 +42,7 @@ function GapQuestion({ loanId, k, unlocks, current }: { loanId: string; k: FactK
 }
 
 /** D62: the LOA's work on one loan, on the Loan Journey page. D70 adds the switches, the safe-recipient checks and the questions the contract left open. */
-export default function LoaPanel({ loan, file, journey, settings, purpose, canEdit, agentOk, now = new Date() }: { loan: Loan; file: LoaFile; journey: Journey; settings: SwitchSettings; purpose: Purpose | null; canEdit: boolean; agentOk: boolean; now?: Date }) {
+export default function LoaPanel({ loan, file, journey, settings, purpose, canEdit, agentOk, undoMinutes = 15, now = new Date() }: { loan: Loan; file: LoaFile; journey: Journey; settings: SwitchSettings; purpose: Purpose | null; canEdit: boolean; agentOk: boolean; undoMinutes?: number; now?: Date }) {
   const f = recompute(file, loan, journey, now);
   const rows = loanRows({ file: f, purpose, agentOk }, settings, now);
   const live = rows.filter((r) => r.applies);
@@ -58,6 +59,9 @@ export default function LoaPanel({ loan, file, journey, settings, purpose, canEd
   const c = f.contract;
   const drafts = f.drafts.filter((d) => d.status === "draft");
   const sent = f.drafts.filter((d) => d.status === "sent");
+  const queued = f.drafts.filter((d) => d.status === "queued");
+  const autoLog = [...(f.auto ?? [])].reverse().slice(0, 25);
+  const byId = new Map(f.drafts.map((d) => [d.id, d]));
   const payoffsOpen = (f.title?.items ?? []).some((x) => x.payoff && x.status === "open");
   return (
     <section className="mlo-section loa-panel" id="loa">
@@ -209,7 +213,8 @@ export default function LoaPanel({ loan, file, journey, settings, purpose, canEd
       </div>
       {drafts.map((d) => (
         <form key={d.id} action={sendDraftAction.bind(null, loan.id, d.id)} className="loa-draft" style={{ marginTop: 10 }}>
-          <span className="mlo-note">To the {PARTY_LABELS[d.to].toLowerCase()}</span>
+          <span className="mlo-note">To the {toLabel(d.to)}</span>
+          {d.autoReason ? <span className="mlo-note loa-why">{aw.asksBecause}: {d.autoReason}.</span> : null}
           <input name="to" type="email" className="mlo-input" defaultValue={d.toEmail} placeholder="Their email" aria-label="To" required />
           <input name="subject" className="mlo-input" defaultValue={d.subject} aria-label="Subject" required />
           <textarea name="body" rows={7} className="mlo-textarea" defaultValue={d.body} aria-label="Message" required />
@@ -220,7 +225,48 @@ export default function LoaPanel({ loan, file, journey, settings, purpose, canEd
           </div>
         </form>
       ))}
-      {sent.length ? <p className="mlo-note">Sent: {sent.map((d) => `${d.subject} (${d.sentAt?.slice(0, 10)})`).join("; ")}.</p> : null}
+      {sent.length ? <p className="mlo-note">Sent: {sent.map((d) => `${d.subject || `Text to the ${toLabel(d.to)}`} (${d.sentAt?.slice(0, 10)})`).join("; ")}.</p> : null}
+
+      <div className="loa-autolog" id="autolog">
+        <h3>{aw.queuedHeading}</h3>
+        {queued.length ? (
+          <ul className="loa-queue">
+            {queued.map((d) => (
+              <li key={d.id} className="loa-queue__item--auto">
+                <div className="loa-queue__what">
+                  <span>{d.channel === "text" ? `Text to the ${toLabel(d.to)}` : d.subject}</span>
+                  <span className="loa-when">{whenLong(d, now)}</span>
+                  <details className="loa-queue__body"><summary className="mlo-note">Read it</summary><pre>{d.body}</pre></details>
+                </div>
+                <div className="loa-queue__acts">
+                  <form action={stopQueuedAction.bind(null, loan.id, d.id, "loan")}><button type="submit" className="mlo-btn">{aw.stop}</button></form>
+                  {d.when !== "soon" ? <form action={sendSoonAction.bind(null, loan.id, d.id, "loan")}><button type="submit" className="mlo-btn mlo-btn--ghost">{aw.soon(undoMinutes)}</button></form> : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="mlo-note">{aw.queuedEmpty}</p>}
+        <h3>{aw.logHeading}</h3>
+        {autoLog.length ? (
+          <ul className="loa-did">
+            {autoLog.map((e, i) => {
+              const d = e.ref ? byId.get(e.ref) : undefined;
+              const canCorrect = e.status === "sent" && d?.status === "sent" && d.approvedBy === AUTO_BY && d.channel !== "text";
+              return (
+                <li key={`${e.at}-${i}`}>
+                  <span className={`loa-did__tag loa-did__tag--${e.status}`}>{aw.status[e.status]}</span>
+                  <span className="loa-did__what">
+                    <span>{e.action}{e.toRole !== "lo" ? ` · ${aw.to[e.toRole] ?? toLabel(e.toRole as never)}` : ""}</span>
+                    <span className="mlo-note">{new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(e.at))} PT{e.reason ? ` · ${e.reason}` : ""}</span>
+                  </span>
+                  {canCorrect ? <form action={correctionAction.bind(null, loan.id, d!.id)}><button type="submit" className="mlo-btn mlo-btn--ghost loa-btn-sm">{aw.correction}</button></form> : <span />}
+                </li>
+              );
+            })}
+          </ul>
+        ) : <p className="mlo-note">{aw.logEmpty}</p>}
+        {autoLog.some((e) => e.status === "sent") ? <p className="mlo-note">{aw.correctionNote}</p> : null}
+      </div>
 
       {f.title ? (
         <>

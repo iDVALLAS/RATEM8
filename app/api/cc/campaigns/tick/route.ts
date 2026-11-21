@@ -5,6 +5,8 @@ import { ensureRegistry } from "@/lib/registry/cache";
 import { accountStore } from "@/lib/accounts/store";
 import { teamStore } from "@/lib/agents/store";
 import { sendDueMoves, teamOn } from "@/lib/agents/runner";
+import { loaStore } from "@/lib/loa/store";
+import { sendQueued } from "@/lib/loa/autopilot";
 
 /**
  * GET /api/cc/campaigns/tick — runs every campaign step that's due (D51).
@@ -30,7 +32,14 @@ export async function GET(req: Request) {
         team += (await sendDueMoves(user).catch(() => ({ sent: 0 }))).sent;
       }
     }
-    return Response.json({ ok: true, ...r, team });
+    // D71: the LOA's Full-auto messages that are due (the undo window ended).
+    let loa = 0;
+    for (const owner of (await loaStore().queuedOwners().catch(() => [])).slice(0, 200)) {
+      const user = await accountStore().userById(owner);
+      if (!user || user.status !== "active") continue;
+      loa += (await sendQueued(user).catch(() => ({ sent: 0 }))).sent;
+    }
+    return Response.json({ ok: true, ...r, team, loa });
   } catch (e) {
     await report("error", e, { route: "campaigns-tick", stage: "run" });
     return Response.json({ ok: false }, { status: 500 });

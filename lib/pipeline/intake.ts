@@ -142,6 +142,11 @@ export async function ingest(ownerUserId: string, u: LoanUpdate, source: string,
     updatedAt: at,
   };
   await ps.put(loan);
+  // D71: the LOA's jobs on this loan (Full-auto stage updates claim their recipe first, so they go once).
+  if (changed || JSON.stringify(prev?.keyDates ?? null) !== JSON.stringify(loan.keyDates)) {
+    const { runLoaAutopilot } = await import("@/lib/loa/autopilot");
+    await runLoaAutopilot(loan, "loan_change", now, { previousMilestone: prev?.milestone ?? null }).catch((e) => report("error", e, { route: "pipeline", stage: "loa" }));
+  }
   if (changed) {
     await accountStore().audit({ at, actor: `pipeline:${source}`, action: "loan.milestone", detail: { loanId: loan.id, milestone: u.milestone.slice(0, 40) } });
     // D10: stage updates the loan officer turned on (drafts for approval, never sent from here).

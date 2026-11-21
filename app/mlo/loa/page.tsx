@@ -7,15 +7,16 @@ import { AGENTS } from "@/lib/agents/team";
 import { LENDER_BRANDS } from "@/lib/lenders";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { loaStore } from "@/lib/loa/store";
-import { autonomyOf, loaQueue, loaTasks, PARTY_LABELS } from "@/lib/loa/service";
+import { autonomyOf, loaQueue, loaTasks, toLabel } from "@/lib/loa/service";
+import { queuedFor, whenLong } from "@/lib/loa/autopilot";
 import { canChangeSwitches } from "@/lib/loa/autonomy";
 import { bookOf } from "@/lib/contacts/service";
-import { loaQueueWords as q, loaSwitches } from "@/lib/content/loa";
+import { loaAutoWords as aw, loaQueueWords as q, loaSwitches } from "@/lib/content/loa";
 import AutonomyGrid from "./AutonomyGrid";
 import { listenOn, voiceOn } from "@/lib/voice/google";
 import { FlashBox } from "../MloChrome";
 import LoaChat from "./LoaChat";
-import { addOverlayAction, approveLoaDraft, notThisTimeAction, removeOverlayAction } from "./actions";
+import { addOverlayAction, approveLoaDraft, notThisTimeAction, removeOverlayAction, sendSoonAction, sendWhenAction, stopQueuedAction } from "./actions";
 import { addFormAction, removeFormAction } from "../pipeline/[id]/forms/actions";
 import { FORM_KIND_LABELS, FORM_KINDS, OFFICIAL_FORMS } from "@/lib/forms/catalog";
 import { libraryFor } from "@/lib/forms/service";
@@ -46,7 +47,9 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
 
   // D70: an assistant sees the book they work (and its switches, read-only).
   const owner = me.role === "assistant" ? (bookOf(me) ?? me.id) : me.id;
-  const [loans, overlays, tasks, library, queue, auto] = await Promise.all([pipelineStore().list(owner).catch(() => []), loaStore().overlays(me.id).catch(() => []), loaTasks(me).catch(() => []), libraryFor(me).catch(() => []), loaQueue(me).catch(() => ({ drafts: [], proposals: [] })), autonomyOf(owner).catch(() => null)]);
+  // D71: anything due goes out after this page is sent (CcShell), so it never slows the page.
+  const now = new Date();
+  const [loans, overlays, tasks, library, queue, auto, queued] = await Promise.all([pipelineStore().list(owner).catch(() => []), loaStore().overlays(me.id).catch(() => []), loaTasks(me).catch(() => []), libraryFor(me).catch(() => []), loaQueue(me).catch(() => ({ drafts: [], proposals: [] })), autonomyOf(owner).catch(() => null), queuedFor(owner).catch(() => [])]);
   const todo = tasks.filter((t) => t.kind !== "draft");
   const open = loans.filter((l) => !l.closed && !l.dead);
   const lenders = [...new Set(overlays.map((o) => o.lender))];
@@ -61,6 +64,26 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
 
       <section className="mlo-section" id="needs">
         <h2>{q.heading}</h2>
+        <h3 className="loa-subhead" id="going">{aw.queuedHeading}</h3>
+        <p className="mlo-note">{aw.queuedNote}</p>
+        {queued.length ? (
+          <ul className="loa-queue">
+            {queued.map(({ loanId, borrower, draft: d }) => (
+              <li key={d.id} className="loa-queue__item--auto">
+                <div className="loa-queue__what">
+                  <span><strong>{borrower}</strong>: {d.channel === "text" ? `Text to the ${toLabel(d.to)}` : d.subject}</span>
+                  <span className="mlo-note">{q.to(toLabel(d.to))}{d.channel !== "text" && d.toEmail ? ` · ${d.toEmail}` : ""}</span>
+                  <span className="loa-when">{whenLong(d, now)}</span>
+                  <details className="loa-queue__body"><summary className="mlo-note">{q.read}</summary><pre>{d.body}</pre></details>
+                </div>
+                <div className="loa-queue__acts">
+                  <form action={stopQueuedAction.bind(null, loanId, d.id, "queue")}><button type="submit" className="mlo-btn">{aw.stop}</button></form>
+                  {d.when !== "soon" ? <form action={sendSoonAction.bind(null, loanId, d.id, "queue")}><button type="submit" className="mlo-btn mlo-btn--ghost">{aw.soon(auto?.undoMinutes ?? 15)}</button></form> : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="mlo-note">{aw.queuedEmpty}</p>}
         <h3 className="loa-subhead">{q.draftsHeading}</h3>
         {queue.drafts.length ? (
           <ul className="loa-queue">
@@ -68,7 +91,8 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
               <li key={d.id}>
                 <div className="loa-queue__what">
                   <span><strong>{borrower}</strong>: {d.subject}</span>
-                  <span className="mlo-note">{q.to(PARTY_LABELS[d.to].toLowerCase())}{d.toEmail ? ` · ${d.toEmail}` : ` · ${q.noAddress}`}</span>
+                  <span className="mlo-note">{q.to(toLabel(d.to))}{d.toEmail ? ` · ${d.toEmail}` : ` · ${q.noAddress}`}</span>
+                  {d.autoReason ? <span className="mlo-note loa-why">{aw.asksBecause}: {d.autoReason}.</span> : null}
                   <details className="loa-queue__body"><summary className="mlo-note">{q.read}</summary><pre>{d.body}</pre></details>
                 </div>
                 <div className="loa-queue__acts">
@@ -110,6 +134,20 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
       <section className="mlo-section loa-autopilot" id="autopilot">
         <h2>{loaSwitches.heading}</h2>
         {auto ? <AutonomyGrid modes={auto.modes} canEdit={canChangeSwitches(me, owner)} /> : <p className="mlo-note">Couldn&apos;t load your switches. Try again in a moment.</p>}
+        {auto ? (
+          <div className="loa-sendwhen" id="sendwhen">
+            <h3>{aw.whenHeading}</h3>
+            <div className="loa-sendwhen__opts" role="group" aria-label={aw.whenHeading}>
+              {(["morning", "soon"] as const).map((w) => (
+                <form key={w} action={sendWhenAction.bind(null, w)}>
+                  <button type="submit" className={`mlo-btn ${auto.sendWhen === w ? "" : "mlo-btn--ghost"}`} aria-pressed={auto.sendWhen === w} disabled={!canChangeSwitches(me, owner)}>{w === "morning" ? aw.whenMorning : aw.whenSoon(auto.undoMinutes)}</button>
+                </form>
+              ))}
+            </div>
+            <p className="mlo-note">{aw.whenNote}</p>
+            {me.role === "owner" ? <p className="mlo-note loa-ownernote">{aw.ownerCallerNote}</p> : null}
+          </div>
+        ) : null}
       </section>
 
       <section className="mlo-section" id="talk">

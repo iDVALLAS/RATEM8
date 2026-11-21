@@ -175,6 +175,11 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     per task for purchase and refinance, clamped to each task's max on read; `CC_LOA_AUTO="false"`, a paused loan or a
     held loan lowers them; a recipient is safe only once confirmed (a changed confirmed escrow/title email holds the
     loan); "What the contract didn't answer" questions; one approval queue at `/mlo/loa#needs`. Nothing sends on its own until D71.
+    D71 LOA Full-auto (`lib/loa/autopilot.ts`): pure `plan(ctx)`, `runLoaAutopilot` (after a read, a loan update, an answer,
+    the morning run; each job claimed once), Full-auto messages queued ("Going out on its own", Stop, "Send in 15 minutes")
+    and sent by `sendQueued` with the morning run, `/api/cc/loa/tick` (CRON_SECRET; not in vercel.json, Hobby is daily) or the
+    LO's next page view (`after()` in CcShell); every send re-checked, else LO-Auth with the reason; 15/day, 3 per address;
+    contacts only via the gate; log "What your LOA did" (`LoaFile.auto`, no bodies or addresses); `CC_LOA_AUTO="false"`.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -283,7 +288,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 669 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 694 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

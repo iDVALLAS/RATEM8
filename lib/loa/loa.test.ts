@@ -112,12 +112,14 @@ describe("The Loan Officer Assistant (D62)", () => {
     const l = await loan();
     await readIntoFile(me, l.id, "purchase_agreement", { text: "psa text here, long enough" }, NOW, fake);
     let tasks = await loaTasks(me, NOW);
-    expect(tasks.map((t) => t.title)).toEqual(expect.arrayContaining(["Ask escrow for their fees", "Open title", "Earnest money due"]));
+    // D71: the LOA drafts these on its own now (LO-Auth by default), so they wait for a tap instead of a reminder to draft them.
+    expect(tasks.map((t) => t.title)).toEqual(expect.arrayContaining(["Review and send: Escrow fee estimate: 12 Elm St, Kirkland, WA 98033", "Review and send: Please open title: 12 Elm St, Kirkland, WA 98033", "Earnest money due"]));
     expect(tasks.find((t) => t.title === "Earnest money due")?.urgent).toBe(true);
     await readIntoFile(me, l.id, "escrow_fees", { text: "fees text, long enough" }, NOW, fake);
     expect((await loaStore().file(l.id))!.escrowFees).toMatchObject({ total: 2150 });
     tasks = await loaTasks(me, NOW);
     expect(tasks.map((t) => t.title)).not.toContain("Ask escrow for their fees");
+    expect(tasks.map((t) => t.title)).not.toContain("Review and send: Escrow fee estimate: 12 Elm St, Kirkland, WA 98033");
   });
 
   it("keeps lenders' overlays and answers with the agency guides, the overlays and the file", async () => {

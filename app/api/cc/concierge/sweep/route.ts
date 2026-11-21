@@ -13,6 +13,8 @@ import { teamStore } from "@/lib/agents/store";
 import { runTeam, teamOn } from "@/lib/agents/runner";
 import { advanceAll } from "@/lib/texting/service";
 import { resendMail } from "@/lib/pilot/service";
+import { loaStore } from "@/lib/loa/store";
+import { loaMorning } from "@/lib/loa/autopilot";
 
 /**
  * GET /api/cc/concierge/sweep — the morning run for every loan officer who
@@ -27,7 +29,7 @@ export async function GET(req: Request) {
   const given = (req.headers.get("authorization") ?? "").replace(/^Bearer /, "");
   if (!secret || given.length !== secret.length || !timingSafeEqual(Buffer.from(given), Buffer.from(secret))) return new Response("Not found", { status: 404 });
   // D10: loan officers with the Concierge on, or with any after-closing / new-contact recipe on.
-  const owners = [...new Set([...(await conciergeStore().enabledOwners()), ...(await conciergeStore().digestOwners()), ...(await automationStore().owners()), ...(teamOn() ? await teamStore().enabledOwners() : [])])];
+  const owners = [...new Set([...(await conciergeStore().enabledOwners()), ...(await conciergeStore().digestOwners()), ...(await automationStore().owners()), ...(teamOn() ? await teamStore().enabledOwners() : []), ...(await loaStore().activeOwners().catch(() => []))])];
   let done = 0;
   let failed = 0;
   for (const owner of owners.slice(0, 200)) {
@@ -37,6 +39,8 @@ export async function GET(req: Request) {
       await runDaily(user);
       // D54: the Concierge team plans the day (its sends go out in the midday run).
       if (teamOn()) await runTeam(user);
+      // D71: the LOA plans each open loan and sends its Full-auto messages that are due (before the email counts them).
+      await loaMorning(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "loa" }));
       const r = await sweep(user);
       if (r.errors) failed++;
       // D11: after the run, so the email counts this morning's drafts.

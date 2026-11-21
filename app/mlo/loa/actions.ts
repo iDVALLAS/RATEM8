@@ -4,9 +4,11 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
 import { DOC_KINDS, MAX_DOC_BYTES, type DocKind } from "@/lib/loa/readers";
-import { answerFact, applyPreset, approveLoaDraft as approveDraft, confirmParty, discardDraft, makeDraft, readIntoFile, resolveReview, saveAutonomy, sendDraft, setCheck, setCondition, setLoanAutonomy, setLoanPaused, setParty, setPurpose, setTitleItem, DRAFT_KINDS, type DraftKind } from "@/lib/loa/service";
+import { draftCorrection, runLoaAutopilot, sendSoon, setSendWhen, stopQueued } from "@/lib/loa/autopilot";
+import { answerFact, applyPreset, fileFor, approveLoaDraft as approveDraft, confirmParty, discardDraft, makeDraft, readIntoFile, resolveReview, saveAutonomy, sendDraft, setCheck, setCondition, setLoanAutonomy, setLoanPaused, setParty, setPurpose, setTitleItem, DRAFT_KINDS, type DraftKind } from "@/lib/loa/service";
 import { CAP_KEYS, PRESETS, PURPOSES, type Preset, type Purpose } from "@/lib/loa/autonomy";
 import { loaQueueWords, loaSwitches, type FactKey } from "@/lib/content/loa";
+import type { User } from "@/lib/accounts/store";
 import { addOverlay, removeOverlay } from "@/lib/loa/chat";
 import { CHECKS, PARTY_ROLES, type CheckKey, type Condition, type PartyRole, type TitleItem } from "@/lib/loa/store";
 
@@ -16,6 +18,13 @@ const go = (path: string, ok: boolean, lines: string[]): never => {
 };
 const me = async () => (await currentUser()) ?? redirect("/sign-in");
 const back = (loanId: string) => `/mlo/pipeline/${encodeURIComponent(loanId)}#loa`;
+
+/** D71: after an answer, what the switches let the LOA do now (a queued email, a draft), for the flash. */
+async function autopilot(u: User, loanId: string): Promise<string[]> {
+  const ctx = await fileFor(u, loanId).catch(() => null);
+  if (!ctx) return [];
+  return (await runLoaAutopilot(ctx.loan, "answer").catch(() => null))?.lines ?? [];
+}
 
 async function fileBytes(fd: FormData, field: string): Promise<Uint8Array | null> {
   const f = fd.get(field);
@@ -42,8 +51,9 @@ export async function checkAction(loanId: string, key: CheckKey, done: boolean):
 export async function partyAction(loanId: string, fd: FormData): Promise<void> {
   const role = String(fd.get("role") ?? "") as PartyRole;
   if (!(PARTY_ROLES as readonly string[]).includes(role)) return go(back(loanId), false, ["Pick who they are."]);
-  const r = await setParty(await me(), loanId, { role, company: String(fd.get("company") ?? ""), name: String(fd.get("name") ?? ""), email: String(fd.get("email") ?? ""), phone: String(fd.get("phone") ?? "") });
-  go(back(loanId), r.ok, [r.ok ? "Saved." : r.error]);
+  const u = await me();
+  const r = await setParty(u, loanId, { role, company: String(fd.get("company") ?? ""), name: String(fd.get("name") ?? ""), email: String(fd.get("email") ?? ""), phone: String(fd.get("phone") ?? "") });
+  go(back(loanId), r.ok, r.ok ? ["Saved.", ...(await autopilot(u, loanId))] : [r.error]);
 }
 
 export async function titleItemAction(loanId: string, itemId: string, status: TitleItem["status"]): Promise<void> {
@@ -129,23 +139,27 @@ export async function purposeAction(loanId: string, purpose: Purpose): Promise<v
 
 /** "What the contract didn't answer": one typed answer. */
 export async function factAction(loanId: string, key: FactKey, fd: FormData): Promise<void> {
-  const r = await answerFact(await me(), loanId, key, String(fd.get("value") ?? ""));
-  go(`${back(loanId).split("#")[0]}#gaps`, r.ok, [r.ok ? "Saved." : r.error]);
+  const u = await me();
+  const r = await answerFact(u, loanId, key, String(fd.get("value") ?? ""));
+  go(`${back(loanId).split("#")[0]}#gaps`, r.ok, r.ok ? ["Saved.", ...(await autopilot(u, loanId))] : [r.error]);
 }
 
 export async function hoaAction(loanId: string, yes: boolean): Promise<void> {
-  const r = await answerFact(await me(), loanId, "hoa", yes);
-  go(`${back(loanId).split("#")[0]}#gaps`, r.ok, [r.ok ? "Saved." : r.error]);
+  const u = await me();
+  const r = await answerFact(u, loanId, "hoa", yes);
+  go(`${back(loanId).split("#")[0]}#gaps`, r.ok, r.ok ? ["Saved.", ...(await autopilot(u, loanId))] : [r.error]);
 }
 
 export async function confirmPartyAction(loanId: string, role: PartyRole): Promise<void> {
-  const ok = (PARTY_ROLES as readonly string[]).includes(role) && (await confirmParty(await me(), loanId, role));
-  go(back(loanId), ok, [ok ? "Confirmed." : "Couldn't confirm that."]);
+  const u = await me();
+  const ok = (PARTY_ROLES as readonly string[]).includes(role) && (await confirmParty(u, loanId, role));
+  go(back(loanId), ok, ok ? ["Confirmed.", ...(await autopilot(u, loanId))] : ["Couldn't confirm that."]);
 }
 
 export async function reviewAction(loanId: string, reviewId: string, useNew: boolean): Promise<void> {
-  const ok = await resolveReview(await me(), loanId, reviewId, useNew);
-  go(back(loanId), ok, [ok ? "Updated." : "Couldn't change that."]);
+  const u = await me();
+  const ok = await resolveReview(u, loanId, reviewId, useNew);
+  go(back(loanId), ok, ok ? ["Updated.", ...(await autopilot(u, loanId))] : ["Couldn't change that."]);
 }
 
 /** The approval queue on Your LOA: send the draft as it stands. */
@@ -157,4 +171,32 @@ export async function approveLoaDraft(loanId: string, draftId: string): Promise<
 export async function notThisTimeAction(loanId: string, draftId: string): Promise<void> {
   const ok = await discardDraft(await me(), loanId, draftId);
   go("/mlo/loa#needs", ok, [ok ? loaQueueWords.flash.dropped : "Couldn't change that."]);
+}
+
+// ---- D71: Full-auto ----
+
+const whereTo = (loanId: string, from: "queue" | "loan") => (from === "queue" ? "/mlo/loa#needs" : `${back(loanId).split("#")[0]}#autolog`);
+
+/** Stop: a queued message won't be sent. */
+export async function stopQueuedAction(loanId: string, draftId: string, from: "queue" | "loan"): Promise<void> {
+  const r = await stopQueued(await me(), loanId, draftId);
+  go(whereTo(loanId, from), r.ok, [r.ok ? r.line : r.error]);
+}
+
+/** "Send in 15 minutes" instead of the morning run. */
+export async function sendSoonAction(loanId: string, draftId: string, from: "queue" | "loan"): Promise<void> {
+  const r = await sendSoon(await me(), loanId, draftId);
+  go(whereTo(loanId, from), r.ok, [r.ok ? r.line : r.error]);
+}
+
+/** After an email went on its own: a correction to the same address, for the loan officer to send. */
+export async function correctionAction(loanId: string, draftId: string): Promise<void> {
+  const r = await draftCorrection(await me(), loanId, draftId);
+  go(`${back(loanId).split("#")[0]}#drafts`, r.ok, [r.ok ? r.line : r.error]);
+}
+
+/** The officer setting: with the next morning run, or after the undo window. */
+export async function sendWhenAction(when: "morning" | "soon"): Promise<void> {
+  const r = await setSendWhen(await me(), when === "soon" ? "soon" : "morning");
+  go(AUTO, r.ok, [r.ok ? r.line : r.error]);
 }

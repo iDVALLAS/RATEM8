@@ -1,7 +1,8 @@
 import AutonomyToggle, { type ToggleValue } from "../AutonomyToggle";
 import { Icon } from "../icons";
 import { CAPS, GROUP_ORDER, LOCKED, officerMode, PRESETS, PURPOSES, type Cap, type CapRow, type Mode, type Modes, type Purpose } from "@/lib/loa/autonomy";
-import { CAP_GROUPS, loaLoan, loaSwitches, MODE_WORDS } from "@/lib/content/loa";
+import { CAP_GROUPS, loaAutoWords, loaLoan, loaSwitches, MODE_WORDS } from "@/lib/content/loa";
+import { loaAutoOn } from "@/lib/loa/autonomy";
 import { loanAutonomyAction, presetAction, saveAutonomyAction } from "./actions";
 
 const WORD: Record<Purpose, string> = { purchase: loaSwitches.purchase, refi: loaSwitches.refi };
@@ -48,7 +49,8 @@ export default function AutonomyGrid({ modes, canEdit }: { modes: Modes; canEdit
   return (
     <>
       <Legend />
-      <p className="mlo-note">{loaSwitches.notYet}</p>
+      {/* D71: Full-auto works now; the kill switch turns it back into LO-Auth for everyone. */}
+      <p className="mlo-note">{loaAutoOn() ? loaAutoWords.live : loaAutoWords.killed}</p>
       {canEdit ? (
         <div className="loa-presets">
           <span className="mlo-note">{loaSwitches.presetsLabel}</span>

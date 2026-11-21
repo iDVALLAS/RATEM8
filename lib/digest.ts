@@ -25,7 +25,7 @@ export type Digest = { subject: string; text: string; people: number; drafts: nu
 
 export async function digestFor(user: User, now = new Date()): Promise<Digest> {
   const nowIso = now.toISOString();
-  const [today, drafts, tasks, notes, team] = await Promise.all([todayFor(user, now, { ownOnly: true }), conciergeStore().proposals(user.id, "pending"), conciergeStore().tasks(user.id), conciergeStore().pendingMemory(user.id, nowIso), teamLine(user, now)]);
+  const [today, drafts, tasks, notes, team, loa] = await Promise.all([todayFor(user, now, { ownOnly: true }), conciergeStore().proposals(user.id, "pending"), conciergeStore().tasks(user.id), conciergeStore().pendingMemory(user.id, nowIso), teamLine(user, now), loaLine(user, now)]);
   const personal = tasks.filter((t) => t.lane === "personal");
   const firstOf = async (id: string) => (await contactStore().get(id))?.firstName || "someone";
   const loanCards = today.cards.filter((c) => LOAN_KINDS.has(c.kind));
@@ -42,6 +42,7 @@ export async function digestFor(user: User, now = new Date()): Promise<Digest> {
     drafts.length ? `Drafts waiting for your OK: ${drafts.length}` : "",
     notes.length ? `Notes to keep or forget: ${notes.length}` : "",
     team ? `${team} ${base}/mlo/agents` : "",
+    loa ? `${loa} ${base}/mlo/loa#needs` : "",
     "",
     `Open Command Center: ${base}/mlo`,
     `Start a call session: ${base}/mlo/calls`,
@@ -82,6 +83,12 @@ async function resendSend(to: string, subject: string, text: string): Promise<bo
   } catch {
     return false;
   }
+}
+
+/** D71: the LOA in one line, counts only ("Your LOA: 3 sent on their own, 4 waiting for your OK."). */
+async function loaLine(user: User, now: Date): Promise<string> {
+  const { loaDigestLine } = await import("@/lib/loa/autopilot");
+  return loaDigestLine(user, now).catch(() => "");
 }
 
 /** D54.1: the Concierge team in one line, counts only. */

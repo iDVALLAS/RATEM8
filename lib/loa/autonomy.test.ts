@@ -206,19 +206,21 @@ describe("The LOA switches (D70)", () => {
     const l = await loan();
     await readIntoFile(lo, l.id, "purchase_agreement", { text: "psa text, long enough to read" }, NOW, reads("dana@lake-escrow.example"));
     expect(await makeDraft(lo, l.id, "escrow_fees", NOW)).toMatchObject({ ok: true });
+    // D71: reading the contract also drafts opening escrow and title (LO-Auth); this test follows the fee request.
+    const fees = (x: Awaited<ReturnType<typeof loaQueue>>) => x.drafts.filter((d) => d.draft.kind === "escrow_fees");
     let q = await loaQueue(helper);
-    expect(q.drafts).toHaveLength(1);
+    expect(fees(q)).toHaveLength(1);
     expect((await loaTasks(lo, NOW)).find((t) => t.kind === "draft")).toMatchObject({ href: "/mlo/loa#needs" });
     const sent: string[] = [];
     const sender: PartySender = async (_u, to) => (sent.push(to), { ok: true, via: "test" });
     // Nothing went out on its own.
     expect(sent).toHaveLength(0);
     // The assistant may approve third-party drafts.
-    expect(await approveLoaDraft(helper, l.id, q.drafts[0].draft.id, NOW, sender)).toMatchObject({ ok: true });
+    expect(await approveLoaDraft(helper, l.id, fees(q)[0].draft.id, NOW, sender)).toMatchObject({ ok: true });
     expect(sent).toEqual(["dana@lake-escrow.example"]);
     const d = (await loaStore().file(l.id))!.drafts.find((x) => x.kind === "escrow_fees")!;
     expect(d).toMatchObject({ status: "sent", approvedBy: "as1@x.com" });
     q = await loaQueue(lo);
-    expect(q.drafts).toHaveLength(0);
+    expect(fees(q)).toHaveLength(0);
   });
 });

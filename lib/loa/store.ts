@@ -81,14 +81,36 @@ export type CheckState = { done: boolean; at: string; by: string; note?: string 
  * A message the LOA prepared for a third party. D70 adds the switch it came
  * from (`cap`, `mode`), when a queued one may go (`sendAfter`, D71) and who
  * approved it. "queued" / "held" / "stopped" are D71's autopilot states.
+ *
+ * D71: a Full-auto text to the client or their agent waits here too
+ * (`to` "client" / "agent", `channel` "text", `contactId`), so Stop works the
+ * same for every message. It still goes only through sendText and the gate.
  */
+export type DraftTo = PartyRole | "client" | "agent";
 export type Draft = {
-  id: string; to: PartyRole; toName: string; toEmail: string; subject: string; body: string;
-  kind: "escrow_fees" | "open_title" | "open_escrow" | "payoffs" | "conditions_lo" | "other";
+  id: string; to: DraftTo; toName: string; toEmail: string; subject: string; body: string;
+  kind: "escrow_fees" | "open_title" | "open_escrow" | "payoffs" | "insurance" | "conditions_lo" | "borrower_conditions" | "client_update" | "agent_update" | "other";
   status: "draft" | "queued" | "held" | "stopped" | "sent" | "discarded";
   createdAt: string; sentAt: string | null;
   cap?: CapKey; mode?: Mode; sendAfter?: string | null; approvedBy?: string | null;
+  /** D71: "morning" = with the next morning run (the default); "soon" = the undo window (15 minutes). */
+  when?: "morning" | "soon";
+  /** D71: the planner wanted Full-auto; why it asks the loan officer instead (shown on screen). */
+  autoReason?: string | null;
+  wanted?: Mode;
+  /** D71: a fingerprint of the fixed template as planned (to, subject, body), so an edited body never goes on its own. */
+  fixed?: string;
+  channel?: "email" | "text";
+  contactId?: string | null;
+  /** D71: 0 for the first message, 1–2 for follow-ups. */
+  followUp?: number;
 };
+
+/**
+ * D71: one line of "What your LOA did". Never the message or the address
+ * (`toRole` only). `ref` is the draft it was about, for Stop and corrections.
+ */
+export type AutoEntry = { at: string; cap: CapKey; mode: Mode; action: string; toRole: string; status: "queued" | "sent" | "stopped" | "held" | "failed" | "done"; reason: string | null; ref?: string | null };
 
 export type LoaFile = {
   loanId: string;
@@ -116,19 +138,23 @@ export type LoaFile = {
   hold?: { role: PartyRole; reason: string; at: string } | null;
   /** D70: differences a new document found, waiting for the loan officer. */
   review?: ReviewChange[];
+  /** D71: what the autopilot did on this loan, newest last, the last 100. */
+  auto?: AutoEntry[];
 };
 
-export const emptyFile = (loanId: string, ownerUserId: string): LoaFile => ({ loanId, ownerUserId, contract: null, parties: [], deadlines: [], title: null, escrowFees: null, conditions: [], approvalReceivedAt: null, checks: {}, drafts: [], log: [], updatedAt: "", autonomy: {}, paused: false, hoa: null, hold: null, review: [] });
+export const emptyFile = (loanId: string, ownerUserId: string): LoaFile => ({ loanId, ownerUserId, contract: null, parties: [], deadlines: [], title: null, escrowFees: null, conditions: [], approvalReceivedAt: null, checks: {}, drafts: [], log: [], updatedAt: "", autonomy: {}, paused: false, hoa: null, hold: null, review: [], auto: [] });
 
 /**
  * D70: one loan officer's LOA switches. `modes` holds only what they set;
  * everything else is the task's default, and every value is clamped to the
  * task's maximum when it's read (lib/loa/autonomy.ts effectiveMode).
  * `undoMinutes` and `dailyAutoSends` are used by the autopilot (D71).
+ * D71 `sendWhen`: Full-auto messages go with the next morning run (the
+ * owner's default), or `undoMinutes` after they're ready ("soon").
  */
-export type LoaAutonomy = { ownerUserId: string; modes: Modes; undoMinutes: number; dailyAutoSends: number; pausedUntil: string | null; updatedAt: string };
+export type LoaAutonomy = { ownerUserId: string; modes: Modes; undoMinutes: number; dailyAutoSends: number; sendWhen: "morning" | "soon"; pausedUntil: string | null; updatedAt: string };
 
-export const defaultAutonomy = (ownerUserId: string): LoaAutonomy => ({ ownerUserId, modes: { purchase: {}, refi: {} }, undoMinutes: 15, dailyAutoSends: 15, pausedUntil: null, updatedAt: "" });
+export const defaultAutonomy = (ownerUserId: string): LoaAutonomy => ({ ownerUserId, modes: { purchase: {}, refi: {} }, undoMinutes: 15, dailyAutoSends: 15, sendWhen: "morning", pausedUntil: null, updatedAt: "" });
 
 /** Merges a stored row over the defaults, dropping anything unknown. */
 export function withAutonomyDefaults(ownerUserId: string, raw: Partial<LoaAutonomy> | null | undefined): LoaAutonomy {
@@ -145,6 +171,7 @@ export function withAutonomyDefaults(ownerUserId: string, raw: Partial<LoaAutono
     modes: { purchase: clean(raw.modes?.purchase), refi: clean(raw.modes?.refi) },
     undoMinutes: num(raw.undoMinutes, 0, 120, d.undoMinutes),
     dailyAutoSends: num(raw.dailyAutoSends, 0, 50, d.dailyAutoSends),
+    sendWhen: raw.sendWhen === "soon" ? "soon" : "morning",
     pausedUntil: typeof raw.pausedUntil === "string" ? raw.pausedUntil : null,
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : "",
   };
@@ -163,6 +190,10 @@ export interface LoaStore {
   /** D70: the loan officer's switches, defaults merged in. */
   autonomy(owner: string): Promise<LoaAutonomy>;
   putAutonomy(x: LoaAutonomy): Promise<void>;
+  /** D71: loan officers with switches saved, or with a message waiting to go on its own. */
+  activeOwners(): Promise<string[]>;
+  /** D71: loan officers with a message waiting to go on its own. */
+  queuedOwners(): Promise<string[]>;
 }
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -195,6 +226,12 @@ class MemoryLoaStore implements LoaStore {
   }
   async putAutonomy(x: LoaAutonomy) {
     this.a.set(x.ownerUserId, clone(x));
+  }
+  async queuedOwners() {
+    return [...new Set([...this.f.values()].filter((x) => x.drafts.some((d) => d.status === "queued")).map((x) => x.ownerUserId))];
+  }
+  async activeOwners() {
+    return [...new Set([...this.a.keys(), ...(await this.queuedOwners())])];
   }
 }
 
@@ -247,6 +284,14 @@ class NeonLoaStore implements LoaStore {
   async putAutonomy(x: LoaAutonomy) {
     await this.init();
     await this.q(`INSERT INTO cc_loa_autonomy (owner_user_id, data) VALUES ($1,$2) ON CONFLICT (owner_user_id) DO UPDATE SET data = EXCLUDED.data`, [x.ownerUserId, JSON.stringify(x)]);
+  }
+  async queuedOwners() {
+    await this.init();
+    return (await this.q(`SELECT DISTINCT owner_user_id FROM cc_loa_files WHERE data->'drafts' @> '[{"status":"queued"}]'::jsonb`)).map((r) => String(r.owner_user_id));
+  }
+  async activeOwners() {
+    await this.init();
+    return (await this.q(`SELECT owner_user_id FROM cc_loa_autonomy UNION SELECT DISTINCT owner_user_id FROM cc_loa_files WHERE data->'drafts' @> '[{"status":"queued"}]'::jsonb`)).map((r) => String(r.owner_user_id));
   }
 }
 

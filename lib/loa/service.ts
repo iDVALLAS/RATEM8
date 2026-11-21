@@ -182,8 +182,7 @@ export async function readIntoFile(user: User, loanId: string, kind: DocKind, in
     f = { ...f, title: { commitmentDate: dateOrNull(d.commitmentDate), vesting: d.vesting, items, receivedAt: iso(now) }, checks: { ...f.checks, title_reviewed: { done: true, at: iso(now), by: "LOA" }, title_opened: f.checks.title_opened ?? { done: true, at: iso(now), by: "LOA", note: "commitment received" } } };
     const pay = items.filter((x) => x.payoff).length;
     summary = `Title commitment read: ${items.length} items, ${pay ? `${pay} to pay off or release at closing` : "nothing to pay off"}.`;
-    // D70: drafted (never sent) unless the payoffs switch is Off. D71's planner takes this over.
-    if (pay && effectiveMode(capByKey("payoffs"), sw.purpose, sw.settings, f, now) !== "off") f = draftFor(f, "payoffs", user, now, { purpose: sw.purpose, leSent: !!ctx.journey.dates.leSentOn });
+    // D71: the payoffs email is the autopilot's job now (planned after the file is saved).
   } else if (kind === "conditional_approval") {
     const d = r.data as Read<"conditional_approval">;
     const have = new Set(f.conditions.map((c) => c.text.toLowerCase()));
@@ -205,7 +204,10 @@ export async function readIntoFile(user: User, loanId: string, kind: DocKind, in
   f = recompute(log(f, summary, now), ctx.loan, ctx.journey, now);
   await loaStore().putFile({ ...f, updatedAt: iso(now) });
   await accountStore().audit({ at: iso(now), actor: user.email, action: "loa.read", detail: { loanId, kind } });
-  return { ok: true, summary };
+  // D71: what the switches let the LOA do next (drafts, queued messages, reminders), in the flash.
+  const { runLoaAutopilot } = await import("./autopilot");
+  const auto = await runLoaAutopilot(ctx.loan, "read", now).catch(() => null);
+  return { ok: true, summary: [summary, ...(auto?.lines ?? [])].join(" ") };
 }
 
 // ---- Deadlines and checks ----
@@ -342,43 +344,46 @@ function addressOf(f: LoaFile): string {
 }
 
 /** Which switch each kind of draft belongs to. */
-export const DRAFT_CAP: Partial<Record<Draft["kind"], CapKey>> = { escrow_fees: "escrow_fees", open_title: "order_title", open_escrow: "open_escrow", payoffs: "payoffs" };
+export const DRAFT_CAP: Partial<Record<Draft["kind"], CapKey>> = { escrow_fees: "escrow_fees", open_title: "order_title", open_escrow: "open_escrow", payoffs: "payoffs", insurance: "insurance", borrower_conditions: "borrower_conditions", client_update: "client_updates", agent_update: "agent_updates" };
 
-type DraftOpts = { purpose: Purpose | null; leSent: boolean; borrower?: string; letter?: { subject: string; body: string } };
+export type DraftOpts = { purpose: Purpose | null; leSent: boolean; borrower?: string; letter?: { subject: string; body: string }; followUp?: number };
 
-export function draftFor(f: LoaFile, kind: Draft["kind"], user: Pick<User, "name" | "mloId">, now: Date, o: DraftOpts): LoaFile {
-  if (f.drafts.some((d) => d.kind === kind && d.status === "draft")) return f;
+/** D71: who a draft goes to, in words ("escrow officer", "client"). */
+export const toLabel = (to: Draft["to"]): string => (to === "client" ? "client" : to === "agent" ? "client's agent" : PARTY_LABELS[to].toLowerCase());
+
+/** D71: the fixed words of each draft (pure), shared by the drafts the loan officer asks for and the autopilot's. */
+export function draftText(f: LoaFile, kind: Draft["kind"], me: string, o: DraftOpts): { role: PartyRole; subject: string; body: string } | null {
   const borrower = o.borrower || "our mutual client";
   const refi = o.purpose === "refi";
-  const m = mloById(user.mloId);
-  const me = m?.firstName ?? user.name.split(" ")[0] ?? "";
-  const role: PartyRole = kind === "open_title" ? "title" : "escrow";
+  const role: PartyRole = kind === "open_title" ? "title" : kind === "insurance" ? "insurance" : "escrow";
   const to = f.parties.find((p) => p.role === role);
   const hi = to?.name ? `Hi ${to.name.split(" ")[0]},` : "Hello,";
   const where = addressOf(f);
   const closing = f.contract?.closingDate ? ` We're scheduled to close ${f.contract.closingDate}.` : "";
-  let subject = "";
-  let body = "";
   if (kind === "escrow_fees") {
     // D70: "the buyer" only on a purchase; the Loan Estimate only before it has gone out.
-    subject = `Escrow fee estimate: ${where}`;
     const why = o.leSent ? "so I have them for the closing figures" : "so I can get them into the Loan Estimate";
-    body = `${hi}\n\nI'm the loan officer for ${borrower} on ${where}.${closing} Could you send your estimated escrow and settlement fees for the ${refi ? "borrower" : "buyer"}, ${why}?\n\nThank you,\n${me}`;
-  } else if (kind === "open_title") {
-    subject = `Please open title: ${where}`;
-    body = `${hi}\n\nPlease open title on ${where} for ${borrower}'s ${refi ? "refinance" : "purchase"}.${closing} When it's ready, please send the preliminary title commitment and the closing protection letter.\n\nThank you,\n${me}`;
-  } else if (kind === "open_escrow" && o.letter) {
-    subject = o.letter.subject;
-    body = o.letter.body;
-  } else if (kind === "payoffs") {
-    const items = (f.title?.items ?? []).filter((x) => x.payoff && x.status === "open");
-    subject = `Payoffs needed for closing: ${where}`;
-    body = `${hi}\n\nThe title commitment${f.title?.commitmentDate ? ` dated ${f.title.commitmentDate}` : ""} for ${where} shows these to be paid off or released at closing:\n\n${items.map((x) => `- ${x.text}`).join("\n")}\n\nCould you order the payoff statements and let me know if title or escrow needs anything from our side?${closing}\n\nThank you,\n${me}`;
-  } else {
-    return f;
+    if (o.followUp) return { role, subject: `Following up: escrow fee estimate: ${where}`, body: `${hi}\n\nFollowing up on my note about ${where} for ${borrower}. Could you send your estimated escrow and settlement fees for the ${refi ? "borrower" : "buyer"}, ${why}?\n\nThank you,\n${me}` };
+    return { role, subject: `Escrow fee estimate: ${where}`, body: `${hi}\n\nI'm the loan officer for ${borrower} on ${where}.${closing} Could you send your estimated escrow and settlement fees for the ${refi ? "borrower" : "buyer"}, ${why}?\n\nThank you,\n${me}` };
   }
+  if (kind === "open_title") return { role, subject: `Please open title: ${where}`, body: `${hi}\n\nPlease open title on ${where} for ${borrower}'s ${refi ? "refinance" : "purchase"}.${closing} When it's ready, please send the preliminary title commitment and the closing protection letter.\n\nThank you,\n${me}` };
+  if ((kind === "open_escrow" || kind === "insurance") && o.letter) return { role, subject: o.letter.subject, body: o.letter.body };
+  if (kind === "payoffs") {
+    const items = (f.title?.items ?? []).filter((x) => x.payoff && x.status === "open");
+    return { role, subject: `Payoffs needed for closing: ${where}`, body: `${hi}\n\nThe title commitment${f.title?.commitmentDate ? ` dated ${f.title.commitmentDate}` : ""} for ${where} shows these to be paid off or released at closing:\n\n${items.map((x) => `- ${x.text}`).join("\n")}\n\nCould you order the payoff statements and let me know if title or escrow needs anything from our side?${closing}\n\nThank you,\n${me}` };
+  }
+  return null;
+}
+
+export function draftFor(f: LoaFile, kind: Draft["kind"], user: Pick<User, "name" | "mloId">, now: Date, o: DraftOpts): LoaFile {
+  if (f.drafts.some((d) => d.kind === kind && d.status === "draft")) return f;
+  const m = mloById(user.mloId);
+  const me = m?.firstName ?? user.name.split(" ")[0] ?? "";
+  const t = draftText(f, kind, me, o);
+  if (!t) return f;
+  const to = f.parties.find((p) => p.role === t.role);
   const cap = DRAFT_CAP[kind];
-  const d: Draft = { id: rid("dr"), to: role, toName: to?.name ?? "", toEmail: to?.email ?? "", subject, body, kind, status: "draft", createdAt: iso(now), sentAt: null, cap, mode: "approve", sendAfter: null, approvedBy: null };
+  const d: Draft = { id: rid("dr"), to: t.role, toName: to?.name ?? "", toEmail: to?.email ?? "", subject: t.subject, body: t.body, kind, status: "draft", createdAt: iso(now), sentAt: null, cap, mode: "approve", sendAfter: null, approvedBy: null };
   return { ...f, drafts: [d, ...f.drafts].slice(0, 30) };
 }
 
@@ -429,12 +434,18 @@ export async function sendDraft(user: User, loanId: string, draftId: string, edi
   const r = await send(user, to, subject, sig ? `${body}\n\n${sig}` : body);
   if (!r.ok) return { ok: false, error: r.error ?? "It didn't go out." };
   let f: LoaFile = { ...ctx.file, drafts: ctx.file.drafts.map((x) => (x.id === draftId ? { ...x, toEmail: to, subject, body, status: "sent", sentAt: iso(now), approvedBy: user.email } : x)) };
-  if (d.kind === "payoffs") f = { ...f, title: f.title ? { ...f.title, items: f.title.items.map((x) => (x.payoff && x.status === "open" ? { ...x, status: "payoff_requested" } : x)) } : null };
-  if (d.kind === "open_title") f = { ...f, checks: { ...f.checks, title_opened: { done: true, at: iso(now), by: user.email } } };
+  f = afterSent(f, d, user.email, now);
   f = recompute(log(f, `Sent "${subject}" to ${to}.`, now), ctx.loan, ctx.journey, now);
   await loaStore().putFile({ ...f, updatedAt: iso(now) });
   await accountStore().audit({ at: iso(now), actor: user.email, action: "loa.send", detail: { loanId, kind: d.kind, cap: d.cap ?? null } });
   return { ok: true, via: r.via };
+}
+
+/** What a sent draft settles on the file (payoffs requested, title opened). */
+export function afterSent(f: LoaFile, d: Pick<Draft, "kind">, by: string, now: Date): LoaFile {
+  if (d.kind === "payoffs") return { ...f, title: f.title ? { ...f.title, items: f.title.items.map((x) => (x.payoff && x.status === "open" ? { ...x, status: "payoff_requested" } : x)) } : null };
+  if (d.kind === "open_title") return { ...f, checks: { ...f.checks, title_opened: { done: true, at: iso(now), by } } };
+  return f;
 }
 
 export async function discardDraft(user: User, loanId: string, draftId: string, now = new Date()): Promise<boolean> {
@@ -473,7 +484,7 @@ export async function loaTasks(user: User, now = new Date()): Promise<LoaTask[]>
     }
     const sign = signingDate(f, j, loan);
     if (isDate(loan.keyDates.lockExpires) && isDate(sign) && loan.keyDates.lockExpires < sign) push("The lock runs out before closing", `Lock ${loan.keyDates.lockExpires}, closing ${sign}: extend it or move the date.`, loan.keyDates.lockExpires);
-    for (const d of f.drafts.filter((x) => x.status === "draft")) push(`Review and send: ${d.subject}`, `Drafted for the ${PARTY_LABELS[d.to].toLowerCase()}.`, null, { kind: "draft", href: "/mlo/loa#needs" });
+    for (const d of f.drafts.filter((x) => x.status === "draft")) push(`Review and send: ${d.subject}`, `Drafted for the ${toLabel(d.to)}.`, null, { kind: "draft", href: "/mlo/loa#needs" });
     const mine = f.conditions.filter((c) => c.owner === "loan_officer" && c.status === "open");
     if (mine.length) push(`${mine.length} condition${mine.length === 1 ? "" : "s"} for you`, mine.slice(0, 2).map((c) => c.text).join("; "));
     if (f.contract && !f.checks.escrow_fees?.done && !f.drafts.some((d) => d.kind === "escrow_fees")) push("Ask escrow for their fees", "The contract is in; the Loan Estimate needs escrow's fees.");
