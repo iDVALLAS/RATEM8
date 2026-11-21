@@ -54,7 +54,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
   // Every page, both widths.
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {
@@ -91,6 +91,28 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.locator('#s-13').getByRole('button', { name: 'Lock' }).click(); await page.waitForTimeout(1200); console.log('lock:', await flash());
     await page.locator('#docs textarea[name=lines]').first().fill('Pay stubs'); await page.locator('#docs').getByRole('button', { name: 'Add' }).first().click(); await page.waitForURL(/f=/);
     await page.locator('#docs').getByRole('button', { name: 'Draft the request to the borrower' }).first().click(); await page.waitForURL(/f=/); console.log('docs request:', await flash());
+  });
+  // D70: the LOA switches (preset, keyboard on a radiogroup, save) and the per-loan strip.
+  await step('loa: switches', async () => {
+    await page.goto(B + '/mlo/loa#autopilot');
+    await page.locator('.loa-presets').getByRole('button', { name: 'Recommended' }).click(); await page.waitForURL(/f=/); console.log('preset:', await flash());
+    const g = page.getByRole('radiogroup', { name: 'Ask escrow for their fee estimate, purchase' });
+    await g.getByRole('radio', { name: 'LO-Auth' }).focus(); await page.keyboard.press('ArrowLeft');
+    if (!(await g.getByRole('radio', { name: 'Full-auto' }).isChecked())) problems.push('[loa: switches] arrow key did not move the choice');
+    await page.keyboard.press('Tab');
+    if (await page.evaluate(() => document.activeElement?.closest('fieldset')?.getAttribute('aria-label')) === 'Ask escrow for their fee estimate, purchase') problems.push('[loa: switches] Tab did not leave the group');
+    const hoa = page.getByRole('radiogroup', { name: 'Ask for HOA or condo documents, purchase' }).getByRole('radio', { name: 'Full-auto' });
+    if (!(await hoa.isDisabled())) problems.push('[loa: switches] HOA Full-auto should be disabled');
+    const u0 = page.url(); await page.getByRole('button', { name: 'Save switches' }).click(); await page.waitForURL((u) => u.href !== u0); console.log('switches:', await flash());
+  });
+  await step('loa: loan strip', async () => {
+    await page.goto(B + '/mlo/pipeline'); await page.getByRole('link', { name: 'Bo Park' }).first().click(); await page.locator('.loa-strip').waitFor();
+    console.log('strip:', (await page.locator('.loa-strip__line').first().innerText()).replace(/\n/g, ' '));
+    await page.locator('.loa-strip__more > summary').click();
+    await page.getByRole('radiogroup', { name: 'Open escrow, just this loan' }).getByRole('radio', { name: 'Off' }).check();
+    await page.getByRole('button', { name: 'Save for this loan' }).click(); await page.waitForURL(/f=/); console.log('loan switches:', await flash());
+    let u1 = page.url(); await page.getByRole('button', { name: 'Pause on this loan' }).click(); await page.waitForURL((u) => u.href !== u1); console.log('pause:', await flash());
+    u1 = page.url(); await page.getByRole('button', { name: 'Resume on this loan' }).click(); await page.waitForURL((u) => u.href !== u1); console.log('resume:', await flash());
   });
   await step('scripts: practice', async () => { await page.goto(B + '/mlo/scripts'); await page.locator('textarea[name=situation]').fill('A past client from 2022 asked about adding a second story.'); await page.getByRole('button', { name: 'Build a practice script' }).click(); await page.locator('.cs-script').waitFor(); console.log('practice:', await flash()); });
   await step('refi', async () => { await page.goto(B + '/mlo/refi?ref=5.75'); console.log('refi:', (await page.locator('.mlo-section').nth(1).innerText()).split('\n')[0]); });

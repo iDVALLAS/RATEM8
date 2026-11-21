@@ -211,7 +211,8 @@ export async function proposeAll(user: User, settings: TeamSettings, now: Date):
   const marketing = await marketingIdeas(ctx, task).catch(() => []);
   const business = await businessIdeas(user, now, task).catch(() => []);
   // D62: the LOA's file work across open loans (deadlines, drafts to send, conditions for you).
-  const loa = (await loaTasks(user, now).catch(() => [])).slice(0, 12).map((t) => task("loa", `loa:${t.loanId}:${t.title}`, `${t.borrower}: ${t.title}`, t.why, t.urgent ? 70 : 40, { loanId: t.loanId, href: `/mlo/pipeline/${t.loanId}#loa`, cooldownDays: 1 }));
+  // D70: a prepared message waiting for Approve is a "draft" move that opens the LOA's approval queue.
+  const loa = (await loaTasks(user, now).catch(() => [])).slice(0, 12).map((t) => task("loa", `loa:${t.loanId}:${t.title}`, `${t.borrower}: ${t.title}`, t.why, t.urgent ? 70 : 40, { loanId: t.loanId, href: t.href, cooldownDays: 1, ...(t.kind === "draft" ? { kind: "draft" as const } : {}) }));
   return [...loa, ...fromCards(ctx, cards), ...fromPartners(ctx, listings), ...relocationPlan(ctx), ...(await giftIdeas(ctx)), ...marketing, ...business];
 }
 
@@ -230,7 +231,8 @@ export async function runTeam(user: User, now = new Date(), opts: { send?: boole
     if (prev && (prev.status === "open" || now.getTime() - Date.parse(prev.updatedAt) < p.cooldownDays * DAY)) continue;
     let kind = p.kind;
     let note = "";
-    if (kind === "send" || kind === "draft") {
+    // An LOA draft carries no message here: it's checked when it's sent from the LOA's queue.
+    if ((kind === "send" || kind === "draft") && !(p.agent === "loa" && !p.body)) {
       const r = reviewMessage(p.body, p.subject, p.to);
       if (!r.ok) {
         kind = "task";

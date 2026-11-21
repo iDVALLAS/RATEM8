@@ -11,6 +11,7 @@ import CountUp from "@/components/ui/CountUp";
 import EmptyState from "@/components/ui/EmptyState";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import ArrowText from "@/components/ui/ArrowText";
+import AutonomyToggle from "@/app/mlo/AutonomyToggle";
 import { STATES } from "@/lib/config";
 import { DATA_PALETTE, contrastRatio } from "@/lib/contrast";
 import { designContent as d } from "@/lib/content/design";
@@ -213,6 +214,23 @@ export default function DesignPage() {
               <SkeletonCard />
             </div>
             <EmptyState title={d.sample.empty} body={d.sample.emptyBody} />
+          </div>
+        </Section>
+
+        <Section title={d.sections.autonomy} note={d.sections.autonomyNote}>
+          <div className="ds-grid">
+            <div className="ds-lcard" style={{ display: "grid", gap: 8 }}>
+              <p className="mono-label">{d.sample.toggleA}</p>
+              <AutonomyToggle name="ds-auto-a" label={d.sample.toggleA} value="approve" idBase="ds-auto-a" />
+            </div>
+            <div className="ds-lcard" style={{ display: "grid", gap: 8 }}>
+              <p className="mono-label">{d.sample.toggleB}</p>
+              <AutonomyToggle name="ds-auto-b" label={d.sample.toggleB} value="approve" disabled={{ auto: d.sample.toggleBWhy }} idBase="ds-auto-b" />
+            </div>
+            <div className="ds-lcard" style={{ display: "grid", gap: 8 }}>
+              <p className="mono-label">{d.sample.toggleC}</p>
+              <AutonomyToggle name="ds-auto-c" label={d.sample.toggleC} value="inherit" inherit inheritHint="LO-Auth" idBase="ds-auto-c" />
+            </div>
           </div>
         </Section>
 

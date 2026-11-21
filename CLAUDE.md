@@ -171,6 +171,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     D69 import safety (`lib/contacts/mapping.ts`): an opt-out header (`OPT_OUT_HEADER`) only feeds an opt-out field
     (`guardOptOuts`), and a file's opt-out is written as a revocation; an import's attested yes never overrides a stop;
     assistants import into `assistsUserId`'s book. `.mlo-nav--legacy` is the hidden nav class; `.mlo-nav` shows.
+    D70 LOA switches (`lib/loa/autonomy.ts`, `/mlo/loa#autopilot`, strip on each loan's #loa): Full-auto / LO-Auth / Off
+    per task for purchase and refinance, clamped to each task's max on read; `CC_LOA_AUTO="false"`, a paused loan or a
+    held loan lowers them; a recipient is safe only once confirmed (a changed confirmed escrow/title email holds the
+    loan); "What the contract didn't answer" questions; one approval queue at `/mlo/loa#needs`. Nothing sends on its own until D71.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -279,7 +283,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 215 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 669 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

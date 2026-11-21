@@ -13,6 +13,9 @@ import { accountStore } from "@/lib/accounts/store";
 import { bookOf } from "@/lib/contacts/service";
 import LoaPanel from "../../loa/LoaPanel";
 import { loaStore, emptyFile } from "@/lib/loa/store";
+import { switchesFor } from "@/lib/loa/service";
+import { canChangeSwitches, purposeKind } from "@/lib/loa/autonomy";
+import { contactStore } from "@/lib/contacts/store";
 import "../../mlo.css";
 import "./journey.css";
 
@@ -39,6 +42,11 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
   const processor = team.find((u) => u.id === (j.processorUserId ?? loan.ownerUserId));
   // D62: the LOA's file on this loan.
   const loaFile = (await loaStore().file(loan.id).catch(() => null)) ?? emptyFile(loan.id, loan.ownerUserId);
+  // D70: the loan officer's switches, this loan's type, and whether the client said their agent may be kept updated.
+  const loaSettings = await switchesFor(loan.ownerUserId);
+  const loaPurpose = purposeKind(loan, loaFile);
+  const client = loan.contactId ? await contactStore().get(loan.contactId).catch(() => null) : null;
+  const agentOk = !!client?.partnerUpdates?.allowed && (loaPurpose !== "refi" || !!client.partnerUpdates.agentContactId);
 
   return (
     <PageShell>
@@ -64,7 +72,7 @@ export default async function LoanJourney({ params, searchParams }: { params: Pr
           <p className="mlo-note">{jv.done} of {jv.total} steps done{jv.current ? <>. Next: <a href={`#s-${jv.current.key}`}>step {jv.current.key}, {jv.current.title}</a> ({WHO_LABELS[jv.current.who]})</> : ". All done."} · <a href="#loa">Your LOA on this file</a></p>
         </section>
 
-        <LoaPanel loan={loan} file={loaFile} journey={j} />
+        <LoaPanel loan={loan} file={loaFile} journey={j} settings={loaSettings} purpose={loaPurpose} canEdit={canChangeSwitches(v.user, loan.ownerUserId)} agentOk={agentOk} />
 
         <section className="mlo-section" id="clocks">
           <h2>Clocks</h2>

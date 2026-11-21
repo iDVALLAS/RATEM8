@@ -1,0 +1,25 @@
+/*
+ * D70: the three-way switch (app/mlo/AutonomyToggle.tsx). Semantic tokens
+ * only. Dots come from the data colors and M8 Green, never the lime
+ * highlight; the chosen segment uses --accent for its edge and fill.
+ */
+.cc-auto { --auto-dot: var(--color-m8-green); --approve-dot: var(--data-5); --off-dot: var(--data-4); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 3px; border: 1px solid var(--rule-strong); border-radius: 14px; background: var(--bg-sunken); min-width: 0; }
+.cc-auto--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cc-auto__opt { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 4px 8px; border: 1px solid transparent; border-radius: 11px; color: var(--fg-soft); font-size: 13.5px; line-height: 1.2; text-align: center; cursor: pointer; min-width: 0; }
+.cc-auto__opt input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: inherit; }
+.cc-auto__dot { flex: none; width: 9px; height: 9px; border-radius: 99px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25); }
+.cc-auto__opt--auto .cc-auto__dot { background: var(--auto-dot); }
+.cc-auto__opt--approve .cc-auto__dot { background: var(--approve-dot); }
+.cc-auto__opt--off .cc-auto__dot { background: var(--off-dot); }
+.cc-auto__word { min-width: 0; overflow-wrap: anywhere; }
+.cc-auto__hint { color: var(--muted); }
+.cc-auto__opt:hover { border-color: var(--rule-strong); }
+.cc-auto__opt:has(input:checked) { background: var(--accent); border-color: var(--accent); color: var(--accent-text, var(--bg)); font-weight: 600; }
+.cc-auto__opt:has(input:checked) .cc-auto__hint { color: inherit; }
+.cc-auto__opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cc-auto__opt:has(input:disabled) { cursor: not-allowed; opacity: 0.45; }
+.cc-auto__opt:has(input:disabled:checked) { opacity: 0.8; }
+.cc-auto__opt:has(input:disabled):hover { border-color: transparent; }
+/* Four options are two by two on phones, so "Use my setting" never wraps to three lines. */
+@media (max-width: 560px) { .cc-auto--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: no-preference) { .cc-auto__opt { transition: background-color 150ms ease-out, border-color 150ms ease-out; } }

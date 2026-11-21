@@ -143,7 +143,10 @@
 
 /* ─── Phones: slim bar + bottom tabs ────────────────────────── */
 .cc-tabs { display: none; }
+/* D70: how much the bottom tabs cover, for anything sticky at the bottom of a page. */
+.cc-app { --cc-tabs-h: 0px; }
 @media (max-width: 1100px) {
+  .cc-app { --cc-tabs-h: calc(76px + env(safe-area-inset-bottom, 0px)); }
   .cc-nav { display: none; }
   .cc-tabs { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; justify-content: space-around; align-items: flex-end; gap: 4px; padding: 8px max(10px, env(safe-area-inset-left, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-right, 0px)); background: var(--bg-elevated); border-top: 1px solid var(--rule); }
   .cc-main { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }

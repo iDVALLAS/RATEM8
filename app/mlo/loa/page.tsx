@@ -7,11 +7,15 @@ import { AGENTS } from "@/lib/agents/team";
 import { LENDER_BRANDS } from "@/lib/lenders";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { loaStore } from "@/lib/loa/store";
-import { loaTasks } from "@/lib/loa/service";
+import { autonomyOf, loaQueue, loaTasks, PARTY_LABELS } from "@/lib/loa/service";
+import { canChangeSwitches } from "@/lib/loa/autonomy";
+import { bookOf } from "@/lib/contacts/service";
+import { loaQueueWords as q, loaSwitches } from "@/lib/content/loa";
+import AutonomyGrid from "./AutonomyGrid";
 import { listenOn, voiceOn } from "@/lib/voice/google";
 import { FlashBox } from "../MloChrome";
 import LoaChat from "./LoaChat";
-import { addOverlayAction, removeOverlayAction } from "./actions";
+import { addOverlayAction, approveLoaDraft, notThisTimeAction, removeOverlayAction } from "./actions";
 import { addFormAction, removeFormAction } from "../pipeline/[id]/forms/actions";
 import { FORM_KIND_LABELS, FORM_KINDS, OFFICIAL_FORMS } from "@/lib/forms/catalog";
 import { libraryFor } from "@/lib/forms/service";
@@ -40,7 +44,10 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
   );
   if (!me) return shell(<section className="mlo-section"><p className="mlo-note">Sign in with your own account to work with your LOA.</p></section>);
 
-  const [loans, overlays, tasks, library] = await Promise.all([pipelineStore().list(me.id).catch(() => []), loaStore().overlays(me.id).catch(() => []), loaTasks(me).catch(() => []), libraryFor(me).catch(() => [])]);
+  // D70: an assistant sees the book they work (and its switches, read-only).
+  const owner = me.role === "assistant" ? (bookOf(me) ?? me.id) : me.id;
+  const [loans, overlays, tasks, library, queue, auto] = await Promise.all([pipelineStore().list(owner).catch(() => []), loaStore().overlays(me.id).catch(() => []), loaTasks(me).catch(() => []), libraryFor(me).catch(() => []), loaQueue(me).catch(() => ({ drafts: [], proposals: [] })), autonomyOf(owner).catch(() => null)]);
+  const todo = tasks.filter((t) => t.kind !== "draft");
   const open = loans.filter((l) => !l.closed && !l.dead);
   const lenders = [...new Set(overlays.map((o) => o.lender))];
 
@@ -49,16 +56,48 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
       <section className="mlo-section loa-hero">
         <p className="loa-hero__role">{a.role}</p>
         <ul className="loa-does">{a.does.map((d) => <li key={d}>{d}</li>)}</ul>
-        <p className="mlo-note">Drop documents on each loan&apos;s page (Pipeline, then the loan, then <em>Your LOA on this file</em>). It drafts; you approve anything that goes out. Guideline answers cite Fannie Mae or Freddie Mac; they&apos;re research help, not an underwriting decision.</p>
+        <p className="mlo-note">Drop documents on each loan&apos;s page (Pipeline, then the loan, then <em>Your LOA on this file</em>). It drafts; you approve anything that goes out. <a href="#autopilot">Choose how much it does on its own</a>. Guideline answers cite Fannie Mae or Freddie Mac; they&apos;re research help, not an underwriting decision.</p>
       </section>
 
       <section className="mlo-section" id="needs">
-        <h2>Needs you</h2>
-        {tasks.length ? (
+        <h2>{q.heading}</h2>
+        <h3 className="loa-subhead">{q.draftsHeading}</h3>
+        {queue.drafts.length ? (
+          <ul className="loa-queue">
+            {queue.drafts.map(({ loanId, borrower, draft: d }) => (
+              <li key={d.id}>
+                <div className="loa-queue__what">
+                  <span><strong>{borrower}</strong>: {d.subject}</span>
+                  <span className="mlo-note">{q.to(PARTY_LABELS[d.to].toLowerCase())}{d.toEmail ? ` · ${d.toEmail}` : ` · ${q.noAddress}`}</span>
+                  <details className="loa-queue__body"><summary className="mlo-note">{q.read}</summary><pre>{d.body}</pre></details>
+                </div>
+                <div className="loa-queue__acts">
+                  <form action={approveLoaDraft.bind(null, loanId, d.id)}><button type="submit" className="mlo-btn">{q.approve}</button></form>
+                  <Link href={`/mlo/pipeline/${encodeURIComponent(loanId)}#drafts`} className="mlo-btn mlo-btn--ghost">{q.edit}</Link>
+                  <form action={notThisTimeAction.bind(null, loanId, d.id)}><button type="submit" className="mlo-btn mlo-btn--ghost">{q.notThisTime}</button></form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="mlo-note">{q.empty}</p>}
+        {queue.proposals.length ? (
+          <>
+            <h3 className="loa-subhead">{q.proposalsHeading}</h3>
+            <p className="mlo-note">{q.proposalsNote}</p>
+            <ul className="loa-tasks">
+              {queue.proposals.map((p) => (
+                <li key={p.id}><Link href="/mlo/concierge#drafts"><strong>{p.name}</strong>: {p.body.slice(0, 120)}{p.body.length > 120 ? "…" : ""}</Link></li>
+              ))}
+            </ul>
+            <p style={{ margin: "8px 0 0" }}><Link href="/mlo/concierge#drafts" className="mlo-btn mlo-btn--ghost">{q.openDesk}</Link></p>
+          </>
+        ) : null}
+        <h3 className="loa-subhead">{q.tasksHeading}</h3>
+        {todo.length ? (
           <ul className="loa-tasks">
-            {tasks.slice(0, 25).map((t, i) => (
+            {todo.slice(0, 25).map((t, i) => (
               <li key={i} className={t.urgent ? "is-urgent" : ""}>
-                <Link href={`/mlo/pipeline/${encodeURIComponent(t.loanId)}#loa`}><strong>{t.borrower}</strong>: {t.title}</Link>
+                <Link href={t.href}><strong>{t.borrower}</strong>: {t.title}</Link>
                 <span className="mlo-note">{t.why}</span>
               </li>
             ))}
@@ -66,6 +105,11 @@ export default async function LoaPage({ searchParams }: { searchParams: Promise<
         ) : (
           <p className="mlo-note">{open.length ? "Nothing needs you right now on your open loans." : "No open loans yet. They come in from your loan system on the Pipeline page."}</p>
         )}
+      </section>
+
+      <section className="mlo-section loa-autopilot" id="autopilot">
+        <h2>{loaSwitches.heading}</h2>
+        {auto ? <AutonomyGrid modes={auto.modes} canEdit={canChangeSwitches(me, owner)} /> : <p className="mlo-note">Couldn&apos;t load your switches. Try again in a moment.</p>}
       </section>
 
       <section className="mlo-section" id="talk">

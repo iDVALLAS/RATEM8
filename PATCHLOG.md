@@ -5506,3 +5506,83 @@ Spec: "### D69" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. Owner: "build
 - **Known issues:** the reappearing page tabs use the old pill style until D72; "Resume from person X" was checked
   in tests of the error text only (with the clamps nothing in the fixtures fails a batch now).
 - **Next up:** D70 (LOA switches), after the owner's sign-off.
+
+## D70 — LOA switches: settings, loan type, safe recipients, one approval queue (2026-11-21)
+
+Spec: "### D70" in `docs/work/D69-D79-build-prompt-2026-11-21.md`, with §4 Owner decisions (2026-11-21) taking
+precedence. Nothing new goes out on its own in this patch: Full-auto rows are saved and shown, and act like LO-Auth
+until D71.
+
+- **Files:** new `lib/loa/autonomy.ts` (pure registry, `effectiveMode`, `purposeKind`, facts, presets),
+  `lib/loa/autonomy.test.ts`, `lib/content/loa.ts` (all the copy), `app/mlo/AutonomyToggle.tsx` +
+  `app/mlo/autonomy-toggle.css` (the shared 3-way control), `app/mlo/loa/AutonomyGrid.tsx`; changed
+  `lib/loa/store.ts`, `lib/loa/service.ts`, `app/mlo/loa/page.tsx`, `LoaPanel.tsx`, `actions.ts`, `loa.css`,
+  `app/mlo/pipeline/[id]/page.tsx`, `app/mlo/cc-shell.css` (`--cc-tabs-h`), `lib/agents/runner.ts`,
+  `app/mlo/agents/page.tsx`, `lib/forms/catalog.ts` (Open escrow letter wording on a refinance),
+  `app/design/page.tsx`, `lib/content/design.ts`, `scripts/qa/command-center.mjs`.
+- **Registry:** 22 tasks in 7 groups, each with applies / max / default per purchase and refinance exactly as the
+  capability table, plus the six "Always you" rows (no switch, a lock and their reason). Owner decision 1: borrower
+  conditions, client status updates and agent status updates have a Full-auto maximum; their default stays LO-Auth,
+  and the "needs owner and counsel sign-off" clamp is not in `effectiveMode`. `effectiveMode` is the lowest of the
+  loan's own setting (else the officer's, else the default), the maximum, LO-Auth while `CC_LOA_AUTO="false"` and
+  LO-Auth while the loan is held; Off when the task doesn't apply or the officer/loan is paused; with the type
+  unknown, the stricter of the two. Clamped on read, so a lowered maximum overrides old saved values.
+- **Storage:** `cc_loa_autonomy (owner_user_id, data jsonb)` plus a memory twin; `LoaAutonomy` = modes, `undoMinutes`
+  (15, the owner's "Send in 15 minutes"), `dailyAutoSends` (15, 0–50), `pausedUntil`; defaults merged and unknown
+  keys dropped on read. `LoaFile` gains `autonomy`, `paused`, `purposeOverride`, `hoa`, `hold`, `review` (jsonb, no
+  migration). `Draft` gains `cap`, `mode`, `sendAfter`, `approvedBy`, kind `open_escrow` (body from the Open
+  escrow letter) and statuses `queued | held | stopped` for D71.
+- **Loan type:** `purposeKind` (override, then `/purch/i`, then the refinance pattern, then a contract on file, else
+  null). Unknown loans ask "Purchase or refinance?" on the strip. Drafts now say "for the borrower" and
+  "<name>'s refinance" on a refinance, and mention the Loan Estimate only before it has gone out.
+- **Safe recipients:** `Party.source`/`confirmedAt`/`confirmedBy`; a recipient is safe only with `confirmedAt`
+  (typed by the loan officer, an answered question, or the new **Confirm** button next to a document's email).
+  A new document fills empty fields only; anything differing from what the loan officer entered or confirmed goes
+  to **Review changes** (Use the new one / Keep mine). Contract fields work the same way (`contract.fields`,
+  `contract.named`). A changed confirmed escrow or title email sets `hold` (everything on the loan drops to
+  LO-Auth), shows a red banner and puts "Escrow's email changed … Call escrow at a number you already have before
+  anything goes out." at the top of Needs you; settling the email lifts it.
+- **What the contract didn't answer (owner decision 5):** on the loan's #loa after a contract read (or on a
+  refinance), one question per fact a Full-auto job is missing (escrow company and confirmed email, title company
+  and confirmed email, insurance agent's confirmed email, HOA yes/no, lender), each with its own bound server
+  action and an "Unlocks: …" line; the facts LO-Auth jobs use sit in a fold below. Missing facts show as
+  "Needs … · waits" chips on that loan's switch rows.
+- **One approval queue:** `/mlo/loa#needs` lists every LO-Auth draft to a third party with **Approve & send**
+  (`approveLoaDraft.bind(null, loanId, draftId)`, the draft as it stands to its saved address), **Edit** (the loan's
+  #drafts) and **Not this time**; then the Concierge's pending client and agent drafts, linked to the desk (they stay
+  there); then deadlines and to-dos. The team runner's LOA drafts are `draft` moves with a "Review and approve" link
+  to the queue (no Send button or "Let it send on its own" on those; nothing to review until it's sent).
+- **Settings UI:** `/mlo/loa#autopilot` "How much your LOA does on its own" between Needs you and Talk to your LOA:
+  legend, the "not yet" line, presets (Recommended / Ask me for everything / All off, bound actions), groups as h3,
+  label | Purchase | Refinance from 768px, stacked below with full-width controls, "—" where it doesn't apply,
+  "Needs" chips, a sticky Save bar above the phone tabs. `AutonomyToggle` is a `role="radiogroup"` fieldset of
+  native radios (arrows move, Tab leaves, works without JavaScript), 44px segments, word labels, M8 Green / amber /
+  coral dots, the chosen segment in `--accent`, a disabled option's reason in `aria-describedby`. Per loan: the strip
+  "Autopilot: Purchase · 7 on their own · 11 ask you" with Pause on this loan and "Change for this loan ▾" (this
+  type's rows only, plus "Use my setting (…)", labelled just this loan). Added to `/design`.
+- **Who may change them:** only the loan's officer (lo, owner or team lead, own book); assistants see the switches
+  read-only and can approve drafts and answer the questions. Audit `loa.autonomy` with the changed keys only.
+- **Client and agent updates** are one switch with the Automations recipes: the row reads Off while no
+  `borrower_*` (or `agent_*`) recipe is on, and saving the row on/off turns those recipes on/off. The agent row exists
+  on a loan only with `partnerUpdates.allowed` (and a linked agent on a refinance).
+- **Reading switches:** Off refuses to read that kind of document, in words; pause doesn't block a document the
+  loan officer drops. The title read drafts payoffs only when that switch isn't Off (D71's planner takes this over).
+- **Tests:** `lib/loa/autonomy.test.ts`, 11 cases: each `purposeKind` pattern, the stricter fallback, the override
+  winning, HOA/payoff/open-escrow clamps (saved and per loan), `CC_LOA_AUTO=false` across every task, paused
+  loan/officer, assistants refused (officer and per-loan), audit keys only, Automations sync, a document never
+  overwriting a confirmed email plus the hold and its release, the questions and what they unlock, refinance
+  wording, and the queue's one-tap approve (nothing sent before the tap).
+- **Verified:** `npm run verify` passes (669 tests, 11 new). `node scripts/qa/command-center.mjs` (now with
+  `/mlo/loa` at 390/1280, a preset, arrow-key and Tab checks on a radiogroup, HOA's Full-auto disabled, saving, a
+  per-loan change, pause and resume): PROBLEMS none. Screenshots of `/mlo/loa#autopilot`, the queue, a purchase
+  loan's and a refinance loan's #loa and the `/design` switch at 390 and 1280 in Night and Paper: no sideways
+  scroll, no page errors, every segment at least 44px. An intermittent React #418 (logged since D32/D38) showed once
+  on `/mlo` and `/mlo/scripts` in the first run and not in the three later runs.
+- **Decisions:** Full-auto dots use M8 Green (there is no green data color), never the lime; the agent update row
+  also shares its switch with the `agent_*` recipes; a confirmed recipient needs `confirmedAt` (a document email that
+  fills an empty field on a confirmed party is not confirmed); answering a question with a company never confirms an
+  email; the "other facts" fold is extra to the spec so LO-Auth drafts get their addresses too.
+- **Known issues:** the document-read row on a loan's #loa ("Choose file" / "Read it") is clipped at 390px, as before
+  this patch (D72's button alignment); `pausedUntil` has no screen yet; the switches don't change the Automations
+  engine's per-loan behaviour until D71's planner.
+- **Next up:** D71 (Full-auto planner, undo window, caps, log), after the owner's sign-off.

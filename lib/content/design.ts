@@ -29,6 +29,8 @@ export const designContent = {
     motionNote: "Figures count up and bars draw in when scrolled into view. Reduced motion shows the final state.",
     loading: "Loading and empty states",
     loadingNote: "Skeletons, never spinners.",
+    autonomy: "Three-way switch (Command Center)",
+    autonomyNote: "Full-auto, LO-Auth or Off, as native radio buttons in a radiogroup: arrow keys move, Tab leaves. Every option has its word; dots use M8 Green and the data colors, the chosen segment uses the accent. A disabled option keeps its reason for screen readers. The per-loan version adds \"Use my setting\".",
     mesh: "Mesh backdrop",
     meshNote: "Two still gradient layers cross-fading over 48 seconds behind the hero and every scene.",
   },
@@ -48,5 +50,9 @@ export const designContent = {
     emptyBody: "Empty states say what's missing and what to do next.",
     loading: "Loading example pricing",
     sticky: "Sticky CTA bar (phones, borrower pages)",
+    toggleA: "Ask escrow for their fee estimate, purchase",
+    toggleB: "Ask for HOA or condo documents, purchase",
+    toggleBWhy: "Always asks you: it can cost the borrower money.",
+    toggleC: "Open escrow, just this loan",
   },
 } as const;

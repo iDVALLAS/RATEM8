@@ -40,7 +40,8 @@ function MoveCard({ m, top }: { m: Move; top?: boolean }) {
       ) : null}
       {m.note ? <p className="ag-move__note">{m.note}</p> : null}
       <div className="mlo-row-form ag-move__acts">
-        {m.kind === "draft" || m.kind === "send" ? <form action={sendDraftAction.bind(null, m.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>{m.kind === "send" ? "Send now" : "Send"}</button></form> : null}
+        {m.agent === "loa" && m.kind === "draft" && m.href ? <Link href={m.href} className="mlo-btn" style={{ marginTop: 0 }}>Review and approve</Link> : null}
+        {(m.kind === "draft" && m.agent !== "loa") || m.kind === "send" ? <form action={sendDraftAction.bind(null, m.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>{m.kind === "send" ? "Send now" : "Send"}</button></form> : null}
         {m.kind === "spend" && m.gift ? (
           <form action={giftAction.bind(null, m.id)} className="ag-gift">
             <input name="what" className="mlo-input" placeholder={m.gift === "lunch" ? "Where (e.g. lunch at a café)" : "What (e.g. a gift basket)"} aria-label="What it was" required maxLength={80} />
@@ -51,7 +52,7 @@ function MoveCard({ m, top }: { m: Move; top?: boolean }) {
         {m.kind === "spend" && !m.gift && m.href ? <Link href={m.href} className="mlo-btn" style={{ marginTop: 0 }}>Open and price it</Link> : null}
         {m.kind === "task" || m.kind === "plan" || (m.kind === "spend" && !m.gift) ? <form action={moveDoneAction.bind(null, m.id)}><button type="submit" className="mlo-btn" style={{ marginTop: 0 }}>Done</button></form> : null}
         <form action={moveDismissAction.bind(null, m.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" style={{ marginTop: 0 }}>Not now</button></form>
-        {m.kind === "draft" ? <Link href="/mlo/agents/setup#playbooks" className="mlo-note">Let it send on its own</Link> : null}
+        {m.kind === "draft" && m.agent !== "loa" ? <Link href="/mlo/agents/setup#playbooks" className="mlo-note">Let it send on its own</Link> : null}
       </div>
     </li>
   );

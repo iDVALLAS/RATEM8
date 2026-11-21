@@ -44,3 +44,83 @@
 
 .loa-fill { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 10px 14px; }
 .loa-forms .mlo-grid { grid-template-columns: minmax(0, 1fr); } .loa-forms input[type="file"] { min-width: 0; max-width: 100%; }
+
+/* ─── D70: the switches ───────────────────────────────────────── */
+.loa-subhead { margin: 16px 0 8px; font-size: 15px; color: var(--fg); }
+.loa-subhead:first-of-type { margin-top: 4px; }
+.loa-legend { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--fg-soft); font-size: 14px; }
+.loa-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.loa-legend__dot { width: 10px; height: 10px; border-radius: 99px; flex: none; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25); }
+.loa-legend__dot--auto { background: var(--color-m8-green); }
+.loa-legend__dot--approve { background: var(--data-5); }
+.loa-legend__dot--off { background: var(--data-4); }
+.loa-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0 4px; }
+.loa-presets .mlo-btn { margin-top: 0; }
+.loa-auto-group { margin-top: 18px; }
+.loa-auto-group > h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--fg); }
+.loa-auto-group > .mlo-note { margin: 0 0 8px; }
+.loa-auto { display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.loa-auto__head { display: none; }
+.loa-auto__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--rule); min-width: 0; }
+.loa-auto__label { display: grid; gap: 3px; min-width: 0; align-content: start; }
+.loa-auto__label .mlo-note { margin: 0; font-size: 13px; }
+.loa-auto__name { color: var(--fg); font-weight: 500; }
+.loa-auto__cell { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.loa-auto__ph { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.loa-auto__na { display: flex; align-items: center; min-height: 44px; padding: 0 12px; color: var(--muted); border: 1px dashed var(--rule); border-radius: 14px; }
+.loa-chip { justify-self: start; display: inline-block; margin-top: 2px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--rule-strong); background: var(--bg-sunken); color: var(--fg-soft); font-size: 12px; }
+@media (min-width: 768px) {
+  .loa-auto__head { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 8px 0; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule); }
+  .loa-auto__row { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .loa-auto__ph { display: none; }
+  .loa-auto--loan .loa-auto__row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+}
+.loa-savebar { position: sticky; bottom: calc(var(--cc-tabs-h, 0px) + 8px); z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; width: fit-content; max-width: 100%; margin-top: 14px; padding: 8px 10px 8px 8px; border: 1px solid var(--rule-strong); border-radius: 999px; background: var(--bg-elevated); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); }
+.loa-savebar .mlo-btn { margin-top: 0; order: -1; }
+.loa-savebar .mlo-note { margin: 0; font-size: 13px; }
+@media (max-width: 767px) { .loa-savebar { width: 100%; border-radius: 18px; padding: 8px; } .loa-savebar .mlo-btn { flex: 1 1 100%; } .loa-savebar .mlo-note { display: none; } }
+.loa-locked { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.loa-locked li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px; border-radius: 12px; background: var(--bg-sunken); color: var(--muted); }
+.loa-locked li strong { display: block; color: var(--fg-soft); font-weight: 500; }
+.loa-locked li .mlo-note { display: block; margin: 0; font-size: 13px; }
+.loa-locked__icon { color: var(--muted); display: inline-flex; padding-top: 1px; }
+
+/* The strip on each loan. */
+.loa-strip { display: grid; gap: 8px; margin: 0 0 14px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--rule-strong); background: var(--bg-sunken); }
+.loa-strip__line { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--fg-soft); }
+.loa-strip__line strong { color: var(--fg); }
+.loa-strip__line .mlo-btn, .loa-strip__acts .mlo-btn { margin-top: 0; }
+.loa-strip__acts { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.loa-strip__more { flex: 0 1 auto; min-width: 0; }
+.loa-strip__more[open] { flex-basis: 100%; }
+.loa-strip__more > summary { list-style: none; width: fit-content; }
+.loa-strip__more > summary::-webkit-details-marker { display: none; }
+.loa-strip__more > summary::after { content: "▾"; margin-left: 8px; }
+.loa-strip__more[open] > summary::after { content: "▴"; }
+.loa-auto-form--loan { margin-top: 10px; }
+.loa-savebar--loan { width: fit-content; }
+.loa-hold { display: grid; gap: 4px; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--data-4); background: color-mix(in srgb, var(--data-4) 14%, transparent); color: var(--fg); }
+.loa-review { margin-bottom: 14px; }
+.loa-gaps { margin-top: 18px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--rule); }
+.loa-gaps > h3 { margin-top: 0; }
+.loa-gaplist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 12px; }
+.loa-gap { display: grid; gap: 6px; min-width: 0; }
+.loa-gap .mlo-note { margin: 0; font-size: 13px; }
+.loa-gap__q { color: var(--fg); font-weight: 500; }
+.loa-gap .mlo-btn { margin-top: 0; }
+.loa-gap__form .mlo-input { flex: 1 1 220px; min-width: 0; }
+.loa-gaps__other { margin-top: 12px; }
+.loa-party { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.loa-party__confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.loa-tag--ok { background: color-mix(in srgb, var(--color-m8-green) 22%, transparent); }
+.loa-btn-sm { min-height: 36px !important; padding: 4px 12px !important; margin-top: 0 !important; font-size: 13px; }
+
+/* The approval queue. */
+.loa-queue { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.loa-queue li { display: grid; gap: 10px; padding: 12px; border-radius: 14px; border: 1px solid var(--rule-strong); min-width: 0; }
+.loa-queue__what { display: grid; gap: 3px; min-width: 0; color: var(--fg); }
+.loa-queue__what .mlo-note { margin: 0; overflow-wrap: anywhere; }
+.loa-queue__body pre { white-space: pre-wrap; font: inherit; font-size: 13.5px; color: var(--fg-soft); background: var(--bg-sunken); padding: 10px; border-radius: 10px; margin: 6px 0 0; }
+.loa-queue__acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.loa-queue__acts .mlo-btn { margin-top: 0; }
+@media (max-width: 560px) { .loa-queue__acts > * { flex: 1 1 auto; } .loa-queue__acts .mlo-btn { width: 100%; } }

@@ -9,10 +9,17 @@
  */
 import { neon } from "@neondatabase/serverless";
 import { databaseUrl } from "@/lib/m8/server";
+import { isCapKey, isMode, type CapKey, type Mode, type Modes } from "./autonomy";
 
 export const PARTY_ROLES = ["buyer_agent", "listing_agent", "escrow", "title", "lender", "insurance"] as const;
 export type PartyRole = (typeof PARTY_ROLES)[number];
-export type Party = { role: PartyRole; company: string; name: string; email: string; phone: string };
+/**
+ * D70: where a party came from. "document" = read from a document (never
+ * trusted as a recipient on its own); "lo" = typed by the loan officer. An
+ * email is a safe recipient only once the loan officer entered or confirmed it.
+ * Parties saved before D70 have no source and count as read from a document.
+ */
+export type Party = { role: PartyRole; company: string; name: string; email: string; phone: string; source?: "document" | "lo"; confirmedAt?: string | null; confirmedBy?: string | null };
 
 export type Deadline = { key: string; label: string; date: string; source: "contract" | "trid" | "lender" | "guide" | "manual"; done: boolean };
 
@@ -29,7 +36,16 @@ export type Contract = {
   closingDate: string | null;
   possession: string | null;
   notes: string[];
+  /** D70: the parties the contract itself named (open escrow / order title go Full-auto only for these). */
+  named?: PartyRole[];
+  /** D70: fields the loan officer entered or confirmed; a later document never overwrites them. */
+  fields?: Partial<Record<ContractField, { source: "document" | "lo"; confirmedAt: string | null }>>;
 };
+export const CONTRACT_FIELDS = ["price", "sellerCredits", "earnestMoney", "property", "mutualAcceptance", "earnestMoneyDue", "inspectionEnds", "financingContingencyEnds", "appraisalContingencyEnds", "closingDate", "possession"] as const;
+export type ContractField = (typeof CONTRACT_FIELDS)[number];
+
+/** D70: a new document disagreed with a value the loan officer entered or confirmed. Nothing changes until they choose. */
+export type ReviewChange = { id: string; kind: "party" | "contract"; role: PartyRole | null; field: string; label: string; was: string; now: string; next: unknown; at: string };
 
 export type TitleItem = { id: string; kind: "mortgage" | "lien" | "judgment" | "tax" | "hoa" | "easement" | "other"; text: string; payoff: boolean; status: "open" | "payoff_requested" | "cleared" };
 
@@ -61,7 +77,18 @@ export const CHECKS = [
 export type CheckKey = (typeof CHECKS)[number]["key"];
 export type CheckState = { done: boolean; at: string; by: string; note?: string };
 
-export type Draft = { id: string; to: PartyRole; toName: string; toEmail: string; subject: string; body: string; kind: "escrow_fees" | "open_title" | "payoffs" | "conditions_lo" | "other"; status: "draft" | "sent" | "discarded"; createdAt: string; sentAt: string | null };
+/**
+ * A message the LOA prepared for a third party. D70 adds the switch it came
+ * from (`cap`, `mode`), when a queued one may go (`sendAfter`, D71) and who
+ * approved it. "queued" / "held" / "stopped" are D71's autopilot states.
+ */
+export type Draft = {
+  id: string; to: PartyRole; toName: string; toEmail: string; subject: string; body: string;
+  kind: "escrow_fees" | "open_title" | "open_escrow" | "payoffs" | "conditions_lo" | "other";
+  status: "draft" | "queued" | "held" | "stopped" | "sent" | "discarded";
+  createdAt: string; sentAt: string | null;
+  cap?: CapKey; mode?: Mode; sendAfter?: string | null; approvedBy?: string | null;
+};
 
 export type LoaFile = {
   loanId: string;
@@ -77,9 +104,51 @@ export type LoaFile = {
   drafts: Draft[];
   log: { at: string; text: string }[];
   updatedAt: string;
+  /** D70: this loan's own switches (only the ones changed "just this loan"). */
+  autonomy?: Partial<Record<CapKey, Mode>>;
+  /** D70: nothing automatic on this loan. */
+  paused?: boolean;
+  /** D70: the loan officer's answer when the loan system doesn't say purchase or refinance. */
+  purposeOverride?: "purchase" | "refi";
+  /** D70: is there an HOA or condo association (null = not answered). */
+  hoa?: boolean | null;
+  /** D70: a confirmed escrow or title email changed in a new document: everything automatic waits. */
+  hold?: { role: PartyRole; reason: string; at: string } | null;
+  /** D70: differences a new document found, waiting for the loan officer. */
+  review?: ReviewChange[];
 };
 
-export const emptyFile = (loanId: string, ownerUserId: string): LoaFile => ({ loanId, ownerUserId, contract: null, parties: [], deadlines: [], title: null, escrowFees: null, conditions: [], approvalReceivedAt: null, checks: {}, drafts: [], log: [], updatedAt: "" });
+export const emptyFile = (loanId: string, ownerUserId: string): LoaFile => ({ loanId, ownerUserId, contract: null, parties: [], deadlines: [], title: null, escrowFees: null, conditions: [], approvalReceivedAt: null, checks: {}, drafts: [], log: [], updatedAt: "", autonomy: {}, paused: false, hoa: null, hold: null, review: [] });
+
+/**
+ * D70: one loan officer's LOA switches. `modes` holds only what they set;
+ * everything else is the task's default, and every value is clamped to the
+ * task's maximum when it's read (lib/loa/autonomy.ts effectiveMode).
+ * `undoMinutes` and `dailyAutoSends` are used by the autopilot (D71).
+ */
+export type LoaAutonomy = { ownerUserId: string; modes: Modes; undoMinutes: number; dailyAutoSends: number; pausedUntil: string | null; updatedAt: string };
+
+export const defaultAutonomy = (ownerUserId: string): LoaAutonomy => ({ ownerUserId, modes: { purchase: {}, refi: {} }, undoMinutes: 15, dailyAutoSends: 15, pausedUntil: null, updatedAt: "" });
+
+/** Merges a stored row over the defaults, dropping anything unknown. */
+export function withAutonomyDefaults(ownerUserId: string, raw: Partial<LoaAutonomy> | null | undefined): LoaAutonomy {
+  const d = defaultAutonomy(ownerUserId);
+  if (!raw) return d;
+  const clean = (m: unknown): Partial<Record<CapKey, Mode>> => {
+    const out: Partial<Record<CapKey, Mode>> = {};
+    if (m && typeof m === "object") for (const [k, v] of Object.entries(m)) if (isCapKey(k) && isMode(v)) out[k] = v;
+    return out;
+  };
+  const num = (v: unknown, lo: number, hi: number, dflt: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : dflt);
+  return {
+    ownerUserId,
+    modes: { purchase: clean(raw.modes?.purchase), refi: clean(raw.modes?.refi) },
+    undoMinutes: num(raw.undoMinutes, 0, 120, d.undoMinutes),
+    dailyAutoSends: num(raw.dailyAutoSends, 0, 50, d.dailyAutoSends),
+    pausedUntil: typeof raw.pausedUntil === "string" ? raw.pausedUntil : null,
+    updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : "",
+  };
+}
 
 /** A lender's overlays, read once from what the loan officer uploaded. */
 export type Overlay = { id: string; ownerUserId: string; lender: string; title: string; rules: string; chars: number; createdAt: string };
@@ -91,6 +160,9 @@ export interface LoaStore {
   overlays(owner: string): Promise<Overlay[]>;
   putOverlay(o: Overlay): Promise<void>;
   removeOverlay(owner: string, id: string): Promise<void>;
+  /** D70: the loan officer's switches, defaults merged in. */
+  autonomy(owner: string): Promise<LoaAutonomy>;
+  putAutonomy(x: LoaAutonomy): Promise<void>;
 }
 
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -98,6 +170,7 @@ const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 class MemoryLoaStore implements LoaStore {
   private f = new Map<string, LoaFile>();
   private o = new Map<string, Overlay>();
+  private a = new Map<string, LoaAutonomy>();
   async file(id: string) {
     const x = this.f.get(id);
     return x ? clone(x) : null;
@@ -117,6 +190,12 @@ class MemoryLoaStore implements LoaStore {
   async removeOverlay(owner: string, id: string) {
     if (this.o.get(id)?.ownerUserId === owner) this.o.delete(id);
   }
+  async autonomy(owner: string) {
+    return withAutonomyDefaults(owner, this.a.get(owner) ?? null);
+  }
+  async putAutonomy(x: LoaAutonomy) {
+    this.a.set(x.ownerUserId, clone(x));
+  }
 }
 
 type Q = (t: string, p?: unknown[]) => Promise<Record<string, unknown>[]>;
@@ -129,6 +208,7 @@ class NeonLoaStore implements LoaStore {
     return (this.ready ??= Promise.all([
       this.q(`CREATE TABLE IF NOT EXISTS cc_loa_files (loan_id text PRIMARY KEY, owner_user_id text NOT NULL, data jsonb NOT NULL)`),
       this.q(`CREATE TABLE IF NOT EXISTS cc_loa_overlays (id text PRIMARY KEY, owner_user_id text NOT NULL, data jsonb NOT NULL)`),
+      this.q(`CREATE TABLE IF NOT EXISTS cc_loa_autonomy (owner_user_id text PRIMARY KEY, data jsonb NOT NULL)`),
     ]).catch((e) => {
       this.ready = null;
       throw e;
@@ -158,6 +238,15 @@ class NeonLoaStore implements LoaStore {
   async removeOverlay(owner: string, id: string) {
     await this.init();
     await this.q(`DELETE FROM cc_loa_overlays WHERE id = $1 AND owner_user_id = $2`, [id, owner]);
+  }
+  async autonomy(owner: string) {
+    await this.init();
+    const r = await this.q(`SELECT data FROM cc_loa_autonomy WHERE owner_user_id = $1`, [owner]);
+    return withAutonomyDefaults(owner, r[0] ? parse<LoaAutonomy>(r[0].data) : null);
+  }
+  async putAutonomy(x: LoaAutonomy) {
+    await this.init();
+    await this.q(`INSERT INTO cc_loa_autonomy (owner_user_id, data) VALUES ($1,$2) ON CONFLICT (owner_user_id) DO UPDATE SET data = EXCLUDED.data`, [x.ownerUserId, JSON.stringify(x)]);
   }
 }
 
