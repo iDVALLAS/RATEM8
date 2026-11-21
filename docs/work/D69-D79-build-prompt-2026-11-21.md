@@ -879,17 +879,10 @@ The progress bar reads "1 Add files · 2 Check columns · 3 Fix and tag · 4 Whe
 
 ---
 
-## 4. Open questions for the owner
+## 4. Owner decisions (2026-11-21)
 
-1. **Full-auto messages to borrowers and agents.** `lib/automations/recipes.ts:10` records that "sending on its own waits for counsel". Has counsel cleared automatic service texts and emails to borrowers, and to agents who have the client's OK? Until you say yes, those rows offer LO-Auth and Off only, and Full-auto shows "Needs owner and counsel sign-off". Third-party emails to escrow and title aren't affected.
-2. **Switch wording.** Keep your labels "Full-auto 🟢 / LO-Auth 🟡 / Off 🔴" with a one-line explanation under each, or use plainer words ("On its own / Asks me / Off") with the same colors?
-3. **When Full-auto actually sends.** On the current Vercel Hobby plan the background run happens once a day, so a Full-auto email waits for the next morning's run (or goes when you open the LOA page). Upgrade so it can run every 15 minutes with a 10-minute undo window?
-4. **Starting defaults.** "Recommended" means reading documents and reminders on Full-auto, everything that goes to another person on LO-Auth, and anything that costs the borrower money or needs a signature on Off. Accept that, or start everything on LO-Auth?
-5. **Page changes.** Go ahead with:
-   - renaming "Your team" to "AI assistants" and "Team" to "People & roles";
-   - adding Inbox as a 5th phone tab;
-   - later merging Campaigns and Automations into "Follow-up", and adding a lead stage board with the stages listed above?
-6. **Documents arriving on their own.** For the LOA to read a contract without you uploading it, Command Center needs a way in. Choose:
-   - a Zapier "document added" hook from ARIVE or LendingPad;
-   - a per-loan email address that escrow and title can send to (a new Resend inbound setup);
-   - or neither for now (you drop the file on the loan).
+1. **Counsel cleared automatic messages** to borrowers and to agents who have the client's OK. Contact-facing rows (borrower conditions, client status updates, agent status updates) get a Full-auto maximum. Their starting default stays LO-Auth (Recommended preset). They still go only through `gateFor` / `sendText` / `sendEmail`, and agent updates still need `partnerUpdates` and `reviewMessage`.
+2. **Switch names stay:** Full-auto, LO-Auth, Off.
+3. **When Full-auto sends:** by default with the next morning run. Each queued item, and an officer setting, also offers **Send in 15 minutes** (the undo window). D71 adds `/api/cc/loa/tick` (guarded by `CRON_SECRET`) that sends due items; on Vercel Hobby it also runs when the officer opens any Command Center page, and an every-15-minutes caller (a GitHub Actions schedule or an outside cron service holding the secret) can be added so 15-minute sends don't wait for a page view. The screen always shows the real send time.
+4. **Defaults:** the Recommended preset as drawn.
+5. **Documents:** the LO drops the purchase contract on the loan. Everything else is ballparked from it. After a read, the loan shows **"What the contract didn't answer"**: one question per missing fact (escrow's email, title company, insurance agent, HOA yes/no, lender, and so on), each saying which Full-auto jobs it unlocks. Until answered, those jobs show the "Needs …" chip and wait. No Zapier document hook or inbound email for now.
