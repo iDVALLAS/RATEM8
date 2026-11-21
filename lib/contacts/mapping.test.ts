@@ -78,7 +78,7 @@ describe("one long value doesn't fail a batch (D69)", () => {
     const { records, warnings } = buildRecords(csv, autoMap(csv.headers, "contacts"), "contacts");
     expect(records[0].tags).toEqual(["x".repeat(MAX_TAG), "vip"]);
     expect(records[0].zip).toBeNull();
-    expect(warnings.map((w) => w.reason)).toEqual(expect.arrayContaining([expect.stringMatching(/^ZIP/), expect.stringMatching(/^tags/)]));
+    expect(warnings.map((w) => w.code)).toEqual(expect.arrayContaining(["zip", "tags"]));
     const long = fixture("longtag.csv");
     const r = buildRecords(long, smartMap(long, "contacts"), "contacts").records[0];
     expect(r.tags.every((t) => t.length <= MAX_TAG)).toBe(true);
@@ -107,7 +107,7 @@ describe("one long value doesn't fail a batch (D69)", () => {
     expect(john.map((r) => r.loan?.closedOn ?? null)).toEqual(["2021-03-15", null]); // "15/03/2021" isn't March 3, 2022
     const old = parseCsv("Name,Phone,Closing Date\nAnn Lee,(206) 555-1234,12/31/99\n");
     expect(buildRecords(old, autoMap(old.headers, "contacts"), "contacts").records[0].loan?.closedOn).toBe("1999-12-31");
-    expect(warnings.filter((w) => w.reason.startsWith("date")).length).toBeGreaterThanOrEqual(2);
+    expect(warnings.filter((w) => w.code === "date").length).toBeGreaterThanOrEqual(2);
   });
 });
 

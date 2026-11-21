@@ -55,7 +55,7 @@ describe("tags at import (D73)", () => {
     const r = buildRecords(many, autoMap(many.headers, "contacts"), "contacts", { extraTags: ["Imported Nov 21, 2026", "a", "a"] });
     expect(r.records[0].tags).toHaveLength(20);
     expect(r.records[0].tags.slice(-2)).toEqual(["Imported Nov 21, 2026", "a"]);
-    expect(r.warnings.some((w) => w.reason.startsWith("tags"))).toBe(true);
+    expect(r.warnings.some((w) => w.code === "tags")).toBe(true);
   });
 
   it("a list's own tags go only to that list; merging the two lists keeps both", () => {

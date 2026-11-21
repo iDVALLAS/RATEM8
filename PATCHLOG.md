@@ -5848,3 +5848,101 @@ a pre-filled removable "Imported <date>" tag, "Your tags").
   tag counts come from a full scan of the book's tags (fine at today's sizes; an index can come with D78's saved lists);
   Dim was not swept separately (it shares Night's rules).
 - **Next up:** D74 (import review: column cards, format questions, "Needs a look", Fix with M8), after the owner's sign-off.
+
+## D74 — Import review: column cards, format questions, "Needs a look", Fix with M8 (2026-11-21)
+
+Spec: "### D74" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. The owner's ask: M8 walks the loan officer through missing
+information and asks about unclear formats instead of guessing. Built in Command Center styles after the "ImportColumns",
+"ImportFix" and "ImportDone" mockups (D75's parts of "ImportDone" — undo, history, the do-not-call check — are left for D75).
+
+- **Files:** new `lib/contacts/review.ts` (pure: column cards, questions, re-checks, suggestions, sentences, skipped CSV, consent
+  summary), `lib/contacts/ai-fix.ts` (server: M8's tip), `lib/contacts/review.test.ts` (20), `app/mlo/contacts/import/ColumnsStep.tsx`,
+  `ReviewStep.tsx`, `FixWithM8.tsx`, `types.ts`; changed `lib/contacts/normalize.ts` (`splitName` order/titles/suffixes/particles,
+  `cleanState` short forms, `isoDate` `order`, `scanDates`, `dateProblem`, `phoneProblem`, `emailProblem`, `spellDate`,
+  `isPlaceholder`), `lib/contacts/mapping.ts` (Lead source, Referred by, `RowWarning`, `BuildOptions`, `readOptIn`, notes/tag columns,
+  fixes, phone-only rows kept), `lib/contacts/smart.ts` (merge and cleaned CSV carry the new fields), `lib/contacts/ai-map.ts`
+  (`confidence` per column; returns `fields` and `unsure`), `lib/content/contacts-import.ts` (all the copy),
+  `app/mlo/contacts/import/ImportWizard.tsx` (four steps), `app/mlo/contacts/actions.ts` (`fixTipAction`; records take
+  `leadSource`/`referredBy`), `app/mlo/contacts/[id]/page.tsx` (Lead source, Referred by, "(no name)"), `components/ui/DetailSheet.tsx`
+  (optional `className`), `app/mlo/cc-shell.css` (D74 block, `--cc-warn*` tokens, `.cc-dsheet`); tests adjusted in
+  `contacts.test.ts`, `mapping.test.ts`, `smart.test.ts`, `tags.test.ts`; `scripts/qa/command-center.mjs`, `scripts/qa/buttons.mjs`.
+- **Steps:** "1 Add files · 2 Check columns · 3 Fix and tag · 4 Where they came from", with Back and Continue.
+  1. Kind (clients or agents) and the source on the first screen, then the files. New source "Leads I bought or got from a web form
+     (Zillow, Bankrate, LeadPOPs…)" (`lead_vendor`), picked for you (and said so) when a file's name reads as a lead list.
+  2. Per file: "N sure · N check this · N not imported", the relationship default, and a card per column: header, up to 3 examples
+     (on this device only; emails shown as "m•••@gmail.com"), "Goes into" [a field | Add to notes | Make a tag | Don't import], a
+     status chip and a plain note. Check this: M8 unsure, M8 and the name/contents match disagreeing, matched by contents only, an
+     unmatched column (it goes to notes as "Header: value"), a column with an open question, an opt-out column not yet confirmed.
+     "Looks right" clears it; "Use it as Other phone" when an unmatched column looks like a phone or email. The panel is open when
+     anything needs checking (2+ unmatched columns always do) and stays as the loan officer leaves it. Stage / Pipeline stage →
+     notes ("Saved as a note for now"); new fields Lead source (source, lead source, referral source, origin) and Referred by.
+     Columns that look like SSNs, birth dates, account numbers, credit scores or passwords are Not imported and can't be switched on.
+  3. Questions, once per file, on its card; Continue waits for every answer ("Answer the N questions to continue."):
+     dates (any first part over 12 and none of the second → day first, no question; any second part over 12 and none of the first
+     → month first; otherwise "Dates like 03/04/2021 in this file mean: [March 4, 2021] [3 April 2021]", noting when a file has both
+     kinds); one-column names without a comma ("Names in this file are written: [First Last] [Last First]" with 3 previews);
+     each opt-in value that isn't a plain yes or no ("“maybe” · 1 person [Opted in] [Not opted in]", a catch-all past 8 values); each
+     opt-out column ticked "Yes, this column lists people who asked to stop" (its values are shown, "Yes → asked to stop · No → no stop").
+  4. Fix and tag: "N people ready" and tabs **Ready (N)** (preview of 25; stacks as cards under 640px), **Needs a look (N)** (each
+     value read as blank: name, field, row, the value as written and why, an editable box re-checked as you type by the same normalize
+     functions, Save / Skip; on phones a "Fix" button opens a DetailSheet), **Skipped (N)** (name, file, row, reason, "Use column
+     “Home #” as Other phone?" when a column could reach them, "Download the skipped rows (CSV, with a reason column)"). Then the D73
+     tags. **Fix with M8** walks the Needs-a-look rows one at a time: "Mary's phone 555-123-467 is one digit short. Type the right
+     one, or skip the phone." with a likely fix pre-filled when one passes the check (an email typo like gmial, a phone extension, a
+     ZIP that lost its leading 0, a date in the other order), M8's tip under it, Save and next / Skip / Later / ×.
+  5. Where they came from: the source, a consent summary ("People will be recorded as 3 OK to text, on your word." / "2 people
+     marked Do not contact will be blocked." / "Nobody will be recorded as OK…"), a confirm box required when there are opt-ins,
+     then Import (resumable, as D69) and Download cleaned CSV.
+- **Nothing dropped silently:** `buildRecords` returns `warnings {row, at, field, code, raw, reason, name}` for a phone, other phone,
+  email, state, ZIP, date or tags it couldn't read, and a missing name; a value nobody fixed is kept in their notes ("Mobile (as
+  written): 555-123-467"); placeholders ("N/A", "none", "-") aren't flagged. Rows with a phone or email but no name are kept as
+  "(no name)" with "Needs a name". `splitName` drops Mr/Mrs/Ms/Miss/Mx/Dr, keeps Jr/Sr/II/III/IV on the last name, keeps "de la",
+  "van", "Mc" last names together, reads Last First on request. `cleanState` reads "N. Carolina", "Wash.", "Calif", "W. Va.", "N.C.".
+- **Done screen** (fixes the old result line): "N people are in your contacts, tagged “…”", then New people / Already yours, blanks
+  filled in / Duplicates in your files, merged / Skipped (Download with reasons) / Marked Do not contact, from your file, the D73
+  links, Record the permission you hold, Import another file.
+- **Privacy and compliance:** examples and every value in Needs a look stay in the browser. M8's tip gets only the field label, the
+  value's *shape* (`999-999-999`, re-filtered on the server, inside a nonce data block) and a fixed reason code, never the value, the
+  name or the row; a tip containing 3+ digits or an @ is dropped (it could be a made-up value). No key, no allowance or an agent list
+  (RETR) → no AI call; the step-through is the same. M8 never decides consent: unclear opt-in values are the loan officer's answer,
+  opt-out columns can only be opt-out fields (no notes, tag or Don't import), a non-plain-no opt-out value is still a stop.
+  Prior-employer lists stay held.
+- **Tests:** `review.test.ts` (20): "Garcia Maria" Last First → Maria; "Dr. Robert Allen Jr." → Robert / Allen Jr. (plus particles,
+  suffix after a comma, "Van Morrison"); the name question on `names-one-column.csv`; ambiguous dates ask, day-first-only and
+  month-first-only don't, the messy file asks once and lists the misfits; "15/03/2021" DD/MM → 2021-03-15; `dateProblem` ("February
+  has no 31st"); the warnings hold the dropped phone, email and state with the raw value and the notes keep it; a fix re-checked and
+  Skip leaving it blank; local suggestions; the phone-only row kept as (no name) and named by a fix; the skipped CSV has File, Row,
+  Reason and is formula-safe; "Use column 'Home #' as Other phone"; the unsure flag and a disagreement show "Check this",
+  unmatched → notes, Stage → notes (Sure), SSN never read; Lead source / Referred by; the widened states; "maybe" is never permission
+  until answered yes; opt-out columns need confirming; M8's tip sends field, shape and reason code only, falls back without AI, never
+  for agents, drops a made-up value; Keep them shortened. Existing tests updated for the new warning shape and "Ore" → OR.
+- **Verified:** `npm run verify` passes (730 tests). Browser (scratch flow): each fixture (`past-clients-messy.csv`,
+  `names-one-column.csv`, `bonzo-optout.csv`, `longtag.csv`) imported through all four steps at 390 and 1280 in Night and Paper:
+  messy shows 6 sure / 3 check this, the date and "maybe" questions block Continue, then Ready / Needs a look (7) / Skipped (2), Fix
+  with M8 steps through, the skipped download; names asks First Last / Last First; Bonzo needs both opt-out columns ticked and marks
+  1 Do not contact; longtag's "Keep them shortened" keeps the tags. No sideways scroll, no page errors. A re-import reports "Already
+  yours, blanks filled in" honestly. `node scripts/qa/command-center.mjs` (all imports now go through the steps; new step "import
+  review: columns, questions, needs a look, fix": Check this on Favorite Color, the date question, Continue blocked, a phone fixed
+  in Fix with M8 drops Needs a look by one, the skipped CSV's Reason column, Last First preview "Maria · Garcia", opt-outs must be
+  confirmed, "Use column “Home #” as Other phone?" reaches the skipped row): PROBLEMS none, on a freshly started server.
+  `node scripts/qa/buttons.mjs` (adds "import steps": step 1, 2, 2 answered, 3 Needs a look, 3 Fix with M8, 3 Skipped, 3 Ready, 4,
+  at 390/1280 in Night and Paper): 268 page views, PROBLEMS none.
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d74/` (`<fixture>-1-add`, `-2-columns`,
+  `-2-answered`, `-3-review`, `-3-fixm8`, `-3-skipped`, `-3-sheet` (390), `-4-source`, `-5-done`, each at 390/1280 in Night and Paper;
+  `buttons/` has the audit's set).
+- **Decisions:** (a) M8 can't see the value, so it can't propose one: its part is a short tip from the field, shape and reason; the
+  value suggestions are worked out on the device (known email typos, extensions, a lost leading zero, the other date order) and only
+  offered when they pass the check. Nothing is saved without a tap either way. (b) A file with dates written both ways is asked about
+  once; the dates that don't fit the answer go to Needs a look with the other reading suggested, rather than being read their
+  "only possible" way silently. (c) The question cards say "Question · <column>" rather than "M8 has a question": the questions
+  come from rules, and work without AI. (d) Opt-out columns can't be set to notes, a tag or Don't import, and their values can't be
+  re-read as "not a stop" (the confirm box acknowledges the column; the D69 reading stands). (e) An unfixed bad value is kept in the
+  person's notes "as written", so nothing in the file is lost. (f) Private-data columns (SSN, birth date, account number, credit
+  score, password, or values shaped like an SSN) are never imported, and the select is locked. (g) Ready (N) counts people with
+  nothing to look at; Needs a look counts values. (h) The source is asked on step 1 and shown again on step 4 (where Import is),
+  so it can be changed next to the consent summary. (i) Stage columns: only "Stage" / "Pipeline stage" go to notes; "Lifecycle
+  stage" still feeds Relationship. (j) Lead source and Referred by are stored on the contact and shown on its page.
+- **Known gaps:** Needs a look lists the first 100 values and Skipped the first 50 (Fix with M8 and the download cover all); the
+  Ready count can be off by a merged duplicate that had a warning; on a long page D68's fold makes a step's heading a fold button
+  (as on every page); Dim was not swept separately (it shares Night's rules); M8's tip was tested with a stub (no key in QA).
+- **Next up:** D75 (import: people you already have, merge review, undo and history), after the owner's sign-off.

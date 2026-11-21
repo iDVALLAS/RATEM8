@@ -189,6 +189,13 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     (`setTagsAction.bind(null, id)`); exact `?tag=` (Neon `body->'tags' ? $n`), chip row, Tags column, Tags panel (rename, merge,
     type-to-confirm delete, own book only); row checkboxes, "Select all N matching", sticky `.cc-bulkbar` (`bulkContactsAction`, `canSee`
     for every id; one outside the book refuses all). Assistants act in `assistsUserId`'s book.
+    D74 import review (`lib/contacts/review.ts` pure, `app/mlo/contacts/import/{ColumnsStep,ReviewStep,FixWithM8}.tsx`, `types.ts`, `lib/contacts/ai-fix.ts`):
+    4 steps (Add files with kind and source, `lead_vendor` · Check columns · Fix and tag · Where they came from); a card per column
+    (field / Add to notes / Make a tag / Don't import; Sure / Check this / Not imported; SSN/DOB/account columns never imported; samples
+    stay on the device); questions asked once per file (date order, First Last vs Last First, unclear opt-in values, opt-out columns
+    confirmed) block Continue; `buildRecords` `warnings {row, at, field, raw, reason}` → Needs a look (live re-check, phones: DetailSheet
+    `cc-dsheet`), unfixed values kept in notes "as written"; Skipped + formula-safe CSV with Reason; Fix with M8 sends only field, value
+    shape and a reason code (nonce block), no-AI fallback, agents never; consent summary + confirm before Import.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -297,7 +304,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 710 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 730 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

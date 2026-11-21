@@ -22,14 +22,30 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
   page.on('response', (r) => { if (r.status() >= 500) problems.push(`[${where}] HTTP ${r.status()} ${r.url()}`); });
   const flash = async () => (await page.locator('.mlo-flash').first().innerText().catch(() => '(no flash)')).replace(/\n/g, ' | ').slice(0, 160);
   const step = async (name, fn) => { where = name; try { await fn(); } catch (e) { problems.push(`[${name}] FAILED: ${e.message.split('\n')[0]}`); } };
+  // D74: the import's four steps. After the files are added: pick the source, Continue, answer every question
+  // (first choice; consent values "Not opted in"; tick opt-out columns), Continue twice, confirm opt-ins, Import.
+  const toColumns = async () => { await page.locator('.im-filelist__row').first().waitFor({ timeout: 20000 }); await page.getByText('My own relationships').first().click(); await page.getByRole('button', { name: 'Continue', exact: true }).click(); await page.locator('.im-cols').first().waitFor({ state: 'attached' }); };
+  const answerAll = async () => {
+    for (const q of await page.locator('.im-q').all()) {
+      const vals = q.locator('.im-q__value');
+      if (await vals.count()) { for (const v of await vals.all()) await v.getByRole('button', { name: 'Not opted in' }).click(); }
+      else await q.locator('.im-choice').first().click();
+    }
+    for (const c of await page.locator('.im-col input[type=checkbox]').all()) await c.check();
+  };
+  const toReview = async () => { await answerAll(); await page.getByRole('button', { name: 'Continue to fix and tag' }).click(); await page.locator('h2', { hasText: 'ready' }).first().waitFor(); };
+  const finish = async () => {
+    await page.getByRole('button', { name: 'Continue', exact: true }).click(); await page.locator('h2', { hasText: 'Where did these lists come from?' }).waitFor();
+    const cb = page.locator('.mlo-section input[type=checkbox]'); if (await cb.count()) await cb.check();
+    await page.getByRole('button', { name: /^Import \d+ (people|person)/ }).click(); await page.locator('h2', { hasText: 'Imported' }).waitFor();
+  };
+  const importAll = async () => { await toColumns(); await toReview(); await finish(); };
 
   await page.goto(B + '/api/cc/dev-login?email=owner@example.com');
   await step('import', async () => {
     await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
     await page.setInputFiles('input[type=file]', CSV);
-    await page.getByText('My own relationships').click();
-    await page.getByRole('button', { name: /^Import \d+ people/ }).click();
-    await page.getByRole('heading', { name: 'Imported' }).waitFor();
+    await importAll();
   });
   await step('import: Excel + phone contacts + CSV at once', async () => {
     await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
@@ -37,28 +53,25 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
       { name: 'Past clients.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: fs.readFileSync(path.join(process.cwd(), 'fixtures/contacts/sample.xlsx')) },
       { name: 'phone.vcf', mimeType: 'text/vcard', buffer: Buffer.from('BEGIN:VCARD\nFN:Ann Lee\nTEL;TYPE=CELL:(206) 555-1234\nEMAIL:ann@example.com\nEND:VCARD\n') },
     ]);
-    await page.locator('h2', { hasText: 'people ready' }).waitFor({ timeout: 20000 });
+    await toColumns(); await toReview();
     const ready = await page.locator('h2', { hasText: 'people ready' }).innerText();
     console.log('bulk ready:', ready);
     if (!/^5 people ready/.test(ready)) problems.push('[import bulk] expected 5 people after merging, got: ' + ready);
-    await page.getByText('My own relationships').click();
-    await page.getByRole('button', { name: /^Import \d+ people/ }).click();
-    await page.getByRole('heading', { name: 'Imported' }).waitFor();
+    await finish();
   });
   // D73: tag at import, find them in one tap, bulk-add a tag, rename it, change one person's tags.
   await step('tags: import, filter, bulk, rename, contact', async () => {
     await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
     await page.setInputFiles('input[type=file]', path.join(process.cwd(), 'tests/fixtures/import/past-clients-messy.csv'));
-    await page.locator('h2', { hasText: 'people ready' }).waitFor({ timeout: 20000 });
+    await toColumns(); await toReview();
+    await page.getByRole('tab', { name: /^Ready/ }).click();
     const whole = page.getByRole('group', { name: 'Tags for everyone in this import' });
     const pre = await whole.locator('.cc-tag').allInnerTexts();
     if (!pre.some((t) => /^Imported [A-Z][a-z]{2} \d{1,2}, \d{4}/.test(t))) problems.push('[tags] no "Imported <date>" tag pre-filled: ' + pre.join(' | '));
     await whole.locator('input.mlo-input').fill('QA list'); await whole.locator('input.mlo-input').press('Enter');
     const cell = await page.locator('.mlo-scroll table tbody tr').first().locator('td').last().innerText();
     if (!/QA list/.test(cell)) problems.push('[tags] preview Tags column lacks the import tag: ' + cell);
-    await page.getByText('My own relationships').click();
-    await page.getByRole('button', { name: /^Import \d+ people/ }).click();
-    await page.getByRole('heading', { name: 'Imported' }).waitFor();
+    await finish();
     await page.getByRole('link', { name: 'See the people from this import' }).click(); await page.waitForURL(/tag=/);
     console.log('tags: import filter:', await page.locator('.mlo-section .mlo-note').first().innerText());
     await page.goto(B + '/mlo/contacts?tag=QA%20list');
@@ -81,6 +94,68 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.locator('#tags').getByRole('button', { name: 'Remove tag QA one' }).click();
     await page.locator('#tags [role=status]', { hasText: 'Tags saved.' }).waitFor();
     await page.reload(); if (/QA one/.test(await page.locator('#tags').innerText())) problems.push('[tags] removed tag still on the contact');
+  });
+  // D74: the review. Column cards and a format question (messy file), Needs a look and Fix with M8, the skipped download,
+  // a Last First name question, opt-out columns confirmed before import, and "Use column 'Home #' as Other phone?".
+  await step('import review: columns, questions, needs a look, fix', async () => {
+    const FX = (f) => path.join(process.cwd(), 'tests/fixtures/import', f);
+    await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
+    await page.setInputFiles('input[type=file]', FX('past-clients-messy.csv'));
+    await toColumns();
+    const counts = (await page.locator('.im-counts').first().innerText()).replace(/\n/g, ' ');
+    const color = page.locator('.im-col', { has: page.locator('.im-col__h', { hasText: 'Favorite Color' }) });
+    if (!/Check this/.test(await color.locator('.im-chip').innerText())) problems.push('[review] unmatched "Favorite Color" is not "Check this"');
+    if (!(await page.locator('.im-q', { hasText: 'Dates like' }).count())) problems.push('[review] no date-order question on the messy file');
+    if (!(await page.getByRole('button', { name: 'Continue to fix and tag' }).isDisabled())) problems.push('[review] Continue not blocked by unanswered questions');
+    console.log('review: columns', counts, '|', await page.locator('#im-pending').innerText());
+    await page.locator('.im-q', { hasText: 'Dates like' }).locator('.im-choice').first().click();
+    await toReview();
+    const tabs = (await page.getByRole('tab').allInnerTexts()).join(' | ');
+    const lookN = Number((/Needs a look \((\d+)\)/.exec(tabs) || [])[1] || 0);
+    if (!lookN) problems.push('[review] nothing in Needs a look: ' + tabs);
+    await page.getByRole('button', { name: 'Fix with M8' }).click(); await page.locator('.im-fix').waitFor();
+    console.log('review: fix with M8:', await page.locator('.im-fix__ask').innerText());
+    const box = page.locator('.im-fix input.mlo-input');
+    await box.fill('(206) 555-3434');
+    if (!/Looks right/.test(await page.locator('.im-fix .im-fixed__msg').innerText())) problems.push('[review] typed phone not re-checked as right');
+    await page.locator('.im-fix').getByRole('button', { name: 'Save and next' }).click();
+    const after = Number((/Needs a look \((\d+)\)/.exec((await page.getByRole('tab').allInnerTexts()).join(' ')) || [])[1] || 0);
+    if (after !== lookN - 1) problems.push(`[review] Needs a look went ${lookN} → ${after} after a fix`);
+    await page.locator('.im-fix').getByRole('button', { name: 'Later' }).click();
+    await page.locator('.im-fix').getByRole('button', { name: 'Close' }).click();
+    await page.getByRole('tab', { name: /^Skipped/ }).click();
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Download the skipped rows/ }).click()]);
+    const csv = fs.readFileSync(await dl.path(), 'utf8');
+    if (!/^\uFEFF?File,Row,Reason,/.test(csv)) problems.push('[review] skipped CSV has no Reason column: ' + csv.slice(0, 60));
+    console.log('review: skipped csv:', csv.split('\r\n').length - 2, 'rows');
+    await finish();
+    console.log('review: done:', (await page.locator('.im-stats').innerText()).replace(/\n/g, ' '));
+    // Names in one column: Last First.
+    await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
+    await page.setInputFiles('input[type=file]', FX('names-one-column.csv'));
+    await toColumns();
+    const nq = page.locator('.im-q', { hasText: 'Names in this file are written' });
+    await nq.getByRole('button', { name: 'Last First' }).click();
+    if (!/Maria · Garcia/.test(await nq.innerText())) problems.push('[review] Last First preview lacks "Maria · Garcia"');
+    await toReview(); await finish();
+    // Opt-out columns must be confirmed.
+    await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
+    await page.setInputFiles('input[type=file]', FX('bonzo-optout.csv'));
+    await toColumns();
+    await page.locator('.im-q').first().locator('.im-choice').first().click();
+    if (!(await page.getByRole('button', { name: 'Continue to fix and tag' }).isDisabled())) problems.push('[review] opt-out columns not required to be confirmed');
+    await toReview(); await finish();
+    // A column that can reach a skipped row.
+    const home = path.join(path.dirname(CSV), 'home.csv');
+    fs.writeFileSync(home, 'Name,Mobile,Email,Home #\nDee Home,,,(425) 555-2110\nEd Cell,(425) 555-2111,ed@example.com,\n');
+    await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
+    await page.setInputFiles('input[type=file]', home);
+    await toColumns(); await toReview();
+    await page.getByRole('tab', { name: /^Skipped/ }).click();
+    const sug = page.locator('.im-suggest', { hasText: 'Use column “Home #” as Other phone?' });
+    if (!(await sug.count())) problems.push('[review] no "Use column Home # as Other phone?" suggestion');
+    else { await sug.getByRole('button', { name: 'Use it' }).click(); if (!/Skipped \(0\)/.test((await page.getByRole('tab').allInnerTexts()).join(' '))) problems.push('[review] using Home # did not reach the skipped row'); }
+    await finish();
   });
   let key = '';
   await step('pipeline key + loan + lead', async () => {

@@ -18,7 +18,7 @@ import { CONTACT_FIELDS, guardOptOuts, type Mapping } from "./mapping";
 const FIELD_KEYS = Object.keys(CONTACT_FIELDS) as (keyof typeof CONTACT_FIELDS)[];
 const RELS = ["past_client", "lead", "sphere", "agent", "other"] as const;
 
-export const MAP_SYSTEM = `You match the columns of a mortgage loan officer's contact spreadsheet to the fields of their CRM. You see each column's header and the shapes of a few values (A = capital letter, a = small letter, 9 = digit; real values are hidden). Map each column to one field, or "none" if it fits no field or you're unsure. Use each field at most once (fullName only when there are no separate first and last name columns). Also guess what kind of list it is (relationship) from the file name and headers, or "unknown".
+export const MAP_SYSTEM = `You match the columns of a mortgage loan officer's contact spreadsheet to the fields of their CRM. You see each column's header and the shapes of a few values (A = capital letter, a = small letter, 9 = digit; real values are hidden). Map each column to one field, or "none" if it fits no field. Give each column a confidence: "sure" when the header and shapes plainly say what it is, "unsure" when it could be something else (then still give your best field, or "none"). Use each field at most once (fullName only when there are no separate first and last name columns). A "stage" or "pipeline stage" column is "none" (it goes to notes). Also guess what kind of list it is (relationship) from the file name and headers, or "unknown".
 
 Fields: ${FIELD_KEYS.map((k) => `${k} (${CONTACT_FIELDS[k]})`).join("; ")}.
 
@@ -30,12 +30,12 @@ const SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
-    columns: { type: "array", items: { type: "object", additionalProperties: false, properties: { column: { type: "integer" }, field: { type: "string", enum: [...FIELD_KEYS, "none"] } }, required: ["column", "field"] } },
+    columns: { type: "array", items: { type: "object", additionalProperties: false, properties: { column: { type: "integer" }, field: { type: "string", enum: [...FIELD_KEYS, "none"] }, confidence: { type: "string", enum: ["sure", "unsure"] } }, required: ["column", "field", "confidence"] } },
     relationship: { type: "string", enum: [...RELS, "unknown"] },
   },
   required: ["columns", "relationship"],
 } as const;
-const Out = z.object({ columns: z.array(z.object({ column: z.number().int(), field: z.enum(["none", ...FIELD_KEYS] as [string, ...string[]]) })).max(200), relationship: z.enum([...RELS, "unknown"]) });
+const Out = z.object({ columns: z.array(z.object({ column: z.number().int(), field: z.enum(["none", ...FIELD_KEYS] as [string, ...string[]]), confidence: z.enum(["sure", "unsure"]).default("sure") })).max(200), relationship: z.enum([...RELS, "unknown"]) });
 
 export type MapCall = (system: string, user: string) => Promise<{ json: string | null; stop: string | null }>;
 
@@ -55,7 +55,12 @@ function apiCall(meter: Meter): MapCall {
 }
 
 export type ColumnInfo = { header: string; shapes: string[] };
-export type AiMapResult = { ok: true; mapping: Mapping; relationship: string | null } | { ok: false; error: string };
+/**
+ * D74: besides the mapping, M8's own answer per column (`fields`: a field or
+ * "none", by column index) and the columns it wasn't sure about, so the
+ * import can mark them "Check this" when M8 and the name match disagree.
+ */
+export type AiMapResult = { ok: true; mapping: Mapping; relationship: string | null; fields: string[]; unsure: number[] } | { ok: false; error: string };
 
 /** Only header text and value shapes: anything that still looks like a real value is dropped before it's sent. */
 const safeShape = (s: string) => (/[b-zB-Z0-8]/.test(s.replace(/[Aa9]/g, "")) ? "" : s.slice(0, 24));
@@ -80,8 +85,13 @@ export async function aiMapColumns(user: Pick<User, "id"> | null, input: { fileN
     if (!p.success) return { ok: false, error: "no answer" };
     const mapping: Mapping = {};
     const used = new Set<number>();
-    for (const { column, field } of p.data.columns) {
-      if (field === "none" || column < 0 || column >= cols.length || used.has(column)) continue;
+    const fields = cols.map(() => "none");
+    const unsure: number[] = [];
+    for (const { column, field, confidence } of p.data.columns) {
+      if (column < 0 || column >= cols.length) continue;
+      if (confidence === "unsure" && !unsure.includes(column)) unsure.push(column);
+      if (fields[column] === "none") fields[column] = field;
+      if (field === "none" || used.has(column)) continue;
       const f = field as keyof typeof CONTACT_FIELDS;
       if (mapping[f] !== undefined) continue;
       mapping[f] = column;
@@ -89,7 +99,7 @@ export async function aiMapColumns(user: Pick<User, "id"> | null, input: { fileN
     }
     if (mapping.firstName !== undefined && mapping.lastName !== undefined) delete mapping.fullName;
     // D69: the same header rules as matching by name. M8 can't turn an opt-out column into permission.
-    return { ok: true, mapping: guardOptOuts(cols.map((c) => c.header), mapping), relationship: p.data.relationship === "unknown" ? null : p.data.relationship };
+    return { ok: true, mapping: guardOptOuts(cols.map((c) => c.header), mapping), relationship: p.data.relationship === "unknown" ? null : p.data.relationship, fields, unsure: unsure.sort((a, b) => a - b) };
   } catch {
     return { ok: false, error: "no answer" };
   }

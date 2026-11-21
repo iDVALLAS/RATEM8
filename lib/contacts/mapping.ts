@@ -6,7 +6,7 @@
  * from Bonzo, Total Expert, Jungo, Salesforce, Google, Outlook, Excel) and
  * "agents" (RETR exports, or any agent list).
  */
-import { cleanEmail, cleanState, isoDate, splitName, stateFromZip, toE164 } from "./normalize";
+import { cleanEmail, cleanState, dateProblem, emailProblem, isoDate, isPlaceholder, phoneProblem, splitName, stateFromZip, toE164, type DateOrder, type NameOrder } from "./normalize";
 import { MAX_TAG, MAX_TAGS, mergeTags, splitTags, withExtraTags } from "./tags";
 import type { Csv } from "./csv";
 
@@ -24,6 +24,9 @@ export const CONTACT_FIELDS = {
   state: "State",
   zip: "ZIP",
   relationship: "Relationship (past client, lead…)",
+  // D74: where a lead came from, and who sent them.
+  leadSource: "Lead source",
+  referredBy: "Referred by",
   tags: "Tags",
   notes: "Notes",
   closedOn: "Loan closed on",
@@ -98,6 +101,8 @@ const SYNONYMS: [Field, RegExp][] = [
   ["avgPrice", /av(era)?g.*price/],
   ["topLender", /(top |most used |preferred )?(lender|loan officer|mlo)/],
   ["brokerage", /brokerage|office|company|firm/],
+  ["leadSource", /^(lead )?source$|lead.?source|referral.?source|^(lead )?origin$/],
+  ["referredBy", /referred.?by|^referr(al|er)( name)?$|^referred$/],
   ["firstName", /^(first|given|fname|first name|contact first name)|first.?name/],
   ["lastName", /^(last|surname|family|lname)|last.?name/],
   ["fullName", /^(name|full name|contact name|agent name|agent|client|borrower)$|full.?name/],
@@ -108,7 +113,8 @@ const SYNONYMS: [Field, RegExp][] = [
   ["city", /^city|town/],
   ["state", /^state|province|^st$/],
   ["zip", /zip|postal/],
-  ["relationship", /relationship|contact type|lead type|client type|category|lifecycle|stage|^type$|^status$/],
+  // D74: a bare "Stage" / "Pipeline stage" column goes to notes for now (the stage board comes later).
+  ["relationship", /relationship|contact type|lead type|client type|category|lifecycle|^type$|^status$/],
   ["tags", /^(tags?|labels?|groups?|lists?)$|\btags?\b/],
   ["closedOn", /(close|closing|funded|fund).*date|date.*(closed|funded)|closed on/],
   ["loanAmount", /loan.*amount|^amount$/],
@@ -198,6 +204,9 @@ export type ImportRecord = {
   relationship: string;
   tags: string[];
   notes: string | null;
+  /** D74: "Zillow", "Open house"…, and who referred them. */
+  leadSource?: string | null;
+  referredBy?: string | null;
   loan: { closedOn: string | null; amount: number | null; noteRate: number | null } | null;
   agent: { brokerage: string | null; units: number | null; volume: number | null; buyerUnits: number | null; listingUnits: number | null; avgPrice: number | null; topLender: string | null } | null;
   /** Channels a column said "yes" to. Recorded as the loan officer's attestation, not proof. */
@@ -210,7 +219,43 @@ export type ImportRecord = {
   optOuts?: Partial<Record<ConsentChannel, string>>;
 };
 
-export type RowProblem = { row: number; reason: string };
+/**
+ * A row that couldn't be imported (no phone or email we could read). D74:
+ * `name` and `cells` are for the Skipped list and its download, in the
+ * browser only; they're never sent anywhere.
+ */
+export type RowProblem = { row: number; reason: string; name?: string; cells?: string[] };
+
+/** D74: a field a value can be fixed in from the "Needs a look" list. `name` is the person's whole name. */
+export const FIX_FIELDS = ["name", "phone", "phone2", "email", "state", "zip", "closedOn", "tags"] as const;
+export type FixField = (typeof FIX_FIELDS)[number];
+/** D74: per row (0-based index into the file's rows), the value the loan officer typed instead of the file's. "" = leave it blank. */
+export type RowFixes = Record<number, Partial<Record<FixField, string>>>;
+export type WarningCode = "name_missing" | "phone" | "email" | "state" | "zip" | "date" | "tags";
+
+/**
+ * D74: a value that was read as blank, or changed, and is shown in "Needs a
+ * look": which row (`row` as numbered in the file, `at` 0-based), which
+ * field, the value as written, and why, in plain words.
+ */
+export type RowWarning = { row: number; at: number; field: FixField; code: WarningCode; raw: string; reason: string; name: string; keep?: string };
+
+/** D74: the build's answers from the review: how to read dates and names, extra columns, consent values, fixes. */
+export type BuildOptions = {
+  defaultRelationship?: string | null;
+  firstRow?: number;
+  fileName?: string;
+  extraTags?: readonly string[];
+  /** Day-first or month-first for numeric dates (default month first). */
+  dateOrder?: DateOrder;
+  /** How a one-column name without a comma is written (default First Last). */
+  nameOrder?: NameOrder;
+  /** Columns matched to no field: added to notes as "Header: value", or made into tags. */
+  columns?: { notes?: readonly number[]; tags?: readonly number[] };
+  /** The loan officer's reading of an opt-in column's values (lowercased value → yes or no; "*" = any other value). */
+  consent?: Partial<Record<"optInText" | "optInCall" | "optInEmail", Record<string, boolean>>>;
+  fixes?: RowFixes;
+};
 
 export { MAX_TAG, MAX_TAGS } from "./tags";
 
@@ -218,16 +263,30 @@ const num = (s: string | undefined): number | null => {
   const v = Number((s ?? "").replace(/[$,%\s]/g, ""));
   return (s ?? "").trim() !== "" && Number.isFinite(v) ? v : null;
 };
-const yes = (s: string | undefined) => /^(y|yes|true|1|opted ?in|subscribed)$/i.test((s ?? "").trim());
+/** An opt-in cell that plainly says yes. */
+export const YES_VALUE = /^(y|yes|true|1|opted ?in|subscribed)$/i;
+/** An opt-in cell that plainly says no (blank counts as no). */
+export const NO_VALUE = /^(n|no|false|0|none|-|n\/a|opted ?out|unsubscribed|off)$/i;
 /**
  * D69: an opt-out cell counts unless it plainly says no. A date, "x" or
  * "Opted out" in an opt-out column all mean they asked to stop.
  */
-const optedOut = (s: string | undefined) => {
+export const readsOptOut = (s: string | undefined) => {
   const v = (s ?? "").trim();
   return v !== "" && !/^(n|no|false|0|none|-|n\/a|opted ?in|subscribed|active|ok)$/i.test(v);
 };
+/** D74: how an opt-in cell reads before the loan officer answers: yes, no, or "?" (they decide). */
+export function readOptIn(raw: string | undefined, answers?: Record<string, boolean>): "yes" | "no" | "unknown" {
+  const v = (raw ?? "").trim();
+  const own = answers?.[v.toLowerCase()];
+  if (own !== undefined) return own ? "yes" : "no";
+  if (!v || NO_VALUE.test(v)) return "no";
+  if (YES_VALUE.test(v)) return "yes";
+  const other = answers?.["*"];
+  return other === undefined ? "unknown" : other ? "yes" : "no";
+}
 const ZIP_RE = /^\d{5}(-\d{4})?$/;
+const splitCell = (v: string) => v.split(/[;,|]/).map((t) => t.trim()).filter(Boolean);
 
 const RELATIONSHIPS: [RegExp, string][] = [
   [/past|closed|funded|client|customer|borrower/i, "past_client"],
@@ -245,78 +304,124 @@ export function relationshipOf(raw: string | undefined, kind: ImportKind): strin
 export const RELATIONSHIP_LABELS: Record<string, string> = { past_client: "Past client", lead: "Lead", sphere: "Sphere", agent: "Agent", other: "Other" };
 
 /**
- * Turns mapped rows into records. Rows with no name and no way to reach them
- * are skipped with a reason; values that couldn't be read (a ZIP, a date) are
- * left blank and listed in `warnings`.
+ * Turns mapped rows into records. Rows with no phone or email we could read
+ * are skipped with a reason; values that couldn't be read (a phone, an
+ * email, a state, a ZIP, a date) are left blank and listed in `warnings`
+ * (D74: with the field and the value as written, for "Needs a look"), and
+ * the value as written is kept in their notes so nothing is lost. A row with
+ * a phone or email but no name is kept as "(no name)" with a warning.
  */
-export function buildRecords(
-  csv: Csv,
-  mapping: Mapping,
-  kind: ImportKind,
-  opts: { defaultRelationship?: string | null; firstRow?: number; fileName?: string; extraTags?: readonly string[] } = {},
-): { records: ImportRecord[]; problems: RowProblem[]; warnings: RowProblem[] } {
+export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts: BuildOptions = {}): { records: ImportRecord[]; problems: RowProblem[]; warnings: RowWarning[] } {
   const rowNo = (i: number) => i + (opts.firstRow ?? 2);
   const records: ImportRecord[] = [];
   const problems: RowProblem[] = [];
-  const warnings: RowProblem[] = [];
+  const warnings: RowWarning[] = [];
   // D69: a column may only feed a field its header allows (an opt-out column never feeds an opt-in).
   const safe = guardOptOuts(csv.headers, mapping);
-  const get = (row: string[], f: Field) => (safe[f] !== undefined ? (row[safe[f]!] ?? "").trim() : "");
+  const used = new Set(Object.values(safe));
+  // D74: extra columns never repeat a matched one, and an opt-out column is never a note or a tag.
+  const extraCols = (cols: readonly number[] | undefined) => (cols ?? []).filter((c) => c >= 0 && c < csv.headers.length && !used.has(c) && !OPT_OUT_HEADER.test(csv.headers[c] ?? ""));
+  const noteCols = extraCols(opts.columns?.notes);
+  const tagCols = extraCols(opts.columns?.tags).filter((c) => !noteCols.includes(c));
+  const header = (f: Field) => (safe[f] !== undefined ? (csv.headers[safe[f]!] ?? "").trim() : "");
   // D73: the tags the loan officer picked for the whole import and for this list, on every row.
   const extra = mergeTags(opts.extraTags ?? []);
-  const whereFrom = (f: OptOutField) => `${(opts.fileName ?? "file").slice(0, 100)} column ${(csv.headers[safe[f]!] ?? "").trim().slice(0, 60)}`;
+  const whereFrom = (f: OptOutField) => `${(opts.fileName ?? "file").slice(0, 100)} column ${header(f).slice(0, 60)}`;
+  const label = (f: Field) => header(f) || (CONTACT_FIELDS as Record<string, string>)[f] || f;
   csv.rows.forEach((row, i) => {
-    let first = get(row, "firstName");
-    let last = get(row, "lastName");
-    if (!first && !last) [first, last] = splitName(get(row, "fullName"));
-    else if (!last && first.includes(",")) [first, last] = splitName(first);
-    const email = cleanEmail(get(row, "email"));
-    const phone = toE164(get(row, "phone"));
-    const phone2 = toE164(get(row, "phone2"));
-    if (!first && !last && !email) return problems.push({ row: rowNo(i), reason: "no name or email" });
-    if (!email && !phone && !phone2) return problems.push({ row: rowNo(i), reason: "no valid phone or email" });
-    const rawZip = get(row, "zip");
+    const fix = opts.fixes?.[i];
+    const cell = (f: Field) => (safe[f] !== undefined ? (row[safe[f]!] ?? "").trim() : "");
+    // D74: a value the loan officer typed in "Needs a look" replaces the file's.
+    const get = (f: Field, as?: FixField) => {
+      const k = as ?? (f as FixField);
+      return fix && k in fix ? (fix[k] ?? "").trim() : cell(f);
+    };
+    let first = "";
+    let last = "";
+    if (fix && "name" in fix) [first, last] = splitName(fix.name);
+    else {
+      first = cell("firstName");
+      last = cell("lastName");
+      if (!first && !last) [first, last] = splitName(cell("fullName"), opts.nameOrder);
+      else if (!last && first.includes(",")) [first, last] = splitName(first);
+    }
+    const display = `${first} ${last}`.trim() || "(no name)";
+    const asWritten: string[] = [];
+    const warn = (field: FixField, code: WarningCode, raw: string, reason: string, keep?: Field) => {
+      warnings.push({ row: rowNo(i), at: i, field, code, raw, reason, name: display });
+      if (keep && raw) asWritten.push(`${label(keep)} (as written): ${raw.slice(0, 120)}`);
+    };
+    // D74: "Keep them shortened" writes the tags that fit, so the warning goes.
+    const keepTags = (kept: string[]) => {
+      const w = warnings[warnings.length - 1];
+      if (w && w.at === i && w.field === "tags") w.keep = kept.join("; ");
+    };
+    const rawEmail = get("email");
+    const rawPhone = get("phone");
+    const rawPhone2 = get("phone2");
+    const email = cleanEmail(rawEmail);
+    const phone = toE164(rawPhone);
+    const phone2 = toE164(rawPhone2);
+    if (!email && !phone && !phone2) {
+      return problems.push({ row: rowNo(i), reason: "no valid phone or email", name: display, cells: row });
+    }
+    if (rawPhone && !phone && !isPlaceholder(rawPhone)) warn("phone", "phone", rawPhone, phoneProblem(rawPhone), "phone");
+    if (rawPhone2 && !phone2 && !isPlaceholder(rawPhone2)) warn("phone2", "phone", rawPhone2, phoneProblem(rawPhone2), "phone2");
+    if (rawEmail && !email && !isPlaceholder(rawEmail)) warn("email", "email", rawEmail, emailProblem(rawEmail), "email");
+    if (!first && !last && !(fix && "name" in fix)) warn("name", "name_missing", "", "Needs a name");
+    const rawZip = get("zip");
     const zip = ZIP_RE.test(rawZip) ? rawZip : null;
-    if (rawZip && !zip) warnings.push({ row: rowNo(i), reason: "ZIP not readable, left blank" });
-    const state = cleanState(get(row, "state")) ?? stateFromZip(zip ?? undefined);
-    const rawTags = splitTags(get(row, "tags"));
+    if (rawZip && !zip && !isPlaceholder(rawZip)) warn("zip", "zip", rawZip, "isn't a 5-digit ZIP", "zip");
+    const rawState = get("state");
+    const cleanSt = cleanState(rawState);
+    if (rawState && !cleanSt && !isPlaceholder(rawState)) warn("state", "state", rawState, "isn't a US state we know", "state");
+    const state = cleanSt ?? stateFromZip(zip ?? undefined);
+    const rawTags = splitTags(get("tags"));
+    // D74: a column the loan officer made into tags adds each value (split on ; , |).
+    for (const c of tagCols) rawTags.push(...splitCell((row[c] ?? "").trim()));
     const fileTags = mergeTags(rawTags);
     const tags = withExtraTags(fileTags, extra, MAX_TAGS);
-    if (rawTags.some((t) => t.length > MAX_TAG) || fileTags.some((t) => !tags.includes(t))) warnings.push({ row: rowNo(i), reason: `tags shortened (${MAX_TAG} characters each, ${MAX_TAGS} at most)` });
-    const rawClosed = get(row, "closedOn");
-    const closedOn = isoDate(rawClosed);
-    if (rawClosed && !closedOn) warnings.push({ row: rowNo(i), reason: "date not readable, left blank" });
-    const amount = num(get(row, "loanAmount"));
-    const noteRate = num(get(row, "noteRate"));
+    if (rawTags.some((t) => t.length > MAX_TAG) || fileTags.some((t) => !tags.includes(t))) {
+      warn("tags", "tags", get("tags"), `tags shortened (${MAX_TAG} characters each, ${MAX_TAGS} at most)`);
+      keepTags(fileTags.filter((t) => tags.includes(t)));
+    }
+    const rawClosed = get("closedOn");
+    const closedOn = isoDate(rawClosed, { order: opts.dateOrder });
+    if (rawClosed && !closedOn && !isPlaceholder(rawClosed)) warn("closedOn", "date", rawClosed, dateProblem(rawClosed, opts.dateOrder), "closedOn");
+    const amount = num(get("loanAmount"));
+    const noteRate = num(get("noteRate"));
     // D69: an opt-out is a revocation. It always wins over an opt-in in the same row.
     const optOuts: Partial<Record<ConsentChannel, string>> = {};
-    if (optedOut(get(row, "doNotContact"))) for (const c of ["text", "call", "email"] as const) optOuts[c] = whereFrom("doNotContact");
-    if (optedOut(get(row, "optOutText"))) optOuts.text ??= whereFrom("optOutText");
-    if (optedOut(get(row, "optOutCall"))) optOuts.call ??= whereFrom("optOutCall");
-    if (optedOut(get(row, "optOutEmail"))) optOuts.email ??= whereFrom("optOutEmail");
+    if (readsOptOut(cell("doNotContact"))) for (const c of ["text", "call", "email"] as const) optOuts[c] = whereFrom("doNotContact");
+    if (readsOptOut(cell("optOutText"))) optOuts.text ??= whereFrom("optOutText");
+    if (readsOptOut(cell("optOutCall"))) optOuts.call ??= whereFrom("optOutCall");
+    if (readsOptOut(cell("optOutEmail"))) optOuts.email ??= whereFrom("optOutEmail");
     const phoneStopped = !!(optOuts.text || optOuts.call);
-    const optIns =
-      kind === "contacts"
-        ? (["text", "call", "email"] as const).filter((c) => yes(get(row, c === "text" ? "optInText" : c === "call" ? "optInCall" : "optInEmail"))).filter((c) => (c === "email" ? !optOuts.email : !phoneStopped))
-        : [];
+    const inField = (c: ConsentChannel) => (c === "text" ? "optInText" : c === "call" ? "optInCall" : "optInEmail") as "optInText" | "optInCall" | "optInEmail";
+    // D74: a value the loan officer hasn't read as yes ("maybe", "X") is never permission.
+    const optIns = kind === "contacts" ? (["text", "call", "email"] as const).filter((c) => readOptIn(cell(inField(c)), opts.consent?.[inField(c)]) === "yes").filter((c) => (c === "email" ? !optOuts.email : !phoneStopped)) : [];
+    const noteLines = [cell("notes"), ...noteCols.map((c) => ((row[c] ?? "").trim() ? `${(csv.headers[c] ?? "").trim() || `Column ${c + 1}`}: ${(row[c] ?? "").trim()}` : "")), ...asWritten].filter(Boolean);
+    const leadSource = get("leadSource").slice(0, 120) || null;
+    const referredBy = get("referredBy").slice(0, 120) || null;
     records.push({
       firstName: first.slice(0, 60),
       lastName: last.slice(0, 80),
       email,
       phone: phone ?? phone2,
       phone2: phone ? phone2 : null,
-      street: get(row, "street").slice(0, 120) || null,
-      city: get(row, "city").slice(0, 60) || null,
+      street: get("street").slice(0, 120) || null,
+      city: get("city").slice(0, 60) || null,
       state,
       zip,
       // D42: a file named "Past clients…" makes "past client" the default when a row doesn't say.
-      relationship: get(row, "relationship") || !opts.defaultRelationship || kind === "agents" ? relationshipOf(get(row, "relationship"), kind) : opts.defaultRelationship,
+      relationship: get("relationship") || !opts.defaultRelationship || kind === "agents" ? relationshipOf(get("relationship"), kind) : opts.defaultRelationship,
       tags,
-      notes: get(row, "notes").slice(0, 2000) || null,
+      notes: noteLines.join("\n").slice(0, 2000) || null,
+      ...(kind === "contacts" && (leadSource || referredBy) ? { leadSource, referredBy } : {}),
       loan: kind === "contacts" && (closedOn || amount || noteRate) ? { closedOn, amount, noteRate: noteRate !== null && noteRate > 0 && noteRate < 20 ? noteRate : null } : null,
       agent:
         kind === "agents"
-          ? { brokerage: get(row, "brokerage").slice(0, 120) || null, units: num(get(row, "units")), volume: num(get(row, "volume")), buyerUnits: num(get(row, "buyerUnits")), listingUnits: num(get(row, "listingUnits")), avgPrice: num(get(row, "avgPrice")), topLender: get(row, "topLender").slice(0, 120) || null }
+          ? { brokerage: get("brokerage").slice(0, 120) || null, units: num(get("units")), volume: num(get("volume")), buyerUnits: num(get("buyerUnits")), listingUnits: num(get("listingUnits")), avgPrice: num(get("avgPrice")), topLender: get("topLender").slice(0, 120) || null }
           : null,
       attestedOptIns: optIns,
       ...(Object.keys(optOuts).length ? { optOuts } : {}),

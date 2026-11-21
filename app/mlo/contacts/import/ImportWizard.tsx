@@ -1,23 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { parseCsv, MAX_ROWS, type Csv } from "@/lib/contacts/csv";
-import { buildRecords, fieldsFor, guardOptOuts, RELATIONSHIP_LABELS, stopsEverything, type Field, type ImportKind, type ImportRecord, type Mapping, type RowProblem } from "@/lib/contacts/mapping";
+import { autoMap, buildRecords, guardOptOuts, stopsEverything, type Field, type ImportKind, type ImportRecord, type Mapping } from "@/lib/contacts/mapping";
 import { contactsImportCopy as ic } from "@/lib/content/contacts-import";
-import { formatPhone } from "@/lib/contacts/normalize";
+import { cleanEmail, toE164 } from "@/lib/contacts/normalize";
+import { buildAnswers, columnCards, consentSummary, extraColumns, fileQuestions, matchFlags, skippedCsv, unanswered } from "@/lib/contacts/review";
 import { mergeRecords, parseVcf, relationshipFromName, shapes, smartMap, toCleanCsv, toTable } from "@/lib/contacts/smart";
 import { browserInflate, readXlsx } from "@/lib/contacts/xlsx";
 import { aiMapAction, importBatchAction } from "../actions";
 import type { Provenance } from "@/lib/contacts/store";
-import { importedTag, MAX_IMPORT_TAGS, tagHref } from "@/lib/contacts/tags";
+import { importedTag, tagHref } from "@/lib/contacts/tags";
 import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
-import TagInput from "../TagInput";
+import ColumnsStep from "./ColumnsStep";
+import ReviewStep, { downloadText, type ReachSuggestion } from "./ReviewStep";
+import { lookKey, setFix, setTarget, type Item, type Look } from "./types";
 
 const SOURCES: [Provenance, string][] = [
   ["personal", "My own relationships (my phone, my email, people I know)"],
   ["own_closings", "My own closed loans (from my records or public records)"],
   ["agent_partner", "Agents I work with"],
+  // D74: bought leads and web-form leads are their own source.
+  ["lead_vendor", "Leads I bought or got from a web form (Zillow, Bankrate, LeadPOPs…)"],
   ["prior_employer", "Exported from a previous employer's system"],
   ["unknown", "Not sure"],
 ];
@@ -26,7 +31,8 @@ const BATCH = 500;
 const MAX_TOTAL = 50_000;
 const MAX_FILE = 25 * 1024 * 1024;
 
-type Item = { id: string; name: string; table: Csv; mapping: Mapping; rel: string | null; by: "names" | "m8"; tags: string[] };
+type Step = 1 | 2 | 3 | 4;
+type Sum = { created: number; merged: number; skipped: number; optedOut: number };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -54,49 +60,118 @@ async function readFile(f: File): Promise<{ name: string; table: Csv }[] | strin
   }
 }
 
+/** A list as first read: matched by names and contents, every review answer empty. */
+function freshItem(id: string, name: string, table: Csv, kind: ImportKind): Item {
+  const mapping = smartMap(table, kind);
+  return withPanel({ id, name, table, mapping, rel: kind === "agents" ? null : relationshipFromName(name), by: "names", tags: [], choice: {}, flags: matchFlags(table, autoMap(table.headers, kind), mapping, null), ok: [], answers: {}, fixes: {}, expanded: null }, kind);
+}
+
+/** D74: the columns panel starts open when a column needs checking (2+ unmatched columns always do), and stays as it is after. */
+function withPanel(it: Item, kind: ImportKind): Item {
+  const open = fileQuestions(it.table, it.mapping, kind).map((q) => q.col);
+  return { ...it, expanded: columnCards(it.table, it.mapping, kind, it.choice, { flags: it.flags }, open).some((c) => c.status === "check") };
+}
+
 /**
- * The one-drop import (D42): drop any number of files (Excel with every
- * sheet, CSV, tab-separated text, phone contact cards), or paste rows.
- * Columns are matched by their names and contents, and by M8 from headers
- * and value shapes only. Duplicates across files are merged. Files are
- * read in the browser; only the cleaned rows are sent, in batches.
+ * The one-drop import (D42), reviewed in four steps (D74): add files (and
+ * say what they are and where they're from), check how each column was read
+ * and answer any format question, fix what needs a look and tag them, then
+ * confirm the consent summary and import. Files are read in the browser;
+ * M8 sees column names and value shapes only; only the cleaned rows are
+ * sent, in batches.
  */
 export default function ImportWizard({ initialKind, knownTags = [] }: { initialKind: ImportKind; knownTags?: string[] }) {
+  const [step, setStep] = useState<Step>(1);
   const [kind, setKind] = useState<ImportKind>(initialKind);
   const [provenance, setProvenance] = useState<Provenance | "">(initialKind === "agents" ? "agent_partner" : "");
+  const [autoSource, setAutoSource] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [reading, setReading] = useState(false);
   const [paste, setPaste] = useState("");
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [result, setResult] = useState<{ created: number; merged: number; skipped: number; optedOut: number } | null>(null);
+  const [result, setResult] = useState<(Sum & { inFile: number; total: number; skippedCsv: string | null; tags: string[] }) | null>(null);
   // D69: where a stopped import picks up again (the first person not yet sent), and what was already done.
-  const [resume, setResume] = useState<{ at: number; sum: { created: number; merged: number; skipped: number; optedOut: number } } | null>(null);
+  const [resume, setResume] = useState<{ at: number; sum: Sum } | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   // D73: tags for everyone in this import, starting with the day of the run ("Imported Nov 21, 2026"; removable).
-  // Shown only once files are added (in the browser), so the date is the loan officer's own.
   const [importTags, setImportTags] = useState<string[]>(() => [importedTag(new Date())]);
-  const [doneTag, setDoneTag] = useState<string | null>(null);
+  const top = useRef<HTMLOListElement>(null);
+  const firstStep = useRef(true);
 
-  const fields = fieldsFor(kind);
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    const el = top.current;
+    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "start" });
+  }, [step]);
+
+  const update = (id: string, fn: (it: Item) => Item) => {
+    setItems((cur) => cur.map((x) => (x.id === id ? fn(x) : x)));
+    setResume(null);
+  };
+
+  const views = useMemo(
+    () =>
+      items.map((it) => {
+        const questions = fileQuestions(it.table, it.mapping, kind);
+        const open = questions.filter((q) => q.kind !== "optout" && unanswered([q], it.answers) > 0).map((q) => q.col);
+        const cards = columnCards(it.table, it.mapping, kind, it.choice, { flags: it.flags, ok: it.ok, optOutOk: it.answers.optOutOk }, open);
+        return { it, cards, questions, pending: unanswered(questions, it.answers) };
+      }),
+    [items, kind],
+  );
+  const pending = views.reduce((n, v) => n + v.pending, 0);
+
   const built = useMemo(() => {
-    const per = items.map((it) => ({ it, ...buildRecords(it.table, it.mapping, kind, { defaultRelationship: it.rel, fileName: it.name, extraTags: [...importTags, ...it.tags] }) }));
+    const per = items.map((it) => ({
+      it,
+      ...buildRecords(it.table, it.mapping, kind, {
+        defaultRelationship: it.rel,
+        fileName: it.name,
+        extraTags: [...importTags, ...it.tags],
+        columns: extraColumns(it.table, it.mapping, it.choice),
+        ...buildAnswers(it.table, it.mapping, it.answers),
+        fixes: it.fixes,
+      }),
+    }));
     const merged = mergeRecords(per.map((p) => p.records));
-    const problems: (RowProblem & { file: string })[] = per.flatMap((p) => p.problems.map((x) => ({ ...x, file: p.it.name })));
-    const warns = per.flatMap((p) => p.warnings);
-    const warnings = { zip: warns.filter((w) => w.reason.startsWith("ZIP")).length, date: warns.filter((w) => w.reason.startsWith("date")).length, tags: warns.filter((w) => w.reason.startsWith("tags")).length };
+    const looks: Look[] = per.flatMap((p) => p.warnings.map((w) => ({ ...w, itemId: p.it.id, file: p.it.name, key: lookKey(p.it.id, w.at, w.field) })));
+    const skipped = per.flatMap((p) => p.problems.map((x) => ({ ...x, file: p.it.name, headers: p.it.table.headers, itemId: p.it.id })));
     const records = merged.records.slice(0, MAX_TOTAL);
     // D69: people whose file says stop, for the notice before import.
-    const stopAll = records.filter((r) => stopsEverything(r)).length;
-    const stopPhone = records.filter((r) => r.optOuts && !stopsEverything(r) && (r.optOuts.text || r.optOuts.call)).length;
-    const stopEmail = records.filter((r) => r.optOuts && !stopsEverything(r) && r.optOuts.email).length;
-    return { per, records, merged: merged.merged, problems, warnings, stopAll, stopPhone, stopEmail, over: merged.records.length > MAX_TOTAL };
+    const stops = {
+      all: records.filter((r) => stopsEverything(r)).length,
+      phone: records.filter((r) => r.optOuts && !stopsEverything(r) && (r.optOuts.text || r.optOuts.call)).length,
+      email: records.filter((r) => r.optOuts && !stopsEverything(r) && r.optOuts.email).length,
+    };
+    return { per, records, merged: merged.merged, looks, skipped, stops, over: merged.records.length > MAX_TOTAL ? MAX_TOTAL : null };
   }, [items, kind, importTags]);
+
+  // D74: "Use column 'Home #' as Other phone?" when a column in notes could reach a skipped row.
+  const suggestions = useMemo<ReachSuggestion[]>(
+    () =>
+      views.flatMap(({ it, cards }) =>
+        cards
+          .filter((c) => c.suggest && built.skipped.some((p) => p.itemId === it.id && (c.suggest === "email" ? cleanEmail(p.cells?.[c.col]) : toE164(p.cells?.[c.col]))))
+          .map((c) => ({ itemId: it.id, col: c.col, field: c.suggest as Field, header: c.header })),
+      ),
+    [views, built.skipped],
+  );
+
+  const dateOrderOf = (itemId: string) => {
+    const it = items.find((x) => x.id === itemId);
+    return it ? buildAnswers(it.table, it.mapping, it.answers).dateOrder : undefined;
+  };
 
   const addTables = async (tables: { name: string; table: Csv }[]) => {
     const next: Item[] = [];
     for (const t of tables) {
-      const base: Item = { id: uid(), name: t.name, table: { headers: t.table.headers, rows: t.table.rows.slice(0, MAX_ROWS) }, mapping: smartMap(t.table, kind), rel: kind === "agents" ? null : relationshipFromName(t.name), by: "names", tags: [] };
+      const table = { headers: t.table.headers, rows: t.table.rows.slice(0, MAX_ROWS) };
+      const base = freshItem(uid(), t.name, table, kind);
       if (kind === "contacts") {
         // M8 sees headers and value shapes only ("Aaa Aaa", "(999) 999-9999"), never the values.
         const ai = await aiMapAction({ fileName: t.name, kind, columns: shapes(base.table) }).catch(() => null);
@@ -105,11 +180,17 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
           const used = new Set(Object.values(m));
           for (const [f, col] of Object.entries(base.mapping) as [Field, number][]) if (m[f] === undefined && !used.has(col)) m[f] = col;
           if (m.firstName !== undefined && m.lastName !== undefined) delete m.fullName;
-          next.push({ ...base, mapping: guardOptOuts(base.table.headers, m), rel: base.rel ?? ai.relationship, by: "m8" });
+          const flags = matchFlags(table, autoMap(table.headers, kind), base.mapping, { fields: ai.fields ?? [], unsure: ai.unsure ?? [] });
+          next.push(withPanel({ ...base, mapping: guardOptOuts(base.table.headers, m), rel: base.rel ?? ai.relationship, by: "m8", flags }, kind));
           continue;
         }
       }
       next.push(base);
+    }
+    // D74: a file named like a lead list ("Zillow leads.csv") picks "Leads I bought…" when no source is picked yet.
+    if (!provenance && kind === "contacts" && next.some((it) => relationshipFromName(it.name) === "lead")) {
+      setProvenance("lead_vendor");
+      setAutoSource(true);
     }
     setItems((cur) => [...cur, ...next]);
     setResume(null);
@@ -143,16 +224,7 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
 
   const switchKind = (k: ImportKind) => {
     setKind(k);
-    setItems((cur) => cur.map((it) => ({ ...it, mapping: smartMap(it.table, k), rel: k === "agents" ? null : relationshipFromName(it.name), by: "names" })));
-  };
-
-  const download = () => {
-    const blob = new Blob([toCleanCsv(built.records)], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `loanm8-contacts-cleaned-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    setItems((cur) => cur.map((it) => ({ ...freshItem(it.id, it.name, it.table, k), tags: it.tags })));
   };
 
   const run = async () => {
@@ -162,7 +234,7 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
     const total = records.length;
     // D69: resuming starts where the last run stopped, keeping what it already counted.
     const start = resume && resume.at < total ? resume.at : 0;
-    const sum = start && resume ? { ...resume.sum } : { created: 0, merged: built.merged, skipped: built.problems.length, optedOut: 0 };
+    const sum: Sum = start && resume ? { ...resume.sum } : { created: 0, merged: 0, skipped: built.skipped.length, optedOut: 0 };
     setProgress({ done: start, total });
     const source = items.length === 1 ? items[0].name : `${items.length} files`;
     for (let i = start; i < total; i += BATCH) {
@@ -181,19 +253,36 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
     }
     setProgress(null);
     setResume(null);
-    setResult(sum);
-    setDoneTag(importTags[0] ?? null);
+    setResult({ ...sum, inFile: built.merged, total: sum.created + sum.merged, skippedCsv: built.skipped.length ? skippedCsv(built.skipped) : null, tags: [...importTags] });
     setItems([]);
+    setStep(1);
   };
 
   if (result) {
+    const d = ic.done;
+    const doneTag = result.tags[0] ?? null;
+    const stats: [number, string, React.ReactNode?][] = [
+      [result.created, d.stats.created],
+      [result.merged, d.stats.merged],
+      [result.inFile, d.stats.inFile],
+      [result.skipped, d.stats.skipped, result.skippedCsv ? <button type="button" className="cc-linkbtn" onClick={() => downloadText(result.skippedCsv!, `loanm8-skipped-rows-${new Date().toISOString().slice(0, 10)}.csv`)}>{d.downloadSkipped}</button> : null],
+      [result.optedOut, d.stats.optedOut],
+    ];
     return (
       <section className="mlo-section" role="status">
-        <h2>Imported</h2>
-        <p className="mlo-note">{result.created.toLocaleString("en-US")} new · {result.merged.toLocaleString("en-US")} merged (duplicates in your files, or people you already had) · {result.skipped.toLocaleString("en-US")} skipped (no way to reach them).</p>
-        <p className="mlo-note">Everyone starts as <strong>relationship only</strong>: you can call them yourself, but M8 won&apos;t text or call anyone until their permission is recorded with proof.</p>
-        {result.optedOut ? <p className="mlo-note">{ic.resultOptedOut(result.optedOut)}</p> : null}
-        {provenance === "prior_employer" ? <p className="mlo-note">Because these came from a previous employer&apos;s system, they&apos;re <strong>on hold</strong> until you confirm on the Contacts page that you&apos;re allowed to use the list.</p> : null}
+        <h2>{d.title}</h2>
+        <p className="mlo-note">{d.lead(result.total, result.tags)}</p>
+        <ul className="im-stats">
+          {stats.map(([n, label, extra]) => (
+            <li key={label} className="cc-card">
+              <strong className="im-stats__n">{n.toLocaleString("en-US")}</strong>
+              <span>{label}</span>
+              {extra}
+            </li>
+          ))}
+        </ul>
+        <p className="mlo-note">{d.everyone}</p>
+        {provenance === "prior_employer" ? <p className="mlo-note">{ic.source.held}</p> : null}
         <div className="mlo-actions">
           {doneTag ? (
             <>
@@ -204,153 +293,157 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
             <Link href={kind === "agents" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn">See them</Link>
           )}
           {kind === "contacts" ? <Link href="/mlo/contacts/permission" className="mlo-btn mlo-btn--ghost">Record the permission you hold</Link> : null}
+          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => { setResult(null); setConfirmed(false); setImportTags([importedTag(new Date())]); }}>{d.another}</button>
         </div>
       </section>
     );
   }
 
+  const cs = consentSummary(built.records);
+  const needConfirm = kind === "contacts" && cs.anyIn > 0;
+  const sourceRadios = (
+    <div className="mlo-grid" role="radiogroup" aria-label={ic.sourceTitle}>
+      {SOURCES.map(([k, label]) => (
+        <label key={k} className="mlo-check">
+          <input type="radio" name={`provenance-${step}`} checked={provenance === k} onChange={() => { setProvenance(k); setAutoSource(false); }} />
+          <span>{label}</span>
+        </label>
+      ))}
+    </div>
+  );
+
   return (
     <>
-      <section className="mlo-section">
-        <div className="mlo-row-form" role="radiogroup" aria-label="Import type">
-          {(["contacts", "agents"] as const).map((k) => (
-            <label key={k} className="mlo-check">
-              <input type="radio" name="kind" checked={kind === k} onChange={() => switchKind(k)} />
-              <span>{k === "contacts" ? "Clients and contacts" : "Real estate agents"}</span>
-            </label>
-          ))}
-        </div>
-        <label
-          className={`im-drop ${drag ? "im-drop--on" : ""}`}
-          onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-          onDragLeave={() => setDrag(false)}
-          onDrop={(e) => { e.preventDefault(); setDrag(false); void onFiles(e.dataTransfer.files); }}
-        >
-          <input type="file" multiple accept=".xlsx,.xlsm,.csv,.tsv,.txt,.vcf,text/csv,text/vcard" onChange={(e) => { void onFiles(e.target.files); e.target.value = ""; }} className="im-drop__input" />
-          <span className="im-drop__title">{reading ? "Reading your files…" : "Drop your contact files here, or tap to choose"}</span>
-          <span className="mlo-note">Excel (every sheet), CSV, or phone contacts (.vcf). Exports from Bonzo, Total Expert, Jungo, Salesforce, Google, Outlook, iPhone or Android all work. As many files as you like; they&apos;re combined and duplicates merged. Your files stay on this device; only the cleaned rows are sent.</span>
-        </label>
-        <details className="mlo-details">
-          <summary>Or paste rows from a spreadsheet</summary>
-          <textarea className="mlo-textarea" rows={5} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Copy the cells (with the header row) and paste them here" />
-          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={onPaste} disabled={reading || paste.trim().length < 5}>Use these rows</button>
-        </details>
-        {kind === "agents" ? <p className="mlo-note" style={{ marginTop: 8 }}>RETR&apos;s terms (updated September 2026) don&apos;t allow its data to be used with AI or automated tools, so agent lists are matched without M8, and M8 never sees agents&apos; production.</p> : null}
-        {errors.map((e, i) => <div key={i} className="mlo-flash mlo-flash--err" role="alert">{e}</div>)}
-      </section>
+      <ol ref={top} className="im-steps" aria-label={ic.stepsLabel}>
+        {ic.steps.map((label, i) => (
+          <li key={label} aria-current={step === i + 1 ? "step" : undefined} data-done={step > i + 1 ? "" : undefined}>
+            <span className="im-steps__n" aria-hidden="true">{step > i + 1 ? "✓" : i + 1}</span>
+            <span>{label}</span>
+          </li>
+        ))}
+      </ol>
 
-      {items.length ? (
+      {step === 1 ? (
+        <section className="mlo-section">
+          <h2>{ic.kindLabel}</h2>
+          <div className="mlo-row-form" role="radiogroup" aria-label={ic.kindLabel}>
+            {(["contacts", "agents"] as const).map((k) => (
+              <label key={k} className="mlo-check">
+                <input type="radio" name="kind" checked={kind === k} onChange={() => switchKind(k)} />
+                <span>{ic.kinds[k]}</span>
+              </label>
+            ))}
+          </div>
+          <h3 className="cc-card__title im-sub">{ic.sourceTitle}</h3>
+          <p className="mlo-note">{ic.sourceNote}</p>
+          {sourceRadios}
+          {autoSource && provenance === "lead_vendor" ? <p className="mlo-note">{ic.leadVendorPicked}</p> : null}
+          <label
+            className={`im-drop ${drag ? "im-drop--on" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(e) => { e.preventDefault(); setDrag(false); void onFiles(e.dataTransfer.files); }}
+          >
+            <input type="file" multiple accept=".xlsx,.xlsm,.csv,.tsv,.txt,.vcf,text/csv,text/vcard" onChange={(e) => { void onFiles(e.target.files); e.target.value = ""; }} className="im-drop__input" />
+            <span className="im-drop__title">{reading ? "Reading your files…" : "Drop your contact files here, or tap to choose"}</span>
+            <span className="mlo-note">Excel (every sheet), CSV, or phone contacts (.vcf). Exports from Bonzo, Total Expert, Jungo, Salesforce, Google, Outlook, iPhone or Android all work. As many files as you like; they&apos;re combined and duplicates merged. Your files stay on this device; only the cleaned rows are sent.</span>
+          </label>
+          <details className="mlo-details">
+            <summary>Or paste rows from a spreadsheet</summary>
+            <textarea className="mlo-textarea" rows={5} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Copy the cells (with the header row) and paste them here" />
+            <button type="button" className="mlo-btn mlo-btn--ghost" onClick={onPaste} disabled={reading || paste.trim().length < 5}>Use these rows</button>
+          </details>
+          {kind === "agents" ? <p className="mlo-note im-gap">RETR&apos;s terms (updated September 2026) don&apos;t allow its data to be used with AI or automated tools, so agent lists are matched without M8, and M8 never sees agents&apos; production.</p> : null}
+          {errors.map((e, i) => <div key={i} className="mlo-flash mlo-flash--err" role="alert">{e}</div>)}
+          {items.length ? (
+            <>
+              <h3 className="cc-card__title im-sub">{ic.files(items.length)}</h3>
+              <ul className="im-filelist">
+                {items.map((it) => (
+                  <li key={it.id} className="im-filelist__row">
+                    <span className="im-filelist__name"><strong>{it.name}</strong> <span className="mlo-note">{ic.rowsCols(it.table.rows.length, it.table.headers.length)}</span></span>
+                    <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => { setItems((cur) => cur.filter((x) => x.id !== it.id)); setResume(null); }} aria-label={`${ic.remove}: ${it.name}`}>{ic.remove}</button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          <div className="mlo-row-form im-nav">
+            <button type="button" className="mlo-btn" disabled={!items.length || reading} onClick={() => setStep(2)} aria-describedby={!items.length ? "im-add-first" : undefined}>{ic.next}</button>
+          </div>
+          {!items.length ? <p id="im-add-first" className="mlo-note im-gap">{ic.addFirst}</p> : null}
+        </section>
+      ) : step === 2 ? (
         <>
-          <section className="mlo-section" aria-live="polite">
-            <h2>{built.records.length.toLocaleString("en-US")} people ready</h2>
-            <p className="mlo-note">
-              From {items.length} {items.length === 1 ? "list" : "lists"} · {built.merged.toLocaleString("en-US")} duplicates merged (same phone or email) · {built.problems.length.toLocaleString("en-US")} rows skipped
-              {built.problems.length ? ` (for example ${built.problems[0].file}, row ${built.problems[0].row}: ${built.problems[0].reason})` : ""}. Phones, emails, states and dates are cleaned; names are split; people are sorted by last name.
-              {built.over ? ` Only the first ${MAX_TOTAL.toLocaleString("en-US")} are imported at once; import the rest after.` : ""}
-            </p>
-            {built.stopAll || built.stopPhone || built.stopEmail ? (
-              <div className="mlo-flash mlo-flash--ok" role="status">
-                {built.stopAll ? <p>{ic.optOutAll(built.stopAll)}</p> : null}
-                {built.stopPhone ? <p>{ic.optOutPhone(built.stopPhone)}</p> : null}
-                {built.stopEmail ? <p>{ic.optOutEmail(built.stopEmail)}</p> : null}
-              </div>
-            ) : null}
-            {built.warnings.zip || built.warnings.date || built.warnings.tags ? <p className="mlo-note">{ic.warnings(built.warnings)}</p> : null}
-            <div className="im-tags" role="group" aria-labelledby="im-tags-title">
-              <h3 id="im-tags-title" className="cc-card__title">{tc.importTitle}</h3>
-              <p className="mlo-note">{tc.importNote}</p>
-              <TagInput value={importTags} onChange={setImportTags} suggestions={knownTags} max={MAX_IMPORT_TAGS} label={tc.importTitle} />
+          <ColumnsStep kind={kind} files={views} update={update} />
+          <section className="mlo-section im-navsec">
+            <div className="mlo-row-form im-nav">
+              <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setStep(1)}>{ic.back}</button>
+              <button type="button" className="mlo-btn" disabled={pending > 0} onClick={() => setStep(3)} aria-describedby={pending ? "im-pending" : undefined}>{ic.columns.next}</button>
             </div>
-            <ol className="im-files">
-              {built.per.map(({ it, records, problems }) => (
-                <li key={it.id} className="cc-card">
-                  <p className="cc-card__title">{it.name} · {records.length.toLocaleString("en-US")} {records.length === 1 ? "person" : "people"}{problems.length ? ` · ${problems.length} skipped` : ""} · matched by {it.by === "m8" ? "M8 (from column names and shapes only)" : "column names and contents"}</p>
-                  <p className="mlo-note">{(Object.entries(it.mapping) as [Field, number][]).filter(([f]) => f in fields).sort((a, b) => a[1] - b[1]).map(([f, col]) => `${it.table.headers[col]} → ${fields[f as keyof typeof fields]}`).join(" · ") || "Nothing matched yet."}</p>
-                  {kind === "contacts" ? (
-                    <label className="mlo-field" style={{ maxWidth: 360, marginTop: 6 }}>
-                      <span>Anyone the file doesn&apos;t label is a</span>
-                      <select className="mlo-select" value={it.rel ?? ""} onChange={(e) => setItems((cur) => cur.map((x) => (x.id === it.id ? { ...x, rel: e.target.value || null } : x)))}>
-                        <option value="">Other / not sure</option>
-                        {(["past_client", "lead", "sphere", "agent"] as const).map((r) => <option key={r} value={r}>{RELATIONSHIP_LABELS[r]}</option>)}
-                      </select>
-                    </label>
-                  ) : null}
-                  <div className="im-tags im-tags--list" role="group" aria-label={`${tc.listLabel}: ${it.name}`}>
-                    <p className="im-tags__label">{tc.listLabel}</p>
-                    <TagInput value={it.tags} onChange={(tags) => setItems((cur) => cur.map((x) => (x.id === it.id ? { ...x, tags } : x)))} suggestions={knownTags.filter((t) => !importTags.includes(t))} max={MAX_IMPORT_TAGS} label={`${tc.listLabel}: ${it.name}`} />
-                    {it.mapping.tags !== undefined ? <p className="mlo-note">{tc.fileColumn}</p> : null}
-                  </div>
-                  <details className="mlo-details">
-                    <summary>Change matches</summary>
-                    <div className="mlo-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))" }}>
-                      {(Object.entries(fields) as [Field, string][]).map(([f, label]) => (
-                        <label key={f} className="mlo-field">
-                          <span>{label}</span>
-                          <select className="mlo-select" value={it.mapping[f] ?? ""} onChange={(e) => setItems((cur) => cur.map((x) => (x.id === it.id ? { ...x, mapping: guardOptOuts(x.table.headers, { ...x.mapping, [f]: e.target.value === "" ? undefined : Number(e.target.value) }) } : x)))}>
-                            <option value="">Not in this file</option>
-                            {it.table.headers.map((h, i) => <option key={i} value={i}>{h}</option>)}
-                          </select>
-                        </label>
-                      ))}
-                    </div>
-                  </details>
-                  <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => { setItems((cur) => cur.filter((x) => x.id !== it.id)); setResume(null); }}>Remove this list</button>
-                </li>
-              ))}
-            </ol>
-            <div className="mlo-scroll">
-              <table className="mlo-table" style={{ marginTop: 12 }}>
-                <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>State</th><th>{kind === "agents" ? "Brokerage" : "Relationship"}</th><th>{tc.previewTags}</th></tr></thead>
-                <tbody>
-                  {built.records.slice(0, 8).map((r, i) => (
-                    <tr key={i}>
-                      <th scope="row">{`${r.firstName} ${r.lastName}`.trim() || "(no name)"}</th>
-                      <td>{formatPhone(r.phone)}</td>
-                      <td>{r.email ?? ""}</td>
-                      <td>{r.state ?? ""}</td>
-                      <td>{kind === "agents" ? r.agent?.brokerage ?? "" : RELATIONSHIP_LABELS[r.relationship]}</td>
-                      <td>
-                        {r.tags.length ? (
-                          <span className="cc-tags">
-                            {r.tags.slice(0, 3).map((t) => <span key={t} className="cc-tag cc-tag--sm">{t}</span>)}
-                            {r.tags.length > 3 ? <span className="cc-tag cc-tag--sm cc-tag--more">{tc.more(r.tags.length - 3)}</span> : null}
-                          </span>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {kind === "contacts" && built.records.some((r) => r.attestedOptIns.length) ? <p className="mlo-note" style={{ marginTop: 8 }}>Some files have opt-in columns. Those are recorded as <strong>your word</strong> that they opted in, not as proof.</p> : null}
-          </section>
-
-          <section className="mlo-section">
-            <h2>Where did these lists come from?</h2>
-            <p className="mlo-note">This decides what Command Center may do with them. Lists exported from a previous employer&apos;s system are put on hold until you confirm you&apos;re allowed to use them.</p>
-            <div className="mlo-grid">
-              {SOURCES.map(([k, label]) => (
-                <label key={k} className="mlo-check">
-                  <input type="radio" name="provenance" checked={provenance === k} onChange={() => setProvenance(k)} />
-                  <span>{label}</span>
-                </label>
-              ))}
-            </div>
-            <div className="mlo-row-form" style={{ marginTop: 12 }}>
-              <button type="button" className="mlo-btn" disabled={!built.records.length || !!progress || !provenance} onClick={run} aria-describedby={!provenance ? "im-pick-source" : undefined}>
-                {progress
-                  ? `Importing… ${progress.done.toLocaleString("en-US")} of ${progress.total.toLocaleString("en-US")}`
-                  : resume && resume.at < built.records.length
-                    ? ic.resume(resume.at + 1)
-                    : `Import ${built.records.length.toLocaleString("en-US")} people`}
-              </button>
-              <button type="button" className="mlo-btn mlo-btn--ghost" disabled={!built.records.length} onClick={download}>Download cleaned CSV</button>
-            </div>
-            {!provenance && built.records.length ? <p id="im-pick-source" className="mlo-note" style={{ marginTop: 8 }}>{ic.pickSource}</p> : null}
-            {resume && !progress && resume.at > 0 && resume.at < built.records.length ? <p className="mlo-note" style={{ marginTop: 8 }}>{ic.resumeNote(resume.at)}</p> : null}
+            {pending ? <p id="im-pending" className="mlo-note im-gap">{ic.columns.pending(pending)}</p> : null}
           </section>
         </>
-      ) : null}
+      ) : step === 3 ? (
+        <>
+          <ReviewStep
+            kind={kind}
+            items={items}
+            records={built.records}
+            merged={built.merged}
+            over={built.over}
+            looks={built.looks}
+            skipped={built.skipped}
+            suggestions={suggestions}
+            stops={built.stops}
+            importTags={importTags}
+            setImportTags={setImportTags}
+            knownTags={knownTags}
+            dateOrderOf={dateOrderOf}
+            onFix={(l, v) => update(l.itemId, (it) => setFix(it, l.at, l.field, v))}
+            onUseColumn={(s) => update(s.itemId, (it) => setTarget(it, s.col, s.field))}
+            update={update}
+          />
+          <section className="mlo-section im-navsec">
+            <div className="mlo-row-form im-nav">
+              <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setStep(2)}>{ic.back}</button>
+              <button type="button" className="mlo-btn" disabled={!built.records.length} onClick={() => setStep(4)}>{ic.review.next}</button>
+            </div>
+            {built.looks.length ? <p className="mlo-note im-gap">{ic.review.nextNote(built.looks.length)}</p> : null}
+          </section>
+        </>
+      ) : (
+        <section className="mlo-section">
+          <h2>{ic.source.title}</h2>
+          <p className="mlo-note">{ic.sourceNote}</p>
+          {sourceRadios}
+          {kind === "contacts" ? (
+            <div className="mlo-flash mlo-flash--ok im-consent" role="status">
+              {cs.anyIn ? <p>{ic.source.optIns(cs)}</p> : null}
+              {cs.stops ? <p>{ic.source.stops(cs.stops)}</p> : null}
+              {!cs.anyIn && !cs.stops ? <p>{ic.source.none}</p> : null}
+            </div>
+          ) : null}
+          {needConfirm ? (
+            <label className="mlo-check">
+              <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+              <span>{ic.source.confirm}</span>
+            </label>
+          ) : null}
+          {provenance === "prior_employer" ? <p className="mlo-note">{ic.source.held}</p> : null}
+          <div className="mlo-row-form im-nav">
+            <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setStep(3)} disabled={!!progress}>{ic.back}</button>
+            <button type="button" className="mlo-btn" disabled={!built.records.length || !!progress || !provenance || (needConfirm && !confirmed)} onClick={run} aria-describedby={!provenance ? "im-pick-source" : needConfirm && !confirmed ? "im-confirm-first" : undefined}>
+              {progress ? ic.source.importing(progress.done, progress.total) : resume && resume.at < built.records.length ? ic.resume(resume.at + 1) : ic.source.import(built.records.length)}
+            </button>
+            <button type="button" className="mlo-btn mlo-btn--ghost" disabled={!built.records.length} onClick={() => downloadText(toCleanCsv(built.records), `loanm8-contacts-cleaned-${new Date().toISOString().slice(0, 10)}.csv`)}>{ic.source.cleaned}</button>
+          </div>
+          {!provenance && built.records.length ? <p id="im-pick-source" className="mlo-note im-gap">{ic.pickSource}</p> : null}
+          {provenance && needConfirm && !confirmed ? <p id="im-confirm-first" className="mlo-note im-gap">{ic.source.confirmFirst}</p> : null}
+          {resume && !progress && resume.at > 0 && resume.at < built.records.length ? <p className="mlo-note im-gap">{ic.resumeNote(resume.at)}</p> : null}
+          {errors.map((e, i) => <div key={i} className="mlo-flash mlo-flash--err" role="alert">{e}</div>)}
+        </section>
+      )}
     </>
   );
 }

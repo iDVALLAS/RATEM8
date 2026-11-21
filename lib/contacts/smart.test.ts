@@ -113,7 +113,7 @@ describe("M8 column matching (D42)", () => {
       return { stop: "end_turn", json: JSON.stringify({ columns: [{ column: 0, field: "fullName" }, { column: 1, field: "phone" }, { column: 2, field: "phone" }, { column: 9, field: "email" }], relationship: "past_client" }) };
     };
     const r = await aiMapColumns({ id: "lo1" }, { fileName: "Past clients 2021.xlsx", kind: "contacts", columns: [...cols, { header: "Leak", shapes: ["Ann Lee"] }] }, { call });
-    expect(r).toEqual({ ok: true, mapping: { fullName: 0, phone: 1 }, relationship: "past_client" });
+    expect(r).toEqual({ ok: true, mapping: { fullName: 0, phone: 1 }, relationship: "past_client", fields: ["fullName", "phone", "phone", "none"], unsure: [] });
     expect(sent).toContain("Aaa Aaa");
     expect(sent).not.toContain("Ann Lee"); // a "shape" that's really a value is dropped
     expect(await aiMapColumns({ id: "lo1" }, { fileName: "retr.csv", kind: "agents", columns: cols }, { call })).toMatchObject({ ok: false });

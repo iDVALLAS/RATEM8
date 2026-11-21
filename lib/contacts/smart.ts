@@ -176,9 +176,9 @@ export function mergeRecords(lists: ImportRecord[][]): { records: ImportRecord[]
       merged++;
       const a = out[hit];
       const fill = <K extends keyof ImportRecord>(k: K) => {
-        if ((a[k] === null || a[k] === "") && r[k] !== null && r[k] !== "") a[k] = r[k];
+        if ((a[k] === null || a[k] === undefined || a[k] === "") && r[k] !== null && r[k] !== undefined && r[k] !== "") a[k] = r[k];
       };
-      (["firstName", "lastName", "email", "street", "city", "state", "zip", "notes", "loan", "agent"] as const).forEach(fill);
+      (["firstName", "lastName", "email", "street", "city", "state", "zip", "notes", "leadSource", "referredBy", "loan", "agent"] as const).forEach(fill);
       if (!a.phone && r.phone) a.phone = r.phone;
       else if (r.phone && r.phone !== a.phone && !a.phone2) a.phone2 = r.phone;
       if (a.relationship === "other" && r.relationship !== "other") a.relationship = r.relationship;
@@ -205,7 +205,7 @@ export function toCleanCsv(records: ImportRecord[]): string {
     const safe = /^[=+\-@]/.test(t) ? `'${t}` : t;
     return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   };
-  const head = ["First name", "Last name", "Email", "Mobile", "Other phone", "Street", "City", "State", "ZIP", "Relationship", "Tags", "Notes", "Loan closed on", "Loan amount", "Note rate", "Opted out of"];
-  const rows = records.map((r) => [r.firstName, r.lastName, r.email, r.phone, r.phone2, r.street, r.city, r.state, r.zip, r.relationship, r.tags.join("; "), r.notes, r.loan?.closedOn, r.loan?.amount, r.loan?.noteRate, optedOutOf(r)].map(q).join(","));
+  const head = ["First name", "Last name", "Email", "Mobile", "Other phone", "Street", "City", "State", "ZIP", "Relationship", "Tags", "Notes", "Loan closed on", "Loan amount", "Note rate", "Lead source", "Referred by", "Opted out of"];
+  const rows = records.map((r) => [r.firstName, r.lastName, r.email, r.phone, r.phone2, r.street, r.city, r.state, r.zip, r.relationship, r.tags.join("; "), r.notes, r.loan?.closedOn, r.loan?.amount, r.loan?.noteRate, r.leadSource, r.referredBy, optedOutOf(r)].map(q).join(","));
   return [head.join(","), ...rows].join("\n") + "\n";
 }

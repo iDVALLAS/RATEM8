@@ -24,7 +24,7 @@ describe("cleaning fields (D2)", () => {
     expect(toE164("555-1234")).toBeNull();
     expect(toE164("(206) 555-0123")).toBeNull();
     expect(cleanState("washington")).toBe("WA");
-    expect(cleanState("Ore")).toBeNull();
+    expect(cleanState("Ore")).toBe("OR"); // D74: short forms like "Ore", "Wash." and "Calif" are read
     expect(stateFromZip("98072")).toBe("WA");
     expect(stateFromZip("97201")).toBe("OR");
     expect(stateFromZip("85001")).toBe("AZ");
@@ -61,7 +61,7 @@ describe("matching columns (D2)", () => {
     const csv = parseCsv("Name,Phone,Email,Zip,Type,SMS Opt In,Close Date,Loan Amount,Rate\nAnn Lee,206-555-1234,,98072,Past client,yes,1/5/2022,\"$400,000\",3.25\nNo Way,,,,,,,,\n,,bo@x.com,,,,,,\n");
     const { records, problems } = buildRecords(csv, autoMap(csv.headers, "contacts"), "contacts");
     expect(records).toHaveLength(2);
-    expect(problems).toEqual([{ row: 3, reason: "no valid phone or email" }]);
+    expect(problems).toMatchObject([{ row: 3, reason: "no valid phone or email", name: "No Way" }]);
     expect(records[0]).toMatchObject({ firstName: "Ann", lastName: "Lee", phone: "+12065551234", state: "WA", relationship: "past_client", attestedOptIns: ["text"], loan: { closedOn: "2022-01-05", amount: 400000, noteRate: 3.25 } });
   });
 });

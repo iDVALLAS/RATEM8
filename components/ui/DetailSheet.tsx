@@ -15,12 +15,15 @@ export default function DetailSheet({
   title,
   closeLabel = "Close",
   buttonClassName = "lo-btn-secondary text-[10px]",
+  className,
   children,
 }: {
   label: string;
   title: string;
   closeLabel?: string;
   buttonClassName?: string;
+  /** Extra class on the sheet (D74: "cc-dsheet" gives it Command Center's palette). */
+  className?: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -55,7 +58,7 @@ export default function DetailSheet({
       </button>
       {open
         ? createPortal(
-            <div className="detail-sheet" role="dialog" aria-modal="true" aria-labelledby={`${id}-t`}>
+            <div className={className ? `detail-sheet ${className}` : "detail-sheet"} role="dialog" aria-modal="true" aria-labelledby={`${id}-t`}>
               <div className="detail-sheet__backdrop" onClick={() => setOpen(false)} />
               <div className="detail-sheet__panel" ref={panel} tabIndex={-1}>
                 <span aria-hidden="true" className="detail-sheet__grip" />

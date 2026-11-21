@@ -35,6 +35,9 @@ const Record_ = z.object({
   relationship: z.enum(["past_client", "lead", "sphere", "agent", "other"]),
   tags: z.array(s(60)).max(20),
   notes: s(2000).nullable(),
+  // D74: where a lead came from, and who sent them.
+  leadSource: s(120).nullable().optional(),
+  referredBy: s(120).nullable().optional(),
   loan: z.object({ closedOn: s(10).nullable(), amount: n, noteRate: n }).nullable(),
   agent: z.object({ brokerage: s(120).nullable(), units: n, volume: n, buyerUnits: n, listingUnits: n, avgPrice: n, topLender: s(120).nullable() }).nullable(),
   attestedOptIns: z.array(z.enum(["text", "call", "email"])).max(3),
@@ -183,6 +186,20 @@ export async function aiMapAction(input: { fileName: string; kind: string; colum
   if (!actor) return { ok: false, error: "Sign in first." };
   const { aiMapColumns } = await import("@/lib/contacts/ai-map");
   return aiMapColumns(actor, input);
+}
+
+/**
+ * D74: M8's tip for one "Needs a look" value, from the field, the value's
+ * shape and a reason code only (never the value or the row). `{ ok: false }`
+ * without a key: the step-through works the same without a tip.
+ */
+export async function fixTipAction(input: unknown): Promise<import("@/lib/contacts/ai-fix").TipResult> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false };
+  const { aiFixTip, TipInput } = await import("@/lib/contacts/ai-fix");
+  const parsed = TipInput.safeParse(input);
+  if (!parsed.success) return { ok: false };
+  return aiFixTip(actor, parsed.data);
 }
 
 /** D67: check the rules and get the link that opens Messages on the loan officer's own phone. */

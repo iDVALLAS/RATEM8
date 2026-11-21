@@ -102,7 +102,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
     <PageShell>
       <div className="mlo-wrap">
         <p className="eyebrow"><Link href={c.kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"}>← {c.kind === "agent" ? "Agents" : "Contacts"}</Link></p>
-        <h1 className="tagline text-4xl">{`${c.firstName} ${c.lastName}`.trim() || c.email}</h1>
+        <h1 className="tagline text-4xl">{`${c.firstName} ${c.lastName}`.trim() || c.email || "(no name)"}</h1>
         <MloNav current="contacts" tenantId={tenant.id} admin={v.admin} signedIn />
         <FlashBox flash={decodeFlash(f)} />
 
@@ -114,6 +114,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               <tr><th scope="row">Email</th><td>{c.email ?? ""}</td></tr>
               <tr><th scope="row">Where</th><td>{[c.street, c.city, usStateName(c.state) ?? c.state, c.zip].filter(Boolean).join(", ")}</td></tr>
               <tr><th scope="row">Relationship</th><td>{RELATIONSHIP_LABELS[c.relationship]}</td></tr>
+              {c.leadSource ? <tr><th scope="row">Lead source</th><td>{c.leadSource}</td></tr> : null}
+              {c.referredBy ? <tr><th scope="row">Referred by</th><td>{c.referredBy}</td></tr> : null}
               <tr id="tags"><th scope="row">Tags</th><td><ContactTags initial={c.tags} suggestions={bookTags.map((t) => t.tag)} max={MAX_CONTACT_TAGS} action={setTagsAction.bind(null, c.id)} /></td></tr>
               {c.loan ? <tr><th scope="row">Their loan</th><td>{[c.loan.closedOn ? `closed ${c.loan.closedOn}` : "", money(c.loan.amount), c.loan.noteRate ? `${c.loan.noteRate}% note rate` : ""].filter(Boolean).join(" · ")}</td></tr> : null}
               {c.agent ? (

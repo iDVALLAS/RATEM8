@@ -139,9 +139,14 @@ function audit() {
   if (!(await sp.locator('a[href^="/mlo/contacts/c"], a[href*="/mlo/contacts/"]').filter({ hasText: 'Lee' }).count())) {
     await sp.goto(B + '/mlo/contacts/import'); await sp.locator('input[type=file]').waitFor();
     await sp.setInputFiles('input[type=file]', CSV);
-    await sp.getByText('My own relationships').click();
-    await sp.getByRole('button', { name: /^Import \d+ people/ }).click();
-    await sp.getByRole('heading', { name: 'Imported' }).waitFor();
+    // D74: the four steps (this file has no questions).
+    await sp.locator('.im-filelist__row').first().waitFor({ timeout: 20000 });
+    await sp.getByText('My own relationships').first().click();
+    await sp.getByRole('button', { name: 'Continue', exact: true }).click();
+    await sp.getByRole('button', { name: 'Continue to fix and tag' }).click();
+    await sp.getByRole('button', { name: 'Continue', exact: true }).click();
+    await sp.getByRole('button', { name: /^Import \d+ (people|person)/ }).click();
+    await sp.locator('h2', { hasText: 'Imported' }).waitFor();
   }
   await sp.goto(B + '/mlo/pipeline');
   if (!(await sp.getByRole('link', { name: 'Bo Park' }).count())) {
@@ -179,6 +184,35 @@ function audit() {
         json[where] = { height: res.height, buttons: res.dump };
         if (out && SHOTS.has(label)) await page.screenshot({ path: path.join(out, `${label.replace(/\W+/g, '_').replace(/^_|_$/g, '') || 'home'}-${w}-${theme}.png`), fullPage: true });
       } catch (e) { problems.push(`[${where}] FAILED: ${e.message.split('\n')[0]}`); }
+    }
+    // D74: the import's steps aren't pages of their own, so they're walked here and audited at each step.
+    if (!only.length || only.includes('import steps')) {
+      const page = pages.in;
+      const where = (n) => `import ${n} @${w} ${theme}`;
+      const check = async (n) => { await page.waitForTimeout(150); const res = await page.evaluate(audit); total++; for (const p of [...new Set(res.problems)]) problems.push(`[${where(n)}] ${p}`); json[where(n)] = { height: res.height, buttons: res.dump }; };
+      try {
+        await page.goto(B + '/mlo/contacts/import', { waitUntil: 'networkidle' });
+        await page.setInputFiles('input[type=file]', ['past-clients-messy.csv', 'bonzo-optout.csv'].map((f) => path.join(process.cwd(), 'tests/fixtures/import', f)));
+        await page.locator('.im-filelist__row').nth(1).waitFor({ timeout: 20000 });
+        await page.getByText('My own relationships').first().click();
+        await check('1 add files');
+        await page.getByRole('button', { name: 'Continue', exact: true }).click(); await page.locator('.im-cols').first().waitFor({ state: 'attached' });
+        await check('2 columns');
+        for (const q of await page.locator('.im-q').all()) {
+          const vals = q.locator('.im-q__value');
+          if (await vals.count()) { for (const v of await vals.all()) await v.getByRole('button', { name: 'Not opted in' }).click(); } else await q.locator('.im-choice').first().click();
+        }
+        for (const c of await page.locator('.im-col input[type=checkbox]').all()) await c.check();
+        await check('2 answered');
+        await page.getByRole('button', { name: 'Continue to fix and tag' }).click(); await page.locator('h2', { hasText: 'ready' }).first().waitFor();
+        await check('3 needs a look');
+        await page.getByRole('button', { name: 'Fix with M8' }).click(); await page.locator('.im-fix').waitFor();
+        await check('3 fix with M8');
+        await page.getByRole('tab', { name: /^Skipped/ }).click(); await check('3 skipped');
+        await page.getByRole('tab', { name: /^Ready/ }).click(); await check('3 ready');
+        await page.getByRole('button', { name: 'Continue', exact: true }).click(); await page.locator('h2', { hasText: 'Where did these lists come from?' }).waitFor();
+        await check('4 where from');
+      } catch (e) { problems.push(`[${where('steps')}] FAILED: ${e.message.split('\n')[0]}`); }
     }
     await signedIn.close(); await anon.close();
   }
