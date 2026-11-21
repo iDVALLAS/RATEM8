@@ -1,0 +1,11 @@
+First Name,Last Name,Cell Phone,E-mail Address,State,Closing Date,Tags,Text Opt In,Favorite Color
+John,Smith,(555) 123-4567, JOHN.SMITH@Gmail.com ,Washington,03/15/2021,past client; realtor,Y,blue
+Mary,,5551234567,  Mary.Lee@Example.com,oregon,2021-07-04,sphere,yes,
+Bob,Jones,+1 206 555 7788,BOB@EXAMPLE.COM,AZ,7/4/21,"past client, realtor",no,red
+Jane,Doe,(206) 555-2233,,California,Jan 5 2020,lead,,green
+John,Smith,206-555-1234,john.smith@gmail.com,WA,15/03/2021,past client,Y,blue
+Nobody,Here,,,Texas,,,,
+Sam,O'Neil,206.555.9900,sam@ex,N. Carolina,13/01/2022,,maybe,
+"Lee, Ann",,+12065550199,,Florida,12/31/99,vip,,
+,,2065554321,,,2021-02-30,,,
+Bob,Jones,+1 206 555 7788,bob@example.com,Arizona,07/04/2021,past client,N,red
