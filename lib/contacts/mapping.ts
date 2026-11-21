@@ -7,6 +7,7 @@
  * "agents" (RETR exports, or any agent list).
  */
 import { cleanEmail, cleanState, isoDate, splitName, stateFromZip, toE164 } from "./normalize";
+import { MAX_TAG, MAX_TAGS, mergeTags, splitTags, withExtraTags } from "./tags";
 import type { Csv } from "./csv";
 
 export type ImportKind = "contacts" | "agents";
@@ -211,9 +212,7 @@ export type ImportRecord = {
 
 export type RowProblem = { row: number; reason: string };
 
-/** D69: limits that keep one long value from failing a whole batch. */
-export const MAX_TAG = 60;
-export const MAX_TAGS = 20;
+export { MAX_TAG, MAX_TAGS } from "./tags";
 
 const num = (s: string | undefined): number | null => {
   const v = Number((s ?? "").replace(/[$,%\s]/g, ""));
@@ -254,7 +253,7 @@ export function buildRecords(
   csv: Csv,
   mapping: Mapping,
   kind: ImportKind,
-  opts: { defaultRelationship?: string | null; firstRow?: number; fileName?: string } = {},
+  opts: { defaultRelationship?: string | null; firstRow?: number; fileName?: string; extraTags?: readonly string[] } = {},
 ): { records: ImportRecord[]; problems: RowProblem[]; warnings: RowProblem[] } {
   const rowNo = (i: number) => i + (opts.firstRow ?? 2);
   const records: ImportRecord[] = [];
@@ -263,6 +262,8 @@ export function buildRecords(
   // D69: a column may only feed a field its header allows (an opt-out column never feeds an opt-in).
   const safe = guardOptOuts(csv.headers, mapping);
   const get = (row: string[], f: Field) => (safe[f] !== undefined ? (row[safe[f]!] ?? "").trim() : "");
+  // D73: the tags the loan officer picked for the whole import and for this list, on every row.
+  const extra = mergeTags(opts.extraTags ?? []);
   const whereFrom = (f: OptOutField) => `${(opts.fileName ?? "file").slice(0, 100)} column ${(csv.headers[safe[f]!] ?? "").trim().slice(0, 60)}`;
   csv.rows.forEach((row, i) => {
     let first = get(row, "firstName");
@@ -278,9 +279,10 @@ export function buildRecords(
     const zip = ZIP_RE.test(rawZip) ? rawZip : null;
     if (rawZip && !zip) warnings.push({ row: rowNo(i), reason: "ZIP not readable, left blank" });
     const state = cleanState(get(row, "state")) ?? stateFromZip(zip ?? undefined);
-    const rawTags = get(row, "tags").split(/[;,|]/).map((t) => t.trim()).filter(Boolean);
-    const tags = [...new Set(rawTags.map((t) => t.slice(0, MAX_TAG).trim()))].slice(0, MAX_TAGS);
-    if (rawTags.some((t) => t.length > MAX_TAG) || rawTags.length > MAX_TAGS) warnings.push({ row: rowNo(i), reason: `tags shortened (${MAX_TAG} characters each, ${MAX_TAGS} at most)` });
+    const rawTags = splitTags(get(row, "tags"));
+    const fileTags = mergeTags(rawTags);
+    const tags = withExtraTags(fileTags, extra, MAX_TAGS);
+    if (rawTags.some((t) => t.length > MAX_TAG) || fileTags.some((t) => !tags.includes(t))) warnings.push({ row: rowNo(i), reason: `tags shortened (${MAX_TAG} characters each, ${MAX_TAGS} at most)` });
     const rawClosed = get(row, "closedOn");
     const closedOn = isoDate(rawClosed);
     if (rawClosed && !closedOn) warnings.push({ row: rowNo(i), reason: "date not readable, left blank" });

@@ -16,6 +16,9 @@ import { onContactReply } from "@/lib/campaigns/service";
 import { contactStore } from "@/lib/contacts/store";
 import { UNLOCK_ATTESTATION } from "@/lib/contacts/attestation";
 import { CHANNELS, EVIDENCE, PROVENANCE, PURPOSES } from "@/lib/contacts/store";
+import { bulkTags, deleteTag, MAX_BULK_IDS, mergeTag, renameTag, setContactTags } from "@/lib/contacts/tagging";
+import { cleanTag, MAX_CONTACT_TAGS } from "@/lib/contacts/tags";
+import { contactTagsCopy } from "@/lib/content/contact-tags";
 
 const n = z.number().finite().nullable();
 const s = (max: number) => z.string().max(max);
@@ -199,4 +202,62 @@ export async function phoneStopAction(contactId: string): Promise<void> {
   const { phoneStop } = await import("@/lib/messaging/phone");
   const ok = await phoneStop(actor, contactId);
   redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok, lines: [ok ? "Recorded: no more texts or calls to this number, from anyone in Command Center." : "Couldn't record that."] })}#conversation`);
+}
+
+/** D73: one person's tags, from the contact page (bound: `setTagsAction.bind(null, contactId)`). */
+export async function setTagsAction(contactId: string, tags: unknown): Promise<{ ok: true; tags: string[] } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in again." };
+  const parsed = z.array(z.string().max(200)).max(60).safeParse(tags);
+  if (!parsed.success) return { ok: false, error: contactTagsCopy.failed };
+  return setContactTags(actor, String(contactId), parsed.data);
+}
+
+const BulkInput = z.object({
+  target: z.union([
+    z.object({ ids: z.array(z.string().max(64)).max(MAX_BULK_IDS) }),
+    z.object({ filter: z.object({ kind: z.enum(["contact", "agent"]), q: z.string().max(200).optional(), rel: z.string().max(40).optional(), tag: z.string().max(200).optional() }) }),
+  ]),
+  op: z.object({ op: z.enum(["addTag", "removeTag"]), tag: z.string().max(200) }),
+});
+
+/** D73: the bulk bar on the Contacts list (add or remove a tag). `canSee` is checked for every person. */
+export async function bulkContactsAction(target: unknown, op: unknown): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in again." };
+  const parsed = BulkInput.safeParse({ target, op });
+  if (!parsed.success) return { ok: false, error: contactTagsCopy.failed };
+  const r = await bulkTags(actor, parsed.data.target, parsed.data.op);
+  if (!r.ok) return r;
+  const tag = cleanTag(parsed.data.op.tag);
+  return { ok: true, message: parsed.data.op.op === "addTag" ? contactTagsCopy.added(tag, r.changed, r.skipped, MAX_CONTACT_TAGS) : contactTagsCopy.removed(tag, r.changed) };
+}
+
+const tagsPage = (kind: string, flash: { ok: boolean; lines: string[] }) => `/mlo/contacts?${kind === "agent" ? "kind=agent&" : ""}f=${encodeFlash(flash)}#tags`;
+
+/** D73: Rename tag (bound: `renameTagAction.bind(null, kind, tag)`). */
+export async function renameTagAction(kind: string, from: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const r = await renameTag(actor, String(from), String(fd.get("to") ?? ""));
+  redirect(tagsPage(kind, r.ok ? { ok: true, lines: [contactTagsCopy.renamed(r.changed)] } : { ok: false, lines: [r.error] }));
+}
+
+/** D73: Merge into… (bound: `mergeTagAction.bind(null, kind, tag)`); the picked tag keeps its name. */
+export async function mergeTagAction(kind: string, from: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const into = String(fd.get("into") ?? "");
+  if (!into) redirect(tagsPage(kind, { ok: false, lines: [contactTagsCopy.pickMerge] }));
+  const r = await mergeTag(actor, String(from), into);
+  redirect(tagsPage(kind, r.ok ? { ok: true, lines: [contactTagsCopy.merged(r.changed)] } : { ok: false, lines: [r.error] }));
+}
+
+/** D73: Delete tag, after typing it (bound: `deleteTagAction.bind(null, kind, tag)`). */
+export async function deleteTagAction(kind: string, tag: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  if (String(fd.get("confirm") ?? "").trim() !== String(tag).trim()) redirect(tagsPage(kind, { ok: false, lines: [contactTagsCopy.confirmMismatch] }));
+  const r = await deleteTag(actor, String(tag));
+  redirect(tagsPage(kind, r.ok ? { ok: true, lines: [contactTagsCopy.deleted(r.changed)] } : { ok: false, lines: [r.error] }));
 }

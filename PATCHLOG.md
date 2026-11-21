@@ -5776,3 +5776,75 @@ sign-in and sign-up pages and a client's own page at 390 and 1280 in Night and P
 - **Known gaps:** the contacts table still breaks phone numbers over lines at 390 (the D77 rebuild); Dim was not swept
   (it shares Night's rules); LOA's small `.loa-btn-sm` (36px) buttons are unchanged by design.
 - **Next up:** D73 (tags at import, on each contact, in the list, in bulk), after the owner's sign-off.
+
+## D73 — Tags: at import, on each contact, in the list, in bulk (2026-11-21)
+
+Spec: "### D73" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. The owner's ask: "when we import all contacts, there has
+to be a way for the MLO to add tags". Built in Command Center styles after the "ImportFix" mockup (chips with ×, type-ahead,
+a pre-filled removable "Imported <date>" tag, "Your tags").
+
+- **Files:** new `lib/contacts/tags.ts` (pure: tidy, dedupe, `withExtraTags`, `importedTag`, `tagHref`; `MAX_TAG`/`MAX_TAGS`
+  moved here and re-exported from `mapping.ts`), `lib/contacts/tagging.ts` (server: `setContactTags`, `bulkTags`, `renameTag`,
+  `mergeTag`, `deleteTag`, `tagBook`), `lib/content/contact-tags.ts` (all the copy), `app/mlo/contacts/TagInput.tsx`,
+  `app/mlo/contacts/ContactsTable.tsx`, `app/mlo/contacts/[id]/ContactTags.tsx`, `lib/contacts/tags.test.ts`; changed
+  `lib/contacts/mapping.ts` (`buildRecords` `opts.extraTags`), `lib/contacts/smart.ts` (`mergeRecords` tags),
+  `lib/contacts/service.ts` (`importBatch` tags), `lib/contacts/store.ts` (`ContactFilter.tag`, `tagCounts` in both stores),
+  `app/mlo/contacts/actions.ts`, `app/mlo/contacts/page.tsx`, `app/mlo/contacts/[id]/page.tsx`,
+  `app/mlo/contacts/import/ImportWizard.tsx`, `app/mlo/contacts/import/page.tsx`, `app/mlo/cc-shell.css` (D73 block),
+  `scripts/qa/command-center.mjs`, `scripts/qa/buttons.mjs`.
+- **At import:** "Tags for everyone in this import" sits under "N people ready": chips, type-ahead from the book's tags
+  (a `datalist` plus "Your tags" to tap), up to 5, pre-filled with "Imported Nov 21, 2026" (the run's date on the loan
+  officer's clock; removable). Each list's card has "Tags for this list only" (up to 5). The file's own tags column is still
+  split on `; , |`. `buildRecords` adds the picked tags to every row (`extraTags`): deduped in any capitals, capped at 20,
+  and the picked tags always fit (the file's tags fill what's left, with the existing "tags shortened" warning). The preview
+  table has a Tags column (first 3, then "+n"). On a merge with someone already in the book the import's tags always land
+  (`withExtraTags`, 30 per contact), so the people link finds merged people too.
+- **Done screen:** "See the people from this import" (`/mlo/contacts?tag=<first import tag>`) and "Add tags to these people"
+  (the same with `select=all`, which opens the list with everyone matching picked); "See them" when no import tag was kept.
+- **On a contact:** the Tags row is chips with × and an "Add a tag" box with type-ahead; each change saves through
+  `setTagsAction.bind(null, contactId)` (checks `canSee`, tidies, refuses over 30) and says "Tags saved." (reverts on an error).
+- **In the list:** a tag chip row above the table (Everyone, the 12 most used with counts, the current one filled); `?tag=` is
+  an exact match (memory: `tags.includes`; Neon: `body->'tags' ? $n`), shown as "Tagged “X”: N people · Clear", kept by
+  Search and paging. The table has a header row, a pick column and a Tags column (first 3 as links, "+n"). Phones: Phone,
+  State, Relationship and Tags columns drop out; relationship and the tags sit under the name (see Decisions).
+- **Tags panel** (`#tags` on `/mlo/contacts`): each tag in the viewer's own book with its count and a link; "Change" opens
+  Rename tag, Merge into… (must be an existing tag; type-ahead) and Delete tag (type the tag to confirm; the people stay).
+  All bound (`renameTagAction.bind(null, kind, tag)` etc.); an owner whose list shows the team is told the panel is their own book.
+- **Bulk:** row checkboxes and "Select everyone on this page"; once the page is all picked and there are more, "Select all N
+  matching". A sticky `.cc-bulkbar` (above the phone tabs, `--cc-tabs-h`) has a tag box, Add tag, Remove tag and Clear.
+  `bulkContactsAction(ids | filter, op)` (zod): with ids, every id is read and checked with `canSee`, and one outside the book
+  refuses the whole request before anything changes; with the filter, the server re-runs the list in the viewer's scope
+  (up to 25,000), reads everyone first, then changes them (so removing the tag the list is filtered by still reaches all).
+  A person already at 30 tags is skipped and counted. D78 adds the other bulk actions.
+- **Assistants** change tags in the book of the loan officer they assist (`canSee` for a contact; `tagBook` for the panel);
+  an unassigned assistant changes nothing. The audit log keeps counts only (`contact.tags`, `contacts.tags.add/remove/rename/delete`).
+- **Tests:** `lib/contacts/tags.test.ts` (12): helpers (tidy, capitals, the date on the loan officer's clock, `tagHref`);
+  `extraTags` merged and deduped, capped at 20, the picked tags kept (with `past-clients-messy.csv`); a list's own tags; the
+  tag filter is exact in the memory store and in Neon (SQL and parameters checked: "Smith" doesn't find "Smithfield"); an
+  import's tags on new and merged people; rename and merge across contacts (another book untouched), delete; the bulk
+  action refuses ids outside the book and changes nothing; Select all matching; a full contact skipped; the contact page's
+  tags cleaned and capped; an assistant tags in the officer's book and nowhere else.
+- **Verified:** `npm run verify` passes (710 tests). Browser (scratch flow, 390 and 1280, Night and Paper): imported
+  `tests/fixtures/import/past-clients-messy.csv` with a whole-import tag and a list tag (preview Tags column showed them),
+  "See the people from this import" listed the 5 people, Select everyone + Add tag "Added … to 5 people.", the new tag's
+  filter found 5, Rename tag "Renamed for 5 people." and the new name found 5, a contact's tag added and removed (kept after
+  reload), `select=all` opened with the bar; no sideways scroll, no page errors. Tag boxes, the bulk bar and the opened Tags
+  panel forms line up (same height and bottom) at 390 and 1280. `node scripts/qa/command-center.mjs` (new step "tags: import,
+  filter, bulk, rename, contact", plus `/mlo/contacts?tag=…&select=all` in the sweep): PROBLEMS none.
+  `node scripts/qa/buttons.mjs` (adds `/mlo/contacts?select=all`, so the bulk bar is audited): 236 page views, PROBLEMS none.
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d73/` (`import-ready-*`, `import-done-*`, `list-filtered-*`,
+  `list-bulkbar-*`, `bulkbar-viewport-*`, `tags-panel-*`, `list-renamed-*`, `contact-tags-*`, each at 390/1280 in Night and
+  Paper; `buttons/` has the audit's set).
+- **Decisions:** (a) Two spellings that differ only in capitals are one tag on a person; the picked import tags keep their
+  spelling over the file's (so everyone from the import has exactly the chosen tag), type-ahead offers the book's spelling,
+  and the filter is exact on the stored spelling (Neon's `?` is case-sensitive). (b) A contact holds 30 tags (the old merge
+  limit); one import adds up to 20. (c) Bulk with ids is all-or-nothing on `canSee`. (d) The Tags panel works on the viewer's
+  own book only (spec); the chip row counts the list's scope (an owner's team view). (e) On phones the contacts table drops
+  Phone, State, Relationship and Tags columns and shows relationship and tags under the name, so the new pick and Tags
+  columns don't push Permission off the screen (this also ends the phone numbers breaking over lines noted in D72).
+  (f) A typed tag is added on Enter, a comma, the Add button or leaving the box. (g) Merge into… is a rename onto an
+  existing tag, refused if that tag isn't in the book.
+- **Known gaps:** the Tags panel shows the 200 most used tags; "Select all matching" changes up to 25,000 people per request;
+  tag counts come from a full scan of the book's tags (fine at today's sizes; an index can come with D78's saved lists);
+  Dim was not swept separately (it shares Night's rules).
+- **Next up:** D74 (import review: column cards, format questions, "Needs a look", Fix with M8), after the owner's sign-off.

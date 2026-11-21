@@ -25,7 +25,9 @@ import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { usStateName } from "@/lib/us-states";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { checkLineAction, consentAction, contactRepliedAction, deleteContactAction, dncAction, draftClientLinkAction, phoneStopAction, rndAction, rotateClientLinkAction, sendEmailAction, sendTextAction } from "../actions";
+import { checkLineAction, consentAction, contactRepliedAction, deleteContactAction, dncAction, draftClientLinkAction, phoneStopAction, rndAction, rotateClientLinkAction, sendEmailAction, sendTextAction, setTagsAction } from "../actions";
+import ContactTags from "./ContactTags";
+import { MAX_CONTACT_TAGS } from "@/lib/contacts/tags";
 import PhoneText from "./PhoneText";
 import { emailReadyFor } from "@/lib/messaging/email";
 import { campaignStore } from "@/lib/campaigns/store";
@@ -87,6 +89,8 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   // D9: possible needs and the latest call script.
   const [known, scripts, picked] = await Promise.all([gather(v.user, c, new Date()), scriptStore().forContact(v.user.id, c.id, 1), scriptId ? scriptStore().get(scriptId) : Promise.resolve(null)]);
   const shownScript = picked && picked.ownerUserId === v.user.id && picked.contactId === c.id ? picked : scripts[0] ?? null;
+  // D73: the book's tags, for type-ahead.
+  const bookTags = await store.tagCounts(c.ownerUserId).catch(() => []);
   const callStopped = s.call.service.evidence === "revoked" || s.call.marketing.evidence === "revoked";
   const signalGoals = known.signals.map((x) => x.goal);
   // D10: the client's own agents list, for "Updates to their agent".
@@ -110,7 +114,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
               <tr><th scope="row">Email</th><td>{c.email ?? ""}</td></tr>
               <tr><th scope="row">Where</th><td>{[c.street, c.city, usStateName(c.state) ?? c.state, c.zip].filter(Boolean).join(", ")}</td></tr>
               <tr><th scope="row">Relationship</th><td>{RELATIONSHIP_LABELS[c.relationship]}</td></tr>
-              {c.tags.length ? <tr><th scope="row">Tags</th><td>{c.tags.join(", ")}</td></tr> : null}
+              <tr id="tags"><th scope="row">Tags</th><td><ContactTags initial={c.tags} suggestions={bookTags.map((t) => t.tag)} max={MAX_CONTACT_TAGS} action={setTagsAction.bind(null, c.id)} /></td></tr>
               {c.loan ? <tr><th scope="row">Their loan</th><td>{[c.loan.closedOn ? `closed ${c.loan.closedOn}` : "", money(c.loan.amount), c.loan.noteRate ? `${c.loan.noteRate}% note rate` : ""].filter(Boolean).join(" · ")}</td></tr> : null}
               {c.agent ? (
                 <tr>

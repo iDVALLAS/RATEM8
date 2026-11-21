@@ -10,6 +10,9 @@ import { mergeRecords, parseVcf, relationshipFromName, shapes, smartMap, toClean
 import { browserInflate, readXlsx } from "@/lib/contacts/xlsx";
 import { aiMapAction, importBatchAction } from "../actions";
 import type { Provenance } from "@/lib/contacts/store";
+import { importedTag, MAX_IMPORT_TAGS, tagHref } from "@/lib/contacts/tags";
+import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
+import TagInput from "../TagInput";
 
 const SOURCES: [Provenance, string][] = [
   ["personal", "My own relationships (my phone, my email, people I know)"],
@@ -23,7 +26,7 @@ const BATCH = 500;
 const MAX_TOTAL = 50_000;
 const MAX_FILE = 25 * 1024 * 1024;
 
-type Item = { id: string; name: string; table: Csv; mapping: Mapping; rel: string | null; by: "names" | "m8" };
+type Item = { id: string; name: string; table: Csv; mapping: Mapping; rel: string | null; by: "names" | "m8"; tags: string[] };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -58,7 +61,7 @@ async function readFile(f: File): Promise<{ name: string; table: Csv }[] | strin
  * and value shapes only. Duplicates across files are merged. Files are
  * read in the browser; only the cleaned rows are sent, in batches.
  */
-export default function ImportWizard({ initialKind }: { initialKind: ImportKind }) {
+export default function ImportWizard({ initialKind, knownTags = [] }: { initialKind: ImportKind; knownTags?: string[] }) {
   const [kind, setKind] = useState<ImportKind>(initialKind);
   const [provenance, setProvenance] = useState<Provenance | "">(initialKind === "agents" ? "agent_partner" : "");
   const [items, setItems] = useState<Item[]>([]);
@@ -70,10 +73,14 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
   const [resume, setResume] = useState<{ at: number; sum: { created: number; merged: number; skipped: number; optedOut: number } } | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
+  // D73: tags for everyone in this import, starting with the day of the run ("Imported Nov 21, 2026"; removable).
+  // Shown only once files are added (in the browser), so the date is the loan officer's own.
+  const [importTags, setImportTags] = useState<string[]>(() => [importedTag(new Date())]);
+  const [doneTag, setDoneTag] = useState<string | null>(null);
 
   const fields = fieldsFor(kind);
   const built = useMemo(() => {
-    const per = items.map((it) => ({ it, ...buildRecords(it.table, it.mapping, kind, { defaultRelationship: it.rel, fileName: it.name }) }));
+    const per = items.map((it) => ({ it, ...buildRecords(it.table, it.mapping, kind, { defaultRelationship: it.rel, fileName: it.name, extraTags: [...importTags, ...it.tags] }) }));
     const merged = mergeRecords(per.map((p) => p.records));
     const problems: (RowProblem & { file: string })[] = per.flatMap((p) => p.problems.map((x) => ({ ...x, file: p.it.name })));
     const warns = per.flatMap((p) => p.warnings);
@@ -84,12 +91,12 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
     const stopPhone = records.filter((r) => r.optOuts && !stopsEverything(r) && (r.optOuts.text || r.optOuts.call)).length;
     const stopEmail = records.filter((r) => r.optOuts && !stopsEverything(r) && r.optOuts.email).length;
     return { per, records, merged: merged.merged, problems, warnings, stopAll, stopPhone, stopEmail, over: merged.records.length > MAX_TOTAL };
-  }, [items, kind]);
+  }, [items, kind, importTags]);
 
   const addTables = async (tables: { name: string; table: Csv }[]) => {
     const next: Item[] = [];
     for (const t of tables) {
-      const base: Item = { id: uid(), name: t.name, table: { headers: t.table.headers, rows: t.table.rows.slice(0, MAX_ROWS) }, mapping: smartMap(t.table, kind), rel: kind === "agents" ? null : relationshipFromName(t.name), by: "names" };
+      const base: Item = { id: uid(), name: t.name, table: { headers: t.table.headers, rows: t.table.rows.slice(0, MAX_ROWS) }, mapping: smartMap(t.table, kind), rel: kind === "agents" ? null : relationshipFromName(t.name), by: "names", tags: [] };
       if (kind === "contacts") {
         // M8 sees headers and value shapes only ("Aaa Aaa", "(999) 999-9999"), never the values.
         const ai = await aiMapAction({ fileName: t.name, kind, columns: shapes(base.table) }).catch(() => null);
@@ -175,6 +182,7 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
     setProgress(null);
     setResume(null);
     setResult(sum);
+    setDoneTag(importTags[0] ?? null);
     setItems([]);
   };
 
@@ -186,10 +194,17 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
         <p className="mlo-note">Everyone starts as <strong>relationship only</strong>: you can call them yourself, but M8 won&apos;t text or call anyone until their permission is recorded with proof.</p>
         {result.optedOut ? <p className="mlo-note">{ic.resultOptedOut(result.optedOut)}</p> : null}
         {provenance === "prior_employer" ? <p className="mlo-note">Because these came from a previous employer&apos;s system, they&apos;re <strong>on hold</strong> until you confirm on the Contacts page that you&apos;re allowed to use the list.</p> : null}
-        <p style={{ marginTop: 12 }} className="mlo-row-form">
-          <Link href={kind === "agents" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn">See them</Link>
+        <div className="mlo-actions">
+          {doneTag ? (
+            <>
+              <Link href={tagHref(doneTag, kind === "agents" ? "agent" : "contact")} className="mlo-btn">{tc.seeImport}</Link>
+              <Link href={tagHref(doneTag, kind === "agents" ? "agent" : "contact", { select: "all" })} className="mlo-btn mlo-btn--ghost">{tc.tagImport}</Link>
+            </>
+          ) : (
+            <Link href={kind === "agents" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn">See them</Link>
+          )}
           {kind === "contacts" ? <Link href="/mlo/contacts/permission" className="mlo-btn mlo-btn--ghost">Record the permission you hold</Link> : null}
-        </p>
+        </div>
       </section>
     );
   }
@@ -241,6 +256,11 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
               </div>
             ) : null}
             {built.warnings.zip || built.warnings.date || built.warnings.tags ? <p className="mlo-note">{ic.warnings(built.warnings)}</p> : null}
+            <div className="im-tags" role="group" aria-labelledby="im-tags-title">
+              <h3 id="im-tags-title" className="cc-card__title">{tc.importTitle}</h3>
+              <p className="mlo-note">{tc.importNote}</p>
+              <TagInput value={importTags} onChange={setImportTags} suggestions={knownTags} max={MAX_IMPORT_TAGS} label={tc.importTitle} />
+            </div>
             <ol className="im-files">
               {built.per.map(({ it, records, problems }) => (
                 <li key={it.id} className="cc-card">
@@ -255,6 +275,11 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
                       </select>
                     </label>
                   ) : null}
+                  <div className="im-tags im-tags--list" role="group" aria-label={`${tc.listLabel}: ${it.name}`}>
+                    <p className="im-tags__label">{tc.listLabel}</p>
+                    <TagInput value={it.tags} onChange={(tags) => setItems((cur) => cur.map((x) => (x.id === it.id ? { ...x, tags } : x)))} suggestions={knownTags.filter((t) => !importTags.includes(t))} max={MAX_IMPORT_TAGS} label={`${tc.listLabel}: ${it.name}`} />
+                    {it.mapping.tags !== undefined ? <p className="mlo-note">{tc.fileColumn}</p> : null}
+                  </div>
                   <details className="mlo-details">
                     <summary>Change matches</summary>
                     <div className="mlo-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))" }}>
@@ -275,7 +300,7 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
             </ol>
             <div className="mlo-scroll">
               <table className="mlo-table" style={{ marginTop: 12 }}>
-                <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>State</th><th>{kind === "agents" ? "Brokerage" : "Relationship"}</th></tr></thead>
+                <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>State</th><th>{kind === "agents" ? "Brokerage" : "Relationship"}</th><th>{tc.previewTags}</th></tr></thead>
                 <tbody>
                   {built.records.slice(0, 8).map((r, i) => (
                     <tr key={i}>
@@ -284,6 +309,14 @@ export default function ImportWizard({ initialKind }: { initialKind: ImportKind 
                       <td>{r.email ?? ""}</td>
                       <td>{r.state ?? ""}</td>
                       <td>{kind === "agents" ? r.agent?.brokerage ?? "" : RELATIONSHIP_LABELS[r.relationship]}</td>
+                      <td>
+                        {r.tags.length ? (
+                          <span className="cc-tags">
+                            {r.tags.slice(0, 3).map((t) => <span key={t} className="cc-tag cc-tag--sm">{t}</span>)}
+                            {r.tags.length > 3 ? <span className="cc-tag cc-tag--sm cc-tag--more">{tc.more(r.tags.length - 3)}</span> : null}
+                          </span>
+                        ) : null}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -184,6 +184,11 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     `.mlo-actions` row gives it), 44px buttons and boxes, grid-form buttons keep their width, labeled rows line up on the
     boxes, nothing wider than the screen, `.cc-tabs-inline` tabs; never patch `style={{ marginTop: 0 }}` (a test fails);
     `node scripts/qa/buttons.mjs` audits every page at 390/1280 in Night and Paper.
+    D73 tags (`lib/contacts/tags.ts` pure, `lib/contacts/tagging.ts`, `app/mlo/contacts/TagInput.tsx`, `ContactsTable.tsx`): import-wide
+    and per-list tags (`buildRecords` `extraTags`, always kept) plus a removable "Imported <Mon D, YYYY>"; chips on the contact page
+    (`setTagsAction.bind(null, id)`); exact `?tag=` (Neon `body->'tags' ? $n`), chip row, Tags column, Tags panel (rename, merge,
+    type-to-confirm delete, own book only); row checkboxes, "Select all N matching", sticky `.cc-bulkbar` (`bulkContactsAction`, `canSee`
+    for every id; one outside the book refuses all). Assistants act in `assistsUserId`'s book.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -292,7 +297,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 698 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 710 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

@@ -45,6 +45,43 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.getByRole('button', { name: /^Import \d+ people/ }).click();
     await page.getByRole('heading', { name: 'Imported' }).waitFor();
   });
+  // D73: tag at import, find them in one tap, bulk-add a tag, rename it, change one person's tags.
+  await step('tags: import, filter, bulk, rename, contact', async () => {
+    await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
+    await page.setInputFiles('input[type=file]', path.join(process.cwd(), 'tests/fixtures/import/past-clients-messy.csv'));
+    await page.locator('h2', { hasText: 'people ready' }).waitFor({ timeout: 20000 });
+    const whole = page.getByRole('group', { name: 'Tags for everyone in this import' });
+    const pre = await whole.locator('.cc-tag').allInnerTexts();
+    if (!pre.some((t) => /^Imported [A-Z][a-z]{2} \d{1,2}, \d{4}/.test(t))) problems.push('[tags] no "Imported <date>" tag pre-filled: ' + pre.join(' | '));
+    await whole.locator('input.mlo-input').fill('QA list'); await whole.locator('input.mlo-input').press('Enter');
+    const cell = await page.locator('.mlo-scroll table tbody tr').first().locator('td').last().innerText();
+    if (!/QA list/.test(cell)) problems.push('[tags] preview Tags column lacks the import tag: ' + cell);
+    await page.getByText('My own relationships').click();
+    await page.getByRole('button', { name: /^Import \d+ people/ }).click();
+    await page.getByRole('heading', { name: 'Imported' }).waitFor();
+    await page.getByRole('link', { name: 'See the people from this import' }).click(); await page.waitForURL(/tag=/);
+    console.log('tags: import filter:', await page.locator('.mlo-section .mlo-note').first().innerText());
+    await page.goto(B + '/mlo/contacts?tag=QA%20list');
+    const n = await page.locator('table.cc-contacts tbody tr').count();
+    if (n < 1) problems.push('[tags] ?tag=QA list found nobody');
+    await page.getByRole('checkbox', { name: 'Select everyone on this page' }).check();
+    await page.locator('.cc-bulkbar input').fill('QA bulk');
+    await page.locator('.cc-bulkbar').getByRole('button', { name: 'Add tag' }).click();
+    await page.locator('.cc-bulk .mlo-flash').waitFor(); console.log('tags: bulk:', await page.locator('.cc-bulk .mlo-flash').innerText());
+    await page.goto(B + '/mlo/contacts?tag=QA%20bulk');
+    if ((await page.locator('table.cc-contacts tbody tr').count()) !== n) problems.push('[tags] bulk-added tag does not find the same people');
+    const row = page.locator('.cc-tagadmin__row', { has: page.getByRole('link', { name: 'QA bulk', exact: true }) });
+    await row.locator('summary').click(); await row.locator('input[name=to]').fill('QA bulk renamed');
+    await row.getByRole('button', { name: 'Rename tag' }).click(); await page.waitForURL(/f=/); console.log('tags: rename:', await flash());
+    await page.goto(B + '/mlo/contacts?tag=QA%20bulk%20renamed');
+    if ((await page.locator('table.cc-contacts tbody tr').count()) !== n) problems.push('[tags] renamed tag does not find the same people');
+    await page.locator('table.cc-contacts tbody th a').first().click(); await page.locator('#tags').waitFor();
+    await page.locator('#tags input.mlo-input').fill('QA one'); await page.locator('#tags input.mlo-input').press('Enter');
+    await page.locator('#tags [role=status]', { hasText: 'Tags saved.' }).waitFor();
+    await page.locator('#tags').getByRole('button', { name: 'Remove tag QA one' }).click();
+    await page.locator('#tags [role=status]', { hasText: 'Tags saved.' }).waitFor();
+    await page.reload(); if (/QA one/.test(await page.locator('#tags').innerText())) problems.push('[tags] removed tag still on the contact');
+  });
   let key = '';
   await step('pipeline key + loan + lead', async () => {
     await page.goto(B + '/mlo/pipeline');
@@ -54,7 +91,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {

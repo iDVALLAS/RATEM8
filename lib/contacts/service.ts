@@ -18,6 +18,7 @@ import { singleCompany } from "@/lib/accounts/company";
 import { accountStore } from "@/lib/accounts/store";
 import { contactsImportCopy } from "@/lib/content/contacts-import";
 import type { ImportKind, ImportRecord } from "./mapping";
+import { MAX_CONTACT_TAGS, MAX_TAGS, mergeTags, withExtraTags } from "./tags";
 import { CHANNELS, contactStore, PURPOSES, type Channel, type ConsentEntry, type Contact, type Evidence, type Provenance, type Purpose } from "./store";
 
 export const MAX_BATCH = 500;
@@ -86,7 +87,8 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
         const cur = (merged as Record<string, unknown>)[k];
         if ((cur === null || cur === "" || cur === undefined) && v !== null && v !== "") (merged as Record<string, unknown>)[k] = v;
       }
-      merged.tags = Array.from(new Set([...dup.tags, ...r.tags])).slice(0, 30);
+      // D73: the import's tags always land (so "See the people from this import" finds merged people too).
+      merged.tags = withExtraTags(dup.tags, r.tags, MAX_CONTACT_TAGS);
       if (dup.relationship === "other" && r.relationship !== "other") merged.relationship = r.relationship;
       // A stronger source replaces "unknown"; a prior-employer import can lock a merged record, never unlock it.
       if (merged.provenance === "unknown" && provenance !== "unknown") merged.provenance = provenance;
@@ -95,7 +97,7 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
       contact = merged;
       out.merged++;
     } else {
-      contact = { ...fields, id: id(), ownerUserId: owner, kind: kind === "agents" ? "agent" : "contact", provenance, locked: provenance === "prior_employer", source: `import: ${source}`.slice(0, 160), createdAt: at, updatedAt: at };
+      contact = { ...fields, tags: mergeTags(r.tags).slice(0, MAX_TAGS), id: id(), ownerUserId: owner, kind: kind === "agents" ? "agent" : "contact", provenance, locked: provenance === "prior_employer", source: `import: ${source}`.slice(0, 160), createdAt: at, updatedAt: at };
       out.created++;
     }
     await store.put(contact);

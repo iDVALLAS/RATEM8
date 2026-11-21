@@ -9,7 +9,11 @@ import { consentBadge, scopeOf, summarize } from "@/lib/contacts/service";
 import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
 import { formatPhone } from "@/lib/contacts/normalize";
 import { FlashBox, MloNav } from "../MloChrome";
-import { unlockAction } from "./actions";
+import { deleteTagAction, mergeTagAction, renameTagAction, unlockAction } from "./actions";
+import ContactsTable, { type ContactRow } from "./ContactsTable";
+import { tagBook } from "@/lib/contacts/tagging";
+import { tagHref } from "@/lib/contacts/tags";
+import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
 import { UNLOCK_ATTESTATION } from "@/lib/contacts/attestation";
 import "../mlo.css";
 
@@ -20,7 +24,7 @@ const BADGE = { proof: "Permission on file", attested: "Your word only", revoked
 const PAGE = 50;
 
 /** /mlo/contacts — the loan officer's people (D2). Loan officers see their own; leads and the owner see the team's. */
-export default async function Contacts({ searchParams }: { searchParams: Promise<{ q?: string; rel?: string; kind?: string; p?: string; f?: string }> }) {
+export default async function Contacts({ searchParams }: { searchParams: Promise<{ q?: string; rel?: string; kind?: string; p?: string; f?: string; tag?: string; select?: string }> }) {
   const sp = await searchParams;
   const v = await requireViewer();
   const tenant = listTenants()[0];
@@ -28,14 +32,37 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
   const page = Math.max(0, Number(sp.p) || 0);
   const me = v.user;
   const store = contactStore();
-  const { contacts, total } = me ? await store.list({ ownerUserId: scopeOf(me), kind, q: sp.q?.trim() || undefined, relationship: sp.rel || undefined, limit: PAGE, offset: page * PAGE }) : { contacts: [], total: 0 };
+  const tag = sp.tag?.trim().slice(0, 200) || undefined;
+  const { contacts, total } = me ? await store.list({ ownerUserId: scopeOf(me), kind, q: sp.q?.trim() || undefined, relationship: sp.rel || undefined, tag, limit: PAGE, offset: page * PAGE }) : { contacts: [], total: 0 };
+  // D73: tags in the list's scope (the chip row) and in the viewer's own book (the Tags panel).
+  const book = me ? tagBook(me) : null;
+  const listTags = me ? await store.tagCounts(scopeOf(me), kind) : [];
+  const ownTags = !book ? [] : scopeOf(me!) === book ? listTags : await store.tagCounts(book, kind);
+  const rowTags = listTags.slice(0, 12);
+  if (tag && !rowTags.some((t) => t.tag === tag)) rowTags.push({ tag, count: total });
   const consents = await store.consentsFor(contacts.map((c) => c.id));
   const mine = me ? await store.list({ ownerUserId: me.id, limit: 500 }) : { contacts: [] };
   const held = mine.contacts.filter((c) => c.locked).length;
-  const qs = (extra: Record<string, string>) => {
-    const u = new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.rel ? { rel: sp.rel } : {}), kind, ...extra });
+  const qs = (extra: Record<string, string>, drop: string[] = []) => {
+    const u = new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.rel ? { rel: sp.rel } : {}), ...(tag ? { tag } : {}), kind, ...extra });
+    for (const k of drop) u.delete(k);
     return `/mlo/contacts?${u}`;
   };
+
+  const rows: ContactRow[] = contacts.map((c) => {
+    const badge = c.locked ? "held" : consentBadge(summarize(consents.filter((e) => e.contactId === c.id)));
+    return {
+      id: c.id,
+      name: `${c.firstName} ${c.lastName}`.trim() || c.email || "(no name)",
+      sub: kind === "agent" && c.agent?.brokerage ? c.agent.brokerage : null,
+      phone: formatPhone(c.phone),
+      state: c.state ?? "",
+      rel: kind === "agent" ? (c.agent?.units !== null && c.agent?.units !== undefined ? `${c.agent.units} units` : "") : RELATIONSHIP_LABELS[c.relationship],
+      badge: BADGE[badge],
+      badgeOff: badge === "revoked" || badge === "relationship" || badge === "held",
+      tags: c.tags ?? [],
+    };
+  });
 
   return (
     <PageShell>
@@ -69,6 +96,7 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
             ) : null}
             <form className="mlo-row-form" action="/mlo/contacts" method="get">
               <input type="hidden" name="kind" value={kind} />
+              {tag ? <input type="hidden" name="tag" value={tag} /> : null}
               <input name="q" defaultValue={sp.q ?? ""} placeholder="Search name, phone, email, city, tag" className="mlo-input" aria-label="Search" style={{ flex: "1 1 240px" }} />
               {kind === "contact" ? (
                 <select name="rel" defaultValue={sp.rel ?? ""} className="mlo-select" aria-label="Relationship">
@@ -79,35 +107,30 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
               <button type="submit" className="mlo-btn mlo-btn--ghost">Search</button>
               <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`} className="mlo-btn">Import contacts</Link>
             </form>
+            {rowTags.length ? (
+              <nav className="cc-tagrow" aria-label={tc.tagRow}>
+                <span className="cc-tagrow__label">{tc.tagRow}</span>
+                <Link href={kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="cc-tag" aria-current={!tag ? "page" : undefined}>{tc.all}</Link>
+                {rowTags.map((t) => (
+                  <Link key={t.tag} href={tagHref(t.tag, kind)} className="cc-tag" aria-current={tag === t.tag ? "page" : undefined}>
+                    {t.tag} <span className="cc-tag__n">{t.count.toLocaleString("en-US")}</span>
+                  </Link>
+                ))}
+              </nav>
+            ) : null}
             <section className="mlo-section">
-              {total === 0 ? (
+              {total === 0 && (tag || sp.q || sp.rel) ? (
+                <p className="mlo-note">Nobody matches. <Link href={kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"}>See everyone</Link>.</p>
+              ) : total === 0 ? (
                 <p className="mlo-note">
                   Nobody here yet. <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`}>Import contacts</Link> to start.
                 </p>
               ) : (
                 <>
-                  <p className="mlo-note">{total.toLocaleString("en-US")} {total === 1 ? "person" : "people"}</p>
-                  <table className="mlo-table">
-                    <tbody>
-                      {contacts.map((c) => {
-                        const badge = c.locked ? "held" : consentBadge(summarize(consents.filter((e) => e.contactId === c.id)));
-                        return (
-                          <tr key={c.id}>
-                            <th scope="row">
-                              <Link href={`/mlo/contacts/${c.id}`}>{`${c.firstName} ${c.lastName}`.trim() || c.email}</Link>
-                              {kind === "agent" && c.agent?.brokerage ? <><br /><span className="mlo-note">{c.agent.brokerage}</span></> : null}
-                            </th>
-                            <td>{formatPhone(c.phone)}</td>
-                            <td>{c.state ?? ""}</td>
-                            <td>{kind === "agent" ? (c.agent?.units !== null && c.agent?.units !== undefined ? `${c.agent.units} units` : "") : RELATIONSHIP_LABELS[c.relationship]}</td>
-                            <td><span className={`mlo-pill ${badge === "revoked" || badge === "relationship" || badge === "held" ? "mlo-pill--off" : ""}`}>{BADGE[badge]}</span></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <p className="mlo-note">{tag ? tc.tagged(tag, total) : `${total.toLocaleString("en-US")} ${total === 1 ? "person" : "people"}`}{tag ? <> · <Link href={qs({}, ["tag"])}>{tc.clear}</Link></> : null}</p>
+                  <ContactsTable key={`${kind}|${sp.q ?? ""}|${sp.rel ?? ""}|${tag ?? ""}|${page}`} rows={rows} total={total} filter={{ kind, ...(sp.q?.trim() ? { q: sp.q.trim() } : {}), ...(sp.rel ? { rel: sp.rel } : {}), ...(tag ? { tag } : {}) }} knownTags={listTags.map((t) => t.tag)} selectAll={sp.select === "all"} />
                   {page > 0 || (page + 1) * PAGE < total ? (
-                    <nav className="mlo-row-form" aria-label="Pages" style={{ marginTop: 12 }}>
+                    <nav className="mlo-row-form mlo-actions" aria-label="Pages">
                       {page > 0 ? <Link href={qs({ p: String(page - 1) })} className="mlo-btn mlo-btn--ghost">Previous</Link> : null}
                       {(page + 1) * PAGE < total ? <Link href={qs({ p: String(page + 1) })} className="mlo-btn mlo-btn--ghost">Next</Link> : null}
                     </nav>
@@ -115,6 +138,40 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
                 </>
               )}
             </section>
+            {ownTags.length ? (
+              <section className="mlo-section" id="tags">
+                <h2>{tc.tagsHeading}</h2>
+                <p className="mlo-note">{scopeOf(me) === book ? tc.panelNote : tc.panelNoteTeam}</p>
+                <datalist id="cc-own-tags">{ownTags.map((t) => <option key={t.tag} value={t.tag} />)}</datalist>
+                <ul className="cc-tagadmin">
+                  {ownTags.slice(0, 200).map((t) => (
+                    <li key={t.tag} className="cc-tagadmin__row">
+                      <div className="cc-tagadmin__head">
+                        <Link href={tagHref(t.tag, kind)} className="cc-tag">{t.tag}</Link>
+                        <span className="mlo-note">{t.count.toLocaleString("en-US")} {t.count === 1 ? "person" : "people"}</span>
+                      </div>
+                      <details className="mlo-details cc-tagadmin__change">
+                        <summary>{tc.change}</summary>
+                        <form action={renameTagAction.bind(null, kind, t.tag)} className="mlo-row-form">
+                          <label className="mlo-field"><span>{tc.renameTo}</span><input name="to" defaultValue={t.tag} maxLength={80} required autoComplete="off" /></label>
+                          <button type="submit" className="mlo-btn mlo-btn--ghost">{tc.rename}</button>
+                        </form>
+                        {ownTags.length > 1 ? (
+                          <form action={mergeTagAction.bind(null, kind, t.tag)} className="mlo-row-form">
+                            <label className="mlo-field"><span>{tc.mergeInto}</span><input name="into" list="cc-own-tags" placeholder={tc.mergePick} maxLength={80} required autoComplete="off" /></label>
+                            <button type="submit" className="mlo-btn mlo-btn--ghost">{tc.merge}</button>
+                          </form>
+                        ) : null}
+                        <form action={deleteTagAction.bind(null, kind, t.tag)} className="mlo-row-form">
+                          <label className="mlo-field"><span>{tc.deleteConfirm(t.tag)}</span><input name="confirm" aria-label={tc.confirmLabel} maxLength={80} required autoComplete="off" /></label>
+                          <button type="submit" className="mlo-btn mlo-btn--ghost">{tc.delete}</button>
+                        </form>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
           </>
         )}
       </div>

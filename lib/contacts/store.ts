@@ -69,7 +69,9 @@ export type ConsentEntry = {
   actor: string;
 };
 
-export type ContactFilter = { ownerUserId?: string; kind?: "contact" | "agent"; q?: string; relationship?: string; state?: string; limit?: number; offset?: number };
+/** D73: `tag` is an exact match on one tag (the spelling as stored), unlike `q`, which searches inside words. */
+export type ContactFilter = { ownerUserId?: string; kind?: "contact" | "agent"; q?: string; relationship?: string; state?: string; tag?: string; limit?: number; offset?: number };
+export type TagCount = { tag: string; count: number };
 
 export interface ContactStore {
   readonly kind: string;
@@ -79,6 +81,8 @@ export interface ContactStore {
   put(c: Contact): Promise<void>;
   get(id: string): Promise<Contact | null>;
   list(f: ContactFilter): Promise<{ contacts: Contact[]; total: number }>;
+  /** D73: each tag in a book (or every book, owner undefined) with how many people have it, most used first. */
+  tagCounts(ownerUserId: string | undefined, kind?: "contact" | "agent"): Promise<TagCount[]>;
   addConsent(e: ConsentEntry): Promise<void>;
   consents(contactId: string): Promise<ConsentEntry[]>;
   consentsFor(contactIds: string[]): Promise<ConsentEntry[]>;
@@ -90,6 +94,7 @@ const matches = (c: Contact, f: ContactFilter) => {
   if (f.kind && c.kind !== f.kind) return false;
   if (f.relationship && c.relationship !== f.relationship) return false;
   if (f.state && c.state !== f.state) return false;
+  if (f.tag && !(c.tags ?? []).includes(f.tag)) return false;
   if (f.q) {
     const q = f.q.toLowerCase();
     const hay = [c.firstName, c.lastName, c.email, c.phone, c.city, c.agent?.brokerage, ...c.tags].filter(Boolean).join(" ").toLowerCase();
@@ -98,6 +103,8 @@ const matches = (c: Contact, f: ContactFilter) => {
   return true;
 };
 const byName = (a: Contact, b: Contact) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`);
+const byCount = (a: TagCount, b: TagCount) => b.count - a.count || a.tag.localeCompare(b.tag);
+export const MAX_TAG_COUNTS = 500;
 
 export class MemoryContactStore implements ContactStore {
   readonly kind = "memory";
@@ -120,6 +127,14 @@ export class MemoryContactStore implements ContactStore {
     const all = [...this.rows.values()].filter((c) => matches(c, f)).sort(byName);
     const off = f.offset ?? 0;
     return { contacts: all.slice(off, off + (f.limit ?? 50)).map((c) => structuredClone(c)), total: all.length };
+  }
+  async tagCounts(owner: string | undefined, kind?: "contact" | "agent") {
+    const n = new Map<string, number>();
+    for (const c of this.rows.values()) {
+      if ((owner && c.ownerUserId !== owner) || (kind && c.kind !== kind)) continue;
+      for (const t of new Set(c.tags ?? [])) n.set(t, (n.get(t) ?? 0) + 1);
+    }
+    return [...n].map(([tag, count]) => ({ tag, count })).sort(byCount).slice(0, MAX_TAG_COUNTS);
   }
   async addConsent(e: ConsentEntry) {
     this.log.push({ ...e });
@@ -199,10 +214,27 @@ export class NeonContactStore implements ContactStore {
     if (f.relationship) add("relationship = ?", f.relationship);
     if (f.state) add("state = ?", f.state);
     if (f.q) add("search LIKE ?", `%${f.q.toLowerCase().replace(/[%_]/g, "")}%`);
+    // D73: exact tag (jsonb "has this string element"), written out because `?` is also the operator.
+    if (f.tag) {
+      p.push(f.tag);
+      where.push(`body->'tags' ? $${p.length}`);
+    }
     const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
     const total = Number((await this.q(`SELECT count(*)::int AS n FROM cc_contacts ${w}`, p))[0]?.n ?? 0);
     const rows = await this.q(`SELECT body FROM cc_contacts ${w} ORDER BY sort_name LIMIT ${Math.min(f.limit ?? 50, 500)} OFFSET ${Math.max(0, f.offset ?? 0)}`, p);
     return { contacts: rows.map(toContact), total };
+  }
+  async tagCounts(owner: string | undefined, kind?: "contact" | "agent") {
+    await this.init();
+    const where: string[] = [];
+    const p: unknown[] = [];
+    if (owner) where.push(`owner_user_id = $${p.push(owner)}`);
+    if (kind) where.push(`kind = $${p.push(kind)}`);
+    const r = await this.q(
+      `SELECT t AS tag, count(DISTINCT id)::int AS n FROM cc_contacts, jsonb_array_elements_text(CASE WHEN jsonb_typeof(body->'tags') = 'array' THEN body->'tags' ELSE '[]'::jsonb END) AS t ${where.length ? `WHERE ${where.join(" AND ")}` : ""} GROUP BY t ORDER BY n DESC, t LIMIT ${MAX_TAG_COUNTS}`,
+      p,
+    );
+    return r.map((x) => ({ tag: String(x.tag), count: Number(x.n) })).sort(byCount);
   }
   async addConsent(e: ConsentEntry) {
     await this.init();

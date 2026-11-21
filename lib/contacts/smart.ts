@@ -20,6 +20,7 @@
 import type { Csv } from "./csv";
 import { autoMap, fieldsFor, headerAllowed, type Field, type ImportKind, type ImportRecord, type Mapping } from "./mapping";
 import { cleanEmail, cleanState, isoDate, toE164 } from "./normalize";
+import { MAX_TAGS, mergeTags } from "./tags";
 
 // ---- vCard ----
 
@@ -181,7 +182,7 @@ export function mergeRecords(lists: ImportRecord[][]): { records: ImportRecord[]
       if (!a.phone && r.phone) a.phone = r.phone;
       else if (r.phone && r.phone !== a.phone && !a.phone2) a.phone2 = r.phone;
       if (a.relationship === "other" && r.relationship !== "other") a.relationship = r.relationship;
-      a.tags = [...new Set([...a.tags, ...r.tags])].slice(0, 20);
+      a.tags = mergeTags(a.tags, r.tags).slice(0, MAX_TAGS);
       // D69: an opt-out in any copy wins over an opt-in in any other.
       if (r.optOuts) a.optOuts = { ...r.optOuts, ...a.optOuts };
       const phoneStopped = !!(a.optOuts?.text || a.optOuts?.call);
