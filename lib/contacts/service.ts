@@ -21,7 +21,7 @@ import { contactsImportCopy } from "@/lib/content/contacts-import";
 import type { ImportKind, ImportRecord } from "./mapping";
 import { applyImport, classify, type ReimportMode } from "./reimport";
 import { MAX_TAGS, mergeTags, POSSIBLE_DUPLICATE_TAG } from "./tags";
-import { CHANNELS, contactStore, PURPOSES, type Channel, type ConsentEntry, type Contact, type Evidence, type Provenance, type Purpose } from "./store";
+import { CHANNELS, contactStore, liveEntries, PURPOSES, type Channel, type ConsentEntry, type Contact, type Evidence, type Provenance, type Purpose } from "./store";
 
 export const MAX_BATCH = 500;
 
@@ -76,10 +76,12 @@ export function importOwner(actor: User): string {
 }
 
 const latestOf = (entries: ConsentEntry[], channel: Channel, purpose: Purpose): ConsentEntry | null =>
-  entries.filter((e) => e.channel === channel && e.purpose === purpose).sort((a, b) => a.at.localeCompare(b.at)).pop() ?? null;
+  liveEntries(entries).filter((e) => e.channel === channel && e.purpose === purpose).sort((a, b) => a.at.localeCompare(b.at)).pop() ?? null;
 
 /** D75: an import's "yes" taken back by an undo (not a stop: they never said stop). */
 export const isUndoneYes = (e: ConsentEntry) => !e.granted && e.evidence === "attested";
+/** D77: nothing on file: an undone import "yes", or permission set back because their phone or email changed. */
+export const isNothingOnFile = (e: ConsentEntry) => isUndoneYes(e) || e.evidence === "reset";
 
 /** D75: the import a batch belongs to, and what to do with people already in the book. */
 export type ImportOptions = { importId?: string; mode?: ReimportMode };
@@ -130,8 +132,8 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
       const last = latestOf(log, e.channel, e.purpose);
       if (last && last.granted === e.granted && last.evidence === e.evidence) return;
       // An import's "yes" is only the loan officer's word: it never undoes a recorded stop, or replaces stronger proof.
-      // (D75: a "yes" an undone import took back counts as nothing on file.)
-      if (e.granted && e.evidence === "attested" && last && !isUndoneYes(last)) return;
+      // (D75: a "yes" an undone import took back counts as nothing on file; D77: so does a reset after a new phone or email.)
+      if (e.granted && e.evidence === "attested" && last && !isNothingOnFile(last)) return;
       const entry: ConsentEntry = { ...e, contactId: contact.id, at, actor: actor.email, ...(importId ? { importId } : {}) };
       await store.addConsent(entry);
       log.push(entry);
@@ -156,10 +158,10 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
 export type ConsentState = { granted: boolean; evidence: Evidence | null; at: string | null; proof: string | null };
 export type ConsentSummary = Record<Channel, Record<Purpose, ConsentState>>;
 
-/** The latest answer for each channel and purpose. */
+/** The latest answer for each channel and purpose. D77: copies from a merged record are history only. */
 export function summarize(entries: ConsentEntry[]): ConsentSummary {
   const s = Object.fromEntries(CHANNELS.map((c) => [c, Object.fromEntries(PURPOSES.map((p) => [p, { granted: false, evidence: null, at: null, proof: null }]))])) as ConsentSummary;
-  for (const e of [...entries].sort((a, b) => a.at.localeCompare(b.at))) s[e.channel][e.purpose] = { granted: e.granted, evidence: e.evidence, at: e.at, proof: e.proof };
+  for (const e of liveEntries(entries).sort((a, b) => a.at.localeCompare(b.at))) s[e.channel][e.purpose] = { granted: e.granted, evidence: e.evidence, at: e.at, proof: e.proof };
   return s;
 }
 

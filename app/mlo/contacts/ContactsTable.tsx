@@ -5,15 +5,31 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cleanTag, tagHref } from "@/lib/contacts/tags";
 import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
-import { bulkContactsAction } from "./actions";
+import { contactPageCopy as cp } from "@/lib/content/contact-page";
+import { Icon } from "@/app/mlo/icons";
+import { bulkContactsAction, dialAction } from "./actions";
 
-export type ContactRow = { id: string; name: string; sub: string | null; phone: string; state: string; rel: string; badge: string; badgeOff: boolean; tags: string[] };
+export type ContactRow = {
+  id: string;
+  name: string;
+  initials: string;
+  /** "phone · state · relationship" (agents: brokerage and production). */
+  line: string;
+  badge: string;
+  tone: "ok" | "warn" | "bad";
+  tags: string[];
+  /** A hand-dialed call isn't stopped, held or impossible (the gate still decides when it's tapped). */
+  canCall: boolean;
+  hasPhone: boolean;
+};
 type Filter = { kind: "contact" | "agent"; q?: string; rel?: string; tag?: string; imp?: string };
 
 /**
- * D73: the Contacts list with row checkboxes, "Select all N matching" and a
- * sticky bulk bar (Add tag / Remove tag). The server checks every person is
- * in the viewer's book (`bulkContactsAction`); D78 adds the other actions.
+ * D73/D77: the Contacts list as rows: a pick box, initials, the name, a muted
+ * "phone · state · relationship" line, tag chips, a plain badge ("Can text",
+ * "Call only", "Do not contact") and 44px Call and Text buttons. "Select all
+ * N matching" and the sticky bulk bar (Add tag / Remove tag) are D73's; the
+ * server checks every person is in the viewer's book (`bulkContactsAction`).
  */
 export default function ContactsTable({ rows, total, filter, knownTags, selectAll }: { rows: ContactRow[]; total: number; filter: Filter; knownTags: string[]; selectAll: boolean }) {
   const id = useId();
@@ -24,6 +40,7 @@ export default function ContactsTable({ rows, total, filter, knownTags, selectAl
   const [tag, setTag] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  const [calling, setCalling] = useState<string | null>(null);
 
   const count = matching ? total : picked.size;
   const pageAll = rows.length > 0 && pageIds.every((x) => picked.has(x));
@@ -58,47 +75,51 @@ export default function ContactsTable({ rows, total, filter, knownTags, selectAl
       } else setMsg({ ok: false, text: r.error });
     });
   };
+  // Call: the contact rules are checked and the call logged first, then the phone app opens.
+  const call = async (r: ContactRow) => {
+    if (calling) return;
+    setCalling(r.id);
+    const res = await dialAction(r.id).catch(() => ({ ok: false as const, error: tc.failed }));
+    setCalling(null);
+    if (res.ok) window.location.href = `tel:${res.tel}`;
+    else setMsg({ ok: false, text: `${r.name}: ${res.error}` });
+  };
 
   return (
     <div className="cc-bulk">
       {msg ? <div className={`mlo-flash ${msg.ok ? "mlo-flash--ok" : "mlo-flash--err"}`} role={msg.ok ? "status" : "alert"}>{msg.text}</div> : null}
-      <div className="mlo-scroll">
-        <table className="mlo-table cc-contacts">
-          <thead>
-            <tr>
-              <th scope="col" className="cc-contacts__pick">
-                <input type="checkbox" checked={pageAll} onChange={togglePage} aria-label={tc.selectPage} />
-              </th>
-              <th scope="col">Name</th>
-              <th scope="col" className="cc-hide-sm">Phone</th>
-              <th scope="col" className="cc-hide-sm">State</th>
-              <th scope="col" className="cc-hide-sm">{filter.kind === "agent" ? "Production" : "Relationship"}</th>
-              <th scope="col">Permission</th>
-              <th scope="col" className="cc-hide-sm">{tc.tagsHeading}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} data-picked={picked.has(r.id) || matching ? "" : undefined}>
-                <td className="cc-contacts__pick">
-                  <input type="checkbox" checked={matching || picked.has(r.id)} onChange={() => (matching ? (setMatching(false), setPicked(new Set(pageIds.filter((x) => x !== r.id)))) : toggle(r.id))} aria-label={tc.selectRow(r.name)} />
-                </td>
-                <th scope="row">
-                  <Link href={`/mlo/contacts/${r.id}`}>{r.name}</Link>
-                  {r.sub ? <><br /><span className="mlo-note">{r.sub}</span></> : null}
-                  {r.rel ? <span className="cc-show-sm mlo-note">{r.rel}</span> : null}
-                  {r.tags.length ? <span className="cc-show-sm"><Chips tags={r.tags} kind={filter.kind} /></span> : null}
-                </th>
-                <td className="cc-hide-sm">{r.phone}</td>
-                <td className="cc-hide-sm">{r.state}</td>
-                <td className="cc-hide-sm">{r.rel}</td>
-                <td><span className={`mlo-pill ${r.badgeOff ? "mlo-pill--off" : ""}`}>{r.badge}</span></td>
-                <td className="cc-hide-sm">{r.tags.length ? <Chips tags={r.tags} kind={filter.kind} /> : null}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <label className="mlo-check cc-people__all">
+        <input type="checkbox" checked={pageAll} onChange={togglePage} aria-label={tc.selectPage} />
+        <span>{tc.selectPage}</span>
+      </label>
+      <ul className="cc-people">
+        {rows.map((r) => (
+          <li key={r.id} className="cc-person" data-picked={picked.has(r.id) || matching ? "" : undefined}>
+            <input type="checkbox" className="cc-person__pick" checked={matching || picked.has(r.id)} onChange={() => (matching ? (setMatching(false), setPicked(new Set(pageIds.filter((x) => x !== r.id)))) : toggle(r.id))} aria-label={tc.selectRow(r.name)} />
+            <span className="cc-initials" aria-hidden="true">{r.initials}</span>
+            <div className="cc-person__main">
+              <Link className="cc-person__name" href={`/mlo/contacts/${r.id}`}>{r.name}</Link>
+              {r.line ? <p className="cc-person__line">{r.line}</p> : null}
+              <div className="cc-person__meta">
+                <span className={`cc-reach cc-reach--${r.tone}`}>{r.badge}</span>
+                {r.tags.length ? <Chips tags={r.tags} kind={filter.kind} /> : null}
+              </div>
+            </div>
+            <div className="cc-person__acts">
+              {r.canCall ? (
+                <a className="cc-iconbtn" href={`/mlo/contacts/${r.id}`} aria-label={`${cp.actions.call} ${r.name}`} aria-busy={calling === r.id || undefined} onClick={(e) => { e.preventDefault(); void call(r); }}><Icon name="phone" /></a>
+              ) : (
+                <button type="button" className="cc-iconbtn" disabled aria-label={`${cp.actions.call} ${r.name}`}><Icon name="phone" /></button>
+              )}
+              {r.hasPhone ? (
+                <Link className="cc-iconbtn" href={`/mlo/contacts/${r.id}?tab=conversation#compose-text`} aria-label={`${cp.actions.text} ${r.name}`}><Icon name="message" /></Link>
+              ) : (
+                <button type="button" className="cc-iconbtn" disabled aria-label={`${cp.actions.text} ${r.name}`}><Icon name="message" /></button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
       {count > 0 ? (
         <div className="cc-bulkbar" role="region" aria-label={tc.selected(count)}>
           <p className="cc-bulkbar__count">

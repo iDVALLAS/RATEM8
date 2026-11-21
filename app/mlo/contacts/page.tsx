@@ -5,11 +5,17 @@ import { decodeFlash } from "@/lib/mlo/flash";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { contactStore } from "@/lib/contacts/store";
-import { consentBadge, scopeOf, summarize } from "@/lib/contacts/service";
+import { scopeOf, summarize } from "@/lib/contacts/service";
 import { RELATIONSHIP_LABELS } from "@/lib/contacts/mapping";
-import { formatPhone } from "@/lib/contacts/normalize";
+import { formatPhone, initialsOf } from "@/lib/contacts/normalize";
 import { FlashBox, MloNav } from "../MloChrome";
-import { deleteTagAction, mergeTagAction, renameTagAction, unlockAction } from "./actions";
+import { addContactAction, deleteTagAction, mergeTagAction, renameTagAction, unlockAction } from "./actions";
+import AddPerson from "./AddPerson";
+import { reachBadge } from "@/lib/contacts/reach";
+import { nameOf } from "@/lib/contacts/merge";
+import { relationshipsFor } from "@/lib/contacts/editing";
+import { contactPageCopy as cp } from "@/lib/content/contact-page";
+import { PROVENANCE } from "@/lib/contacts/store";
 import ContactsTable, { type ContactRow } from "./ContactsTable";
 import { tagBook } from "@/lib/contacts/tagging";
 import { tagHref } from "@/lib/contacts/tags";
@@ -21,7 +27,6 @@ import PageHead from "@/app/mlo/PageHead";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Contacts", robots: { index: false, follow: false } };
 
-const BADGE = { proof: "Permission on file", attested: "Your word only", revoked: "Do not contact", relationship: "Relationship only", held: "On hold" } as const;
 const PAGE = 50;
 
 /** /mlo/contacts — the loan officer's people (D2). Loan officers see their own; leads and the owner see the team's. */
@@ -52,18 +57,22 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
     return `/mlo/contacts?${u}`;
   };
 
+  // D77: one row per person: initials, name, "phone · state · relationship", tags, a plain badge, Call and Text.
   const rows: ContactRow[] = contacts.map((c) => {
-    const badge = c.locked ? "held" : consentBadge(summarize(consents.filter((e) => e.contactId === c.id)));
+    const summary = summarize(consents.filter((e) => e.contactId === c.id));
+    const badge = reachBadge({ summary, hasPhone: !!c.phone, hasEmail: !!c.email, locked: c.locked });
+    const phoneStop = (["call", "ai_call", "text"] as const).some((ch) => summary[ch].service.evidence === "revoked" || summary[ch].marketing.evidence === "revoked");
+    const rel = kind === "agent" ? [c.agent?.brokerage, c.agent?.units !== null && c.agent?.units !== undefined ? `${c.agent.units} units` : ""].filter(Boolean).join(" · ") : RELATIONSHIP_LABELS[c.relationship];
     return {
       id: c.id,
-      name: `${c.firstName} ${c.lastName}`.trim() || c.email || "(no name)",
-      sub: kind === "agent" && c.agent?.brokerage ? c.agent.brokerage : null,
-      phone: formatPhone(c.phone),
-      state: c.state ?? "",
-      rel: kind === "agent" ? (c.agent?.units !== null && c.agent?.units !== undefined ? `${c.agent.units} units` : "") : RELATIONSHIP_LABELS[c.relationship],
-      badge: BADGE[badge],
-      badgeOff: badge === "revoked" || badge === "relationship" || badge === "held",
+      name: nameOf(c),
+      initials: initialsOf(c.firstName, c.lastName, c.email ?? ""),
+      line: [formatPhone(c.phone) || c.email, c.state, rel].filter(Boolean).join(" · "),
+      badge: badge.label,
+      tone: badge.tone,
       tags: c.tags ?? [],
+      canCall: !!c.phone && !phoneStop && !c.locked,
+      hasPhone: !!c.phone,
     };
   });
 
@@ -110,6 +119,12 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
               <button type="submit" className="mlo-btn mlo-btn--ghost">Search</button>
               <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`} className="mlo-btn">Import contacts</Link>
             </form>
+            <AddPerson
+              agent={kind === "agent"}
+              relationships={relationshipsFor(kind).map((r) => ({ value: r, label: RELATIONSHIP_LABELS[r] }))}
+              provenances={PROVENANCE.filter((p) => kind !== "agent" || p !== "own_closings").map((p) => ({ value: p, label: cp.provenance[p] }))}
+              action={addContactAction.bind(null, kind)}
+            />
             {rowTags.length ? (
               <nav className="cc-tagrow" aria-label={tc.tagRow}>
                 <span className="cc-tagrow__label">{tc.tagRow}</span>

@@ -43,7 +43,7 @@ export default function PhoneText({ contactId, first, maxLength, serviceOk, mark
   }
 
   return (
-    <form onSubmit={go} className="mlo-grid" style={{ marginTop: 12 }} id="phone-text">
+    <form onSubmit={go} className="mlo-grid" id="phone-text">
       <label className="mlo-field">
         <span>Text {first || "them"} from my phone</span>
         <textarea rows={3} maxLength={maxLength} className="mlo-textarea" value={body} onChange={(e) => setBody(e.target.value)} required />
@@ -55,7 +55,7 @@ export default function PhoneText({ contactId, first, maxLength, serviceOk, mark
         </select>
         <button type="submit" className="mlo-btn" disabled={busy || !body.trim()}>{busy ? "Checking…" : "Open in Messages"}</button>
       </div>
-      <p className="mlo-note">The same checks as any text, then Messages opens on your phone with it written; you press send, and it goes from your own number. Replies come to your phone. If they text STOP, press &ldquo;They asked to stop&rdquo; below.</p>
+      <p className="mlo-note">The same checks as any text, then Messages opens on your phone with it written; you press send, and it goes from your own number. Replies come to your phone. If they text STOP, press &ldquo;They asked to stop&rdquo; (under More ways to reach them).</p>
       {msg ? (
         <div className={`mlo-flash ${msg.ok ? "mlo-flash--ok" : "mlo-flash--err"}`} role={msg.ok ? "status" : "alert"}>
           <p>{msg.text}</p>

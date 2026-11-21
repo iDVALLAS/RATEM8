@@ -27,7 +27,7 @@ import { touchStore } from "@/lib/messaging/store";
 import type { ImportKind, ImportRecord } from "./mapping";
 import { applyImport, changeLabels, classify, undoOpen, undoSnapshot, type MatchKind, type ReimportMode } from "./reimport";
 import { bookOf, canSee, importOwner, isUndoneYes } from "./service";
-import { CHANNELS, contactStore, PURPOSES, type Contact, type ConsentEntry, type Provenance } from "./store";
+import { CHANNELS, contactStore, liveEntries, PURPOSES, type Contact, type ConsentEntry, type Provenance } from "./store";
 
 export type ImportCounts = { created: number; merged: number; updated: number; skipped: number; optedOut: number; possible: number; inFile: number };
 export type UndoResult = { deleted: number; restored: number; kept: number; keptStops: number; keptTouched: number };
@@ -316,7 +316,7 @@ export async function undoImport(actor: User, id: string, now = new Date()): Pro
 async function takeBackYes(contactId: string, log: ConsentEntry[], run: ImportRun, actor: User, at: string) {
   for (const channel of CHANNELS) {
     for (const purpose of PURPOSES) {
-      const last = log.filter((e) => e.channel === channel && e.purpose === purpose).sort((a, b) => a.at.localeCompare(b.at)).pop();
+      const last = liveEntries(log).filter((e) => e.channel === channel && e.purpose === purpose).sort((a, b) => a.at.localeCompare(b.at)).pop();
       if (!last || last.importId !== run.id || !last.granted || last.evidence !== "attested" || isUndoneYes(last)) continue;
       await contactStore().addConsent({ contactId, channel, purpose, granted: false, evidence: "attested", proof: `import undone: ${run.files.join(", ")}`.slice(0, 200), at, actor: actor.email, importId: run.id });
     }

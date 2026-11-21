@@ -16,9 +16,12 @@ export default function DetailSheet({
   closeLabel = "Close",
   buttonClassName = "lo-btn-secondary text-[10px]",
   className,
+  buttonContent,
   children,
 }: {
   label: string;
+  /** D77: what the button shows, when it's more than the label (an icon and the label). */
+  buttonContent?: React.ReactNode;
   title: string;
   closeLabel?: string;
   buttonClassName?: string;
@@ -54,7 +57,7 @@ export default function DetailSheet({
   return (
     <>
       <button ref={btn} type="button" className={buttonClassName} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
-        {label}
+        {buttonContent ?? label}
       </button>
       {open
         ? createPortal(

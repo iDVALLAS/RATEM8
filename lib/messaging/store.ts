@@ -59,6 +59,8 @@ export interface TouchStore extends OptOutStore {
   since(ownerUserId: string, since: string): Promise<Touch[]>;
   /** D6: loan officers who have texted this phone from this sender number. */
   ownersWhoTexted(phone: string, sender: string): Promise<string[]>;
+  /** D77: a merge moves one record's messages onto the record kept (same book). Returns how many moved. */
+  moveContact(fromId: string, toId: string): Promise<number>;
 }
 
 export class MemoryTouchStore implements TouchStore {
@@ -96,6 +98,15 @@ export class MemoryTouchStore implements TouchStore {
   }
   async since(owner: string, since: string) {
     return this.rows.filter((r) => r.ownerUserId === owner && r.at >= since).map((r) => ({ ...r }));
+  }
+  async moveContact(from: string, to: string) {
+    let n = 0;
+    for (const r of this.rows) {
+      if (r.contactId !== from) continue;
+      r.contactId = to;
+      n++;
+    }
+    return n;
   }
 }
 
@@ -171,6 +182,11 @@ export class NeonTouchStore implements TouchStore {
   async since(owner: string, since: string) {
     await this.init();
     return (await this.q(`SELECT * FROM cc_touches WHERE owner_user_id = $1 AND at >= $2 ORDER BY at DESC LIMIT 5000`, [owner, since])).map(toTouch);
+  }
+  async moveContact(from: string, to: string) {
+    await this.init();
+    const r = await this.q(`WITH u AS (UPDATE cc_touches SET contact_id = $2 WHERE contact_id = $1 RETURNING 1) SELECT count(*)::int AS n FROM u`, [from, to]);
+    return Number(r[0]?.n ?? 0);
   }
 }
 

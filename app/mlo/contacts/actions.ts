@@ -22,6 +22,9 @@ import { CHANNELS, EVIDENCE, PROVENANCE, PURPOSES } from "@/lib/contacts/store";
 import { bulkTags, deleteTag, MAX_BULK_IDS, mergeTag, renameTag, setContactTags } from "@/lib/contacts/tagging";
 import { cleanTag, MAX_CONTACT_TAGS } from "@/lib/contacts/tags";
 import { contactTagsCopy } from "@/lib/content/contact-tags";
+import { contactPageCopy } from "@/lib/content/contact-page";
+import { addContact, addNote, addToCampaign, logDial, mergeContacts, remindMe, updateContact } from "@/lib/contacts/manage";
+import { nameOf } from "@/lib/contacts/merge";
 
 const n = z.number().finite().nullable();
 const s = (max: number) => z.string().max(max);
@@ -355,4 +358,96 @@ export async function deleteTagAction(kind: string, tag: string, fd: FormData): 
   if (String(fd.get("confirm") ?? "").trim() !== String(tag).trim()) redirect(tagsPage(kind, { ok: false, lines: [contactTagsCopy.confirmMismatch] }));
   const r = await deleteTag(actor, String(tag));
   redirect(tagsPage(kind, r.ok ? { ok: true, lines: [contactTagsCopy.deleted(r.changed)] } : { ok: false, lines: [r.error] }));
+}
+
+// ---- D77: add, edit and merge people; the contact page's one-tap actions ----
+
+const contactHref = (id: string, flash?: { ok: boolean; lines: string[] }, hash = "", tab?: string) => `/mlo/contacts/${encodeURIComponent(id)}?${tab ? `tab=${tab}&` : ""}${flash ? `f=${encodeFlash(flash)}` : ""}${hash}`;
+const EditInputSchema = z.record(z.string(), z.string().max(5000));
+
+/** D77: the Details form (bound: `updateContactAction.bind(null, contactId)`). Returns field errors in plain words. */
+export async function updateContactAction(contactId: string, input: unknown): Promise<import("./[id]/EditDetails").EditOutcome> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, errors: { form: "Sign in again." } };
+  const parsed = EditInputSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, errors: { form: contactPageCopy.errors.gone } };
+  const r = await updateContact(actor, String(contactId), parsed.data);
+  if (!r.ok) return r;
+  const e = contactPageCopy.edit;
+  const message = !r.changed.length ? e.nothing : r.phoneChanged && r.resets ? e.savedPhone : r.emailChanged && r.resets ? e.savedEmail : e.saved;
+  return { ok: true, message, sameAs: r.sameAs ? { id: r.sameAs.id, name: nameOf(r.sameAs) } : null };
+}
+
+/** D77: "+ Add a person" / "+ Add an agent" (bound: `addContactAction.bind(null, kind)`). */
+export async function addContactAction(kind: string, input: unknown): Promise<import("./AddPerson").AddOutcome> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, errors: { form: "Sign in again." } };
+  const parsed = EditInputSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, errors: { form: contactPageCopy.errors.gone } };
+  const k = kind === "agent" ? "agent" : "contact";
+  const r = await addContact(actor, k, parsed.data);
+  if (!r.ok) return { ok: false, errors: r.errors, ...(r.existingId ? { existingHref: `/mlo/contacts/${encodeURIComponent(r.existingId)}` } : {}) };
+  return { ok: true, href: contactHref(r.id, { ok: true, lines: [r.message] }) };
+}
+
+/** D77: a note from the page (bound: `addNoteAction.bind(null, contactId)`). */
+export async function addNoteAction(contactId: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const r = await addNote(actor, String(contactId), String(fd.get("note") ?? ""));
+  redirect(contactHref(contactId, { ok: r.ok, lines: [r.message] }, "#timeline", "conversation"));
+}
+
+/** D77: the header's Call: checked by the contact rules and logged, then the phone app opens. */
+export async function dialAction(contactId: string): Promise<{ ok: true; tel: string } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in again." };
+  return logDial(actor, String(contactId));
+}
+
+/** D77: "Remind me" (bound: `remindAction.bind(null, contactId)`; what and when are picked from lists). */
+export async function remindAction(contactId: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const r = await remindMe(actor, String(contactId), String(fd.get("what") ?? ""), Number(fd.get("when") ?? 0));
+  redirect(contactHref(contactId, { ok: r.ok, lines: [r.message] }));
+}
+
+/** D77: "Add to campaign" (bound: `campaignAddAction.bind(null, contactId)`). */
+export async function campaignAddAction(contactId: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const r = await addToCampaign(actor, String(contactId), String(fd.get("campaignId") ?? ""));
+  redirect(contactHref(contactId, { ok: r.ok, lines: [r.message] }));
+}
+
+/** D77: merge two records (bound: `mergeContactsAction.bind(null, keepId, dropId)`), after the confirm box. */
+export async function mergeContactsAction(keepId: string, dropId: string, back: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const m = contactPageCopy.merge;
+  if (fd.get("same") !== "yes") redirect(contactHref(back, { ok: false, lines: [m.confirmFirst] }, "#merge", "details") + "");
+  const r = await mergeContacts(actor, String(keepId), String(dropId));
+  if (!r.ok) redirect(contactHref(back, { ok: false, lines: [m.refused[r.error] ?? m.refused.gone] }, "", "details"));
+  redirect(contactHref(r.keptId, { ok: true, lines: [m.done(r.name, r.moved)] }, "", "permission"));
+}
+
+/** D77: approve the Concierge's draft from the person's page (bound: `approveHereAction.bind(null, contactId)`). */
+export async function approveHereAction(contactId: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+  const { approve } = await import("@/lib/concierge/desk");
+  const r = await approve(actor, String(fd.get("id") ?? ""), fd.has("body") ? String(fd.get("body")) : null, `${origin}/api/twilio/status`);
+  redirect(contactHref(contactId, { ok: r.ok, lines: [r.ok ? contactPageCopy.suggestion.sent : r.error] }, "#timeline", "conversation"));
+}
+
+/** D77: skip the Concierge's draft from the person's page (bound: `skipHereAction.bind(null, contactId)`). */
+export async function skipHereAction(contactId: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const { dismiss } = await import("@/lib/concierge/desk");
+  await dismiss(actor, String(fd.get("id") ?? ""));
+  redirect(contactHref(contactId, { ok: true, lines: [contactPageCopy.suggestion.skipped] }));
 }

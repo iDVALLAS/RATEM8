@@ -75,20 +75,20 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.getByRole('link', { name: /See these people/ }).click(); await page.waitForURL(/import=/);
     console.log('tags: import filter:', await page.locator('.mlo-section .mlo-note').first().innerText());
     await page.goto(B + '/mlo/contacts?tag=QA%20list');
-    const n = await page.locator('table.cc-contacts tbody tr').count();
+    const n = await page.locator('.cc-people > li').count();
     if (n < 1) problems.push('[tags] ?tag=QA list found nobody');
     await page.getByRole('checkbox', { name: 'Select everyone on this page' }).check();
     await page.locator('.cc-bulkbar input').fill('QA bulk');
     await page.locator('.cc-bulkbar').getByRole('button', { name: 'Add tag' }).click();
     await page.locator('.cc-bulk .mlo-flash').waitFor(); console.log('tags: bulk:', await page.locator('.cc-bulk .mlo-flash').innerText());
     await page.goto(B + '/mlo/contacts?tag=QA%20bulk');
-    if ((await page.locator('table.cc-contacts tbody tr').count()) !== n) problems.push('[tags] bulk-added tag does not find the same people');
+    if ((await page.locator('.cc-people > li').count()) !== n) problems.push('[tags] bulk-added tag does not find the same people');
     const row = page.locator('.cc-tagadmin__row', { has: page.getByRole('link', { name: 'QA bulk', exact: true }) });
     await row.locator('summary').click(); await row.locator('input[name=to]').fill('QA bulk renamed');
     await row.getByRole('button', { name: 'Rename tag' }).click(); await page.waitForURL(/f=/); console.log('tags: rename:', await flash());
     await page.goto(B + '/mlo/contacts?tag=QA%20bulk%20renamed');
-    if ((await page.locator('table.cc-contacts tbody tr').count()) !== n) problems.push('[tags] renamed tag does not find the same people');
-    await page.locator('table.cc-contacts tbody th a').first().click(); await page.locator('#tags').waitFor();
+    if ((await page.locator('.cc-people > li').count()) !== n) problems.push('[tags] renamed tag does not find the same people');
+    await page.locator('.cc-person__name').first().click(); await page.getByRole('tab', { name: 'Details' }).click(); await page.locator('#tags').waitFor();
     await page.locator('#tags input.mlo-input').fill('QA one'); await page.locator('#tags input.mlo-input').press('Enter');
     await page.locator('#tags [role=status]', { hasText: 'Tags saved.' }).waitFor();
     await page.locator('#tags').getByRole('button', { name: 'Remove tag QA one' }).click();
@@ -195,7 +195,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     const see = await page.getByRole('link', { name: /See these people/ }).getAttribute('href');
     impId = (/import=(imp_[\w-]+)/.exec(see) || [])[1] || '';
     await page.goto(B + see);
-    if ((await page.locator('table.cc-contacts tbody tr').count()) !== 4) problems.push('[d75] See these people did not list the 4');
+    if ((await page.locator('.cc-people > li').count()) !== 4) problems.push('[d75] See these people did not list the 4');
     await page.goto(B + '/mlo/contacts/permission?import=' + impId + '#dnc');
     console.log('d75: checks:', (await page.locator('#lines h2').innerText()), '|', (await page.locator('#dnc h2').innerText()));
     await page.goto(B + '/mlo/campaigns?import=' + impId);
@@ -212,9 +212,9 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     console.log('d75: undo:', await flash());
     if (!/2 people removed\. 2 people already yours put back/.test(await flash())) problems.push('[d75] undo result: ' + await flash());
     await page.goto(B + '/mlo/contacts?q=rowe');
-    const left = await page.locator('table.cc-contacts tbody th').allInnerTexts();
+    const left = await page.locator('.cc-person__name').allInnerTexts();
     if (left.length !== 2) problems.push('[d75] after undo expected Gia and Hal only: ' + left.join(', '));
-    await page.locator('table.cc-contacts tbody th a', { hasText: /Gia/i }).first().click(); await page.locator('#script').waitFor();
+    await page.locator('.cc-person__name', { hasText: /Gia/i }).first().click(); await page.locator('.cc-contact-head').waitFor();
     if (!/Seattle/.test(await page.locator('main').innerText())) problems.push('[d75] Gia not put back to Seattle');
   });
   let key = '';
@@ -227,6 +227,72 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     for (const st of ['Application Taken', 'Initial Disclosures Sent']) await page.request.post(B + '/api/pipeline/inbound', { headers: { 'X-CC-Key': key }, data: { loanNumber: 'L-1', borrowerFirstName: 'Bo', borrowerLastName: 'Park', borrowerPhone: '425-555-2222', loanStatus: st, loanPurpose: 'Purchase', applicationDate: '2026-11-17', closingDate: '2026-12-04', buyerAgentName: 'Al Agent' } });
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
+  // D77: add a person by hand (and a duplicate refused), record permission, edit the phone (permission set back, checks
+  // cleared), merge a second record into them, and check the list's row and the header's one-tap actions.
+  let d77 = '';
+  await step('d77: add, edit, merge, list', async () => {
+    const add = async (first, phone, email) => {
+      await page.goto(B + '/mlo/contacts'); await page.locator('#add > summary').click();
+      const f = page.locator('#add form');
+      await f.getByLabel('First name').fill(first); await f.getByLabel('Last name').fill('Vance');
+      if (phone) await f.getByLabel('Mobile or main phone').fill(phone);
+      if (email) await f.getByLabel('Email').fill(email);
+      await f.getByLabel('How you know them (optional)').fill('Met at an open house');
+      await f.getByRole('button', { name: 'Add them' }).click();
+    };
+    await add('Uma', '(509) 555-3101', 'uma@example.com'); await page.waitForURL(/\/mlo\/contacts\/c_/);
+    d77 = page.url().split('?')[0];
+    if (!/Uma Vance added/.test(await flash())) problems.push('[d77] add flash: ' + await flash());
+    if (!/Call only/.test(await page.locator('.cc-contact-head').innerText())) problems.push('[d77] new person is not "Call only"');
+    await add('Uma', '509-555-3101', '');
+    await page.locator('#add .mlo-flash--err').waitFor();
+    if (!/already in your book/.test(await page.locator('#add .mlo-flash--err').innerText())) problems.push('[d77] duplicate not refused');
+    await page.goto(d77 + '?tab=permission');
+    const pf = page.locator('#permission form').first();
+    await pf.locator('select[name=channel]').selectOption('text'); await pf.locator('select[name=evidence]').selectOption('written');
+    await pf.locator('input[name=proof]').fill('Signed form, Nov 21'); await pf.getByRole('button', { name: 'Record it' }).click(); await page.waitForURL(/f=/);
+    if (!/Texts OK/.test(await page.locator('.cc-contact-head__line').innerText())) problems.push('[d77] permission line lacks Texts OK: ' + await page.locator('.cc-contact-head__line').innerText());
+    // Text in one tap from the top: the Conversation tab opens with the cursor in the composer.
+    await page.goto(d77 + '?tab=details');
+    await page.locator('.cc-contact-actions').getByRole('link', { name: 'Text' }).click();
+    await page.waitForFunction(() => document.activeElement?.tagName === 'TEXTAREA');
+    if (await page.locator('#cc-panel-conversation').isHidden()) problems.push('[d77] Text did not open Conversation');
+    // Edit: a new phone warns, then clears the checks and sets text permission back.
+    await page.getByRole('tab', { name: 'Details' }).click();
+    await page.locator('#edit').getByRole('button', { name: 'Edit' }).click();
+    await page.locator('#edit').getByLabel('Mobile or main phone').fill('(509) 555-3199');
+    if (!(await page.locator('#edit .cc-warnline', { hasText: 'Permission you recorded for the old number may not cover the new one.' }).count())) problems.push('[d77] no warning on a phone change');
+    await page.locator('#edit').getByLabel('ZIP').fill('992');
+    await page.locator('#edit').getByRole('button', { name: 'Save changes' }).click();
+    await page.locator('#edit .cc-field-err').waitFor();
+    if (!/ZIP should be 5 digits/.test(await page.locator('#edit .cc-field-err').innerText())) problems.push('[d77] bad ZIP not refused');
+    await page.locator('#edit').getByLabel('ZIP').fill('99201');
+    await page.locator('#edit').getByRole('button', { name: 'Save changes' }).click();
+    await page.locator('#edit .mlo-flash--ok').waitFor(); console.log('d77: edit:', await page.locator('#edit .mlo-flash--ok').innerText());
+    await page.reload();
+    const line = await page.locator('.cc-contact-head__line').innerText();
+    if (!/Texts: no permission yet/.test(line)) problems.push('[d77] text permission not set back after the phone change: ' + line);
+    await page.getByRole('tab', { name: 'Permission' }).click();
+    if (!/Do-not-call not checked/.test(await page.locator('#cc-panel-permission').innerText())) problems.push('[d77] the old number\'s checks were kept');
+    // Merge a second record (another email) into Uma.
+    await add('Umi', '', 'umi@example.com'); await page.waitForURL(/\/mlo\/contacts\/c_/);
+    const umi = page.url().split('?')[0];
+    await page.goto(d77 + '?tab=details#merge');
+    await page.locator('#merge input[name=mq]').fill('umi'); await page.locator('#merge').getByRole('button', { name: 'Find' }).click(); await page.waitForURL(/mq=/);
+    await page.locator('#merge .cc-row__go').first().click(); await page.waitForURL(/merge=/);
+    console.log('d77: merge outcome:', (await page.locator('.cc-merge__out').innerText()).replace(/\n/g, ' | ').slice(0, 200));
+    await page.locator('.cc-merge input[name=same]').check();
+    await page.locator('.cc-merge').getByRole('button', { name: /^Keep Uma Vance/ }).click(); await page.waitForURL(/f=/);
+    console.log('d77: merge:', await flash());
+    if (!/Merged into Uma Vance/.test(await flash())) problems.push('[d77] merge flash: ' + await flash());
+    if (!/From Umi Vance's record|Merged in/.test(await page.locator('main').textContent())) problems.push('[d77] merged history not shown');
+    const gone = await page.goto(umi); if (!gone || gone.status() !== 404) problems.push('[d77] the merged-away record still opens');
+    await page.goto(B + '/mlo/contacts?q=vance');
+    const rows = page.locator('.cc-people > li');
+    if ((await rows.count()) !== 1) problems.push('[d77] list after merge has ' + await rows.count() + ' rows');
+    console.log('d77: list row:', (await rows.first().innerText()).replace(/\n/g, ' | '));
+    if ((await rows.first().locator('.cc-iconbtn').count()) !== 2) problems.push('[d77] row lacks Call and Text buttons');
+  });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
   const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
   for (const w of [390, 1280]) {
@@ -238,19 +304,30 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
       if ((await page.locator('h1').count()) !== 1) problems.push(`[${p} @${w}] h1 count ${await page.locator('h1').count()}`);
     });
   }
+  // D77: the contact page's tabs at both widths.
+  for (const w of [390, 1280]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    for (const t of ['conversation', 'details', 'loan', 'permission']) await step(`contact ${t} @${w}`, async () => {
+      if (!d77) return;
+      const r = await page.goto(d77 + '?tab=' + t);
+      if (!r || r.status() >= 400) problems.push(`[contact ${t} @${w}] status ${r && r.status()}`);
+      if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push(`[contact ${t} @${w}] horizontal overflow`);
+      if ((await page.locator('h1').count()) !== 1) problems.push(`[contact ${t} @${w}] h1 count`);
+    });
+  }
   await page.setViewportSize({ width: 1280, height: 900 });
   // Flows.
-  const openContact = async (name) => { await page.goto(B + '/mlo/contacts?q=' + encodeURIComponent(name.split(' ')[1])); await page.getByRole('link', { name: new RegExp(name) }).first().click(); await page.locator('#script').waitFor(); };
+  const openContact = async (name, tab) => { await page.goto(B + '/mlo/contacts?q=' + encodeURIComponent(name.split(' ')[1])); await page.getByRole('link', { name: new RegExp(name) }).first().click(); await page.locator('.cc-contact-head').waitFor(); if (tab) await page.getByRole('tab', { name: tab }).click(); };
   await step('contact: consent', async () => {
-    await openContact('Ann Lee');
+    await openContact('Ann Lee', 'Permission');
     const f = page.locator('#permission form').first();
     console.log('perm form fields:', await f.locator('select, input').evaluateAll((els) => els.map((e) => e.name)));
   });
-  await step('contact: dnc', async () => { await openContact('Ann Lee'); const f = page.locator('form', { has: page.locator('select[name=onList]') }); await f.locator('input[name=source]').fill('Registry'); await f.getByRole('button', { name: 'Record check' }).click(); await page.waitForURL(/f=/); console.log('dnc:', await flash()); });
-  await step('contact: rnd', async () => { await openContact('Ann Lee'); const f = page.locator('form', { has: page.locator('select[name=result]') }).last(); await f.locator('input[name=since]').fill('2020-11-20'); await f.getByRole('button', { name: 'Record check' }).click(); await page.waitForURL(/f=/); console.log('rnd:', await flash()); });
-  await step('contact: script', async () => { await openContact('Ann Lee'); await page.getByRole('button', { name: 'Build my script' }).click(); await page.locator('.cs-script').waitFor(); console.log('script:', await flash()); });
-  await step('contact: debrief', async () => { await openContact('Ann Lee'); await page.locator('#debrief textarea').fill('Talked to Ann about a kitchen remodel next spring.'); await page.getByRole('button', { name: 'Save the note' }).click(); await page.locator('#debrief .mlo-flash').waitFor(); console.log('debrief:', (await page.locator('#debrief .mlo-flash').innerText()).replace(/\n/g, ' ')); });
-  await step('contact: their page link', async () => { await openContact('Ann Lee'); console.log('their-page:', (await page.locator('#their-page').innerText()).replace(/\n/g, ' | ').slice(0, 120)); });
+  await step('contact: dnc', async () => { await openContact('Ann Lee', 'Permission'); const f = page.locator('form', { has: page.locator('select[name=onList]') }); await f.locator('input[name=source]').fill('Registry'); await f.getByRole('button', { name: 'Record check' }).click(); await page.waitForURL(/f=/); console.log('dnc:', await flash()); });
+  await step('contact: rnd', async () => { await openContact('Ann Lee', 'Permission'); const f = page.locator('form', { has: page.locator('select[name=result]') }).last(); await f.locator('input[name=since]').fill('2020-11-20'); await f.getByRole('button', { name: 'Record check' }).click(); await page.waitForURL(/f=/); console.log('rnd:', await flash()); });
+  await step('contact: script', async () => { await openContact('Ann Lee', 'Loan & agent'); await page.getByRole('button', { name: 'Build my script' }).click(); await page.locator('.cs-script').waitFor(); console.log('script:', await flash()); });
+  await step('contact: debrief', async () => { await openContact('Ann Lee'); await page.locator('#debrief > summary').click(); await page.locator('#debrief textarea').fill('Talked to Ann about a kitchen remodel next spring.'); await page.getByRole('button', { name: 'Save the note' }).click(); await page.locator('#debrief .mlo-flash').waitFor(); console.log('debrief:', (await page.locator('#debrief .mlo-flash').innerText()).replace(/\n/g, ' ')); });
+  await step('contact: their page link', async () => { await openContact('Ann Lee', 'Details'); console.log('their-page:', (await page.locator('#their-page').innerText()).replace(/\n/g, ' | ').slice(0, 120)); });
   await step('bulk permission', async () => { await page.goto(B + '/mlo/contacts/permission'); await page.locator('input[name=proof]').fill('Consent in our loan application, e-signed; copies in ARIVE'); await page.locator('input[name=namesUs]').check(); await page.locator('input[name=canProduce]').check(); await page.getByRole('button', { name: /^Record permission/ }).click(); await page.waitForURL(/f=/); console.log('bulk:', await flash()); });
   await step('rnd bulk', async () => { await page.goto(B + '/mlo/contacts/permission'); const list = await page.locator('#rnd pre').innerText().catch(() => ''); const rows = list.split('\n').filter(Boolean).map((l) => `${l},no`).join('\n'); await page.locator('#rnd textarea').fill(rows || '(206) 555-1234,2020-11-20,no'); await page.locator('#rnd').getByRole('button', { name: 'Record results' }).click(); await page.waitForURL(/f=/); console.log('rnd bulk:', await flash()); });
   await step('calls: log', async () => { await page.goto(B + '/mlo/calls'); const n = await page.locator('#next').count(); console.log('calls ready:', n); if (n) { await page.locator('#next').getByRole('button', { name: 'No answer' }).click(); await page.waitForURL(/f=/); console.log('call:', await flash()); } });
@@ -344,7 +421,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
   await step('refi', async () => { await page.goto(B + '/mlo/refi?ref=5.75'); console.log('refi:', (await page.locator('.mlo-section').nth(1).innerText()).split('\n')[0]); });
   await step('team: invite', async () => { await page.goto(B + '/mlo/team'); await page.locator('input[name=name]').fill('Sam Helper'); await page.locator('input[name=email]').fill('sam@example.com'); await page.locator('form select[name=role]').first().selectOption('assistant'); await page.locator('form select[name=assists]').first().selectOption({ index: 1 }); await page.getByRole('button', { name: 'Add and email a sign-in link' }).click(); await page.waitForURL(/f=/); console.log('invite:', await flash()); });
   await step('client page', async () => {
-    await openContact('Ann Lee'); const link = (await page.locator('#their-page code').innerText().catch(() => '')).trim();
+    await openContact('Ann Lee', 'Details'); const link = (await page.locator('#their-page code').innerText().catch(() => '')).trim();
     if (!link) { console.log('client page: no link (no secret)'); return; }
     const local = link.replace(/^https?:\/\/[^/]+/, B);
     const p2 = await ctx.newPage(); await p2.goto(local);
@@ -353,7 +430,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await p2.close();
   });
   await step('client page: where is my loan', async () => {
-    await openContact('Bo Park'); const link = (await page.locator('#their-page code').innerText().catch(() => '')).trim();
+    await openContact('Bo Park', 'Details'); const link = (await page.locator('#their-page code').innerText().catch(() => '')).trim();
     if (!link) return;
     const p3 = await ctx.newPage(); await p3.goto(link.replace(/^https?:\/\/[^/]+/, B));
     const t = await p3.locator('.mlo-wrap').innerText();
@@ -364,6 +441,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
   await step('email: composer', async () => {
     await openContact('Ann Lee');
     const n = await page.locator('#email').count();
+    if (n) await page.locator('#email > summary').click();
     console.log('email composer:', n ? 'shown' : 'none (no email on file)');
     const send = page.locator('#email').getByRole('button', { name: 'Send email' });
     if (n && await send.isDisabled()) { console.log('email: not connected here (no mailbox or Resend):', (await page.locator('#email .mlo-note').last().innerText()).slice(0, 80)); return; }

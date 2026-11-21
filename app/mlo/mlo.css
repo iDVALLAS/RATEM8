@@ -34,6 +34,9 @@
 .mlo-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .mlo-table th, .mlo-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--rule); color: var(--fg-soft); }
 .mlo-table th { font-family: var(--font-jetbrains), monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+/* D77: a row's own label (a name, a channel, a date) reads as text, not as a column heading. */
+.mlo-table th[scope="row"] { font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 15px; letter-spacing: normal; text-transform: none; color: var(--fg); font-weight: 600; }
+.mlo-table th[scope="row"] .mlo-note, .mlo-table th[scope="row"] .mlo-pill { font-weight: 400; }
 /* C15: /mlo/voice */
 .mlo-voice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--rule); padding: 6px 0; }
 .mlo-btn--ghost { background: transparent; color: var(--accent); }

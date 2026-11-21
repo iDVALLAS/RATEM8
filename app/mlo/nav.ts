@@ -5,7 +5,7 @@
  */
 export type IconName =
   | "home" | "spark" | "inbox" | "phone" | "users" | "upload" | "cards" | "script" | "pipeline" | "bolt" | "trend" | "cap" | "network"
-  | "receipt" | "chart" | "shield" | "team" | "lock" | "gear" | "check" | "message" | "rocket" | "tag" | "mic" | "book" | "globe" | "lead" | "flag" | "help" | "pen" | "wand" | "send" | "mail" | "download" | "video";
+  | "receipt" | "chart" | "shield" | "team" | "lock" | "gear" | "check" | "message" | "rocket" | "tag" | "mic" | "book" | "globe" | "lead" | "flag" | "help" | "pen" | "wand" | "send" | "mail" | "download" | "video" | "clock";
 
 export type Dest = {
   key: string;

@@ -6158,3 +6158,111 @@ the public site, orb and wordmark are unchanged.
   Concierge "Approve all" wasn't exercised in the browser with two sendable drafts (QA books have at most one, held by the contact
   rules); LOA is still long (12,031px at 390) because its sections are its work; Call session and AI assistants got longer by design.
 - **Next up:** D77 (contact page and contacts list rebuilt; add, edit and merge), after the owner's sign-off.
+
+## D77 — Contact page and contacts list rebuilt; add, edit and merge (2026-11-21)
+
+Spec: "### D77" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. Also builds what D75 left: merging a "Possible duplicate" into one
+record. No contact-page mockup exists, so the page follows the Command Center styles (D72 classes, tokens only) and the AskList mockup's
+row badges ("Can text" / "Call only" / "Do not contact").
+
+- **Files:** new `lib/contacts/manage.ts` (server: `addContact`, `updateContact`, `addNote`, `logDial`, `remindMe`, `addToCampaign`,
+  `possibleMatches`, `searchBook`, `mergePreview`, `mergeContacts`), `lib/contacts/merge.ts` (pure: `mergeFields`, `mergeConsent`),
+  `lib/contacts/editing.ts` (pure: `checkEdit`, `changedFields`, `relationshipsFor`), `lib/contacts/reach.ts` (pure: `reachBadge`,
+  `permissionLine`), `lib/contacts/timeline.ts` (pure), `lib/content/contact-page.ts` (all the copy), `app/mlo/contacts/[id]/ContactTabs.tsx`,
+  `CallButton.tsx`, `EditDetails.tsx`, `app/mlo/contacts/AddPerson.tsx`, `lib/contacts/manage.test.ts` (14); changed
+  `app/mlo/contacts/[id]/page.tsx` (rebuilt), `app/mlo/contacts/page.tsx`, `app/mlo/contacts/ContactsTable.tsx` (rows instead of a table),
+  `app/mlo/contacts/actions.ts` (9 actions), `app/mlo/contacts/[id]/PhoneText.tsx`, `lib/contacts/store.ts` (`"reset"` evidence,
+  `ConsentEntry.mergedFrom` + Neon `merged_from` column, `Contact.mergedFrom`, `liveEntries`), `lib/contacts/service.ts` (`summarize` and the
+  import's dedupe read live entries; `isNothingOnFile`), `lib/contacts/imports.ts` (undo's take-back reads live entries),
+  `lib/contacts/normalize.ts` (`cleanZip`, `initialsOf`, `lastFour`), `lib/messaging/store.ts` (`moveContact`, one UPDATE in Neon),
+  `components/ui/DetailSheet.tsx` (optional `buttonContent`), `app/mlo/icons.tsx` + `nav.ts` (`clock` icon), `app/my/[token]/page.tsx` (the
+  reset label), `app/mlo/mlo.css` (row headers), `app/mlo/cc-shell.css` (D77 block; the dead D73 `.cc-contacts` table rules removed),
+  `scripts/qa/command-center.mjs`, `scripts/qa/buttons.mjs`, `CLAUDE.md`.
+- **The contact page:** the name (PageHead, with "Past client · Kirkland" under it), then a header card: initials, one badge and one
+  permission line ("Calls OK · Texts: your word only · Email OK", "No calls or texts (they said stop)", "No phone number"…) and the tags as
+  links. A sticky `.cc-contact-actions` bar under the top bar: **Call** (the contact rules decide; the call is logged on the conversation
+  and counts toward the daily call cap, then `tel:` opens; disabled with the reason when it can't go, e.g. quiet hours), **Text**, **Email**
+  and **Note** (open the Conversation tab, the fold and put the cursor in the box), **Remind me** (what from a fixed list, when from Tomorrow
+  … In 3 months; lands on the book's Concierge Reminders) and **Add to campaign** (the loan officer's running campaigns; the campaign's own
+  rules and the gate apply). On phones the last two read "Remind" / "Campaign". The Concierge's pending draft for this person shows under it
+  with Approve and send / Edit / Skip (the desk's `approve` / `dismiss`, bound to the contact, so you stay on the page).
+- **Tabs** (`?tab=`, kept on reload; every old `#anchor` — `#permission`, `#script`, `#email`, `#debrief`, `#their-page`, `#memory`,
+  `#phone-checks`, `#partner`, `#tags` — opens its tab and fold): **Conversation** (Write to them: the Command Center text box when texting is
+  on, else "Text from my phone"; Email, Add a note and More ways to reach them as folds; then one newest-first timeline of texts, replies,
+  emails, calls, dated notes and campaign tasks or skipped steps, 12 shown, the rest under "See N older items"); **Details** (label/value
+  rows, **Edit**, Tags, **Merge with…**, Their own page, What your Concierge remembers); **Loan & agent** ("Call script" for agents: updates
+  to their agent, the call script); **Permission** (What you can do right now, Permission to contact with History as rows, Phone checks,
+  Delete). With no phone, one sentence ("No phone number on file, so calls and texts aren't possible. Add one in Details.") replaces the
+  phone rows, the script builder and the phone checks.
+- **Edit** (`updateContactAction.bind(null, id)`): names, phone, other phone, email, street, city, state (a list), ZIP, relationship, lead
+  source, referred by, notes; tags stay the D73 chips. Every value is cleaned like an import (`normalize.ts`); a bad one is a message under
+  its box ("Phone is 2 digits short.", "ZIP should be 5 digits (or ZIP+4).", "Keep a phone number or an email, so you can reach them.") and
+  nothing saves. Changing the phone shows "Permission you recorded for the old number may not cover the new one." before saving; saving clears
+  the number's line type, do-not-call and reassigned-number checks and appends a **reset** entry (nothing on file, never a stop) for every
+  call / AI-call / text pair whose latest answer was a yes; a new email does the same for email. A stop is never reset. The log line names the
+  old number by its last four only. If the new phone or email belongs to someone else in the book, the confirmation offers Compare (merge).
+- **Add a person** (`/mlo/contacts`, "+ Add a person"; "+ Add an agent" on Agents with a brokerage): first and last name, phone, email,
+  relationship, how you know them (saved as the first note line), where you met them (the import's provenance choices, "My own relationships"
+  first; a previous employer's system is held like an import). Source "added by hand"; no permission assumed; someone already in the book
+  with that phone or email is refused with a link to them. Assistants add into the book of the loan officer they assist.
+- **Merge with…** (Details): "Might be the same person" (same phone, other phone or email, same book and kind), a search, then Compare:
+  both records side by side, what permission the merged record will have (per channel and purpose), what moves, a required "I've checked
+  these are the same person" box, and **Keep <this> and merge the other into it** / **Keep <other> and merge this one into it**
+  (`mergeContactsAction.bind(null, keepId, dropId, back)`). The kept record keeps its values; blanks are filled from the other; a phone or email
+  it can't hold is noted ("Also on Ann's record: …"), never lost; tags merge ("Possible duplicate" comes off); a hold, "no cards" or a "no" to
+  agent updates on either record stays. Messages (one UPDATE), reminders, Concierge notes, loans, campaign enrollments (stopped if the kept
+  record is already in that campaign) and, for agents, clients' agent-update links move; the other record's drafts go stale; the other
+  record is removed with its consent rows kept. Audited as `contact.merge` with ids and counts only.
+- **Contacts list:** rows (`.cc-people`): pick box, initials, the name (15px/600 Geist, one line), a muted "phone · state · relationship"
+  line (one line, cut with …), the badge and the tags, and 44px **Call** (checked and logged, then `tel:`) and **Text** (the contact's composer)
+  buttons. D73's select-all and bulk bar are unchanged. `.mlo-table th[scope=row]` (the old 10px uppercase label style) now reads as 15px
+  text wherever tables remain.
+- **Compliance:** every send from the page still goes through `sendText` / `sendEmail` / the phone-text check and the gate; Call is the gate's
+  manual call. Editing or merging never removes or rewrites a consent entry (append-only), never clears a stop, opt-out, revocation,
+  do-not-call or hold. Permission follows the address it was given for: a changed phone or email resets it; in a merge a stop on either record
+  always carries, a yes counts only for the phone or email the merged record keeps, and where both records answer, the stricter one is kept
+  (no < your word < proof), a kept "yes" keeping its own date (so the 90-day reassigned-number rule isn't loosened). Both records' history is
+  kept: the other's entries are copied in marked `mergedFrom` (shown as "From <name>'s record"), and `summarize` reads only a record's own
+  entries, so copies can never change the current answer. Every read and write checks `canSee`; merges need the same book and kind; an
+  assistant edits, adds and merges in their officer's book. No protected traits as fields; notes typed on the page go through the after-call
+  note check. No AI anywhere in D77; nothing new goes to a model.
+- **Tests** (`lib/contacts/manage.test.ts`, 14): update validation (clean values, every field's message, too long, agents' relationship, the
+  changed fields); a phone change clears the checks, appends a reset (append-only, last four only), leaves email alone, the gate then refuses
+  the text, and a stop survives a second change; a new email resets email only and a later import can record a yes; `canSee` for edit, note,
+  reminder, call and merge (another book, an unassigned assistant, an assistant in the officer's book); a bad value saves nothing; an added
+  contact records provenance, source, no consent, a held prior-employer list, a duplicate refused, an assistant's add and an agent's
+  brokerage; merge consent (a stop wins, a same-number yes carries with its date, another number's yes doesn't, the weaker of two yeses,
+  copies are history only); merged fields (blanks, phone2, tags, hold, no-mail, provenance, notes); end to end (preview saves nothing; stop
+  kept on every phone channel; history copied with the originals untouched; messages, reminder, loan and campaign moved; the extra email
+  noted; the gate refuses); another book / another kind / the same record refused; the list badge and permission line; Neon `moveContact`
+  and the `merged_from` insert.
+- **Verified:** `npm run verify` passes (779 tests). `node scripts/qa/command-center.mjs` on a freshly started server: PROBLEMS none (new
+  step "d77: add, edit, merge, list": add by hand, the duplicate refused, record text permission, Text from Details opens Conversation with
+  the cursor in the box, a phone change warns, a bad ZIP refused, then saved, "Texts: no permission yet" and "Do-not-call not checked", merge a
+  second record found by search, the merged-away page is 404, one row with Call and Text; the four tabs at 390/1280 in the sweep; the earlier
+  contact steps now open their tab or fold). `node scripts/qa/buttons.mjs` on a freshly started server: 408 page views (adds the four tabs,
+  the merge view, the edit form and every fold open on the contact and the list), PROBLEMS none. Scratch sweep (`d77flow.mjs`): add, duplicate,
+  bad phone, permission, edit, merge, then every tab, the list, Agents, Add a person and the edit form at 390 and 1280 in Night, Dim and Paper:
+  no sideways scroll, no page errors.
+- **Heights** (390, before → after): a contact 10,553px (D72, every section stacked) → Conversation 1,481–1,515, Details 2,379–2,515, Loan &
+  agent 1,605–1,813, Permission 3,822–3,916 (QA books; the timeline adds about 70px an item, 12 shown). Conversation is well under three
+  screens.
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d77/` (`contact-<tab>-<390|1280>-<night|dim|paper>`,
+  `list-*`, `list-agents-*`, `add-*`, `edit-*`, `merge-preview-*`, `ann-*-390`; `buttons/` has the audit's set incl. `contact_edit-*`).
+- **Decisions:** (a) "Keep the strictest permission" is read per channel and purpose among the answers each record holds for the phone or
+  email the merged record keeps: a stop on either always wins; an explicit "nothing on file" beats a yes; your word beats proof; a record with
+  no answer for that pair doesn't erase the other's yes for the same number (that yes was already on file for that number, so no send becomes
+  possible that wasn't). (b) A changed phone or email doesn't just warn (as the spec words it): permission given for the old one is set back
+  with a new "reset" entry, because the rule is that permission must not carry to a new address; a stop stays. (c) History is copied, not
+  re-pointed (`mergedFrom` column), so nothing in the log changes and the originals stay under the removed id. (d) Merging is allowed to
+  assistants in their officer's book (nothing is lost, unlike Delete, which stays owner/LO only). (e) Note: the owner of the book gets the D16
+  after-call note (with its reminders and draft); anyone else gets a plain note through the same note check. (f) Call logs the call as
+  marketing when a sales call is allowed (so the daily cap counts it), else as service. (g) "How you know them" is a note line, not a new field.
+  (h) Tabs are client-side panels rendered on the server (`hidden`), so a tab switch needs no reload and old anchors keep working. (i) The list
+  line uses the email when there's no phone. (j) Reminder titles come from a fixed list (like the Concierge's own).
+- **Known gaps:** a merge leaves the other record's call scripts, video sends, cards, voicemail drops and M8 call logs under its old id (not
+  shown on the kept record); undoing the import that created a merged-away record doesn't take back a yes the merge carried over; there's no
+  merge straight from the import's review (Possible duplicates are merged from the contact page, where they're listed); the merge preview's
+  permission summary is for keeping the current record; Call shows its reason only as a tooltip when disabled. One `command-center.mjs` run
+  showed a React #418 on `/mlo/pricing` @1280 (not a D77 page); it didn't come back on 24 targeted loads or the next fresh run (as noted in D75).
+- **Next up:** D78 (saved lists, filters, bulk actions, campaigns from a list or tag), after the owner's sign-off.

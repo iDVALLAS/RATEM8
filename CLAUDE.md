@@ -211,6 +211,15 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     Concierge drafts first, one Ask/Draft it box, settings fold; Automations rows with the D70 switch (Full-auto only borrower/agent updates,
     shared with the LOA), save bar; Connections "Which loan system do you use?" + 3 steps, keys there (address carries `?key=`);
     no "Vercel"/"X-CC-Key" on daily pages (`app/mlo/plain-language.test.ts`).
+    D77 contact page and list (`app/mlo/contacts/[id]/{ContactTabs,CallButton,EditDetails}.tsx`, `AddPerson.tsx`, `lib/contacts/{manage,merge,editing,reach,timeline}.ts`,
+    copy `lib/content/contact-page.ts`): header card (badge + "Calls OK · Texts: your word only · Email OK", tags), sticky `.cc-contact-actions`
+    (Call = gate-checked and logged, then tel:; Text/Email/Note open the composer; Remind me; Add to campaign), the Concierge's draft inline;
+    tabs Conversation (newest-first timeline) · Details (Edit via `updateContactAction.bind(null, id)`, Merge with…) · Loan & agent · Permission,
+    old `#anchors` open their tab. A new phone clears line/DNC/RND checks and a new phone or email appends a "reset" (nothing on file, never a stop)
+    for each granted pair; stops stay. "+ Add a person" records provenance (prior employer = held). Merge (same book and kind, `canSee`, confirm box,
+    bound): the other record's consent rows are copied in as history (`mergedFrom`, which `summarize`/`liveEntries` ignore), a stop on either stays,
+    a yes for a phone or email not kept doesn't carry, the weaker of two yeses wins; messages, reminders, Concierge notes, loans, campaigns move.
+    List rows `.cc-people` (badge, 44px Call/Text). `.mlo-table th[scope=row]` reads as 15px text.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -319,7 +328,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 765 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 779 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

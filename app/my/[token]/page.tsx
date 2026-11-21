@@ -11,7 +11,7 @@ import { ensureRegistry } from "@/lib/registry/cache";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Your page", robots: { index: false, follow: false } };
 
-const how = (e: string | null) => ({ written: "signed", web_form: "online", text_reply: "by text", recorded_call: "on a recorded call", attested: "your loan officer's record", revoked: "you said stop" })[e ?? ""] ?? "";
+const how = (e: string | null) => ({ written: "signed", web_form: "online", text_reply: "by text", recorded_call: "on a recorded call", attested: "your loan officer's record", revoked: "you said stop", reset: "nothing on file" })[e ?? ""] ?? "";
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles", month: "long", day: "numeric", year: "numeric" }) : "");
 
 /** /my/[token] — a client's own page: who has their information, permission, stop, and what was noted (D26). */

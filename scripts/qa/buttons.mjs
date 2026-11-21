@@ -25,7 +25,7 @@ const STATIC = ['/mlo', '/mlo/campaigns?new=1', '/mlo/connections?sys=arive', '/
 const AUTH = ['/sign-in', '/sign-up', '/sign-up/confirm'];
 const SHOTS = new Set(['/mlo/academy', '/mlo/expenses', '/mlo/contacts/permission', '/mlo/refi', '/mlo/concierge', '/mlo/team', 'contact', 'loan', '/mlo/loa', '/mlo/contacts', '/mlo/pricing', '/mlo/templates', '/mlo/scripts', '/mlo', '/sign-in', 'client page']);
 // D76: audited a second time with every <details> open.
-const OPEN_ALL = new Set(['/mlo', '/mlo/automations', '/mlo/concierge', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/campaigns?new=1', '/mlo/inbox', '/mlo/calls', '/mlo/agents', '/mlo/email', '/mlo/pipeline', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/rules', '/mlo/leads']);
+const OPEN_ALL = new Set(['/mlo', '/mlo/automations', '/mlo/concierge', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/campaigns?new=1', '/mlo/inbox', '/mlo/calls', '/mlo/agents', '/mlo/email', '/mlo/pipeline', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/rules', '/mlo/leads', 'contact', 'contact details', 'contact permission', '/mlo/contacts']);
 const out = process.env.QA_OUT || '';
 if (out) fs.mkdirSync(out, { recursive: true });
 const only = (process.env.QA_ONLY || '').split(',').filter(Boolean);
@@ -162,12 +162,15 @@ function audit() {
   const loan = (await sp.getByRole('link', { name: 'Bo Park' }).first().getAttribute('href')).replace(/[?#].*$/, '');
   await sp.goto(B + '/mlo/contacts?q=Lee');
   const contact = (await sp.getByRole('link', { name: /Ann Lee/ }).first().getAttribute('href')).replace(/[?#].*$/, '');
+  // D77: another record to compare in the merge view.
+  await sp.goto(B + '/mlo/contacts?q=Park');
+  const other = (await sp.getByRole('link', { name: /Bo Park/ }).first().getAttribute('href')).replace(/[?#].*$/, '').split('/').pop();
   // The client's own page (needs CC_LINK_SECRET); opened signed out, like a client would.
   await sp.goto(B + contact);
   const their = (await sp.locator('#their-page code').first().innerText().catch(() => '')).trim().replace(/^https?:\/\/[^/]+/, '');
   const cookies = await seed.cookies();
   await seed.close();
-  const routes = [...STATIC.map((r) => [r, r]), ['contact', contact], ['loan', loan], ['loan forms', loan + '/forms'], ...AUTH.map((r) => [r, r]), ...(their ? [['client page', their]] : [])].filter(([k]) => !only.length || only.includes(k));
+  const routes = [...STATIC.map((r) => [r, r]), ['contact', contact], ['contact details', contact + '?tab=details'], ['contact loan', contact + '?tab=loan'], ['contact permission', contact + '?tab=permission'], ['contact merge', `${contact}?tab=details&merge=${other}`], ['loan', loan], ['loan forms', loan + '/forms'], ...AUTH.map((r) => [r, r]), ...(their ? [['client page', their]] : [])].filter(([k]) => !only.length || only.includes(k));
 
   for (const theme of ['night', 'paper']) for (const w of [390, 1280]) {
     const signedIn = await b.newContext({ viewport: { width: w, height: 900 } });
@@ -193,6 +196,15 @@ function audit() {
           const all = await page.evaluate(audit);
           total++;
           for (const p of [...new Set(all.problems)]) problems.push(`[${where} folds open] ${p}`);
+        }
+        // D77: the Details tab's edit form.
+        if (label === 'contact details') {
+          await page.locator('#edit').getByRole('button', { name: 'Edit' }).click();
+          await page.locator('form#edit').waitFor();
+          const ed = await page.evaluate(audit);
+          total++;
+          for (const p of [...new Set(ed.problems)]) problems.push(`[${where} editing] ${p}`);
+          if (out) await page.screenshot({ path: path.join(out, `contact_edit-${w}-${theme}.png`), fullPage: true });
         }
         if (out && SHOTS.has(label)) await page.screenshot({ path: path.join(out, `${label.replace(/\W+/g, '_').replace(/^_|_$/g, '') || 'home'}-${w}-${theme}.png`), fullPage: true });
       } catch (e) { problems.push(`[${where}] FAILED: ${e.message.split('\n')[0]}`); }

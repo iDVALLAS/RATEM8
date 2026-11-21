@@ -16,8 +16,12 @@ export const CHANNELS = ["call", "ai_call", "text", "email"] as const;
 export type Channel = (typeof CHANNELS)[number];
 export const PURPOSES = ["service", "marketing"] as const;
 export type Purpose = (typeof PURPOSES)[number];
-/** How a consent was obtained. "attested" = the loan officer said so on import; weaker than proof. */
-export const EVIDENCE = ["written", "recorded_call", "web_form", "text_reply", "attested", "revoked"] as const;
+/**
+ * How a consent was obtained. "attested" = the loan officer said so on import; weaker than proof.
+ * D77: "reset" = set back to nothing on file (not a stop): their phone or email changed, so
+ * permission given for the old one doesn't carry over, or a merge kept the stricter answer.
+ */
+export const EVIDENCE = ["written", "recorded_call", "web_form", "text_reply", "attested", "revoked", "reset"] as const;
 export type Evidence = (typeof EVIDENCE)[number];
 
 /**
@@ -61,6 +65,8 @@ export type Contact = Omit<ImportRecord, "attestedOptIns" | "optOuts"> & {
   keptFrom?: string | null;
   /** D75: each recent import that changed this person, with every field's value before and after (undo puts them back). */
   imports?: ImportSnap[];
+  /** D77: records merged into this one (their messages, notes and permission history moved here). */
+  mergedFrom?: { id: string; name: string; at: string }[];
 };
 
 /**
@@ -83,6 +89,11 @@ export type ConsentEntry = {
   actor: string;
   /** D75: the import that wrote this entry (undo reads it; the entry itself is never changed or removed). */
   importId?: string | null;
+  /**
+   * D77: a copy of an entry from a record merged into this one (its id). History only:
+   * the current answer comes from this record's own entries (a merge appends what it keeps).
+   */
+  mergedFrom?: string | null;
 };
 
 /** D73: `tag` is an exact match on one tag (the spelling as stored), unlike `q`, which searches inside words. */
@@ -112,6 +123,9 @@ export interface ContactStore {
   /** D75: `keepConsents` leaves the consent log as it is (append-only; an undone import never erases a record). */
   remove(id: string, opts?: { keepConsents?: boolean }): Promise<void>;
 }
+
+/** D77: the entries that decide the current answer (copies from a merged record are history only). */
+export const liveEntries = (entries: ConsentEntry[]) => entries.filter((e) => !e.mergedFrom);
 
 /** D75: whether a contact was created or changed by an import. */
 export const fromImport = (c: Contact, importId: string) => c.importId === importId || (c.imports ?? []).some((s) => s.id === importId);
@@ -221,6 +235,8 @@ export class NeonContactStore implements ContactStore {
         await this.q(`CREATE INDEX IF NOT EXISTS cc_consents_contact ON cc_consents (contact_id, at)`);
         // D75: which import wrote an entry (so undo can tell the import's own answers from later ones).
         await this.q(`ALTER TABLE cc_consents ADD COLUMN IF NOT EXISTS import_id text`);
+        // D77: a copy from a record merged into this one (history only).
+        await this.q(`ALTER TABLE cc_consents ADD COLUMN IF NOT EXISTS merged_from text`);
       })().catch((e) => {
         this.ready = null;
         throw e;
@@ -321,7 +337,7 @@ export class NeonContactStore implements ContactStore {
   }
   async addConsent(e: ConsentEntry) {
     await this.init();
-    await this.q(`INSERT INTO cc_consents (contact_id, channel, purpose, granted, evidence, proof, at, actor, import_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [e.contactId, e.channel, e.purpose, e.granted, e.evidence, e.proof, e.at, e.actor, e.importId ?? null]);
+    await this.q(`INSERT INTO cc_consents (contact_id, channel, purpose, granted, evidence, proof, at, actor, import_id, merged_from) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, [e.contactId, e.channel, e.purpose, e.granted, e.evidence, e.proof, e.at, e.actor, e.importId ?? null, e.mergedFrom ?? null]);
   }
   async consents(id: string) {
     return this.consentsFor([id]);
@@ -330,7 +346,7 @@ export class NeonContactStore implements ContactStore {
     await this.init();
     if (!ids.length) return [];
     const r = await this.q(`SELECT * FROM cc_consents WHERE contact_id = ANY($1) ORDER BY at, id`, [ids]);
-    return r.map((x) => ({ contactId: x.contact_id as string, channel: x.channel as Channel, purpose: x.purpose as Purpose, granted: x.granted as boolean, evidence: x.evidence as Evidence, proof: x.proof as string, at: new Date(x.at as string).toISOString(), actor: x.actor as string, ...(x.import_id ? { importId: x.import_id as string } : {}) }));
+    return r.map((x) => ({ contactId: x.contact_id as string, channel: x.channel as Channel, purpose: x.purpose as Purpose, granted: x.granted as boolean, evidence: x.evidence as Evidence, proof: x.proof as string, at: new Date(x.at as string).toISOString(), actor: x.actor as string, ...(x.import_id ? { importId: x.import_id as string } : {}), ...(x.merged_from ? { mergedFrom: x.merged_from as string } : {}) }));
   }
   async remove(id: string, opts: { keepConsents?: boolean } = {}) {
     await this.init();

@@ -18,6 +18,21 @@ export function formatPhone(e164: string | null): string {
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
+/** D77: a ZIP or ZIP+4 ("98101", "98101-1234"), or null. */
+export function cleanZip(raw: string | undefined): string | null {
+  const z = (raw ?? "").trim();
+  return /^\d{5}(-\d{4})?$/.test(z) ? z : null;
+}
+
+/** D77: up to two letters for a person's circle ("Ann Lee" → "AL", no name → "?"). */
+export function initialsOf(first: string, last: string, fallback = ""): string {
+  const pick = (s: string) => (s.trim().match(/[\p{L}\p{N}]/u)?.[0] ?? "").toUpperCase();
+  return pick(first) + pick(last) || pick(fallback) || "?";
+}
+
+/** D77: the last four digits of a number, for a log line that shouldn't carry the whole number. */
+export const lastFour = (e164: string | null) => (e164 ? `•••-${e164.slice(-4)}` : "none");
+
 export function cleanEmail(raw: string | undefined): string | null {
   const e = (raw ?? "").trim().toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(e) && e.length <= 254 ? e : null;
