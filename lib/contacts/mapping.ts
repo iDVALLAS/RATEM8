@@ -217,6 +217,12 @@ export type ImportRecord = {
    * wins over an opt-in. "text" or "call" stops every phone channel.
    */
   optOuts?: Partial<Record<ConsentChannel, string>>;
+  /** D75: the file (or files, when merged) this person came from, for `contact.source` and the opt-in proof. */
+  sourceFile?: string;
+  /** D75: the row in that file (the browser's merge review; never sent). */
+  sourceRow?: number;
+  /** D75: the loan officer's pick for someone like a person already in the book: that contact's id, or "new". */
+  matchTo?: string;
 };
 
 /**
@@ -425,6 +431,8 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
           : null,
       attestedOptIns: optIns,
       ...(Object.keys(optOuts).length ? { optOuts } : {}),
+      ...(opts.fileName ? { sourceFile: opts.fileName.slice(0, 160) } : {}),
+      sourceRow: rowNo(i),
     });
   });
   return { records, problems, warnings };

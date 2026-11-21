@@ -8,7 +8,7 @@ import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
 import { bulkContactsAction } from "./actions";
 
 export type ContactRow = { id: string; name: string; sub: string | null; phone: string; state: string; rel: string; badge: string; badgeOff: boolean; tags: string[] };
-type Filter = { kind: "contact" | "agent"; q?: string; rel?: string; tag?: string };
+type Filter = { kind: "contact" | "agent"; q?: string; rel?: string; tag?: string; imp?: string };
 
 /**
  * D73: the Contacts list with row checkboxes, "Select all N matching" and a

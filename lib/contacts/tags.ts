@@ -75,6 +75,14 @@ export function importedTag(d: Date, timeZone?: string): string {
   return `Imported ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", ...(timeZone ? { timeZone } : {}) })}`;
 }
 
+/** D75: the tag on a record made from duplicates merged inside the files: "Merged at import Nov 21, 2026". */
+export function mergedTag(d: Date, timeZone?: string): string {
+  return `Merged at import ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", ...(timeZone ? { timeZone } : {}) })}`;
+}
+
+/** D75: someone in a file who matched two different people already in the book. */
+export const POSSIBLE_DUPLICATE_TAG = "Possible duplicate";
+
 /** The link to everyone with a tag on the Contacts page. */
 export function tagHref(tag: string, kind: "contact" | "agent" = "contact", extra: Record<string, string> = {}): string {
   const u = new URLSearchParams({ ...(kind === "agent" ? { kind: "agent" } : {}), tag, ...extra });

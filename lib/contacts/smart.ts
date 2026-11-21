@@ -20,7 +20,8 @@
 import type { Csv } from "./csv";
 import { autoMap, fieldsFor, headerAllowed, type Field, type ImportKind, type ImportRecord, type Mapping } from "./mapping";
 import { cleanEmail, cleanState, isoDate, toE164 } from "./normalize";
-import { MAX_TAGS, mergeTags } from "./tags";
+import { sameFirstName } from "./reimport";
+import { MAX_TAGS, mergeTags, withExtraTags } from "./tags";
 
 // ---- vCard ----
 
@@ -160,21 +161,57 @@ export function relationshipFromName(name: string): string | null {
 
 const keyOf = (r: ImportRecord) => [r.phone, r.phone2, r.email].filter(Boolean) as string[];
 
-/** Merges duplicates (same phone or email) across files, filling gaps from later copies, and sorts by last name. */
-export function mergeRecords(lists: ImportRecord[][]): { records: ImportRecord[]; merged: number } {
+/** D75: one person in the merge review: their name, file and row. */
+export type MergeWho = { ref: string; name: string; file: string; row: number | null };
+/**
+ * D75: two rows that share a phone or email. `possible` when only a phone is
+ * shared and the first names differ (spouses sharing a home phone): those are
+ * kept separate unless the loan officer merges them. `merged` is what happens.
+ */
+export type MergePair = { key: string; a: MergeWho; b: MergeWho; shared: "phone" | "email"; value: string; possible: boolean; merged: boolean };
+export type MergeOptions = {
+  /** An id per list (the wizard's item ids), so a decision survives edits elsewhere. */
+  refs?: readonly string[];
+  /** The loan officer's "Keep separate" / "Merge them" answers, by pair key. */
+  decide?: Readonly<Record<string, boolean>>;
+  /** The tag on a record made from merged rows ("Merged at import Nov 21, 2026"). */
+  mergedTag?: string;
+};
+
+const whoOf = (r: ImportRecord, ref: string): MergeWho => ({ ref, name: `${r.firstName} ${r.lastName}`.trim() || "(no name)", file: r.sourceFile ?? "", row: r.sourceRow ?? null });
+
+/**
+ * Merges duplicates (same phone or email) across files, filling gaps from
+ * later copies, and sorts by last name. D75: every merge is reported as a
+ * pair for review; a shared phone with different first names is kept
+ * separate by default; `decide` overrides either way.
+ */
+export function mergeRecords(lists: ImportRecord[][], opts: MergeOptions = {}): { records: ImportRecord[]; refs: string[]; merged: number; pairs: MergePair[] } {
   const out: ImportRecord[] = [];
+  const roots: MergeWho[] = [];
   const index = new Map<string, number>();
+  const pairs: MergePair[] = [];
   let merged = 0;
-  for (const list of lists) {
-    for (const r of list) {
-      const hit = keyOf(r).map((k) => index.get(k)).find((x) => x !== undefined);
-      if (hit === undefined) {
-        out.push({ ...r, tags: [...r.tags], ...(r.optOuts ? { optOuts: { ...r.optOuts } } : {}) });
-        for (const k of keyOf(r)) index.set(k, out.length - 1);
-        continue;
-      }
-      merged++;
+  const add = (r: ImportRecord, who: MergeWho) => {
+    out.push({ ...r, tags: [...r.tags], ...(r.optOuts ? { optOuts: { ...r.optOuts } } : {}) });
+    roots.push(who);
+    for (const k of keyOf(r)) if (!index.has(k)) index.set(k, out.length - 1);
+  };
+  lists.forEach((list, li) => {
+    list.forEach((r, j) => {
+      const who = whoOf(r, `${opts.refs?.[li] ?? li}:${r.sourceRow ?? j}`);
+      const hits = keyOf(r).map((k) => [k, index.get(k)] as const).filter((h): h is readonly [string, number] => h[1] !== undefined);
+      if (!hits.length) return add(r, who);
+      const hit = hits[0][1];
       const a = out[hit];
+      const byEmail = hits.find(([k]) => k === r.email && k === a.email);
+      const shared = byEmail ? "email" : "phone";
+      const possible = !byEmail && !sameFirstName(a.firstName, r.firstName);
+      const key = `${roots[hit].ref}|${who.ref}`;
+      const together = opts.decide?.[key] ?? !possible;
+      pairs.push({ key, a: roots[hit], b: who, shared, value: byEmail ? byEmail[0] : hits[0][0], possible, merged: together });
+      if (!together) return add(r, who);
+      merged++;
       const fill = <K extends keyof ImportRecord>(k: K) => {
         if ((a[k] === null || a[k] === undefined || a[k] === "") && r[k] !== null && r[k] !== undefined && r[k] !== "") a[k] = r[k];
       };
@@ -182,17 +219,23 @@ export function mergeRecords(lists: ImportRecord[][]): { records: ImportRecord[]
       if (!a.phone && r.phone) a.phone = r.phone;
       else if (r.phone && r.phone !== a.phone && !a.phone2) a.phone2 = r.phone;
       if (a.relationship === "other" && r.relationship !== "other") a.relationship = r.relationship;
-      a.tags = mergeTags(a.tags, r.tags).slice(0, MAX_TAGS);
+      // The tags both rows carry (the import's own) and the merge tag always fit.
+      const both = a.tags.filter((t) => r.tags.includes(t));
+      const all = mergeTags(a.tags, r.tags, opts.mergedTag ? [opts.mergedTag] : []);
+      a.tags = all.length <= MAX_TAGS ? all : withExtraTags(all, [...both, ...(opts.mergedTag ? [opts.mergedTag] : [])], MAX_TAGS);
+      // D75: the real file names, not "2 files".
+      const files = [...new Set([a.sourceFile, r.sourceFile].filter(Boolean) as string[])];
+      if (files.length) a.sourceFile = files.join(", ").slice(0, 160);
       // D69: an opt-out in any copy wins over an opt-in in any other.
       if (r.optOuts) a.optOuts = { ...r.optOuts, ...a.optOuts };
       const phoneStopped = !!(a.optOuts?.text || a.optOuts?.call);
       a.attestedOptIns = [...new Set([...a.attestedOptIns, ...r.attestedOptIns])].filter((c) => (c === "email" ? !a.optOuts?.email : !phoneStopped));
       for (const k of keyOf(a)) index.set(k, hit);
-    }
-  }
+    });
+  });
   const name = (r: ImportRecord) => `${r.lastName} ${r.firstName}`.trim().toLowerCase() || r.email || "";
-  out.sort((x, y) => name(x).localeCompare(name(y)));
-  return { records: out, merged };
+  const order = out.map((_, i) => i).sort((x, y) => name(out[x]).localeCompare(name(out[y])));
+  return { records: order.map((i) => out[i]), refs: order.map((i) => roots[i].ref), merged, pairs };
 }
 
 /** D69: "text; call; email" for the channels a person opted out of, so the cleaned file keeps them. */

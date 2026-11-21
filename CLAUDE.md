@@ -196,6 +196,14 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     confirmed) block Continue; `buildRecords` `warnings {row, at, field, raw, reason}` → Needs a look (live re-check, phones: DetailSheet
     `cc-dsheet`), unfixed values kept in notes "as written"; Skipped + formula-safe CSV with Reason; Fix with M8 sends only field, value
     shape and a reason code (nonce block), no-AI fallback, agents never; consent summary + confirm before Import.
+    D75 re-imports and undo (`lib/contacts/reimport.ts` pure, `lib/contacts/imports.ts`, `cc_imports`, `app/mlo/contacts/import/{MatchReview.tsx,history/}`):
+    one `importId` per run on everyone it creates; people already in the book get "Only fill in blanks" (default) or "Use the newer
+    information" (name, address, loan/agent numbers, notes appended; never consent, phone checks, provenance or the hold), with a
+    per-field snapshot (`Contact.imports`); email, or phone + same first name, is a match (spouses on one phone stay separate; two
+    matches = "Possible duplicate" tag); merge review with Keep separate / Merge them; `/mlo/contacts/import/history`; undo for 30 days
+    (type UNDO, bound): deletes untouched created people (consent rows kept, append-only), keeps anyone messaged, with other consent or
+    any stop, restores snapshots, takes back the import's own "yes" with a new entry; `?import=` on Contacts, Record permission (DNC
+    list + Twilio phone-type checks with the cost) and Campaigns; `countLocked`/`unlockAll` release every held person in one UPDATE.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -304,7 +312,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 730 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 748 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

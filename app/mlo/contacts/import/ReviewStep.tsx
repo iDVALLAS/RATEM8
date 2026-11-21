@@ -63,6 +63,12 @@ export default function ReviewStep(props: {
   onFix: (l: Look, value: string) => void;
   onUseColumn: (s: ReachSuggestion) => void;
   update: (id: string, fn: (it: Item) => Item) => void;
+  /** D75: "X new · Y already in your contacts · Z merged inside your files". */
+  preview?: string | null;
+  /** D75: a list's "X already in your book · Y would change". */
+  fileLine?: (itemId: string) => string | null;
+  /** D75: People you already have (between the review and the tags). */
+  between?: React.ReactNode;
 }) {
   const { kind, items, records, looks, skipped } = props;
   const [tab, setTab] = useState<Tab>(looks.length ? "look" : "ready");
@@ -78,6 +84,7 @@ export default function ReviewStep(props: {
     <>
       <section className="mlo-section" aria-live="polite">
         <h2>{rv.ready(records.length)}</h2>
+        {props.preview ? <p className="im-preview">{props.preview}</p> : null}
         <p className="mlo-note">
           {rv.from(items.length, props.merged, skipped.length)}
           {props.over ? ` ${rv.over(props.over)}` : ""}
@@ -203,6 +210,8 @@ export default function ReviewStep(props: {
         </div>
       </section>
 
+      {props.between}
+
       <section className="mlo-section">
         <h2>{rv.tagsTitle}</h2>
         <div className="im-tags" role="group" aria-labelledby="im-tags-title">
@@ -215,6 +224,7 @@ export default function ReviewStep(props: {
             <li key={it.id} className="cc-card">
               <div className="im-tags im-tags--list" role="group" aria-label={`${tc.listLabel}: ${it.name}`}>
                 <p className="cc-card__title">{it.name}</p>
+                {props.fileLine?.(it.id) ? <p className="mlo-note">{props.fileLine(it.id)}</p> : null}
                 <p className="im-tags__label">{tc.listLabel}</p>
                 <TagInput value={it.tags} onChange={(tags) => props.update(it.id, (x) => ({ ...x, tags }))} suggestions={props.knownTags.filter((t) => !props.importTags.includes(t))} max={MAX_IMPORT_TAGS} label={`${tc.listLabel}: ${it.name}`} />
                 {it.mapping.tags !== undefined ? <p className="mlo-note">{tc.fileColumn}</p> : null}

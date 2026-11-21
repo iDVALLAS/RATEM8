@@ -9,12 +9,14 @@ import { cleanEmail, toE164 } from "@/lib/contacts/normalize";
 import { buildAnswers, columnCards, consentSummary, extraColumns, fileQuestions, matchFlags, skippedCsv, unanswered } from "@/lib/contacts/review";
 import { mergeRecords, parseVcf, relationshipFromName, shapes, smartMap, toCleanCsv, toTable } from "@/lib/contacts/smart";
 import { browserInflate, readXlsx } from "@/lib/contacts/xlsx";
-import { aiMapAction, importBatchAction } from "../actions";
+import { aiMapAction, checkExistingAction, finishImportAction, importBatchAction, startImportAction, undoImportAction } from "../actions";
 import type { Provenance } from "@/lib/contacts/store";
-import { importedTag, tagHref } from "@/lib/contacts/tags";
-import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
+import type { ExistingCheck } from "@/lib/contacts/imports";
+import type { ReimportMode } from "@/lib/contacts/reimport";
+import { importedTag, mergedTag } from "@/lib/contacts/tags";
 import ColumnsStep from "./ColumnsStep";
 import ReviewStep, { downloadText, type ReachSuggestion } from "./ReviewStep";
+import MatchReview, { existingCounts } from "./MatchReview";
 import { lookKey, setFix, setTarget, type Item, type Look } from "./types";
 
 const SOURCES: [Provenance, string][] = [
@@ -32,7 +34,9 @@ const MAX_TOTAL = 50_000;
 const MAX_FILE = 25 * 1024 * 1024;
 
 type Step = 1 | 2 | 3 | 4;
-type Sum = { created: number; merged: number; skipped: number; optedOut: number };
+type Sum = { created: number; merged: number; updated: number; skipped: number; optedOut: number; possible: number };
+/** D75: who's already in the book, for the records as they were when checked. */
+export type Existing = { sig: string; by: Record<string, ExistingCheck> } | "checking" | "failed" | null;
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -80,7 +84,7 @@ function withPanel(it: Item, kind: ImportKind): Item {
  * M8 sees column names and value shapes only; only the cleaned rows are
  * sent, in batches.
  */
-export default function ImportWizard({ initialKind, knownTags = [] }: { initialKind: ImportKind; knownTags?: string[] }) {
+export default function ImportWizard({ initialKind, knownTags = [], lookupPrice = 0.008 }: { initialKind: ImportKind; knownTags?: string[]; lookupPrice?: number }) {
   const [step, setStep] = useState<Step>(1);
   const [kind, setKind] = useState<ImportKind>(initialKind);
   const [provenance, setProvenance] = useState<Provenance | "">(initialKind === "agents" ? "agent_partner" : "");
@@ -89,9 +93,14 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
   const [reading, setReading] = useState(false);
   const [paste, setPaste] = useState("");
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [result, setResult] = useState<(Sum & { inFile: number; total: number; skippedCsv: string | null; tags: string[] }) | null>(null);
-  // D69: where a stopped import picks up again (the first person not yet sent), and what was already done.
-  const [resume, setResume] = useState<{ at: number; sum: Sum } | null>(null);
+  const [result, setResult] = useState<(Sum & { inFile: number; total: number; skippedCsv: string | null; tags: string[]; importId: string | null; people: number; withPhone: number; files: string[]; mode: ReimportMode }) | null>(null);
+  // D69: where a stopped import picks up again (the first person not yet sent), and what was already done. D75: and its run.
+  const [resume, setResume] = useState<{ at: number; sum: Sum; importId: string | null } | null>(null);
+  // D75: people already in the book: fill blanks (default) or take the newer information; the merge review's answers.
+  const [mode, setMode] = useState<ReimportMode>("fill");
+  const [decide, setDecide] = useState<Record<string, boolean>>({});
+  const [matchTo, setMatchTo] = useState<Record<string, string>>({});
+  const [existing, setExisting] = useState<Existing>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [drag, setDrag] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -138,18 +147,43 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
         fixes: it.fixes,
       }),
     }));
-    const merged = mergeRecords(per.map((p) => p.records));
+    const merged = mergeRecords(per.map((p) => p.records), { refs: per.map((p) => p.it.id), decide, mergedTag: mergedTag(new Date()) });
     const looks: Look[] = per.flatMap((p) => p.warnings.map((w) => ({ ...w, itemId: p.it.id, file: p.it.name, key: lookKey(p.it.id, w.at, w.field) })));
     const skipped = per.flatMap((p) => p.problems.map((x) => ({ ...x, file: p.it.name, headers: p.it.table.headers, itemId: p.it.id })));
-    const records = merged.records.slice(0, MAX_TOTAL);
+    // D75: the loan officer's pick for anyone like a person already in the book.
+    const refs = merged.refs.slice(0, MAX_TOTAL);
+    const records = merged.records.slice(0, MAX_TOTAL).map((r, i) => (matchTo[refs[i]] ? { ...r, matchTo: matchTo[refs[i]] } : r));
     // D69: people whose file says stop, for the notice before import.
     const stops = {
       all: records.filter((r) => stopsEverything(r)).length,
       phone: records.filter((r) => r.optOuts && !stopsEverything(r) && (r.optOuts.text || r.optOuts.call)).length,
       email: records.filter((r) => r.optOuts && !stopsEverything(r) && r.optOuts.email).length,
     };
-    return { per, records, merged: merged.merged, looks, skipped, stops, over: merged.records.length > MAX_TOTAL ? MAX_TOTAL : null };
-  }, [items, kind, importTags]);
+    return { per, records, refs, pairs: merged.pairs, merged: merged.merged, looks, skipped, stops, over: merged.records.length > MAX_TOTAL ? MAX_TOTAL : null };
+  }, [items, kind, importTags, decide, matchTo]);
+
+  // D75: after the build, who's already in the book (the server's own matching rules; nothing is saved).
+  const sig = useMemo(() => JSON.stringify(built.records.map((r) => [r.firstName, r.lastName, r.phone, r.phone2, r.email, r.street, r.city, r.state, r.zip, r.notes, r.loan, r.agent, r.relationship, r.matchTo ?? ""])), [built.records]);
+  const checkedSig = existing && typeof existing === "object" ? existing.sig : null;
+  useEffect(() => {
+    if (step < 3 || !built.records.length || checkedSig === sig) return;
+    let live = true;
+    const t = setTimeout(async () => {
+      setExisting((cur) => (cur && typeof cur === "object" ? cur : "checking"));
+      const by: Record<string, ExistingCheck> = {};
+      for (let i = 0; i < built.records.length; i += BATCH) {
+        const res = await checkExistingAction({ records: built.records.slice(i, i + BATCH), ...(resume?.importId ? { importId: resume.importId } : {}) }).catch(() => null);
+        if (!live) return;
+        if (!res?.ok) return setExisting("failed");
+        for (const r of res.results) by[built.refs[i + r.i]] = r;
+      }
+      if (live) setExisting({ sig, by });
+    }, 400);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [step, sig, checkedSig, built.records, built.refs, resume?.importId]);
 
   // D74: "Use column 'Home #' as Other phone?" when a column in notes could reach a skipped row.
   const suggestions = useMemo<ReachSuggestion[]>(
@@ -234,44 +268,64 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
     const total = records.length;
     // D69: resuming starts where the last run stopped, keeping what it already counted.
     const start = resume && resume.at < total ? resume.at : 0;
-    const sum: Sum = start && resume ? { ...resume.sum } : { created: 0, merged: 0, skipped: built.skipped.length, optedOut: 0 };
+    const sum: Sum = start && resume ? { ...resume.sum } : { created: 0, merged: 0, updated: 0, skipped: 0, optedOut: 0, possible: 0 };
     setProgress({ done: start, total });
-    const source = items.length === 1 ? items[0].name : `${items.length} files`;
+    const files = items.map((it) => it.name);
+    const source = items.length === 1 ? items[0].name : files.join(", ").slice(0, 160);
+    // D75: one id for the run, kept when resuming, on everyone it creates (history and undo).
+    let importId = start && resume ? resume.importId : null;
+    if (!importId) {
+      const started = await startImportAction({ kind, files, provenance, mode, tags: importTags }).catch(() => null);
+      if (started && !started.ok) {
+        setErrors([started.error]);
+        setProgress(null);
+        return;
+      }
+      importId = started?.ok ? started.id : null;
+    }
     for (let i = start; i < total; i += BATCH) {
-      const res = await importBatchAction({ kind, source, provenance, records: records.slice(i, i + BATCH), offset: i });
+      const res = await importBatchAction({ kind, source, provenance, records: records.slice(i, i + BATCH), offset: i, mode, ...(importId ? { importId } : {}) });
       if (!res.ok) {
         setErrors([res.error]);
         setProgress(null);
-        setResume({ at: i, sum: { ...sum } });
+        setResume({ at: i, sum: { ...sum }, importId });
         return;
       }
-      sum.created += res.result.created;
-      sum.merged += res.result.merged;
-      sum.skipped += res.result.skipped;
-      sum.optedOut += res.result.optedOut;
+      for (const k of Object.keys(sum) as (keyof Sum)[]) sum[k] += res.result[k] ?? 0;
       setProgress({ done: Math.min(i + BATCH, total), total });
     }
+    const csv = built.skipped.length ? skippedCsv(built.skipped) : null;
+    const fin = importId ? await finishImportAction(importId, { inFile: built.merged, skipped: built.skipped.length, skippedCsv: csv && csv.length <= 256 * 1024 ? csv : null }).catch(() => null) : null;
     setProgress(null);
     setResume(null);
-    setResult({ ...sum, inFile: built.merged, total: sum.created + sum.merged, skippedCsv: built.skipped.length ? skippedCsv(built.skipped) : null, tags: [...importTags] });
+    const people = fin?.ok ? fin.people : sum.created + sum.merged;
+    setResult({ ...sum, skipped: sum.skipped + built.skipped.length, inFile: built.merged, total: sum.created + sum.merged, skippedCsv: csv, tags: [...importTags], importId, people, withPhone: fin?.ok ? fin.withPhone : records.filter((r) => r.phone).length, files, mode });
     setItems([]);
+    setDecide({});
+    setMatchTo({});
+    setExisting(null);
     setStep(1);
   };
 
   if (result) {
     const d = ic.done;
-    const doneTag = result.tags[0] ?? null;
+    const k = kind === "agents" ? "agent" : "contact";
+    const imp = result.importId;
+    const seeHref = imp ? `/mlo/contacts?${new URLSearchParams({ ...(k === "agent" ? { kind: "agent" } : {}), import: imp })}` : k === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts";
+    const cost = `$${(Math.max(1, result.withPhone) * lookupPrice).toFixed(2)}`;
     const stats: [number, string, React.ReactNode?][] = [
       [result.created, d.stats.created],
-      [result.merged, d.stats.merged],
+      [result.merged, result.mode === "newer" ? d.stats.mergedNewer : d.stats.merged, result.merged && result.updated ? <span className="mlo-note">{d.updated(result.updated)}</span> : null],
       [result.inFile, d.stats.inFile],
       [result.skipped, d.stats.skipped, result.skippedCsv ? <button type="button" className="cc-linkbtn" onClick={() => downloadText(result.skippedCsv!, `loanm8-skipped-rows-${new Date().toISOString().slice(0, 10)}.csv`)}>{d.downloadSkipped}</button> : null],
       [result.optedOut, d.stats.optedOut],
+      ...(result.possible ? [[result.possible, d.stats.possible] as [number, string]] : []),
     ];
+    const again = () => { setResult(null); setConfirmed(false); setImportTags([importedTag(new Date())]); setMode("fill"); };
     return (
       <section className="mlo-section" role="status">
         <h2>{d.title}</h2>
-        <p className="mlo-note">{d.lead(result.total, result.tags)}</p>
+        <p className="mlo-note">{d.lead(result.total, result.tags)} {d.from(result.files, SOURCES.find(([p]) => p === provenance)?.[1] ?? "")}</p>
         <ul className="im-stats">
           {stats.map(([n, label, extra]) => (
             <li key={label} className="cc-card">
@@ -283,18 +337,35 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
         </ul>
         <p className="mlo-note">{d.everyone}</p>
         {provenance === "prior_employer" ? <p className="mlo-note">{ic.source.held}</p> : null}
-        <div className="mlo-actions">
-          {doneTag ? (
-            <>
-              <Link href={tagHref(doneTag, kind === "agents" ? "agent" : "contact")} className="mlo-btn">{tc.seeImport}</Link>
-              <Link href={tagHref(doneTag, kind === "agents" ? "agent" : "contact", { select: "all" })} className="mlo-btn mlo-btn--ghost">{tc.tagImport}</Link>
-            </>
-          ) : (
-            <Link href={kind === "agents" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn">See them</Link>
-          )}
-          {kind === "contacts" ? <Link href="/mlo/contacts/permission" className="mlo-btn mlo-btn--ghost">Record the permission you hold</Link> : null}
-          <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => { setResult(null); setConfirmed(false); setImportTags([importedTag(new Date())]); }}>{d.another}</button>
-        </div>
+        <h3 className="cc-card__title im-sub">{d.next}</h3>
+        {imp && result.withPhone ? (
+          <Link href={`/mlo/contacts/permission?import=${encodeURIComponent(imp)}#dnc`} className="cc-card im-next__primary">
+            <span className="im-next__text"><strong>{d.check(result.withPhone)}</strong><span className="mlo-note">{d.checkNote(cost)}</span></span>
+            <span className="im-next__arrow" aria-hidden="true">→</span>
+          </Link>
+        ) : imp ? <p className="mlo-note">{d.checkNone}</p> : null}
+        <ul className="im-next">
+          <li><Link href={seeHref} className="cc-card im-next__tile"><strong>{d.see}</strong><span className="mlo-note">{d.seeNote}</span></Link></li>
+          <li><Link href={imp ? `${seeHref}&select=all` : seeHref} className="cc-card im-next__tile"><strong>{d.tag}</strong><span className="mlo-note">{d.tagNote}</span></Link></li>
+          {imp && result.people ? <li><Link href={`/mlo/campaigns?import=${encodeURIComponent(imp)}`} className="cc-card im-next__tile"><strong>{d.campaign(result.people)}</strong><span className="mlo-note">{d.campaignNote}</span></Link></li> : null}
+          {kind === "contacts" ? <li><Link href="/mlo/contacts/permission" className="cc-card im-next__tile"><strong>{d.permission}</strong><span className="mlo-note">{d.permissionNote}</span></Link></li> : null}
+          <li><button type="button" className="cc-card im-next__tile" onClick={again}><strong>{d.another}</strong><span className="mlo-note">{d.anotherNote}</span></button></li>
+          <li><Link href="/mlo/contacts/import/history" className="cc-card im-next__tile"><strong>{d.history}</strong><span className="mlo-note">{d.historyNote}</span></Link></li>
+        </ul>
+        {imp ? (
+          <div className="cc-card im-undo">
+            <p className="cc-card__title">{d.undoTitle}</p>
+            <p className="mlo-note">{d.undoNote}</p>
+            <details className="mlo-details">
+              <summary>{ic.history.undo}</summary>
+              <p className="mlo-note">{ic.history.undoHow}</p>
+              <form action={undoImportAction.bind(null, imp)} className="mlo-row-form">
+                <label className="mlo-field"><span>{ic.history.confirmLabel}</span><input name="confirm" required autoComplete="off" maxLength={10} /></label>
+                <button type="submit" className="mlo-btn mlo-btn--ghost">{ic.history.undo}</button>
+              </form>
+            </details>
+          </div>
+        ) : null}
       </section>
     );
   }
@@ -403,6 +474,24 @@ export default function ImportWizard({ initialKind, knownTags = [] }: { initialK
             onFix={(l, v) => update(l.itemId, (it) => setFix(it, l.at, l.field, v))}
             onUseColumn={(s) => update(s.itemId, (it) => setTarget(it, s.col, s.field))}
             update={update}
+            preview={existingCounts(existing, built.refs, mode).ready ? ic.reimport.preview({ fresh: existingCounts(existing, built.refs, mode).fresh, existing: existingCounts(existing, built.refs, mode).already, inFile: built.merged }) : null}
+            fileLine={(id) => {
+              const c = existingCounts(existing, built.refs, mode, id);
+              return c.ready && c.already ? ic.reimport.fileCard(c.already, c.change) : null;
+            }}
+            between={
+              <MatchReview
+                records={built.records}
+                refs={built.refs}
+                pairs={built.pairs}
+                existing={existing}
+                mode={mode}
+                setMode={setMode}
+                setPair={(key, together) => { setDecide((cur) => ({ ...cur, [key]: together })); setResume(null); }}
+                matchTo={matchTo}
+                setMatchTo={(ref, to) => { setMatchTo((cur) => { const n = { ...cur }; if (to) n[ref] = to; else delete n[ref]; return n; }); setResume(null); }}
+              />
+            }
           />
           <section className="mlo-section im-navsec">
             <div className="mlo-row-form im-nav">

@@ -7,6 +7,8 @@ import { MloNav } from "../../MloChrome";
 import ImportWizard from "./ImportWizard";
 import { contactStore } from "@/lib/contacts/store";
 import { tagBook } from "@/lib/contacts/tagging";
+import { lookupPriceUsd } from "@/lib/messaging/twilio";
+import { contactsImportCopy } from "@/lib/content/contacts-import";
 import "../../mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +28,13 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
         <h1 className="tagline text-4xl">Import</h1>
         <MloNav current="contacts" tenantId={tenant.id} admin={v.admin} signedIn={!!v.user} />
         {v.user ? (
-          <ImportWizard initialKind={kind === "agents" ? "agents" : "contacts"} knownTags={knownTags} />
+          <>
+            <nav className="cc-tabs-inline" aria-label="Import">
+              <Link href="/mlo/contacts/import" aria-current="page">Import</Link>
+              <Link href="/mlo/contacts/import/history">{contactsImportCopy.history.title}</Link>
+            </nav>
+            <ImportWizard initialKind={kind === "agents" ? "agents" : "contacts"} knownTags={knownTags} lookupPrice={lookupPriceUsd()} />
+          </>
         ) : (
           <section className="mlo-section">
             <p className="mlo-note">Contacts belong to a person, so importing needs your own account. <Link href="/sign-in">Sign in with your email</Link>.</p>

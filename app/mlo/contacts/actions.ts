@@ -10,7 +10,10 @@ import { sendEmail } from "@/lib/messaging/email";
 import { z } from "zod";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
-import { canSee, deleteContact, importBatch, ImportRefused, MAX_BATCH, recordConsent, unlockContacts, type ImportResult } from "@/lib/contacts/service";
+import { canSee, deleteContact, importBatch, ImportRefused, MAX_BATCH, recordConsent, unlockAllHeld, type ImportResult } from "@/lib/contacts/service";
+import { addBatchCounts, checkExisting, finishImport, getImport, MAX_SKIPPED_CSV, runForBatch, startImport, undoImport, type ExistingCheck } from "@/lib/contacts/imports";
+import { REIMPORT_MODES } from "@/lib/contacts/reimport";
+import { contactsImportCopy } from "@/lib/content/contacts-import";
 import { importIssueText } from "@/lib/contacts/issues";
 import { onContactReply } from "@/lib/campaigns/service";
 import { contactStore } from "@/lib/contacts/store";
@@ -43,8 +46,12 @@ const Record_ = z.object({
   attestedOptIns: z.array(z.enum(["text", "call", "email"])).max(3),
   // D69: where each opt-out came from ("<file> column <header>").
   optOuts: z.object({ text: s(200).optional(), call: s(200).optional(), email: s(200).optional() }).optional(),
+  // D75: the real file name, and the loan officer's pick for someone like a person already in the book.
+  sourceFile: s(160).optional(),
+  matchTo: z.string().regex(/^(new|c_[A-Za-z0-9_-]{6,40})$/).optional(),
 });
-const Batch = z.object({ kind: z.enum(["contacts", "agents"]), source: s(160), provenance: z.enum(PROVENANCE), records: z.array(Record_).max(MAX_BATCH), offset: z.number().int().min(0).max(1_000_000).optional() });
+const ImportId = z.string().regex(/^imp_[A-Za-z0-9_-]{6,40}$/);
+const Batch = z.object({ kind: z.enum(["contacts", "agents"]), source: s(160), provenance: z.enum(PROVENANCE), records: z.array(Record_).max(MAX_BATCH), offset: z.number().int().min(0).max(1_000_000).optional(), importId: ImportId.optional(), mode: z.enum(REIMPORT_MODES).optional() });
 
 /** One batch from the import wizard. Returns counts; never echoes data back. */
 export async function importBatchAction(input: unknown): Promise<{ ok: true; result: ImportResult } | { ok: false; error: string }> {
@@ -57,11 +64,82 @@ export async function importBatchAction(input: unknown): Promise<{ ok: true; res
     return { ok: false, error: importIssueText(parsed.error.issues[0], offset) };
   }
   try {
-    return { ok: true, result: await importBatch(actor, parsed.data.kind, parsed.data.records, parsed.data.source, parsed.data.provenance) };
+    // D75: a batch belongs to a run this person started (its id goes on everyone it creates, for undo and history).
+    const run = parsed.data.importId ? await runForBatch(actor, parsed.data.importId) : null;
+    if (parsed.data.importId && !run) return { ok: false, error: contactsImportCopy.history.runGone };
+    const result = await importBatch(actor, parsed.data.kind, parsed.data.records, parsed.data.source, parsed.data.provenance, new Date(), { importId: run?.id, mode: parsed.data.mode });
+    if (run) await addBatchCounts(run, result);
+    return { ok: true, result };
   } catch (e) {
     if (e instanceof ImportRefused) return { ok: false, error: e.message };
     throw e;
   }
+}
+
+const Start = z.object({ kind: z.enum(["contacts", "agents"]), files: z.array(s(160)).min(1).max(40), provenance: z.enum(PROVENANCE), mode: z.enum(REIMPORT_MODES), tags: z.array(s(60)).max(10) });
+
+/** D75: one id for the whole run (every batch, the history page and undo). */
+export async function startImportAction(input: unknown): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in again." };
+  const parsed = Start.safeParse(input);
+  if (!parsed.success) return { ok: false, error: contactsImportCopy.issue.generic };
+  try {
+    return { ok: true, id: (await startImport(actor, parsed.data)).id };
+  } catch (e) {
+    if (e instanceof ImportRefused) return { ok: false, error: e.message };
+    throw e;
+  }
+}
+
+const Finish = z.object({ inFile: z.number().int().min(0).max(1_000_000), skipped: z.number().int().min(0).max(1_000_000), skippedCsv: z.string().max(MAX_SKIPPED_CSV).nullable() });
+
+/** D75: the totals only the browser knows, and the skipped rows for the history page. */
+export async function finishImportAction(id: unknown, input: unknown): Promise<{ ok: true; people: number; withPhone: number } | { ok: false }> {
+  const actor = await currentUser();
+  const pid = ImportId.safeParse(id);
+  const parsed = Finish.safeParse(input);
+  if (!actor || !pid.success || !parsed.success) return { ok: false };
+  const r = await finishImport(actor, pid.data, parsed.data);
+  return r ? { ok: true, people: r.people, withPhone: r.withPhone } : { ok: false };
+}
+
+const Check = z.object({ records: z.array(Record_).max(MAX_BATCH), importId: ImportId.optional() });
+
+/** D75: who in the file is already in the book, and what each choice would change (field names only). Saves nothing. */
+export async function checkExistingAction(input: unknown): Promise<{ ok: true; results: ExistingCheck[] } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in again." };
+  const parsed = Check.safeParse(input);
+  if (!parsed.success) return { ok: false, error: contactsImportCopy.issue.generic };
+  try {
+    return { ok: true, results: await checkExisting(actor, parsed.data.records, parsed.data.importId) };
+  } catch (e) {
+    if (e instanceof ImportRefused) return { ok: false, error: e.message };
+    throw e;
+  }
+}
+
+const historyPage = (flash: { ok: boolean; lines: string[] }) => `/mlo/contacts/import/history?f=${encodeFlash(flash)}`;
+
+/** D75: "Undo this import" (bound: `undoImportAction.bind(null, importId)`), after typing UNDO. */
+export async function undoImportAction(id: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const h = contactsImportCopy.history;
+  if (String(fd.get("confirm") ?? "").trim().toLowerCase() !== h.confirmWord.toLowerCase()) redirect(historyPage({ ok: false, lines: [h.confirmMismatch] }));
+  const pid = ImportId.safeParse(id);
+  const r = pid.success ? await undoImport(actor, pid.data) : ({ ok: false, error: "gone" } as const);
+  redirect(historyPage(r.ok ? { ok: true, lines: h.undone(r.result, r.done) } : { ok: false, lines: [h.refused[r.error]] }));
+}
+
+/** D75: the skipped rows of a past import (the history page's download). */
+export async function skippedRowsAction(id: string): Promise<{ ok: true; csv: string } | { ok: false }> {
+  const actor = await currentUser();
+  const pid = ImportId.safeParse(id);
+  if (!actor || !pid.success) return { ok: false };
+  const run = await getImport(actor, pid.data);
+  return run?.skippedCsv ? { ok: true, csv: run.skippedCsv } : { ok: false };
 }
 
 export async function consentAction(fd: FormData): Promise<void> {
@@ -91,8 +169,8 @@ export async function unlockAction(fd: FormData): Promise<void> {
   const actor = await currentUser();
   if (!actor) redirect("/sign-in");
   if (fd.get("attest") !== "yes") redirect(`/mlo/contacts?f=${encodeFlash({ ok: false, lines: ["Tick the box to confirm first."] })}`);
-  const { contacts } = await contactStore().list({ ownerUserId: actor.id, limit: 500 });
-  const n = await unlockContacts(actor, contacts.filter((c) => c.locked).map((c) => c.id), UNLOCK_ATTESTATION);
+  // D75: everyone on hold in one go (before, only the first 500 were read).
+  const n = await unlockAllHeld(actor, UNLOCK_ATTESTATION);
   redirect(`/mlo/contacts?f=${encodeFlash({ ok: true, lines: [`Released ${n} ${n === 1 ? "person" : "people"} from hold. They're still relationship only until their permission is recorded.`] })}`);
 }
 
@@ -233,7 +311,7 @@ export async function setTagsAction(contactId: string, tags: unknown): Promise<{
 const BulkInput = z.object({
   target: z.union([
     z.object({ ids: z.array(z.string().max(64)).max(MAX_BULK_IDS) }),
-    z.object({ filter: z.object({ kind: z.enum(["contact", "agent"]), q: z.string().max(200).optional(), rel: z.string().max(40).optional(), tag: z.string().max(200).optional() }) }),
+    z.object({ filter: z.object({ kind: z.enum(["contact", "agent"]), q: z.string().max(200).optional(), rel: z.string().max(40).optional(), tag: z.string().max(200).optional(), imp: z.string().max(60).optional() }) }),
   ]),
   op: z.object({ op: z.enum(["addTag", "removeTag"]), tag: z.string().max(200) }),
 });

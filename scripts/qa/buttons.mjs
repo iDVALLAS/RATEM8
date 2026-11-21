@@ -21,7 +21,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const B = 'http://localhost:3100';
-const STATIC = ['/mlo', '/mlo/academy', '/mlo/agents', '/mlo/agents/setup', '/mlo/automations', '/mlo/calls', '/mlo/campaigns', '/mlo/cards', '/mlo/concierge', '/mlo/connections', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?select=all', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/email', '/mlo/expenses', '/mlo/expenses/report', '/mlo/export', '/mlo/inbox', '/mlo/launch', '/mlo/leads', '/mlo/loa', '/mlo/messages', '/mlo/network', '/mlo/pilot', '/mlo/pipeline', '/mlo/pricing', '/mlo/pricing/receive', '/mlo/refi', '/mlo/refi?ref=5.75', '/mlo/report', '/mlo/rules', '/mlo/scripts', '/mlo/security', '/mlo/setup', '/mlo/setup-help', '/mlo/signature', '/mlo/signups', '/mlo/team', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/text-setup', '/mlo/texting', '/mlo/training', '/mlo/videos', '/mlo/voice', '/mlo/voicemail', '/mlo/welcome', '/mlo/academy/p1', '/mlo/academy/p5', '/mlo/academy/l2'];
+const STATIC = ['/mlo', '/mlo/academy', '/mlo/agents', '/mlo/agents/setup', '/mlo/automations', '/mlo/calls', '/mlo/campaigns', '/mlo/cards', '/mlo/concierge', '/mlo/connections', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/email', '/mlo/expenses', '/mlo/expenses/report', '/mlo/export', '/mlo/inbox', '/mlo/launch', '/mlo/leads', '/mlo/loa', '/mlo/messages', '/mlo/network', '/mlo/pilot', '/mlo/pipeline', '/mlo/pricing', '/mlo/pricing/receive', '/mlo/refi', '/mlo/refi?ref=5.75', '/mlo/report', '/mlo/rules', '/mlo/scripts', '/mlo/security', '/mlo/setup', '/mlo/setup-help', '/mlo/signature', '/mlo/signups', '/mlo/team', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/text-setup', '/mlo/texting', '/mlo/training', '/mlo/videos', '/mlo/voice', '/mlo/voicemail', '/mlo/welcome', '/mlo/academy/p1', '/mlo/academy/p5', '/mlo/academy/l2'];
 const AUTH = ['/sign-in', '/sign-up', '/sign-up/confirm'];
 const SHOTS = new Set(['/mlo/academy', '/mlo/expenses', '/mlo/contacts/permission', '/mlo/refi', '/mlo/concierge', '/mlo/team', 'contact', 'loan', '/mlo/loa', '/mlo/contacts', '/mlo/pricing', '/mlo/templates', '/mlo/scripts', '/mlo', '/sign-in', 'client page']);
 const out = process.env.QA_OUT || '';
@@ -210,8 +210,22 @@ function audit() {
         await check('3 fix with M8');
         await page.getByRole('tab', { name: /^Skipped/ }).click(); await check('3 skipped');
         await page.getByRole('tab', { name: /^Ready/ }).click(); await check('3 ready');
+        // D75: people you already have (the book has these from earlier runs), with every review list open.
+        await page.waitForFunction(() => /already in your contacts/.test(document.querySelector('#im-existing .mlo-note')?.textContent || ''), null, { timeout: 15000 }).catch(() => null);
+        for (const d of await page.locator('#im-existing details').all()) if (!(await d.evaluate((x) => x.open))) await d.locator('summary').click();
+        await check('3 already yours');
         await page.getByRole('button', { name: 'Continue', exact: true }).click(); await page.locator('h2', { hasText: 'Where did these lists come from?' }).waitFor();
         await check('4 where from');
+        const cb = page.locator('.mlo-section input[type=checkbox]'); if (await cb.count()) await cb.check();
+        await page.getByRole('button', { name: /^Import \d+/ }).click(); await page.locator('h2', { hasText: 'Imported' }).waitFor();
+        await check('5 done');
+        await page.locator('.im-undo summary').click(); await check('5 done, undo open');
+        const imp = (/import=(imp_[\w-]+)/.exec(await page.getByRole('link', { name: /See these people/ }).getAttribute('href')) || [])[1];
+        for (const [n, url] of [['import people', `/mlo/contacts?import=${imp}`], ['import checks', `/mlo/contacts/permission?import=${imp}`], ['import campaign', `/mlo/campaigns?import=${imp}`]]) {
+          await page.goto(B + url, { waitUntil: 'networkidle' }); await check(n);
+        }
+        await page.goto(B + '/mlo/contacts/import/history', { waitUntil: 'networkidle' });
+        await page.locator('.im-history__run summary').first().click(); await check('history, undo open');
       } catch (e) { problems.push(`[${where('steps')}] FAILED: ${e.message.split('\n')[0]}`); }
     }
     await signedIn.close(); await anon.close();

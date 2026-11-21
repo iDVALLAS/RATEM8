@@ -63,6 +63,16 @@ export async function sendSms(to: string, body: string, statusCallback: string |
   }
 }
 
+/**
+ * D75: what one phone-type check costs, in US dollars, for the "cost shown"
+ * line. Twilio's list price for Lookup line type is $0.008 a number;
+ * `TWILIO_LOOKUP_PRICE_USD` sets the account's own price.
+ */
+export function lookupPriceUsd(): number {
+  const v = Number(process.env.TWILIO_LOOKUP_PRICE_USD);
+  return Number.isFinite(v) && v > 0 && v < 1 ? v : 0.008;
+}
+
 /** Line type (mobile, landline, voip) from Twilio Lookup v2, or null. */
 export async function lookupLineType(e164: string): Promise<{ type: string; carrier: string | null } | null> {
   const c = twilioConfig();

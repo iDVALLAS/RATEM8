@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
-import { aiCreateCampaign, createCampaign, deleteCampaign, enrollGroup, saveCampaign, setCampaignStatus, stopEnrollment } from "@/lib/campaigns/service";
+import { aiCreateCampaign, createCampaign, deleteCampaign, enroll, enrollGroup, saveCampaign, setCampaignStatus, stopEnrollment } from "@/lib/campaigns/service";
+import { importPeople } from "@/lib/contacts/imports";
 
 const me = async () => (await currentUser()) ?? redirect("/sign-in");
 const go = (target: string, ok: boolean, line: string) => {
@@ -50,6 +51,14 @@ export async function enrollGroupAction(id: string, fd: FormData): Promise<void>
   if (!["past_client", "lead", "sphere", "agent", "other"].includes(rel)) go(`/mlo/campaigns/${id}`, false, "Pick who to add.");
   const r = await enrollGroup(await me(), id, rel);
   go(`/mlo/campaigns/${id}#people`, !!r, r ? `Added ${r.added} ${r.added === 1 ? "person" : "people"}${r.skipped ? ` (${r.skipped} already in it or not in your book)` : ""}.` : "Couldn't add them.");
+}
+
+/** D75: everyone from one import into a campaign (bound: `enrollImportAction.bind(null, campaignId, importId)`). */
+export async function enrollImportAction(id: string, importId: string): Promise<void> {
+  const u = await me();
+  const people = /^imp_[A-Za-z0-9_-]{6,40}$/.test(String(importId)) ? await importPeople(u, String(importId)) : [];
+  const r = people.length ? await enroll(u, id, people.map((c) => c.id)) : null;
+  go(`/mlo/campaigns/${id}#people`, !!r && r.added > 0, r ? `Added ${r.added} ${r.added === 1 ? "person" : "people"} from your import${r.skipped ? ` (${r.skipped} already in it or not in your book)` : ""}. Each step still goes only to people with permission for it.` : "Couldn't add them.");
 }
 
 export async function stopEnrollmentAction(campaignId: string, enrollmentId: string): Promise<void> {

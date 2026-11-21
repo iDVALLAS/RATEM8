@@ -81,8 +81,8 @@ describe("importing and consent (D2)", () => {
 
   it("merges duplicates by phone or email without overwriting, per loan officer", async () => {
     const lo = user("lo1", "lo");
-    expect(await importBatch(lo, "contacts", [rec()], "a.csv")).toEqual({ created: 1, merged: 0, skipped: 0, optedOut: 0 });
-    expect(await importBatch(lo, "contacts", [rec({ phone: null, city: "Bothell", firstName: "Annie", tags: ["vip"] })], "b.csv")).toEqual({ created: 0, merged: 1, skipped: 0, optedOut: 0 });
+    expect(await importBatch(lo, "contacts", [rec()], "a.csv")).toEqual({ created: 1, merged: 0, updated: 0, skipped: 0, optedOut: 0, possible: 0 });
+    expect(await importBatch(lo, "contacts", [rec({ phone: null, city: "Bothell", firstName: "Annie", tags: ["vip"] })], "b.csv")).toEqual({ created: 0, merged: 1, updated: 1, skipped: 0, optedOut: 0, possible: 0 });
     const { contacts } = await store.list({ ownerUserId: "lo1" });
     expect(contacts).toHaveLength(1);
     expect(contacts[0]).toMatchObject({ firstName: "Ann", city: "Bothell", tags: ["2022", "vip"] });

@@ -157,6 +157,37 @@ export async function handleStatus(messageSid: string, status: string): Promise<
   if (/^SM[0-9a-f]{32}$|^MM[0-9a-f]{32}$/.test(messageSid) && /^[a-z_]{3,20}$/.test(status)) await touchStore().setStatus(messageSid, status);
 }
 
+/** D75: a phone-type check is kept this long before it's run again. */
+const LINE_FRESH_DAYS = 180;
+/** D75: phone-type checks per tap (each is one Twilio Lookup). */
+export const LINE_BATCH = 100;
+
+/** D75: who in a list still needs a phone-type check. */
+export function linesNeeded(people: Contact[], now = new Date()): Contact[] {
+  return people.filter((c) => c.phone && !c.locked && !(c.line && now.getTime() - Date.parse(c.line.checkedAt) <= LINE_FRESH_DAYS * 86_400_000));
+}
+
+/** D75: phone type for many people (one import's), up to LINE_BATCH per tap. Each is checked with `canSee` first. */
+export async function checkLines(actor: User, people: Contact[], now = new Date()): Promise<{ checked: number; failed: number; left: number } | null> {
+  if (!twilioConfig()) return null;
+  const store = contactStore();
+  const todo = linesNeeded(people.filter((c) => canSee(actor, c)), now);
+  let checked = 0;
+  let failed = 0;
+  for (const c of todo.slice(0, LINE_BATCH)) {
+    const r = await lookupLineType(c.phone!);
+    if (!r) {
+      failed++;
+      continue;
+    }
+    const fresh = await store.get(c.id);
+    if (fresh && canSee(actor, fresh)) await store.put({ ...fresh, line: { ...r, checkedAt: now.toISOString() }, updatedAt: now.toISOString() });
+    checked++;
+  }
+  await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "line.bulk", detail: { checked, failed } });
+  return { checked, failed, left: Math.max(0, todo.length - checked - failed) };
+}
+
 export async function checkLine(actor: User, contactId: string, now = new Date()): Promise<{ ok: boolean; message: string }> {
   const store = contactStore();
   const c = await store.get(contactId);
@@ -240,9 +271,12 @@ export async function rndNeeded(actor: User, now = new Date()): Promise<{ phone:
   return out;
 }
 
-/** D29: this user's numbers whose do-not-call check is missing or older than 31 days. */
-export async function dncNeeded(actor: User, now = new Date()): Promise<{ phone: string; name: string }[]> {
-  const { contacts } = await contactStore().list({ ownerUserId: actor.id, limit: 5000 });
+/**
+ * D29: this user's numbers whose do-not-call check is missing or older than 31 days.
+ * D75: `people` limits it to a list (one import's people, already checked with `canSee`).
+ */
+export async function dncNeeded(actor: User, now = new Date(), people?: Contact[]): Promise<{ phone: string; name: string }[]> {
+  const contacts = people ?? (await contactStore().list({ ownerUserId: actor.id, limit: 5000 })).contacts;
   return contacts
     .filter((c) => c.phone && !c.locked && !(c.dnc && now.getTime() - Date.parse(c.dnc.checkedAt) <= 31 * 86_400_000))
     .map((c) => ({ phone: c.phone!, name: `${c.firstName} ${c.lastName}`.trim() }));

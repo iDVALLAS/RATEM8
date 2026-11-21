@@ -5946,3 +5946,109 @@ information and asks about unclear formats instead of guessing. Built in Command
   Ready count can be off by a merged duplicate that had a warning; on a long page D68's fold makes a step's heading a fold button
   (as on every page); Dim was not swept separately (it shares Night's rules); M8's tip was tested with a stub (no key in QA).
 - **Next up:** D75 (import: people you already have, merge review, undo and history), after the owner's sign-off.
+
+## D75 — Import: people you already have, merge review, undo and history (2026-11-21)
+
+Spec: "### D75" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. Also builds the parts of the "ImportDone" mockup D74 left for
+D75: undo, import history and the do-not-call / phone-type check. Built in Command Center styles (D72 classes, tokens only).
+
+- **Files:** new `lib/contacts/reimport.ts` (pure: `classify`, `sameFirstName`, `applyImport`, `undoSnapshot`, `undoOpen`),
+  `lib/contacts/imports.ts` (server: `cc_imports` store in memory and Neon, `startImport`, `addBatchCounts`, `finishImport`,
+  `listImports`, `importPeople`, `checkExisting`, `undoImport`), `lib/contacts/reimport.test.ts` (18), `lib/content/import-check.ts`,
+  `app/mlo/contacts/import/MatchReview.tsx`, `app/mlo/contacts/import/history/page.tsx` + `SkippedDownload.tsx`; changed
+  `lib/contacts/store.ts` (`Contact.importId`/`keptFrom`/`imports`, `ImportSnap`, `ConsentEntry.importId` + Neon `import_id` column,
+  `ContactFilter.importId`, `findMatches`, `byImport`, `countLocked`, `unlockAll`, `remove(id, { keepConsents })`),
+  `lib/contacts/service.ts` (`importBatch` options, `candidatesFor`, `unlockAllHeld`), `lib/contacts/smart.ts` (`mergeRecords` pairs,
+  decisions, merged tag, real file names), `lib/contacts/mapping.ts` (`sourceFile`, `sourceRow`, `matchTo`), `lib/contacts/tags.ts`
+  (`mergedTag`, `POSSIBLE_DUPLICATE_TAG`), `lib/contacts/tagging.ts` (bulk filter `imp`), `lib/messaging/service.ts` (`dncNeeded` for a
+  list, `linesNeeded`, `checkLines`), `lib/messaging/twilio.ts` (`lookupPriceUsd`), `lib/content/contacts-import.ts`,
+  `lib/content/contact-tags.ts`, `app/mlo/contacts/actions.ts` (`startImportAction`, `finishImportAction`, `checkExistingAction`,
+  `undoImportAction`, `skippedRowsAction`; batches carry `importId` and `mode`; `unlockAction` uses `unlockAllHeld`),
+  `app/mlo/contacts/import/{ImportWizard,ReviewStep}.tsx`, `app/mlo/contacts/import/page.tsx`, `app/mlo/contacts/page.tsx`,
+  `app/mlo/contacts/ContactsTable.tsx`, `app/mlo/contacts/permission/{page,actions}.tsx`, `app/mlo/campaigns/{page,actions}.ts(x)`,
+  `app/mlo/campaigns/campaigns.css`, `app/mlo/cc-shell.css` (D75 block); tests adjusted in `contacts.test.ts` (result shape);
+  `scripts/qa/command-center.mjs`, `scripts/qa/buttons.mjs`.
+- **People you already have** (step 3, after the build): `checkExistingAction` (the import's own book, `canSee` on everyone, the
+  same `classify`/`applyImport` the import uses, nothing saved) runs in batches of 500 and again when the rows change. The Ready
+  header reads "2 new · 2 already in your contacts · 1 merged inside your files"; each list's card "2 already in your book · 1 would
+  change". A choice: **Only fill in blanks** (default) or **Use the newer information from this file** (name, address, loan details —
+  agent production numbers for agent lists — replaced value by value where the file has one; notes appended once). Neither ever
+  changes consent (it's the log, not the contact), do-not-call / reassigned-number / phone-type checks, provenance, the hold, the
+  phone or the email; a new number from a file matched by email goes into a blank Other phone.
+- **Who is who:** an email match, or a phone match with the same first name (equal, blank, or "Rob"/"Robert"), is the same person.
+  A phone shared with a different first name (spouses on one home phone) is someone else: kept separate in the files by default
+  (listed as "Possible duplicate" with **Merge them**) and added as a new person next to the book's one ("Shares a phone with …";
+  **Merge into …**). A row matching two different people in the book fills blanks in the closer one (email first) and tags it
+  **Possible duplicate**, unless the loan officer picks one or **Add as a new person** (`matchTo`, checked on the server against
+  the book). People this same import created are never matched again (so "Keep separate" holds across batches and resumes).
+- **Merge review:** "See the 1 merge inside your files and 1 kept separate" lists each pair (names, file and row, the shared phone
+  or the masked email, Merged / Kept separate / Possible duplicate) with **Keep separate** / **Merge them**; "See the N people already
+  in your contacts" lists each match with what would change in the current mode. Records made from merged rows get "Merged at import
+  Nov 21, 2026". `contact.source` and the attested-consent proof use the real file name(s), not "2 files".
+- **Undo and history:** `run()` starts one import (`cc_imports`: id, owner book, files, counts, provenance, at, by, plus mode, tags,
+  skipped rows CSV and the undo result); every batch carries the id, every created contact stores it, every matched contact gets a
+  snapshot of each field it changed (before and after, tags added and pushed out; kept 31 days, 10 at most). `/mlo/contacts/import/history`
+  (and an "Import history" tab on Import) lists every import in the book: when, files, new, updated of matched, skipped, who ran it,
+  status, See them, the skipped rows download. **Undo this import** (30 days; type UNDO; `undoImportAction.bind(null, importId)`):
+  deletes the people it created with no message, no consent entry other than its own, no stop of any kind and no later import's
+  change; keeps the rest ("kept: you've messaged them or recorded permission since" / "kept: they asked not to be contacted, and that's
+  never undone"); puts each matched person's fields back where they still hold the import's value (a later hand edit wins) and takes
+  its tags off; stops the deleted people's campaign enrollments. Passes of 1,500 ("Tap Undo again to finish").
+- **Done screen** (after the mockup): the counts (New people / Already yours, blanks filled in or updated from this file, N changed /
+  Duplicates in your files, merged / Skipped with the download / Marked Do not contact / Possible duplicates), then **What next?**:
+  the primary **Check do-not-call and phone type for these N people** (with phones) → Record permission limited to this import: the
+  D29 do-not-call list and results box for just these numbers, and a phone-type check through Twilio Lookup with the cost shown
+  ("about $X", 100 per tap; needs the Twilio keys); **See these people** (`/mlo/contacts?import=…`, "From one import: N people");
+  **Add tags to these people** (the same with everyone picked; the bulk bar's filter carries `imp`); **Start a campaign for these N
+  people** (`/mlo/campaigns?import=…`: "Add them to this one" per campaign, `enrollImportAction.bind(null, campaignId, importId)`,
+  every step still through the gate); Record the permission you hold; Import another file; Import history; and "Made a mistake?"
+  with Undo.
+- **Releasing held lists:** `countLocked(owner)` and `unlockAll(owner)` (Neon: one `UPDATE … WHERE owner_user_id = $1 AND
+  body->>'locked' = 'true'`, no limit) replace reading 500 people on the Contacts page and in `unlockAction`.
+- **Compliance:** undo never erases or reverses a stop: a contact with any revocation (the file's own opt-out included) is kept, and
+  revocations stay the latest answer. Consent rows are never deleted by undo (`remove(id, { keepConsents: true })`); the import's own
+  attested "yes" that is still the latest answer is taken back with a new entry (`granted:false`, evidence `attested`, "import undone:
+  <file>", same `importId`), never deleted. A merge can't make a Do-not-contact person reachable (consent is untouched and an import's
+  "yes" is only written when nothing is on file; a "yes" an undo took back counts as nothing on file, so the right file later can
+  record it). Everything read or written goes through `canSee`; an assistant imports, sees history and undoes in the book of the loan
+  officer they assist; another loan officer's import is "not one of yours". No AI anywhere in D75; the check sends only the cleaned
+  rows the import itself would send, and returns field names, not values.
+- **Tests** (`lib/contacts/reimport.test.ts`, 18): fill blanks vs newer per field (name, address, loan, notes once, blanks never wipe);
+  phone checks, hold, provenance, phone and email never change; consent never overwritten in either mode (a stop stays and the gate
+  refuses; written proof stays; earlier log rows identical); first-name rule; spouses sharing a phone kept separate in the files (and
+  Keep separate / Merge them stick) and end to end (both created, a re-import matches each to the right one); shares / existing /
+  possible / matchTo; honest preview counts (and another book never matched); real file names in source and proof; possible
+  duplicate tagged; undo deletes only the untouched person it created, keeps the messaged one, the file's stop and a stop since,
+  restores the snapshot except a hand-edited field, leaves consent rows intact, takes back the import's own yes, stops the campaign,
+  once only, history counts and skipped CSV; an undone yes doesn't block a later file; 30 days, other book refused, assistant in the
+  officer's book; `undoSnapshot` and a later edit; the messy fixture re-imported doubles nobody; `unlockAll` releases 620 (> 500) and
+  only that book; Neon: one UPDATE with no limit, `byImport` SQL, `keepConsents` skips the consent delete.
+- **Verified:** `npm run verify` passes (748 tests). Browser (scratch flow `d75flow.mjs`, 390 and 1280, Night and Paper): import 3,
+  re-import a file with 2 of them (one with a new city), a spouse sharing a phone and a duplicate row → preview "2 new · 2 already in
+  your contacts · 1 merged inside your files", card "0 would change" → "1 would change" with newer; done "2 New · 2 Already yours,
+  updated from this file, 1 changed · 1 Duplicates merged"; See these people lists 4; history shows it; Undo: "2 people removed. 2
+  people already yours put back the way they were."; Gia back in Seattle. No sideways scroll, no page errors.
+  `node scripts/qa/command-center.mjs` (new step "import: people you already have, merge review, undo, history"; history page added to
+  the sweep; the D73 step follows "See these people" to `import=`): PROBLEMS none on a freshly started server. `node scripts/qa/buttons.mjs`
+  (history page added; the import walk now also audits "3 already yours" with every list open, "5 done", the undo form open, the
+  import's Contacts / Record permission / Campaigns pages and the history's undo form): 300 page views, PROBLEMS none.
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d75/` (`3-review-*`, `5-done-*`, `6-history-*`,
+  `7-history-undone-*`, each at 390/1280 in Night and Paper; `buttons/` has the audit's set).
+- **Decisions:** (a) "Newer" also replaces agent production numbers on agent lists (the "loan fields" of an agent list). (b) Phone
+  and email never change on a match (they're how people are matched); a second number lands in a blank Other phone. (c) Undo keeps a
+  created person who has any stop, even one from the import's own file: deleting them would lose the stop. (d) Undo takes back the
+  import's own attested "yes" with a new log entry rather than leaving it (the spec doesn't say; this is the append-only way to undo
+  it, and it only ever narrows what's allowed). (e) Undo never releases a hold an import put on a matched person. (f) The phone-type
+  cost uses Twilio's list price, $0.008 a number, unless `TWILIO_LOOKUP_PRICE_USD` sets the account's own; do-not-call stays the
+  D29 vendor upload (its cost is the loan officer's own subscription), so no figure is invented for it. (g) A matched person always
+  gets a snapshot entry, even with nothing changed, so "See these people", the campaign and the checks include everyone the import
+  touched. (h) An assistant may undo imports in the book they work (they ran them); the D69/D8.1 book rules decide who sees what.
+  (i) History is cards, not a table, so it reads at 390 without sideways scroll. (j) Times on the history page are Pacific, like the
+  rest of Command Center's server pages.
+- **Known gaps:** a "Possible duplicate" can't be merged into one record yet (D77 adds merging contacts); the review lists show the
+  first 100 rows each; undo works in passes of 1,500 and a 25,000-person import page limit applies to `byImport`; the import-limited
+  do-not-call list uses the existing D29 paste-back (no automated registry scrub exists); "Start a campaign" for an import that
+  has no campaign yet means starting one and coming back to the link; Dim was not swept separately (it shares Night's rules). One
+  `command-center.mjs` run showed a React hydration error (#418) in the D73 tags step that didn't come back on a fresh rerun or a
+  targeted sweep of the same pages; noted in case it recurs.
+- **Next up:** D76 (design cleanup and plain-language pass), after the owner's sign-off.

@@ -10,7 +10,8 @@ import { twilioConfig } from "@/lib/messaging/twilio";
 import { textSender } from "@/lib/texting/service";
 import { emailReadyFor } from "@/lib/messaging/email";
 import { FlashBox } from "../MloChrome";
-import { aiCampaignAction, newCampaignAction } from "./actions";
+import { aiCampaignAction, enrollImportAction, newCampaignAction } from "./actions";
+import { getImport, importPeople } from "@/lib/contacts/imports";
 import "../mlo.css";
 import "./campaigns.css";
 
@@ -21,8 +22,8 @@ export const metadata: Metadata = { title: "Campaigns", robots: { index: false, 
 const CH_ICON: Record<string, string> = { text: "Text", email: "Email", task: "Task" };
 
 /** /mlo/campaigns — follow-up campaigns by text, email and tasks (D51). */
-export default async function Campaigns({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
-  const { f } = await searchParams;
+export default async function Campaigns({ searchParams }: { searchParams: Promise<{ f?: string; import?: string }> }) {
+  const { f, import: imp } = await searchParams;
   const v = await requireViewer();
   const me = v.user;
   if (!me) {
@@ -33,6 +34,9 @@ export default async function Campaigns({ searchParams }: { searchParams: Promis
     );
   }
   const list = await summaries(me);
+  // D75: "Start a campaign for these N people" from an import's done screen: the campaign picker for that import.
+  const run = imp && /^imp_[A-Za-z0-9_-]{6,40}$/.test(imp) ? await getImport(me, imp) : null;
+  const fromImport = run ? (await importPeople(me, run.id)).filter((c) => c.ownerUserId === me.id).length : 0;
   const textReady = !!twilioConfig() && !!(await textSender(companyOfMlo(me.mloId), singleCompany()));
   const mail = await emailReadyFor(me);
   const emailReady = mail.ready;
@@ -51,6 +55,25 @@ export default async function Campaigns({ searchParams }: { searchParams: Promis
             {!campaignsOn() ? <li><strong>All campaigns are switched off</strong> for the platform (CC_CAMPAIGNS)</li> : null}
           </ul>
         </section>
+
+        {run ? (
+          <section className="mlo-section" id="from-import">
+            <h2>Add the {fromImport.toLocaleString("en-US")} {fromImport === 1 ? "person" : "people"} from your import</h2>
+            <p className="mlo-note">From {run.files.join(", ")}. Pick a campaign below, or start a new one and add them from its page. Each step still goes only to people with permission for it.</p>
+            {list.length && fromImport ? (
+              <ul className="cp-list">
+                {list.map(({ campaign: c, active }) => (
+                  <li key={c.id} className="cp-pick">
+                    <span className="cp-row__main"><strong>{c.name}</strong><span className="mlo-note">{c.steps.length} {c.steps.length === 1 ? "step" : "steps"} · {active} in it</span></span>
+                    <form action={enrollImportAction.bind(null, c.id, run.id)}>
+                      <button type="submit" className="mlo-btn mlo-btn--ghost">Add them to this one</button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="mlo-note">{fromImport ? "You don't have a campaign yet. Start one below." : "Nobody from that import is in your own book."}</p>}
+          </section>
+        ) : null}
 
         <section className="mlo-section cp-new">
           <h2>Start a campaign</h2>

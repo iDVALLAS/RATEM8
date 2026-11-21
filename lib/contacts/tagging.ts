@@ -56,7 +56,7 @@ export async function setContactTags(actor: User, contactId: string, tags: reado
   return { ok: true, tags: next };
 }
 
-export type BulkTarget = { ids: string[] } | { filter: { kind: "contact" | "agent"; q?: string; rel?: string; tag?: string } };
+export type BulkTarget = { ids: string[] } | { filter: { kind: "contact" | "agent"; q?: string; rel?: string; tag?: string; imp?: string } };
 export type BulkOp = { op: "addTag" | "removeTag"; tag: string };
 
 /**
@@ -82,7 +82,7 @@ export async function bulkTags(actor: User, target: BulkTarget, op: BulkOp, now 
     }
   } else {
     const f = target.filter;
-    people = await allMatching({ ownerUserId: scopeOf(actor), kind: f.kind, q: f.q || undefined, relationship: f.rel || undefined, tag: f.tag || undefined }, MAX_BULK_MATCHING);
+    people = await allMatching({ ownerUserId: scopeOf(actor), kind: f.kind, q: f.q || undefined, relationship: f.rel || undefined, tag: f.tag || undefined, importId: f.imp || undefined }, MAX_BULK_MATCHING);
     if (people.some((c) => !canSee(actor, c))) return { ok: false, error: tc.notYours };
   }
   let changed = 0;

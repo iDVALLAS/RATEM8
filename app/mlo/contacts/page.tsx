@@ -24,7 +24,7 @@ const BADGE = { proof: "Permission on file", attested: "Your word only", revoked
 const PAGE = 50;
 
 /** /mlo/contacts — the loan officer's people (D2). Loan officers see their own; leads and the owner see the team's. */
-export default async function Contacts({ searchParams }: { searchParams: Promise<{ q?: string; rel?: string; kind?: string; p?: string; f?: string; tag?: string; select?: string }> }) {
+export default async function Contacts({ searchParams }: { searchParams: Promise<{ q?: string; rel?: string; kind?: string; p?: string; f?: string; tag?: string; select?: string; import?: string }> }) {
   const sp = await searchParams;
   const v = await requireViewer();
   const tenant = listTenants()[0];
@@ -33,7 +33,9 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
   const me = v.user;
   const store = contactStore();
   const tag = sp.tag?.trim().slice(0, 200) || undefined;
-  const { contacts, total } = me ? await store.list({ ownerUserId: scopeOf(me), kind, q: sp.q?.trim() || undefined, relationship: sp.rel || undefined, tag, limit: PAGE, offset: page * PAGE }) : { contacts: [], total: 0 };
+  // D75: "See these people" after an import (created or changed by it).
+  const imp = /^imp_[A-Za-z0-9_-]{6,40}$/.test(sp.import ?? "") ? sp.import : undefined;
+  const { contacts, total } = me ? await store.list({ ownerUserId: scopeOf(me), kind, q: sp.q?.trim() || undefined, relationship: sp.rel || undefined, tag, importId: imp, limit: PAGE, offset: page * PAGE }) : { contacts: [], total: 0 };
   // D73: tags in the list's scope (the chip row) and in the viewer's own book (the Tags panel).
   const book = me ? tagBook(me) : null;
   const listTags = me ? await store.tagCounts(scopeOf(me), kind) : [];
@@ -41,10 +43,10 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
   const rowTags = listTags.slice(0, 12);
   if (tag && !rowTags.some((t) => t.tag === tag)) rowTags.push({ tag, count: total });
   const consents = await store.consentsFor(contacts.map((c) => c.id));
-  const mine = me ? await store.list({ ownerUserId: me.id, limit: 500 }) : { contacts: [] };
-  const held = mine.contacts.filter((c) => c.locked).length;
+  // D75: counted in the database (before, only the first 500 people were looked at).
+  const held = me ? await store.countLocked(me.id) : 0;
   const qs = (extra: Record<string, string>, drop: string[] = []) => {
-    const u = new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.rel ? { rel: sp.rel } : {}), ...(tag ? { tag } : {}), kind, ...extra });
+    const u = new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.rel ? { rel: sp.rel } : {}), ...(tag ? { tag } : {}), ...(imp ? { import: imp } : {}), kind, ...extra });
     for (const k of drop) u.delete(k);
     return `/mlo/contacts?${u}`;
   };
@@ -97,6 +99,7 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
             <form className="mlo-row-form" action="/mlo/contacts" method="get">
               <input type="hidden" name="kind" value={kind} />
               {tag ? <input type="hidden" name="tag" value={tag} /> : null}
+              {imp ? <input type="hidden" name="import" value={imp} /> : null}
               <input name="q" defaultValue={sp.q ?? ""} placeholder="Search name, phone, email, city, tag" className="mlo-input" aria-label="Search" style={{ flex: "1 1 240px" }} />
               {kind === "contact" ? (
                 <select name="rel" defaultValue={sp.rel ?? ""} className="mlo-select" aria-label="Relationship">
@@ -119,7 +122,7 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
               </nav>
             ) : null}
             <section className="mlo-section">
-              {total === 0 && (tag || sp.q || sp.rel) ? (
+              {total === 0 && (tag || imp || sp.q || sp.rel) ? (
                 <p className="mlo-note">Nobody matches. <Link href={kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"}>See everyone</Link>.</p>
               ) : total === 0 ? (
                 <p className="mlo-note">
@@ -127,8 +130,8 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
                 </p>
               ) : (
                 <>
-                  <p className="mlo-note">{tag ? tc.tagged(tag, total) : `${total.toLocaleString("en-US")} ${total === 1 ? "person" : "people"}`}{tag ? <> · <Link href={qs({}, ["tag"])}>{tc.clear}</Link></> : null}</p>
-                  <ContactsTable key={`${kind}|${sp.q ?? ""}|${sp.rel ?? ""}|${tag ?? ""}|${page}`} rows={rows} total={total} filter={{ kind, ...(sp.q?.trim() ? { q: sp.q.trim() } : {}), ...(sp.rel ? { rel: sp.rel } : {}), ...(tag ? { tag } : {}) }} knownTags={listTags.map((t) => t.tag)} selectAll={sp.select === "all"} />
+                  <p className="mlo-note">{imp ? tc.fromImport(total) : tag ? tc.tagged(tag, total) : `${total.toLocaleString("en-US")} ${total === 1 ? "person" : "people"}`}{imp ? <> · <Link href="/mlo/contacts/import/history">{tc.importHistory}</Link> · <Link href={qs({}, ["import"])}>{tc.clear}</Link></> : tag ? <> · <Link href={qs({}, ["tag"])}>{tc.clear}</Link></> : null}</p>
+                  <ContactsTable key={`${kind}|${sp.q ?? ""}|${sp.rel ?? ""}|${tag ?? ""}|${imp ?? ""}|${page}`} rows={rows} total={total} filter={{ kind, ...(sp.q?.trim() ? { q: sp.q.trim() } : {}), ...(sp.rel ? { rel: sp.rel } : {}), ...(tag ? { tag } : {}), ...(imp ? { imp } : {}) }} knownTags={listTags.map((t) => t.tag)} selectAll={sp.select === "all"} />
                   {page > 0 || (page + 1) * PAGE < total ? (
                     <nav className="mlo-row-form mlo-actions" aria-label="Pages">
                       {page > 0 ? <Link href={qs({ p: String(page - 1) })} className="mlo-btn mlo-btn--ghost">Previous</Link> : null}

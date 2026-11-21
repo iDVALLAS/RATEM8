@@ -72,7 +72,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     const cell = await page.locator('.mlo-scroll table tbody tr').first().locator('td').last().innerText();
     if (!/QA list/.test(cell)) problems.push('[tags] preview Tags column lacks the import tag: ' + cell);
     await finish();
-    await page.getByRole('link', { name: 'See the people from this import' }).click(); await page.waitForURL(/tag=/);
+    await page.getByRole('link', { name: /See these people/ }).click(); await page.waitForURL(/import=/);
     console.log('tags: import filter:', await page.locator('.mlo-section .mlo-note').first().innerText());
     await page.goto(B + '/mlo/contacts?tag=QA%20list');
     const n = await page.locator('table.cc-contacts tbody tr').count();
@@ -157,6 +157,66 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     else { await sug.getByRole('button', { name: 'Use it' }).click(); if (!/Skipped \(0\)/.test((await page.getByRole('tab').allInnerTexts()).join(' '))) problems.push('[review] using Home # did not reach the skipped row'); }
     await finish();
   });
+  // D75: re-import a file with people already in the book (the newer information), review the merges, check the
+  // honest counts, see the import's people, undo it from the history, and check the people are back as they were.
+  let impId = '';
+  await step('import: people you already have, merge review, undo, history', async () => {
+    const dir = path.dirname(CSV);
+    const v1 = path.join(dir, 'd75-v1.csv'); const v2 = path.join(dir, 'd75-v2.csv');
+    fs.writeFileSync(v1, 'First Name,Last Name,Mobile,Email,City\nGia,Rowe,(360) 555-2101,gia@example.com,Seattle\nHal,Rowe,(360) 555-2102,hal@example.com,Seattle\n');
+    fs.writeFileSync(v2, 'First Name,Last Name,Mobile,Email,City\nGia,Rowe,(360) 555-2101,gia@example.com,Tacoma\nHal,Rowe,(360) 555-2102,hal@example.com,Seattle\nJo,Rowe,(360) 555-2101,jo@example.com,Tacoma\nKim,Vale,(360) 555-2104,kim@example.com,Everett\nKim,Vale,(360) 555-2104,,Everett\n');
+    const toMatch = async (f) => {
+      await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
+      await page.setInputFiles('input[type=file]', f); await toColumns(); await toReview();
+      await page.waitForFunction(() => /already in your contacts/.test(document.querySelector('.im-preview')?.textContent || ''), null, { timeout: 15000 });
+      return page.locator('.im-preview').innerText();
+    };
+    await toMatch(v1); await finish();
+    const pre = await toMatch(v2);
+    if (!/^2 new · 2 already in your contacts · 1 merged inside your files/.test(pre)) problems.push('[d75] preview counts: ' + pre);
+    const card = page.locator('.im-files .mlo-note', { hasText: 'already in your book' });
+    if (!/2 already in your book · 0 would change/.test(await card.innerText())) problems.push('[d75] fill-blanks file card: ' + await card.innerText());
+    await page.getByLabel('Use the newer information from this file').check();
+    if (!/2 already in your book · 1 would change/.test(await card.innerText())) problems.push('[d75] newer file card: ' + await card.innerText());
+    const merges = page.locator('#im-existing details').first();
+    if (!(await merges.evaluate((d) => d.open))) await merges.locator('summary').click();
+    const spouses = merges.locator('.im-pair', { hasText: 'Gia Rowe + Jo Rowe' });
+    if (!/Possible duplicate/.test(await spouses.innerText())) problems.push('[d75] spouses sharing a phone not kept separate');
+    const kims = merges.locator('.im-pair', { hasText: 'Kim Vale + Kim Vale' });
+    await kims.getByRole('button', { name: 'Keep separate' }).click();
+    if (!/2 kept separate/.test(await merges.locator('summary').innerText())) problems.push('[d75] Keep separate did not stick: ' + await merges.locator('summary').innerText());
+    await kims.getByRole('button', { name: 'Merge them' }).click();
+    console.log('d75: merges:', await merges.locator('summary').innerText());
+    await finish();
+    const stats = (await page.locator('.im-stats').innerText()).replace(/\n/g, ' ');
+    console.log('d75: done:', stats);
+    if (!/^2 New people 2 Already yours, updated from this file 1 changed 1 Duplicates/.test(stats)) problems.push('[d75] done counts: ' + stats);
+    for (const t of [/Check do-not-call and phone type for these 4 people/, /See these people/, /Start a campaign for these 4 people/, /Import history/]) if (!(await page.getByRole('link', { name: t }).count())) problems.push('[d75] done screen lacks ' + t);
+    const see = await page.getByRole('link', { name: /See these people/ }).getAttribute('href');
+    impId = (/import=(imp_[\w-]+)/.exec(see) || [])[1] || '';
+    await page.goto(B + see);
+    if ((await page.locator('table.cc-contacts tbody tr').count()) !== 4) problems.push('[d75] See these people did not list the 4');
+    await page.goto(B + '/mlo/contacts/permission?import=' + impId + '#dnc');
+    console.log('d75: checks:', (await page.locator('#lines h2').innerText()), '|', (await page.locator('#dnc h2').innerText()));
+    await page.goto(B + '/mlo/campaigns?import=' + impId);
+    console.log('d75: campaigns:', await page.locator('#from-import h2').innerText());
+    await page.goto(B + '/mlo/contacts/import/history');
+    const run = page.locator('.im-history__run').first();
+    console.log('d75: history:', (await run.innerText()).replace(/\n/g, ' | '));
+    await run.locator('summary').click();
+    await run.locator('input[name=confirm]').fill('nope'); await run.getByRole('button', { name: 'Undo this import' }).click(); await page.waitForURL(/f=/);
+    if (!/Type UNDO/.test(await flash())) problems.push('[d75] undo without typing UNDO was not refused');
+    await page.goto(B + '/mlo/contacts/import/history');
+    const run2 = page.locator('.im-history__run').first();
+    await run2.locator('summary').click(); await run2.locator('input[name=confirm]').fill('UNDO'); await run2.getByRole('button', { name: 'Undo this import' }).click(); await page.waitForURL(/f=/);
+    console.log('d75: undo:', await flash());
+    if (!/2 people removed\. 2 people already yours put back/.test(await flash())) problems.push('[d75] undo result: ' + await flash());
+    await page.goto(B + '/mlo/contacts?q=rowe');
+    const left = await page.locator('table.cc-contacts tbody th').allInnerTexts();
+    if (left.length !== 2) problems.push('[d75] after undo expected Gia and Hal only: ' + left.join(', '));
+    await page.locator('table.cc-contacts tbody th a', { hasText: /Gia/i }).first().click(); await page.locator('#script').waitFor();
+    if (!/Seattle/.test(await page.locator('main').innerText())) problems.push('[d75] Gia not put back to Seattle');
+  });
   let key = '';
   await step('pipeline key + loan + lead', async () => {
     await page.goto(B + '/mlo/pipeline');
@@ -166,7 +226,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
   });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts/import', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {

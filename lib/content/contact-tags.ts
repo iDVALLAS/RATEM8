@@ -28,6 +28,9 @@ export const contactTagsCopy = {
   tagRow: "Tags",
   all: "Everyone",
   tagged: (t: string, n: number) => `Tagged “${t}”: ${people(n)}`,
+  /** D75: the people one import created or changed. */
+  fromImport: (n: number) => `From one import: ${people(n)}`,
+  importHistory: "Import history",
   clear: "Clear",
   more: (n: number) => `+${n}`,
   // The Tags panel

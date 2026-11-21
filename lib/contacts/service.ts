@@ -18,7 +18,8 @@ import { singleCompany } from "@/lib/accounts/company";
 import { accountStore } from "@/lib/accounts/store";
 import { contactsImportCopy } from "@/lib/content/contacts-import";
 import type { ImportKind, ImportRecord } from "./mapping";
-import { MAX_CONTACT_TAGS, MAX_TAGS, mergeTags, withExtraTags } from "./tags";
+import { applyImport, classify, type ReimportMode } from "./reimport";
+import { MAX_TAGS, mergeTags, POSSIBLE_DUPLICATE_TAG } from "./tags";
 import { CHANNELS, contactStore, PURPOSES, type Channel, type ConsentEntry, type Contact, type Evidence, type Provenance, type Purpose } from "./store";
 
 export const MAX_BATCH = 500;
@@ -45,7 +46,17 @@ export function canSee(user: User, c: Contact): boolean {
 }
 export const scopeOf = bookOf;
 
-export type ImportResult = { created: number; merged: number; skipped: number; optedOut: number };
+export type ImportResult = {
+  created: number;
+  /** Already in the book (merged into them). */
+  merged: number;
+  /** D75: of those, how many had a field change (tags aside). */
+  updated: number;
+  skipped: number;
+  optedOut: number;
+  /** D75: rows that matched two different people in the book ("Possible duplicate"). */
+  possible: number;
+};
 
 /** D69: a refusal the loan officer can act on (shown as is). */
 export class ImportRefused extends Error {}
@@ -66,38 +77,49 @@ export function importOwner(actor: User): string {
 const latestOf = (entries: ConsentEntry[], channel: Channel, purpose: Purpose): ConsentEntry | null =>
   entries.filter((e) => e.channel === channel && e.purpose === purpose).sort((a, b) => a.at.localeCompare(b.at)).pop() ?? null;
 
+/** D75: an import's "yes" taken back by an undo (not a stop: they never said stop). */
+export const isUndoneYes = (e: ConsentEntry) => !e.granted && e.evidence === "attested";
+
+/** D75: the import a batch belongs to, and what to do with people already in the book. */
+export type ImportOptions = { importId?: string; mode?: ReimportMode };
+
+/** The book's people a row could be: anyone sharing a phone or email, except people this same import created (rows kept separate on purpose). */
+export async function candidatesFor(owner: string, r: Pick<ImportRecord, "phone" | "phone2" | "email">, importId?: string): Promise<Contact[]> {
+  const found = await contactStore().findMatches(owner, [r.phone, r.phone2].filter(Boolean) as string[], r.email ? [r.email] : []);
+  return importId ? found.filter((c) => c.importId !== importId) : found;
+}
+
 /** One batch of an import (the browser sends the file in batches of up to 500). */
-export async function importBatch(actor: User, kind: ImportKind, records: ImportRecord[], source: string, provenance: Provenance = "unknown", now = new Date()): Promise<ImportResult> {
+export async function importBatch(actor: User, kind: ImportKind, records: ImportRecord[], source: string, provenance: Provenance = "unknown", now = new Date(), opts: ImportOptions = {}): Promise<ImportResult> {
   const store = contactStore();
   const at = now.toISOString();
   const owner = importOwner(actor);
-  const out: ImportResult = { created: 0, merged: 0, skipped: 0, optedOut: 0 };
+  const out: ImportResult = { created: 0, merged: 0, updated: 0, skipped: 0, optedOut: 0, possible: 0 };
+  const importId = opts.importId ?? null;
   for (const r of records.slice(0, MAX_BATCH)) {
     if (!r || (!r.phone && !r.email)) {
       out.skipped++;
       continue;
     }
-    const { attestedOptIns, optOuts, ...fields } = r;
-    const dup = await store.findDuplicate(owner, r.phone, r.email);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { attestedOptIns, optOuts, sourceFile, sourceRow, matchTo, ...fields } = r;
+    const file = (sourceFile || source).slice(0, 160);
+    const match = classify(r, await candidatesFor(owner, r, importId ?? undefined));
+    const dup = match.contact && match.kind !== "shares" ? match.contact : null;
     let contact: Contact;
     if (dup) {
-      // Fill blanks, never overwrite what's there; tags are combined.
-      const merged = { ...dup } as Contact;
-      for (const [k, v] of Object.entries(fields) as [keyof typeof fields, unknown][]) {
-        const cur = (merged as Record<string, unknown>)[k];
-        if ((cur === null || cur === "" || cur === undefined) && v !== null && v !== "") (merged as Record<string, unknown>)[k] = v;
-      }
-      // D73: the import's tags always land (so "See the people from this import" finds merged people too).
-      merged.tags = withExtraTags(dup.tags, r.tags, MAX_CONTACT_TAGS);
-      if (dup.relationship === "other" && r.relationship !== "other") merged.relationship = r.relationship;
+      // D75: a row matching two people only fills blanks in the closer match, and both are easy to find.
+      const possible = match.kind === "possible";
+      const { next, changed } = applyImport(dup, r, possible ? "fill" : opts.mode ?? "fill", { importId: importId ?? undefined, at, extraTags: possible ? [POSSIBLE_DUPLICATE_TAG] : [] });
       // A stronger source replaces "unknown"; a prior-employer import can lock a merged record, never unlock it.
-      if (merged.provenance === "unknown" && provenance !== "unknown") merged.provenance = provenance;
-      if (provenance === "prior_employer") merged.locked = true;
-      merged.updatedAt = at;
-      contact = merged;
+      if (next.provenance === "unknown" && provenance !== "unknown") next.provenance = provenance;
+      if (provenance === "prior_employer") next.locked = true;
+      contact = next;
       out.merged++;
+      if (changed.length) out.updated++;
+      if (possible) out.possible++;
     } else {
-      contact = { ...fields, tags: mergeTags(r.tags).slice(0, MAX_TAGS), id: id(), ownerUserId: owner, kind: kind === "agents" ? "agent" : "contact", provenance, locked: provenance === "prior_employer", source: `import: ${source}`.slice(0, 160), createdAt: at, updatedAt: at };
+      contact = { ...fields, tags: mergeTags(r.tags).slice(0, MAX_TAGS), id: id(), ownerUserId: owner, kind: kind === "agents" ? "agent" : "contact", provenance, locked: provenance === "prior_employer", source: `import: ${file}`.slice(0, 160), createdAt: at, updatedAt: at, ...(importId ? { importId } : {}) };
       out.created++;
     }
     await store.put(contact);
@@ -107,8 +129,9 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
       const last = latestOf(log, e.channel, e.purpose);
       if (last && last.granted === e.granted && last.evidence === e.evidence) return;
       // An import's "yes" is only the loan officer's word: it never undoes a recorded stop, or replaces stronger proof.
-      if (e.granted && e.evidence === "attested" && last) return;
-      const entry: ConsentEntry = { ...e, contactId: contact.id, at, actor: actor.email };
+      // (D75: a "yes" an undone import took back counts as nothing on file.)
+      if (e.granted && e.evidence === "attested" && last && !isUndoneYes(last)) return;
+      const entry: ConsentEntry = { ...e, contactId: contact.id, at, actor: actor.email, ...(importId ? { importId } : {}) };
       await store.addConsent(entry);
       log.push(entry);
     };
@@ -121,11 +144,11 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
     if (revoke.length) out.optedOut++;
     for (const ch of attestedOptIns) {
       if (ch === "email" ? stops.email : phoneStop) continue;
-      for (const purpose of PURPOSES) await write({ channel: ch, purpose, granted: true, evidence: "attested", proof: `opt-in column in ${source}`.slice(0, 200) });
+      for (const purpose of PURPOSES) await write({ channel: ch, purpose, granted: true, evidence: "attested", proof: `opt-in column in ${file}`.slice(0, 200) });
     }
     for (const [channel, where] of revoke) for (const purpose of PURPOSES) await write({ channel, purpose, granted: false, evidence: "revoked", proof: `import: ${where}`.slice(0, 200) });
   }
-  await accountStore().audit({ at, actor: actor.email, action: `contacts.import.${kind}`, detail: { ...out, source: source.slice(0, 80), provenance, ...(owner !== actor.id ? { book: owner } : {}) } });
+  await accountStore().audit({ at, actor: actor.email, action: `contacts.import.${kind}`, detail: { ...out, source: source.slice(0, 80), provenance, ...(importId ? { importId, mode: opts.mode ?? "fill" } : {}), ...(owner !== actor.id ? { book: owner } : {}) } });
   return out;
 }
 
@@ -187,6 +210,18 @@ export async function unlockContacts(actor: User, contactIds: string[], attestat
     await store.put({ ...c, locked: false, updatedAt: now.toISOString() });
     n++;
   }
+  await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "contacts.unlock", detail: { count: n, attestation: attestation.slice(0, 300) } });
+  return n;
+}
+
+/**
+ * D75: releases everyone on hold in the signed-in loan officer's own book in
+ * one go (one UPDATE in Neon; before, only the first 500 were read and
+ * released). Same attestation and audit as `unlockContacts`.
+ */
+export async function unlockAllHeld(actor: User, attestation: string, now = new Date()): Promise<number> {
+  if (actor.status !== "active") return 0;
+  const n = await contactStore().unlockAll(actor.id, now.toISOString());
   await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "contacts.unlock", detail: { count: n, attestation: attestation.slice(0, 300) } });
   return n;
 }

@@ -55,7 +55,21 @@ export type Contact = Omit<ImportRecord, "attestedOptIns" | "optOuts"> & {
   source: string;
   createdAt: string;
   updatedAt: string;
+  /** D75: the import that created this person (undo deletes them while untouched). */
+  importId?: string | null;
+  /** D75: an undo kept this person (messaged, permission recorded or a stop since); the import it came from. */
+  keptFrom?: string | null;
+  /** D75: each recent import that changed this person, with every field's value before and after (undo puts them back). */
+  imports?: ImportSnap[];
 };
+
+/**
+ * D75: what one import changed on someone already in the book. `before` and
+ * `after` hold only the fields it changed; undo restores a field only while it
+ * still holds the import's value (a later edit wins). Consent is never here:
+ * it's the append-only log.
+ */
+export type ImportSnap = { id: string; at: string; before: Record<string, unknown>; after: Record<string, unknown>; addedTags: string[]; droppedTags: string[] };
 
 export type ConsentEntry = {
   contactId: string;
@@ -67,15 +81,24 @@ export type ConsentEntry = {
   proof: string;
   at: string;
   actor: string;
+  /** D75: the import that wrote this entry (undo reads it; the entry itself is never changed or removed). */
+  importId?: string | null;
 };
 
 /** D73: `tag` is an exact match on one tag (the spelling as stored), unlike `q`, which searches inside words. */
-export type ContactFilter = { ownerUserId?: string; kind?: "contact" | "agent"; q?: string; relationship?: string; state?: string; tag?: string; limit?: number; offset?: number };
+export type ContactFilter = { ownerUserId?: string; kind?: "contact" | "agent"; q?: string; relationship?: string; state?: string; tag?: string; importId?: string; limit?: number; offset?: number };
 export type TagCount = { tag: string; count: number };
 
 export interface ContactStore {
   readonly kind: string;
   findDuplicate(ownerUserId: string, phone: string | null, email: string | null): Promise<Contact | null>;
+  /** D75: everyone in a book sharing any of these phones (main or other) or emails. */
+  findMatches(ownerUserId: string, phones: string[], emails: string[]): Promise<Contact[]>;
+  /** D75: the people an import created or changed in a book. */
+  byImport(ownerUserId: string, importId: string, limit?: number): Promise<Contact[]>;
+  /** D75: people on hold (a previous employer's list) in a book, and releasing them all in one go. */
+  countLocked(ownerUserId: string): Promise<number>;
+  unlockAll(ownerUserId: string, at: string): Promise<number>;
   /** Every contact with this phone, across all loan officers (for inbound texts and opt-outs). */
   findByPhone(phone: string): Promise<Contact[]>;
   put(c: Contact): Promise<void>;
@@ -86,8 +109,12 @@ export interface ContactStore {
   addConsent(e: ConsentEntry): Promise<void>;
   consents(contactId: string): Promise<ConsentEntry[]>;
   consentsFor(contactIds: string[]): Promise<ConsentEntry[]>;
-  remove(id: string): Promise<void>;
+  /** D75: `keepConsents` leaves the consent log as it is (append-only; an undone import never erases a record). */
+  remove(id: string, opts?: { keepConsents?: boolean }): Promise<void>;
 }
+
+/** D75: whether a contact was created or changed by an import. */
+export const fromImport = (c: Contact, importId: string) => c.importId === importId || (c.imports ?? []).some((s) => s.id === importId);
 
 const matches = (c: Contact, f: ContactFilter) => {
   if (f.ownerUserId && c.ownerUserId !== f.ownerUserId) return false;
@@ -95,6 +122,7 @@ const matches = (c: Contact, f: ContactFilter) => {
   if (f.relationship && c.relationship !== f.relationship) return false;
   if (f.state && c.state !== f.state) return false;
   if (f.tag && !(c.tags ?? []).includes(f.tag)) return false;
+  if (f.importId && !fromImport(c, f.importId)) return false;
   if (f.q) {
     const q = f.q.toLowerCase();
     const hay = [c.firstName, c.lastName, c.email, c.phone, c.city, c.agent?.brokerage, ...c.tags].filter(Boolean).join(" ").toLowerCase();
@@ -112,6 +140,27 @@ export class MemoryContactStore implements ContactStore {
   private log: ConsentEntry[] = [];
   async findDuplicate(owner: string, phone: string | null, email: string | null) {
     return [...this.rows.values()].find((c) => c.ownerUserId === owner && ((phone && c.phone === phone) || (email && c.email === email))) ?? null;
+  }
+  async findMatches(owner: string, phones: string[], emails: string[]) {
+    const p = new Set(phones.filter(Boolean));
+    const e = new Set(emails.filter(Boolean));
+    return [...this.rows.values()].filter((c) => c.ownerUserId === owner && ((c.phone && p.has(c.phone)) || (c.phone2 && p.has(c.phone2)) || (c.email && e.has(c.email)))).map((c) => structuredClone(c));
+  }
+  async byImport(owner: string, importId: string, limit = 5000) {
+    return [...this.rows.values()].filter((c) => c.ownerUserId === owner && fromImport(c, importId)).slice(0, limit).map((c) => structuredClone(c));
+  }
+  async countLocked(owner: string) {
+    return [...this.rows.values()].filter((c) => c.ownerUserId === owner && c.locked).length;
+  }
+  async unlockAll(owner: string, at: string) {
+    let n = 0;
+    for (const c of this.rows.values()) {
+      if (c.ownerUserId !== owner || !c.locked) continue;
+      c.locked = false;
+      c.updatedAt = at;
+      n++;
+    }
+    return n;
   }
   async findByPhone(phone: string) {
     return [...this.rows.values()].filter((c) => c.phone === phone || c.phone2 === phone).map((c) => structuredClone(c));
@@ -146,9 +195,9 @@ export class MemoryContactStore implements ContactStore {
     const s = new Set(ids);
     return this.log.filter((e) => s.has(e.contactId));
   }
-  async remove(id: string) {
+  async remove(id: string, opts: { keepConsents?: boolean } = {}) {
     this.rows.delete(id);
-    this.log = this.log.filter((e) => e.contactId !== id);
+    if (!opts.keepConsents) this.log = this.log.filter((e) => e.contactId !== id);
   }
 }
 
@@ -170,6 +219,8 @@ export class NeonContactStore implements ContactStore {
         await this.q(`CREATE INDEX IF NOT EXISTS cc_contacts_email ON cc_contacts (owner_user_id, email)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_consents (id bigserial PRIMARY KEY, contact_id text NOT NULL, channel text NOT NULL, purpose text NOT NULL, granted boolean NOT NULL, evidence text NOT NULL, proof text NOT NULL, at timestamptz NOT NULL, actor text NOT NULL)`);
         await this.q(`CREATE INDEX IF NOT EXISTS cc_consents_contact ON cc_consents (contact_id, at)`);
+        // D75: which import wrote an entry (so undo can tell the import's own answers from later ones).
+        await this.q(`ALTER TABLE cc_consents ADD COLUMN IF NOT EXISTS import_id text`);
       })().catch((e) => {
         this.ready = null;
         throw e;
@@ -181,6 +232,32 @@ export class NeonContactStore implements ContactStore {
     await this.init();
     const r = await this.q(`SELECT body FROM cc_contacts WHERE owner_user_id = $1 AND ((phone IS NOT NULL AND phone = $2) OR (email IS NOT NULL AND email = $3)) LIMIT 1`, [owner, phone, email]);
     return r[0] ? toContact(r[0]) : null;
+  }
+  async findMatches(owner: string, phones: string[], emails: string[]) {
+    await this.init();
+    const p = [...new Set(phones.filter(Boolean))];
+    const e = [...new Set(emails.filter(Boolean))];
+    if (!p.length && !e.length) return [];
+    const r = await this.q(`SELECT body FROM cc_contacts WHERE owner_user_id = $1 AND (phone = ANY($2) OR body->>'phone2' = ANY($2) OR email = ANY($3)) LIMIT 5000`, [owner, p, e]);
+    return r.map(toContact);
+  }
+  async byImport(owner: string, importId: string, limit = 5000) {
+    await this.init();
+    const r = await this.q(`SELECT body FROM cc_contacts WHERE owner_user_id = $1 AND (body->>'importId' = $2 OR body->'imports' @> $3::jsonb) ORDER BY sort_name LIMIT ${Math.max(1, Math.min(limit, 25_000))}`, [owner, importId, JSON.stringify([{ id: importId }])]);
+    return r.map(toContact);
+  }
+  async countLocked(owner: string) {
+    await this.init();
+    return Number((await this.q(`SELECT count(*)::int AS n FROM cc_contacts WHERE owner_user_id = $1 AND body->>'locked' = 'true'`, [owner]))[0]?.n ?? 0);
+  }
+  /** One UPDATE for the whole book (the old way read 500 people and released only those). */
+  async unlockAll(owner: string, at: string) {
+    await this.init();
+    const r = await this.q(
+      `WITH u AS (UPDATE cc_contacts SET body = jsonb_set(jsonb_set(body, '{locked}', 'false'::jsonb), '{updatedAt}', to_jsonb($2::text)), updated_at = $2::timestamptz WHERE owner_user_id = $1 AND body->>'locked' = 'true' RETURNING 1) SELECT count(*)::int AS n FROM u`,
+      [owner, at],
+    );
+    return Number(r[0]?.n ?? 0);
   }
   async findByPhone(phone: string) {
     await this.init();
@@ -219,6 +296,12 @@ export class NeonContactStore implements ContactStore {
       p.push(f.tag);
       where.push(`body->'tags' ? $${p.length}`);
     }
+    // D75: the people one import created or changed.
+    if (f.importId) {
+      p.push(f.importId);
+      p.push(JSON.stringify([{ id: f.importId }]));
+      where.push(`(body->>'importId' = $${p.length - 1} OR body->'imports' @> $${p.length}::jsonb)`);
+    }
     const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
     const total = Number((await this.q(`SELECT count(*)::int AS n FROM cc_contacts ${w}`, p))[0]?.n ?? 0);
     const rows = await this.q(`SELECT body FROM cc_contacts ${w} ORDER BY sort_name LIMIT ${Math.min(f.limit ?? 50, 500)} OFFSET ${Math.max(0, f.offset ?? 0)}`, p);
@@ -238,7 +321,7 @@ export class NeonContactStore implements ContactStore {
   }
   async addConsent(e: ConsentEntry) {
     await this.init();
-    await this.q(`INSERT INTO cc_consents (contact_id, channel, purpose, granted, evidence, proof, at, actor) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, [e.contactId, e.channel, e.purpose, e.granted, e.evidence, e.proof, e.at, e.actor]);
+    await this.q(`INSERT INTO cc_consents (contact_id, channel, purpose, granted, evidence, proof, at, actor, import_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [e.contactId, e.channel, e.purpose, e.granted, e.evidence, e.proof, e.at, e.actor, e.importId ?? null]);
   }
   async consents(id: string) {
     return this.consentsFor([id]);
@@ -247,11 +330,11 @@ export class NeonContactStore implements ContactStore {
     await this.init();
     if (!ids.length) return [];
     const r = await this.q(`SELECT * FROM cc_consents WHERE contact_id = ANY($1) ORDER BY at, id`, [ids]);
-    return r.map((x) => ({ contactId: x.contact_id as string, channel: x.channel as Channel, purpose: x.purpose as Purpose, granted: x.granted as boolean, evidence: x.evidence as Evidence, proof: x.proof as string, at: new Date(x.at as string).toISOString(), actor: x.actor as string }));
+    return r.map((x) => ({ contactId: x.contact_id as string, channel: x.channel as Channel, purpose: x.purpose as Purpose, granted: x.granted as boolean, evidence: x.evidence as Evidence, proof: x.proof as string, at: new Date(x.at as string).toISOString(), actor: x.actor as string, ...(x.import_id ? { importId: x.import_id as string } : {}) }));
   }
-  async remove(id: string) {
+  async remove(id: string, opts: { keepConsents?: boolean } = {}) {
     await this.init();
-    await this.q(`DELETE FROM cc_consents WHERE contact_id = $1`, [id]);
+    if (!opts.keepConsents) await this.q(`DELETE FROM cc_consents WHERE contact_id = $1`, [id]);
     await this.q(`DELETE FROM cc_contacts WHERE id = $1`, [id]);
   }
 }

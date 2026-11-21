@@ -4,7 +4,19 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
 import { recordBulkConsent } from "@/lib/contacts/bulk-consent";
-import { recordDncBulk, recordRndBulk } from "@/lib/messaging/service";
+import { checkLines, recordDncBulk, recordRndBulk } from "@/lib/messaging/service";
+import { importPeople } from "@/lib/contacts/imports";
+import { importCheckCopy as kc } from "@/lib/content/import-check";
+
+const IMP = /^imp_[A-Za-z0-9_-]{6,40}$/;
+
+/** D75: phone type (Twilio Lookup) for one import's people, up to 100 per tap (bound: `lineCheckImportAction.bind(null, importId)`). */
+export async function lineCheckImportAction(importId: string): Promise<void> {
+  const u = (await currentUser()) ?? redirect("/sign-in");
+  const id = IMP.test(String(importId)) ? String(importId) : "";
+  const r = id ? await checkLines(u, await importPeople(u, id)) : null;
+  redirect(`/mlo/contacts/permission?${id ? `import=${id}&` : ""}f=${encodeFlash({ ok: !!r && r.checked > 0, lines: [r ? kc.lineDone(r) : kc.noTwilio] })}#lines`);
+}
 
 export async function bulkConsentAction(fd: FormData): Promise<void> {
   const u = (await currentUser()) ?? redirect("/sign-in");
@@ -31,5 +43,6 @@ export async function rndBulkAction(fd: FormData): Promise<void> {
 export async function dncBulkAction(fd: FormData): Promise<void> {
   const u = (await currentUser()) ?? redirect("/sign-in");
   const r = await recordDncBulk(u, String(fd.get("rows") ?? ""), String(fd.get("source") ?? ""));
-  redirect(`/mlo/contacts/permission?f=${encodeFlash({ ok: r.updated > 0, lines: [`Do-not-call results recorded for ${r.updated} ${r.updated === 1 ? "contact" : "contacts"}${r.skipped ? `; ${r.skipped} line${r.skipped === 1 ? "" : "s"} skipped (not yours, or not phone and yes/no)` : ""}.`] })}#dnc`);
+  const imp = String(fd.get("import") ?? "");
+  redirect(`/mlo/contacts/permission?${IMP.test(imp) ? `import=${imp}&` : ""}f=${encodeFlash({ ok: r.updated > 0, lines: [`Do-not-call results recorded for ${r.updated} ${r.updated === 1 ? "contact" : "contacts"}${r.skipped ? `; ${r.skipped} line${r.skipped === 1 ? "" : "s"} skipped (not yours, or not phone and yes/no)` : ""}.`] })}#dnc`);
 }
