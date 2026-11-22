@@ -19,4 +19,8 @@ export const importCheckCopy = {
   noTwilio: "Phone-type checks aren't turned on yet. Your owner turns them on with texting.",
   setUp: "Set up texting",
   dncTitle: "Do-not-call checks for these people",
+  /** D78: the same checks for people picked on Contacts, or a list. */
+  listTitle: (n: number) => `Checks for the ${people(n)} with a phone you picked`,
+  listLead: "Only the people you picked on Contacts.",
+  listDone: "Every number you picked has a recent phone-type check.",
 } as const;

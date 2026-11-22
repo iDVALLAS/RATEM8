@@ -8,9 +8,10 @@ import { previewBulk } from "@/lib/contacts/bulk-consent";
 import { dncNeeded, LINE_BATCH, linesNeeded, rndNeeded } from "@/lib/messaging/service";
 import { lookupPriceUsd, twilioConfig } from "@/lib/messaging/twilio";
 import { getImport, importPeople } from "@/lib/contacts/imports";
+import { checkScope, scopePeople } from "@/lib/contacts/scope";
 import { importCheckCopy as kc } from "@/lib/content/import-check";
 import { FlashBox, MloNav } from "../../MloChrome";
-import { bulkConsentAction, dncBulkAction, lineCheckImportAction, rndBulkAction } from "./actions";
+import { bulkConsentAction, dncBulkAction, lineCheckImportAction, lineCheckScopeAction, rndBulkAction } from "./actions";
 import "../../mlo.css";
 import PageHead from "@/app/mlo/PageHead";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Record permission", robots: { index: false, follow: false } };
 
 /** /mlo/contacts/permission — put the permission you already hold for past clients on file (D12.2). */
-export default async function BulkPermission({ searchParams }: { searchParams: Promise<{ f?: string; since?: string; import?: string }> }) {
+export default async function BulkPermission({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const v = await requireViewer();
   const tenant = listTenants()[0];
@@ -28,7 +29,10 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
   const need = me ? await rndNeeded(me) : [];
   // D75: "Check do-not-call and phone type for these N people" from an import's done screen: this section limited to its people.
   const run = me && /^imp_[A-Za-z0-9_-]{6,40}$/.test(sp.import ?? "") ? await getImport(me, sp.import!) : null;
-  const people = me && run ? await importPeople(me, run.id) : null;
+  // D78: or the people picked on Contacts (`ids=`), or a whole list (`scope=list&…`), each checked with canSee.
+  const scope = !run ? checkScope(sp) : "";
+  const picked = me && scope ? await scopePeople(me, scope) : null;
+  const people = me && run ? await importPeople(me, run.id) : picked;
   const dncNeed = me ? await dncNeeded(me, new Date(), people ?? undefined) : [];
   const lineNeed = people ? linesNeeded(people) : [];
   const price = lookupPriceUsd();
@@ -81,26 +85,27 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
               <div><button type="submit" className="mlo-btn">Record permission for {p.eligible.length} {p.eligible.length === 1 ? "client" : "clients"}</button></div>
             </form>
 
-            {run && people ? (
+            {(run || scope) && people ? (
               <section className="mlo-section mlo-grid" id="lines">
-                <h2>{kc.title(people.filter((c) => c.phone).length)}</h2>
-                <p className="mlo-note">{kc.lead(run.files.join(", "))} <Link href="/mlo/contacts/permission#dnc">{kc.whole}</Link></p>
+                <h2>{run ? kc.title(people.filter((c) => c.phone).length) : kc.listTitle(people.filter((c) => c.phone).length)}</h2>
+                <p className="mlo-note">{run ? kc.lead(run.files.join(", ")) : kc.listLead} <Link href="/mlo/contacts/permission#dnc">{kc.whole}</Link></p>
                 <h3 className="cc-card__title">{kc.lineTitle}</h3>
                 {lineNeed.length ? (
                   <>
                     <p className="mlo-note">{kc.lineNote(lineNeed.length, `$${(lineNeed.length * price).toFixed(2)}`, `$${price.toFixed(3)}`, LINE_BATCH)}</p>
                     {twilioConfig() ? (
-                      <form action={lineCheckImportAction.bind(null, run.id)} className="mlo-actions">
+                      <form action={run ? lineCheckImportAction.bind(null, run.id) : lineCheckScopeAction.bind(null, scope)} className="mlo-actions">
                         <button type="submit" className="mlo-btn">{kc.lineButton(Math.min(LINE_BATCH, lineNeed.length), `$${(Math.min(LINE_BATCH, lineNeed.length) * price).toFixed(2)}`)}</button>
                       </form>
                     ) : <p className="mlo-note">{kc.noTwilio} <Link href="/mlo/setup-help?topic=texting">{kc.setUp}</Link></p>}
                   </>
-                ) : <p className="mlo-note">{kc.linesDone}</p>}
+                ) : <p className="mlo-note">{run ? kc.linesDone : kc.listDone}</p>}
               </section>
             ) : null}
             <form action={dncBulkAction} className="mlo-section mlo-grid" id="dnc">
               {run ? <input type="hidden" name="import" value={run.id} /> : null}
-              <h2>{run ? kc.dncTitle : "Do-not-call checks for your whole book"}</h2>
+              {scope ? <input type="hidden" name="scope" value={scope} /> : null}
+              <h2>{run || scope ? kc.dncTitle : "Do-not-call checks for your whole book"}</h2>
               <p className="mlo-note">Marketing calls and texts need a do-not-call check from the last 31 days. Upload this list to your DNC vendor (or the National Do Not Call Registry for your subscription), then paste the results here: one line each, <code>phone, yes or no</code> (yes = on a list). Include your state lists (for example, Texas) in the scrub.</p>
               {dncNeed.length ? (
                 <details className="mlo-note"><summary>{dncNeed.length} {dncNeed.length === 1 ? "number needs" : "numbers need"} a check: copy this list to upload</summary><pre style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{dncNeed.map((n) => n.phone).join("\n")}</pre></details>

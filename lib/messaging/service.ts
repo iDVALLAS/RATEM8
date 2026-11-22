@@ -25,8 +25,13 @@ export const MAX_TEXT = 640;
 const tid = () => `t_${randomBytes(9).toString("base64url")}`;
 const SYSTEM: User = { id: "system", email: "system", name: "System", role: "owner", mloId: null, status: "active", createdAt: "", createdBy: "" };
 
-/** The gate's answer for this contact right now, with real counts, opt-outs and do-not-call status. */
-export async function gateFor(actor: User, c: Contact, channel: Channel, purpose: Purpose, now = new Date()): Promise<GateDecision> {
+/**
+ * The gate's answer for this contact right now, with real counts, opt-outs and do-not-call status.
+ * D78: `ignoreCaps` reads the answer for a later send (adding someone to a campaign from a list):
+ * today's caps don't decide who goes in, and quiet hours come back as `retryAt`. Every send still
+ * asks the gate with the real counts.
+ */
+export async function gateFor(actor: User, c: Contact, channel: Channel, purpose: Purpose, now = new Date(), opts: { ignoreCaps?: boolean } = {}): Promise<GateDecision> {
   const consent = summarize(await contactStore().consents(c.id));
   const ts = touchStore();
   if (c.phone && (channel === "text" || channel === "call" || channel === "ai_call") && (await ts.optedOut(c.phone))) {
@@ -57,7 +62,7 @@ export async function gateFor(actor: User, c: Contact, channel: Channel, purpose
     consent,
     licensedStates: licensedStatesFor(actor),
     dnc: c.dnc ? { onList: c.dnc.onList, checkedAt: c.dnc.checkedAt } : null,
-    sent: { callsLast24h: count(["call", "ai_call"], day), textsLast24h: count(["text"], day), textsLast7d: count(["text"], week) },
+    sent: opts.ignoreCaps ? { callsLast24h: 0, textsLast24h: 0, textsLast7d: 0 } : { callsLast24h: count(["call", "ai_call"], day), textsLast24h: count(["text"], day), textsLast7d: count(["text"], week) },
     now,
   });
 }

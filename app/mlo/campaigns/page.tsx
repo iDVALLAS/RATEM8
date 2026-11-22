@@ -125,7 +125,7 @@ export default async function Campaigns({ searchParams }: { searchParams: Promis
                     <li key={c.id}>
                       <Link href={`/mlo/campaigns/${c.id}`} className="cp-row">
                         <span className={`cp-status cp-status--${c.status}`}>{c.status === "active" ? "On" : c.status === "paused" ? "Paused" : "Draft"}</span>
-                        <span className="cp-row__main"><strong>{c.name}</strong><span className="mlo-note">{c.steps.length} {c.steps.length === 1 ? "step" : "steps"} · {c.trigger === "new_lead" ? "every new lead" : "people you add"} · {c.kind === "followup" ? "stops on reply" : "keeps going"}</span></span>
+                        <span className="cp-row__main"><strong>{c.name}</strong><span className="mlo-note">{c.steps.length} {c.steps.length === 1 ? "step" : "steps"} · {c.trigger === "new_lead" ? "every new lead" : c.trigger === "tag_added" ? `when you add “${c.triggerTag ?? ""}”` : "people you add"} · {c.kind === "followup" ? "stops on reply" : "keeps going"}</span></span>
                         <span className="cp-row__nums"><span><b>{active}</b> in it</span><span><b>{done}</b> finished</span><span><b>{stopped}</b> stopped</span><span><b>{sent}</b> sent</span>{skipped ? <span><b>{skipped}</b> skipped</span> : null}</span>
                       </Link>
                     </li>

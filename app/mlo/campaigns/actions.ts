@@ -3,8 +3,8 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
-import { aiCreateCampaign, createCampaign, deleteCampaign, enroll, enrollGroup, saveCampaign, setCampaignStatus, stopEnrollment } from "@/lib/campaigns/service";
-import { importPeople } from "@/lib/contacts/imports";
+import { aiCreateCampaign, createCampaign, deleteCampaign, enrollFrom, parseSource, saveCampaign, setCampaignStatus, stopEnrollment } from "@/lib/campaigns/service";
+import { contactListsCopy as lc } from "@/lib/content/contact-lists";
 
 const me = async () => (await currentUser()) ?? redirect("/sign-in");
 const go = (target: string, ok: boolean, line: string) => {
@@ -46,19 +46,26 @@ export async function deleteCampaignAction(id: string): Promise<void> {
   go("/mlo/campaigns", ok, ok ? "Campaign deleted." : "Couldn't delete it.");
 }
 
-export async function enrollGroupAction(id: string, fd: FormData): Promise<void> {
-  const rel = String(fd.get("group") ?? "");
-  if (!["past_client", "lead", "sphere", "agent", "other"].includes(rel)) go(`/mlo/campaigns/${id}`, false, "Pick who to add.");
-  const r = await enrollGroup(await me(), id, rel);
-  go(`/mlo/campaigns/${id}#people`, !!r, r ? `Added ${r.added} ${r.added === 1 ? "person" : "people"}${r.skipped ? ` (${r.skipped} already in it or not in your book)` : ""}.` : "Couldn't add them.");
+/** D78: "Add people from: [a saved list | a tag | an import | a relationship]" (one select; checked on the server). */
+export async function enrollFromAction(id: string, fd: FormData): Promise<void> {
+  const src = parseSource(String(fd.get("from") ?? ""));
+  if (!src) go(`/mlo/campaigns/${id}#people`, false, lc.pickSource);
+  const r = await enrollFrom(await me(), id, src!);
+  go(`/mlo/campaigns/${id}#people`, !!r && r.added > 0, r ? lc.enrolled(r) : "Couldn't add them.");
 }
 
-/** D75: everyone from one import into a campaign (bound: `enrollImportAction.bind(null, campaignId, importId)`). */
+/** D51: everyone of one kind (kept for old links; D78 goes through the same gate check). */
+export async function enrollGroupAction(id: string, fd: FormData): Promise<void> {
+  const rel = String(fd.get("group") ?? "");
+  const r = ["past_client", "lead", "sphere", "agent", "other"].includes(rel) ? await enrollFrom(await me(), id, { type: "rel", rel }) : null;
+  go(`/mlo/campaigns/${id}#people`, !!r && r.added > 0, r ? lc.enrolled(r) : "Pick who to add.");
+}
+
+/** D75: everyone from one import into a campaign (bound: `enrollImportAction.bind(null, campaignId, importId)`); D78: through the gate check. */
 export async function enrollImportAction(id: string, importId: string): Promise<void> {
-  const u = await me();
-  const people = /^imp_[A-Za-z0-9_-]{6,40}$/.test(String(importId)) ? await importPeople(u, String(importId)) : [];
-  const r = people.length ? await enroll(u, id, people.map((c) => c.id)) : null;
-  go(`/mlo/campaigns/${id}#people`, !!r && r.added > 0, r ? `Added ${r.added} ${r.added === 1 ? "person" : "people"} from your import${r.skipped ? ` (${r.skipped} already in it or not in your book)` : ""}. Each step still goes only to people with permission for it.` : "Couldn't add them.");
+  const ok = /^imp_[A-Za-z0-9_-]{6,40}$/.test(String(importId));
+  const r = ok ? await enrollFrom(await me(), id, { type: "import", id: String(importId) }) : null;
+  go(`/mlo/campaigns/${id}#people`, !!r && r.added > 0, r ? lc.enrolled(r) : "Couldn't add them.");
 }
 
 export async function stopEnrollmentAction(campaignId: string, enrollmentId: string): Promise<void> {

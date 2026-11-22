@@ -21,11 +21,11 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const B = 'http://localhost:3100';
-const STATIC = ['/mlo', '/mlo/campaigns?new=1', '/mlo/connections?sys=arive', '/mlo/academy', '/mlo/agents', '/mlo/agents/setup', '/mlo/automations', '/mlo/calls', '/mlo/campaigns', '/mlo/cards', '/mlo/concierge', '/mlo/connections', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/email', '/mlo/expenses', '/mlo/expenses/report', '/mlo/export', '/mlo/inbox', '/mlo/launch', '/mlo/leads', '/mlo/loa', '/mlo/messages', '/mlo/network', '/mlo/pilot', '/mlo/pipeline', '/mlo/pricing', '/mlo/pricing/receive', '/mlo/refi', '/mlo/refi?ref=5.75', '/mlo/report', '/mlo/rules', '/mlo/scripts', '/mlo/security', '/mlo/setup', '/mlo/setup-help', '/mlo/signature', '/mlo/signups', '/mlo/team', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/text-setup', '/mlo/texting', '/mlo/training', '/mlo/videos', '/mlo/voice', '/mlo/voicemail', '/mlo/welcome', '/mlo/academy/p1', '/mlo/academy/p5', '/mlo/academy/l2'];
+const STATIC = ['/mlo', '/mlo/campaigns?new=1', '/mlo/connections?sys=arive', '/mlo/academy', '/mlo/agents', '/mlo/agents/setup', '/mlo/automations', '/mlo/calls', '/mlo/campaigns', '/mlo/cards', '/mlo/concierge', '/mlo/connections', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?select=all', '/mlo/contacts?state=WA&perm=relationship&select=all', '/mlo/calls?list=d-past', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/email', '/mlo/expenses', '/mlo/expenses/report', '/mlo/export', '/mlo/inbox', '/mlo/launch', '/mlo/leads', '/mlo/loa', '/mlo/messages', '/mlo/network', '/mlo/pilot', '/mlo/pipeline', '/mlo/pricing', '/mlo/pricing/receive', '/mlo/refi', '/mlo/refi?ref=5.75', '/mlo/report', '/mlo/rules', '/mlo/scripts', '/mlo/security', '/mlo/setup', '/mlo/setup-help', '/mlo/signature', '/mlo/signups', '/mlo/team', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/text-setup', '/mlo/texting', '/mlo/training', '/mlo/videos', '/mlo/voice', '/mlo/voicemail', '/mlo/welcome', '/mlo/academy/p1', '/mlo/academy/p5', '/mlo/academy/l2'];
 const AUTH = ['/sign-in', '/sign-up', '/sign-up/confirm'];
 const SHOTS = new Set(['/mlo/academy', '/mlo/expenses', '/mlo/contacts/permission', '/mlo/refi', '/mlo/concierge', '/mlo/team', 'contact', 'loan', '/mlo/loa', '/mlo/contacts', '/mlo/pricing', '/mlo/templates', '/mlo/scripts', '/mlo', '/sign-in', 'client page']);
 // D76: audited a second time with every <details> open.
-const OPEN_ALL = new Set(['/mlo', '/mlo/automations', '/mlo/concierge', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/campaigns?new=1', '/mlo/inbox', '/mlo/calls', '/mlo/agents', '/mlo/email', '/mlo/pipeline', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/rules', '/mlo/leads', 'contact', 'contact details', 'contact permission', '/mlo/contacts']);
+const OPEN_ALL = new Set(['/mlo', '/mlo/automations', '/mlo/concierge', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/campaigns?new=1', '/mlo/inbox', '/mlo/calls', '/mlo/agents', '/mlo/email', '/mlo/pipeline', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/rules', '/mlo/leads', 'contact', 'contact details', 'contact permission', '/mlo/contacts', '/mlo/contacts?state=WA&perm=relationship&select=all']);
 const out = process.env.QA_OUT || '';
 if (out) fs.mkdirSync(out, { recursive: true });
 const only = (process.env.QA_ONLY || '').split(',').filter(Boolean);
@@ -160,6 +160,9 @@ function audit() {
     await sp.goto(B + '/mlo/pipeline');
   }
   const loan = (await sp.getByRole('link', { name: 'Bo Park' }).first().getAttribute('href')).replace(/[?#].*$/, '');
+  // D78: a campaign, so the bulk bar's "Add to a campaign" and the campaign page are audited.
+  await sp.goto(B + '/mlo/campaigns');
+  if (!(await sp.locator('a.cp-row').count())) { await sp.goto(B + '/mlo/campaigns?new=1'); await sp.getByRole('button', { name: 'Use this one' }).first().click(); await sp.waitForURL(/\/mlo\/campaigns\/cmp_/); }
   await sp.goto(B + '/mlo/contacts?q=Lee');
   const contact = (await sp.getByRole('link', { name: /Ann Lee/ }).first().getAttribute('href')).replace(/[?#].*$/, '');
   // D77: another record to compare in the merge view.
@@ -208,6 +211,30 @@ function audit() {
         }
         if (out && SHOTS.has(label)) await page.screenshot({ path: path.join(out, `${label.replace(/\W+/g, '_').replace(/^_|_$/g, '') || 'home'}-${w}-${theme}.png`), fullPage: true });
       } catch (e) { problems.push(`[${where}] FAILED: ${e.message.split('\n')[0]}`); }
+    }
+    // D78: the bulk bar's actions (each shows its own controls), and a campaign's "Add people from".
+    if (!only.length || only.includes('bulk actions')) {
+      const page = pages.in;
+      const where = (n) => `bulk ${n} @${w} ${theme}`;
+      try {
+        await page.goto(B + '/mlo/contacts?select=all', { waitUntil: 'networkidle' });
+        for (const v of await page.locator('.cc-bulkbar select').first().locator('option').evaluateAll((os) => os.map((o) => o.value))) {
+          await page.locator('.cc-bulkbar select').first().selectOption(v);
+          await page.waitForTimeout(120);
+          const res = await page.evaluate(audit);
+          total++;
+          for (const p of [...new Set(res.problems)]) problems.push(`[${where(v)}] ${p}`);
+          if (out && (v === 'campaign' || v === 'delete')) await page.screenshot({ path: path.join(out, `bulk_${v}-${w}-${theme}.png`) });
+        }
+        await page.goto(B + '/mlo/campaigns', { waitUntil: 'networkidle' });
+        const first = page.locator('a.cp-row').first();
+        if (await first.count()) {
+          await page.goto(B + (await first.getAttribute('href')), { waitUntil: 'networkidle' });
+          const res = await page.evaluate(audit);
+          total++;
+          for (const p of [...new Set(res.problems)]) problems.push(`[${where('campaign page')}] ${p}`);
+        }
+      } catch (e) { problems.push(`[${where('walk')}] FAILED: ${e.message.split('\n')[0]}`); }
     }
     // D74: the import's steps aren't pages of their own, so they're walked here and audited at each step.
     if (!only.length || only.includes('import steps')) {

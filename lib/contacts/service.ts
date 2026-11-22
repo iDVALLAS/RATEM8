@@ -20,7 +20,7 @@ import { isUsState } from "@/lib/us-states";
 import { contactsImportCopy } from "@/lib/content/contacts-import";
 import type { ImportKind, ImportRecord } from "./mapping";
 import { applyImport, classify, type ReimportMode } from "./reimport";
-import { MAX_TAGS, mergeTags, POSSIBLE_DUPLICATE_TAG } from "./tags";
+import { MAX_TAGS, mergeTags, POSSIBLE_DUPLICATE_TAG, sameTag } from "./tags";
 import { CHANNELS, contactStore, liveEntries, PURPOSES, type Channel, type ConsentEntry, type Contact, type Evidence, type Provenance, type Purpose } from "./store";
 
 export const MAX_BATCH = 500;
@@ -99,6 +99,8 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
   const owner = importOwner(actor);
   const out: ImportResult = { created: 0, merged: 0, updated: 0, skipped: 0, optedOut: 0, possible: 0 };
   const importId = opts.importId ?? null;
+  // D78: tags this batch added to each person (a "when I add this tag" campaign can take them).
+  const tagged: { contact: Contact; added: string[] }[] = [];
   for (const r of records.slice(0, MAX_BATCH)) {
     if (!r || (!r.phone && !r.email)) {
       out.skipped++;
@@ -126,6 +128,8 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
       out.created++;
     }
     await store.put(contact);
+    const added = dup ? contact.tags.filter((t) => !dup.tags.some((o) => sameTag(o, t))) : contact.tags;
+    if (added.length) tagged.push({ contact, added });
     // D69: one consent log read per contact, so a re-import doesn't add the same answer twice.
     const log = dup ? await store.consents(contact.id) : [];
     const write = async (e: Omit<ConsentEntry, "contactId" | "at" | "actor">) => {
@@ -152,6 +156,11 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
     for (const [channel, where] of revoke) for (const purpose of PURPOSES) await write({ channel, purpose, granted: false, evidence: "revoked", proof: `import: ${where}`.slice(0, 200) });
   }
   await accountStore().audit({ at, actor: actor.email, action: `contacts.import.${kind}`, detail: { ...out, source: source.slice(0, 80), provenance, ...(importId ? { importId, mode: opts.mode ?? "fill" } : {}), ...(owner !== actor.id ? { book: owner } : {}) } });
+  // D78: after the consent entries above, so the contact rules see the file's answers.
+  if (tagged.length) {
+    const { onTagsAdded } = await import("@/lib/campaigns/service");
+    await onTagsAdded(tagged, now).catch(() => 0);
+  }
   return out;
 }
 

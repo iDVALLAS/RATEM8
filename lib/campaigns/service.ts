@@ -23,11 +23,14 @@ import { accountStore } from "@/lib/accounts/store";
 import { aiCall, aiOffReason, type Meter } from "@/lib/ai/meter";
 import { cleanData, dataRule, newNonce } from "@/lib/concierge/data";
 import { conciergeStore } from "@/lib/concierge/store";
-import { canSee, scopeOf } from "@/lib/contacts/service";
+import { canSee } from "@/lib/contacts/service";
 import { contactStore, type Contact } from "@/lib/contacts/store";
+import type { ListRule } from "@/lib/contacts/filter";
+import { listById, peopleIn } from "@/lib/contacts/lists";
+import { cleanTag, sameTag } from "@/lib/contacts/tags";
 import { incr } from "@/lib/m8/kv";
 import { sendEmail } from "@/lib/messaging/email";
-import { sendText, type SendOutcome } from "@/lib/messaging/service";
+import { gateFor, sendText, type SendOutcome } from "@/lib/messaging/service";
 import { STATE_ZONES } from "@/lib/send-gate/rules";
 import { fill, variablesOf } from "@/lib/templates/library";
 import { checkTemplate, myValues } from "@/lib/templates/service";
@@ -65,8 +68,9 @@ export function checkStep(s: Step): string | null {
   return null;
 }
 
-export function checkCampaign(c: Pick<Campaign, "name" | "steps" | "days" | "hours">): string | null {
+export function checkCampaign(c: Pick<Campaign, "name" | "steps" | "days" | "hours"> & Partial<Pick<Campaign, "trigger" | "triggerTag">>): string | null {
   if (c.name.trim().length < 2 || c.name.length > 80) return "Give it a name (up to 80 characters).";
+  if (c.trigger === "tag_added" && !cleanTag(c.triggerTag ?? "")) return "Pick the tag that puts people in.";
   if (!c.steps.length) return "Add at least one step.";
   if (c.steps.length > MAX_STEPS) return `Up to ${MAX_STEPS} steps.`;
   if (!c.days.length || c.days.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) return "Pick at least one sending day.";
@@ -104,7 +108,8 @@ export const CampaignEdit = z.object({
   name: z.string().trim().max(80),
   kind: z.enum(["followup", "nurture"]),
   purpose: z.enum(["service", "marketing"]),
-  trigger: z.enum(["manual", "new_lead"]),
+  trigger: z.enum(["manual", "new_lead", "tag_added"]),
+  triggerTag: z.string().max(200).nullable().optional(),
   days: z.array(z.number().int().min(0).max(6)).max(7),
   hours: z.object({ start: z.number().int(), end: z.number().int() }),
   steps: z.array(z.object({ id: z.string().max(40).optional(), channel: z.enum(CHANNELS), waitDays: z.number().int(), subject: z.string().max(200).default(""), body: z.string().max(4000) })).max(MAX_STEPS),
@@ -117,7 +122,7 @@ export async function saveCampaign(owner: User, campaignId: string, raw: unknown
   if (!c) return { ok: false, error: "No such campaign." };
   const p = CampaignEdit.safeParse(raw);
   if (!p.success) return { ok: false, error: "Check the form and try again." };
-  const next: Campaign = { ...c, ...p.data, days: [...new Set(p.data.days)].sort(), steps: p.data.steps.map((s) => ({ id: s.id && /^st_[\w-]+$/.test(s.id) ? s.id : id("st"), channel: s.channel, waitDays: s.waitDays, subject: s.channel === "email" ? s.subject.trim() : "", body: s.body.trim() })), updatedAt: iso(now) };
+  const next: Campaign = { ...c, ...p.data, triggerTag: p.data.trigger === "tag_added" ? cleanTag(p.data.triggerTag ?? "") || null : null, days: [...new Set(p.data.days)].sort(), steps: p.data.steps.map((s) => ({ id: s.id && /^st_[\w-]+$/.test(s.id) ? s.id : id("st"), channel: s.channel, waitDays: s.waitDays, subject: s.channel === "email" ? s.subject.trim() : "", body: s.body.trim() })), updatedAt: iso(now) };
   const err = checkCampaign(next);
   if (err && c.status === "active") return { ok: false, error: `${err} (It's still running as it was.)` };
   await campaignStore().putCampaign(next);
@@ -174,11 +179,149 @@ export async function enroll(owner: User, campaignId: string, contactIds: string
   return { added, skipped, ids };
 }
 
-/** Adds everyone of one kind (past clients, leads, sphere, agents) from their book. */
+// ---- D78: people from a list, a tag, an import or a relationship ----
+
+/** What one "add people" did. */
+export type EnrollReport = { added: number; already: number; noPermission: number; notYours: number; topReason: string | null; ids: string[] };
+export const MAX_ENROLL = 5000;
+/** New enrollments run at once when a tag puts them in (the rest go with the next scheduled run). */
+export const TAG_RUN_NOW = 25;
+
+/**
+ * Whether the contact rules would let this campaign's messages reach them:
+ * the gate's answer for each of its message channels and its purpose, with
+ * quiet hours and today's caps set aside (those only decide when). A campaign
+ * of tasks only reaches the loan officer, so anyone may go in.
+ */
+export async function reachableFor(owner: User, c: Pick<Campaign, "steps" | "purpose">, contact: Contact, now = new Date()): Promise<{ ok: boolean; reason: string | null }> {
+  const chans = [...new Set(c.steps.map((s) => s.channel).filter((ch): ch is "text" | "email" => ch !== "task"))];
+  if (!chans.length) return { ok: true, reason: null };
+  let first: string | null = null;
+  for (const ch of chans) {
+    const d = await gateFor(owner, contact, ch, c.purpose, now, { ignoreCaps: true });
+    if (d.allowed || d.retryAt) return { ok: true, reason: null };
+    first ??= d.reasons[0] ?? null;
+  }
+  return { ok: false, reason: first };
+}
+
+/**
+ * Adds people the contact rules allow for this campaign's messages (the gate,
+ * per person). Anyone outside the campaign's book, already in it, or not
+ * allowed yet is counted and left out. Every step is still checked by the gate
+ * again when it goes out.
+ */
+export async function enrollReachable(owner: User, campaignId: string, people: Contact[], now = new Date()): Promise<EnrollReport | null> {
+  const c = await mine(owner, campaignId);
+  if (!c) return null;
+  const store = campaignStore();
+  const inIt = new Set((await store.enrollments(c.id)).filter((e) => e.status === "active").map((e) => e.contactId));
+  const out: EnrollReport = { added: 0, already: 0, noPermission: 0, notYours: 0, topReason: null, ids: [] };
+  const reasons = new Map<string, number>();
+  const seen = new Set<string>();
+  for (const contact of people) {
+    if (seen.has(contact.id)) continue;
+    seen.add(contact.id);
+    if (seen.size > MAX_ENROLL) break;
+    if (!canSee(owner, contact) || contact.ownerUserId !== c.ownerUserId) {
+      out.notYours++;
+      continue;
+    }
+    if (inIt.has(contact.id)) {
+      out.already++;
+      continue;
+    }
+    const r = await reachableFor(owner, c, contact, now);
+    if (!r.ok) {
+      out.noPermission++;
+      if (r.reason) reasons.set(r.reason, (reasons.get(r.reason) ?? 0) + 1);
+      continue;
+    }
+    const e = newEnrollment(c, contact.id, now);
+    await store.putEnrollment(e);
+    inIt.add(contact.id);
+    out.ids.push(e.id);
+    out.added++;
+  }
+  out.topReason = [...reasons].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  await accountStore().audit({ at: iso(now), actor: owner.email, action: "campaign.enroll", detail: { campaignId: c.id, added: out.added, already: out.already, noPermission: out.noPermission, notYours: out.notYours } });
+  return out;
+}
+
+/** Where "Add people from" reads: a saved list, a tag, an import or a relationship. */
+export type EnrollSource = { type: "list"; id: string } | { type: "tag"; tag: string } | { type: "import"; id: string } | { type: "rel"; rel: string };
+
+/** `list:<id>` · `tag:<tag>` · `imp:<id>` · `rel:<relationship>` (the campaign page's one select). */
+export function parseSource(v: string): EnrollSource | null {
+  const i = v.indexOf(":");
+  if (i < 1) return null;
+  const [k, rest] = [v.slice(0, i), v.slice(i + 1)];
+  if (k === "list" && /^(d-[a-z]+|lst_[A-Za-z0-9_-]{6,40})$/.test(rest)) return { type: "list", id: rest };
+  if (k === "tag" && cleanTag(rest)) return { type: "tag", tag: rest.trim().slice(0, 200) };
+  if (k === "imp" && /^imp_[A-Za-z0-9_-]{6,40}$/.test(rest)) return { type: "import", id: rest };
+  if (k === "rel" && ["past_client", "lead", "sphere", "agent", "other"].includes(rest)) return { type: "rel", rel: rest };
+  return null;
+}
+
+/** The people a source finds in the campaign's own book. */
+async function sourcePeople(owner: User, src: EnrollSource, now: Date): Promise<Contact[] | null> {
+  let rules: ListRule[];
+  if (src.type === "list") {
+    const l = await listById(owner, src.id);
+    if (!l) return null;
+    rules = [l.rule];
+  } else if (src.type === "tag") rules = [{ tagsAny: [src.tag] }, { kind: "agent", tagsAny: [src.tag] }];
+  else if (src.type === "import") rules = [{ importId: src.id }, { kind: "agent", importId: src.id }];
+  else rules = [src.rel === "agent" ? { kind: "agent" } : { relationship: src.rel as ListRule["relationship"] }];
+  const out: Contact[] = [];
+  for (const r of rules) out.push(...(await peopleIn(owner, r, MAX_ENROLL, now, { book: owner.id })));
+  return out;
+}
+
+/** "Add people from: [a saved list | a tag | an import | a relationship]" (D78). */
+export async function enrollFrom(owner: User, campaignId: string, src: EnrollSource, now = new Date()): Promise<EnrollReport | null> {
+  if (!(await mine(owner, campaignId))) return null;
+  const people = await sourcePeople(owner, src, now);
+  if (!people) return null;
+  return enrollReachable(owner, campaignId, people, now);
+}
+
+/** Adds everyone of one kind (past clients, leads, sphere, agents) from their book (D51; D78: through the gate check). */
 export async function enrollGroup(owner: User, campaignId: string, relationship: string, now = new Date()) {
-  const kind = relationship === "agent" ? "agent" : "contact";
-  const { contacts } = await contactStore().list({ ownerUserId: scopeOf(owner) ?? owner.id, kind, relationship: relationship === "agent" ? undefined : relationship, limit: 5000 });
-  return enroll(owner, campaignId, contacts.filter((x) => x.ownerUserId === owner.id).map((x) => x.id), now);
+  return enrollFrom(owner, campaignId, { type: "rel", rel: relationship }, now);
+}
+
+/**
+ * D78: a tag was added to these people (on their page, in bulk or at import).
+ * Each active "when I add this tag" campaign in their book takes the ones the
+ * contact rules allow. Up to `TAG_RUN_NOW` new enrollments run their due steps
+ * at once; the rest go with the next scheduled run.
+ */
+export async function onTagsAdded(changes: { contact: Contact; added: string[] }[], now = new Date(), senders: Senders = realSenders): Promise<number> {
+  if (!campaignsOn()) return 0;
+  const byOwner = new Map<string, { contact: Contact; added: string[] }[]>();
+  for (const x of changes) if (x.added.length) byOwner.set(x.contact.ownerUserId, [...(byOwner.get(x.contact.ownerUserId) ?? []), x]);
+  let n = 0;
+  let ran = 0;
+  for (const [ownerId, list] of byOwner) {
+    const camps = (await campaignStore().activeByTrigger(ownerId, "tag_added")).filter((c) => c.triggerTag);
+    if (!camps.length) continue;
+    const owner = await accountStore().userById(ownerId);
+    if (!owner || owner.status !== "active") continue;
+    for (const c of camps) {
+      const who = list.filter((x) => x.added.some((t) => sameTag(t, c.triggerTag!))).map((x) => x.contact);
+      if (!who.length) continue;
+      const r = await enrollReachable(owner, c.id, who, now);
+      for (const eid of r?.ids ?? []) {
+        n++;
+        if (ran >= TAG_RUN_NOW) continue;
+        ran++;
+        const e = await campaignStore().getEnrollment(eid);
+        if (e) await runEnrollment(e, now, senders).catch(() => null);
+      }
+    }
+  }
+  return n;
 }
 
 export async function stopEnrollment(owner: User, enrollmentId: string, now = new Date()): Promise<boolean> {

@@ -7,6 +7,7 @@ import { recordBulkConsent } from "@/lib/contacts/bulk-consent";
 import { checkLines, recordDncBulk, recordRndBulk } from "@/lib/messaging/service";
 import { importPeople } from "@/lib/contacts/imports";
 import { importCheckCopy as kc } from "@/lib/content/import-check";
+import { checkScope, scopePeople } from "@/lib/contacts/scope";
 
 const IMP = /^imp_[A-Za-z0-9_-]{6,40}$/;
 
@@ -16,6 +17,14 @@ export async function lineCheckImportAction(importId: string): Promise<void> {
   const id = IMP.test(String(importId)) ? String(importId) : "";
   const r = id ? await checkLines(u, await importPeople(u, id)) : null;
   redirect(`/mlo/contacts/permission?${id ? `import=${id}&` : ""}f=${encodeFlash({ ok: !!r && r.checked > 0, lines: [r ? kc.lineDone(r) : kc.noTwilio] })}#lines`);
+}
+
+/** D78: phone type for the people picked on Contacts or a list, up to 100 per tap (bound: `lineCheckScopeAction.bind(null, scope)`). */
+export async function lineCheckScopeAction(scope: string): Promise<void> {
+  const u = (await currentUser()) ?? redirect("/sign-in");
+  const sc = checkScope(new URLSearchParams(String(scope).slice(0, 20_000)));
+  const r = sc ? await checkLines(u, await scopePeople(u, sc)) : null;
+  redirect(`/mlo/contacts/permission?${sc ? `${sc}&` : ""}f=${encodeFlash({ ok: !!r && r.checked > 0, lines: [r ? kc.lineDone(r) : kc.noTwilio] })}#lines`);
 }
 
 export async function bulkConsentAction(fd: FormData): Promise<void> {
@@ -44,5 +53,6 @@ export async function dncBulkAction(fd: FormData): Promise<void> {
   const u = (await currentUser()) ?? redirect("/sign-in");
   const r = await recordDncBulk(u, String(fd.get("rows") ?? ""), String(fd.get("source") ?? ""));
   const imp = String(fd.get("import") ?? "");
-  redirect(`/mlo/contacts/permission?${IMP.test(imp) ? `import=${imp}&` : ""}f=${encodeFlash({ ok: r.updated > 0, lines: [`Do-not-call results recorded for ${r.updated} ${r.updated === 1 ? "contact" : "contacts"}${r.skipped ? `; ${r.skipped} line${r.skipped === 1 ? "" : "s"} skipped (not yours, or not phone and yes/no)` : ""}.`] })}#dnc`);
+  const sc = checkScope(new URLSearchParams(String(fd.get("scope") ?? "").slice(0, 20_000)));
+  redirect(`/mlo/contacts/permission?${IMP.test(imp) ? `import=${imp}&` : sc ? `${sc}&` : ""}f=${encodeFlash({ ok: r.updated > 0, lines: [`Do-not-call results recorded for ${r.updated} ${r.updated === 1 ? "contact" : "contacts"}${r.skipped ? `; ${r.skipped} line${r.skipped === 1 ? "" : "s"} skipped (not yours, or not phone and yes/no)` : ""}.`] })}#dnc`);
 }

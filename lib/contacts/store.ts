@@ -11,6 +11,8 @@
 import { neon } from "@neondatabase/serverless";
 import { databaseUrl } from "@/lib/m8/server";
 import type { ImportRecord } from "./mapping";
+import { touchStore } from "@/lib/messaging/store";
+import { matches as ruleMatches, needsConsents, needsTouches, NOT_CONTACT_STATUSES, ruleSql, type ListRule, type RuleFacts } from "./filter";
 
 export const CHANNELS = ["call", "ai_call", "text", "email"] as const;
 export type Channel = (typeof CHANNELS)[number];
@@ -96,8 +98,11 @@ export type ConsentEntry = {
   mergedFrom?: string | null;
 };
 
-/** D73: `tag` is an exact match on one tag (the spelling as stored), unlike `q`, which searches inside words. */
-export type ContactFilter = { ownerUserId?: string; kind?: "contact" | "agent"; q?: string; relationship?: string; state?: string; tag?: string; importId?: string; limit?: number; offset?: number };
+/**
+ * D73: `tag` is an exact match on one tag (the spelling as stored), unlike `q`, which searches inside words.
+ * D78: `rule` is a saved list's or the page's filters (lib/contacts/filter.ts), read at `now`.
+ */
+export type ContactFilter = { ownerUserId?: string; kind?: "contact" | "agent"; q?: string; relationship?: string; state?: string; tag?: string; importId?: string; rule?: ListRule; now?: Date; limit?: number; offset?: number };
 export type TagCount = { tag: string; count: number };
 
 export interface ContactStore {
@@ -186,8 +191,27 @@ export class MemoryContactStore implements ContactStore {
     const c = this.rows.get(id);
     return c ? structuredClone(c) : null;
   }
+  /** D78: what a rule needs beyond the record: its consent log, and its messages in and out. */
+  private async facts(c: Contact, rule: ListRule): Promise<RuleFacts> {
+    const out: RuleFacts = {};
+    if (needsConsents(rule)) out.consents = this.log.filter((e) => e.contactId === c.id);
+    if (needsTouches(rule)) {
+      const ts = await touchStore().forContact(c.id, 100_000);
+      out.lastOut = ts.filter((t) => t.direction === "out" && !(NOT_CONTACT_STATUSES as readonly string[]).includes(t.status)).map((t) => t.at).sort().pop() ?? null;
+      out.anyIn = ts.some((t) => t.direction === "in");
+    }
+    return out;
+  }
   async list(f: ContactFilter) {
-    const all = [...this.rows.values()].filter((c) => matches(c, f)).sort(byName);
+    let all = [...this.rows.values()].filter((c) => matches(c, f));
+    if (f.rule) {
+      const rule = f.rule;
+      const now = f.now ?? new Date();
+      const keep: Contact[] = [];
+      for (const c of all) if (ruleMatches(c, rule, await this.facts(c, rule), now)) keep.push(c);
+      all = keep;
+    }
+    all.sort(byName);
     const off = f.offset ?? 0;
     return { contacts: all.slice(off, off + (f.limit ?? 50)).map((c) => structuredClone(c)), total: all.length };
   }
@@ -237,6 +261,11 @@ export class NeonContactStore implements ContactStore {
         await this.q(`ALTER TABLE cc_consents ADD COLUMN IF NOT EXISTS import_id text`);
         // D77: a copy from a record merged into this one (history only).
         await this.q(`ALTER TABLE cc_consents ADD COLUMN IF NOT EXISTS merged_from text`);
+        // D78: tag filters and counts (`?`, `?|`) use an index instead of reading every tag; lists read
+        // last-contacted and replies from the messages table (made here too, so a list never waits on it).
+        await this.q(`CREATE INDEX IF NOT EXISTS cc_contacts_tags ON cc_contacts USING gin ((body->'tags'))`);
+        await this.q(`CREATE TABLE IF NOT EXISTS cc_touches (id text PRIMARY KEY, contact_id text NOT NULL, owner_user_id text NOT NULL, channel text NOT NULL, purpose text NOT NULL, direction text NOT NULL, body text NOT NULL, status text NOT NULL, provider_id text, note text, at timestamptz NOT NULL, actor text NOT NULL)`);
+        await this.q(`CREATE INDEX IF NOT EXISTS cc_touches_contact ON cc_touches (contact_id, at)`);
       })().catch((e) => {
         this.ready = null;
         throw e;
@@ -318,6 +347,8 @@ export class NeonContactStore implements ContactStore {
       p.push(JSON.stringify([{ id: f.importId }]));
       where.push(`(body->>'importId' = $${p.length - 1} OR body->'imports' @> $${p.length}::jsonb)`);
     }
+    // D78: a saved list's or the page's filters, every value bound.
+    if (f.rule) where.push(...ruleSql(f.rule, f.now ?? new Date(), p));
     const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
     const total = Number((await this.q(`SELECT count(*)::int AS n FROM cc_contacts ${w}`, p))[0]?.n ?? 0);
     const rows = await this.q(`SELECT body FROM cc_contacts ${w} ORDER BY sort_name LIMIT ${Math.min(f.limit ?? 50, 500)} OFFSET ${Math.max(0, f.offset ?? 0)}`, p);

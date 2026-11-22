@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { cleanTag, tagHref } from "@/lib/contacts/tags";
 import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
 import { contactPageCopy as cp } from "@/lib/content/contact-page";
+import { contactListsCopy as lc } from "@/lib/content/contact-lists";
+import { ruleQuery, type ListRule } from "@/lib/contacts/filter";
 import { Icon } from "@/app/mlo/icons";
 import { bulkContactsAction, dialAction } from "./actions";
 
@@ -22,16 +24,28 @@ export type ContactRow = {
   canCall: boolean;
   hasPhone: boolean;
 };
-type Filter = { kind: "contact" | "agent"; q?: string; rel?: string; tag?: string; imp?: string };
+type Action = "tag" | "campaign" | "check" | "assign" | "download" | "delete";
+
+function downloadCsv(text: string, name: string) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
 
 /**
  * D73/D77: the Contacts list as rows: a pick box, initials, the name, a muted
  * "phone · state · relationship" line, tag chips, a plain badge ("Can text",
  * "Call only", "Do not contact") and 44px Call and Text buttons. "Select all
- * N matching" and the sticky bulk bar (Add tag / Remove tag) are D73's; the
- * server checks every person is in the viewer's book (`bulkContactsAction`).
+ * N matching" and the sticky bulk bar (Add tag / Remove tag) are D73's; D78
+ * adds Add to a campaign, Check do-not-call and phone type, Assign (owners
+ * and team leads), Download (CSV) and Delete (type DELETE; not assistants).
+ * The server checks every person is in the viewer's book (`bulkContactsAction`);
+ * "all matching" sends the list's rule, which the server runs again.
  */
-export default function ContactsTable({ rows, total, filter, knownTags, selectAll }: { rows: ContactRow[]; total: number; filter: Filter; knownTags: string[]; selectAll: boolean }) {
+export default function ContactsTable({ rows, total, rule, knownTags, selectAll, campaigns, team, canDelete }: { rows: ContactRow[]; total: number; rule: ListRule; knownTags: string[]; selectAll: boolean; campaigns: { id: string; name: string; status: string }[]; team: { id: string; name: string }[]; canDelete: boolean }) {
+  const kind = rule.kind ?? "contact";
   const id = useId();
   const router = useRouter();
   const pageIds = useMemo(() => rows.map((r) => r.id), [rows]);
@@ -41,6 +55,10 @@ export default function ContactsTable({ rows, total, filter, knownTags, selectAl
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const [calling, setCalling] = useState<string | null>(null);
+  const [action, setAction] = useState<Action>("tag");
+  const [campaignId, setCampaignId] = useState(campaigns[0]?.id ?? "");
+  const [member, setMember] = useState(team[0]?.id ?? "");
+  const [confirm, setConfirm] = useState("");
 
   const count = matching ? total : picked.size;
   const pageAll = rows.length > 0 && pageIds.every((x) => picked.has(x));
@@ -61,20 +79,29 @@ export default function ContactsTable({ rows, total, filter, knownTags, selectAl
     setMatching(false);
     setPicked(new Set());
   };
-  const run = (op: "addTag" | "removeTag") => {
-    const t = cleanTag(tag);
-    if (!t) return setMsg({ ok: false, text: tc.typeTag });
+  const target = () => (matching ? { rule } : { ids: [...picked] });
+  const send = (op: Record<string, string>, after?: (csv?: string) => void) =>
     start(async () => {
-      const target = matching ? { filter } : { ids: [...picked] };
-      const r = await bulkContactsAction(target, { op, tag: t }).catch(() => ({ ok: false as const, error: tc.failed }));
+      const r = await bulkContactsAction(target(), op).catch(() => ({ ok: false as const, error: tc.failed }));
       if (r.ok) {
+        if (r.csv) {
+          downloadCsv(r.csv, `loanm8-contacts-${new Date().toISOString().slice(0, 10)}.csv`);
+          setMsg({ ok: true, text: `${lc.download}: ${r.message}` });
+          return;
+        }
         setMsg({ ok: true, text: r.message });
-        setTag("");
+        after?.();
         clear();
         router.refresh();
       } else setMsg({ ok: false, text: r.error });
     });
+  const run = (op: "addTag" | "removeTag") => {
+    const t = cleanTag(tag);
+    if (!t) return setMsg({ ok: false, text: tc.typeTag });
+    send({ op, tag: t }, () => setTag(""));
   };
+  // "Check do-not-call and phone type" opens Record permission for just these people.
+  const checkHref = matching ? `/mlo/contacts/permission?scope=list&${ruleQuery(rule)}#lines` : `/mlo/contacts/permission?ids=${[...picked].join(",")}#lines`;
   // Call: the contact rules are checked and the call logged first, then the phone app opens.
   const call = async (r: ContactRow) => {
     if (calling) return;
@@ -102,7 +129,7 @@ export default function ContactsTable({ rows, total, filter, knownTags, selectAl
               {r.line ? <p className="cc-person__line">{r.line}</p> : null}
               <div className="cc-person__meta">
                 <span className={`cc-reach cc-reach--${r.tone}`}>{r.badge}</span>
-                {r.tags.length ? <Chips tags={r.tags} kind={filter.kind} /> : null}
+                {r.tags.length ? <Chips tags={r.tags} kind={kind} /> : null}
               </div>
             </div>
             <div className="cc-person__acts">
@@ -127,11 +154,63 @@ export default function ContactsTable({ rows, total, filter, knownTags, selectAl
             {!matching && pageAll && total > rows.length ? <button type="button" className="cc-linkbtn" onClick={() => setMatching(true)}>{tc.selectAll(total)}</button> : null}
           </p>
           <div className="cc-bulkbar__row">
-            <input className="mlo-input" list={knownTags.length ? `${id}-tags` : undefined} value={tag} onChange={(e) => setTag(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); run("addTag"); } }} placeholder={tc.addTag} aria-label={tc.bulkTag} maxLength={80} disabled={pending} />
-            <button type="button" className="mlo-btn" disabled={pending || !cleanTag(tag)} onClick={() => run("addTag")}>{pending ? tc.bulkWorking : tc.bulkAdd}</button>
-            <button type="button" className="mlo-btn mlo-btn--ghost" disabled={pending || !cleanTag(tag)} onClick={() => run("removeTag")}>{tc.bulkRemove}</button>
+            <select className="mlo-select" value={action} onChange={(e) => { setAction(e.target.value as Action); setMsg(null); }} aria-label={lc.action} disabled={pending}>
+              <option value="tag">{lc.actions.tag}</option>
+              <option value="campaign">{lc.actions.campaign}</option>
+              <option value="check">{lc.actions.check}</option>
+              {team.length ? <option value="assign">{lc.actions.assign}</option> : null}
+              <option value="download">{lc.actions.download}</option>
+              {canDelete ? <option value="delete">{lc.actions.delete}</option> : null}
+            </select>
             <button type="button" className="mlo-btn mlo-btn--ghost" disabled={pending} onClick={clear}>{tc.bulkClear}</button>
           </div>
+          {action === "tag" ? (
+            <div className="cc-bulkbar__row">
+              <input className="mlo-input" list={knownTags.length ? `${id}-tags` : undefined} value={tag} onChange={(e) => setTag(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); run("addTag"); } }} placeholder={tc.addTag} aria-label={tc.bulkTag} maxLength={80} disabled={pending} />
+              <button type="button" className="mlo-btn" disabled={pending || !cleanTag(tag)} onClick={() => run("addTag")}>{pending ? tc.bulkWorking : tc.bulkAdd}</button>
+              <button type="button" className="mlo-btn mlo-btn--ghost" disabled={pending || !cleanTag(tag)} onClick={() => run("removeTag")}>{tc.bulkRemove}</button>
+            </div>
+          ) : action === "campaign" ? (
+            campaigns.length ? (
+              <>
+                <div className="cc-bulkbar__row">
+                  <select className="mlo-select cc-bulkbar__grow" value={campaignId} onChange={(e) => setCampaignId(e.target.value)} aria-label={lc.pickCampaign} disabled={pending}>
+                    {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <button type="button" className="mlo-btn" disabled={pending || !campaignId} onClick={() => send({ op: "campaign", campaignId })}>{pending ? tc.bulkWorking : lc.addToCampaign}</button>
+                </div>
+                <p className="mlo-note cc-bulkbar__note">{lc.campaignNote}</p>
+              </>
+            ) : <p className="mlo-note cc-bulkbar__note">{lc.noCampaigns} <Link href="/mlo/campaigns?new=1">{lc.newCampaign}</Link></p>
+          ) : action === "check" ? (
+            <>
+              <div className="cc-bulkbar__row"><Link className="mlo-btn" href={checkHref}>{lc.checkGo}</Link></div>
+              <p className="mlo-note cc-bulkbar__note">{lc.checkNote}</p>
+            </>
+          ) : action === "assign" ? (
+            <>
+              <div className="cc-bulkbar__row">
+                <select className="mlo-select cc-bulkbar__grow" value={member} onChange={(e) => setMember(e.target.value)} aria-label={lc.pickMember} disabled={pending}>
+                  {team.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+                <button type="button" className="mlo-btn" disabled={pending || !member} onClick={() => send({ op: "assign", userId: member })}>{pending ? tc.bulkWorking : lc.assign}</button>
+              </div>
+              <p className="mlo-note cc-bulkbar__note">{lc.assignNote}</p>
+            </>
+          ) : action === "download" ? (
+            <>
+              <div className="cc-bulkbar__row"><button type="button" className="mlo-btn" disabled={pending} onClick={() => send({ op: "download" })}>{pending ? tc.bulkWorking : lc.download}</button></div>
+              <p className="mlo-note cc-bulkbar__note">{lc.downloadNote}</p>
+            </>
+          ) : (
+            <>
+              <div className="cc-bulkbar__row">
+                <input className="mlo-input" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={lc.deleteWord} aria-label={lc.deleteConfirm} maxLength={20} autoComplete="off" disabled={pending} />
+                <button type="button" className="mlo-btn mlo-btn--ghost" disabled={pending || confirm.trim() !== lc.deleteWord} onClick={() => send({ op: "delete", confirm: confirm.trim() }, () => setConfirm(""))}>{pending ? tc.bulkWorking : lc.deleteButton(count)}</button>
+              </div>
+              <p className="mlo-note cc-bulkbar__note">{lc.deleteNoteBulk}</p>
+            </>
+          )}
           {knownTags.length ? <datalist id={`${id}-tags`}>{knownTags.slice(0, 200).map((t) => <option key={t} value={t} />)}</datalist> : null}
         </div>
       ) : null}

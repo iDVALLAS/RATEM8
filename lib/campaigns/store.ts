@@ -11,7 +11,8 @@ export type StepChannel = (typeof CHANNELS)[number];
 export type Step = { id: string; channel: StepChannel; waitDays: number; subject: string; body: string };
 
 export type CampaignKind = "followup" | "nurture";
-export type CampaignTrigger = "manual" | "new_lead";
+/** D78: "tag_added" puts someone in when `triggerTag` is added to them. */
+export type CampaignTrigger = "manual" | "new_lead" | "tag_added";
 export type CampaignStatus = "draft" | "active" | "paused";
 
 export type Campaign = {
@@ -23,6 +24,8 @@ export type Campaign = {
   /** What it's about, for permission: their loan in process (service) or staying in touch (marketing). */
   purpose: "service" | "marketing";
   trigger: CampaignTrigger;
+  /** D78: the tag for a "tag_added" campaign. */
+  triggerTag?: string | null;
   /** 0 = Sunday … 6 = Saturday, in the person's own time zone. */
   days: number[];
   /** Local hours it may send in: [start, end). The contact rules may narrow it further. */

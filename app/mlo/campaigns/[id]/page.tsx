@@ -13,7 +13,10 @@ import { textSender } from "@/lib/texting/service";
 import { emailReadyFor } from "@/lib/messaging/email";
 import { FlashBox } from "../../MloChrome";
 import Editor from "../Editor";
-import { campaignStatusAction, deleteCampaignAction, enrollGroupAction, saveCampaignAction, stopEnrollmentAction } from "../actions";
+import { campaignStatusAction, deleteCampaignAction, enrollFromAction, saveCampaignAction, stopEnrollmentAction } from "../actions";
+import { listsFor } from "@/lib/contacts/lists";
+import { listImports } from "@/lib/contacts/imports";
+import { contactListsCopy as lc } from "@/lib/content/contact-lists";
 import "../../mlo.css";
 import "../campaigns.css";
 
@@ -34,6 +37,11 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const problem = checkCampaign(c);
   const textReady = !!twilioConfig() && !!(await textSender(companyOfMlo(me.mloId), singleCompany()));
   const active = people.filter((e) => e.status === "active").length;
+  // D78: "Add people from" a saved list, a tag, an import or a relationship (one select).
+  const lists = await listsFor(me);
+  const tags = await contactStore().tagCounts(me.id);
+  const imports = (await listImports(me, 20)).filter((r) => r.owner === me.id && !r.undone);
+  const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
   return (
     <PageShell>
       <div className="mlo-wrap">
@@ -52,22 +60,36 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         <FlashBox flash={decodeFlash(f)} />
         {problem && c.status !== "active" ? <p className="mlo-flash mlo-flash--err">Before it can run: {problem}</p> : null}
 
-        <Editor campaign={c} action={saveCampaignAction.bind(null, c.id)} textReady={textReady} emailReady={(await emailReadyFor(me)).ready} />
+        <Editor campaign={c} action={saveCampaignAction.bind(null, c.id)} textReady={textReady} emailReady={(await emailReadyFor(me)).ready} tags={tags.slice(0, 200).map((t) => t.tag)} />
 
         <section className="mlo-section" id="people">
           <h2>People in it</h2>
           {c.trigger === "new_lead" ? <p className="mlo-note">New leads go in automatically the moment they arrive, and steps due right away go out then. You can also add people below.</p> : null}
-          <form action={enrollGroupAction.bind(null, c.id)} className="mlo-row-form" style={{ marginTop: 8 }}>
-            <select name="group" className="mlo-select" aria-label="Who to add" defaultValue="past_client">
-              <option value="past_client">All past clients</option>
-              <option value="lead">All leads</option>
-              <option value="sphere">Everyone in my sphere</option>
-              <option value="agent">All agents</option>
-              <option value="other">Everyone else</option>
-            </select>
-            <button type="submit" className="mlo-btn mlo-btn--ghost">Add them</button>
+          {c.trigger === "tag_added" && c.triggerTag ? <p className="mlo-note">{lc.triggerTagNote} ({lc.triggerTagLabel}: “{c.triggerTag}”.)</p> : null}
+          <form action={enrollFromAction.bind(null, c.id)} className="mlo-row-form cp-addfrom">
+            <label className="mlo-field"><span>{lc.addFrom}</span>
+              <select name="from" className="mlo-select" defaultValue="rel:past_client" required>
+                <optgroup label={lc.addFromLists}>
+                  {lists.map((l) => <option key={l.id} value={`list:${l.id}`}>{l.name}</option>)}
+                </optgroup>
+                {tags.length ? (
+                  <optgroup label={lc.addFromTags}>
+                    {tags.slice(0, 100).map((t) => <option key={t.tag} value={`tag:${t.tag}`}>{`${t.tag} (${t.count.toLocaleString("en-US")})`}</option>)}
+                  </optgroup>
+                ) : null}
+                {imports.length ? (
+                  <optgroup label={lc.addFromImports}>
+                    {imports.map((r) => <option key={r.id} value={`imp:${r.id}`}>{lc.addedImport(day(r.at), r.files.slice(0, 2).join(", "))}</option>)}
+                  </optgroup>
+                ) : null}
+                <optgroup label={lc.addFromGroups}>
+                  {Object.entries(lc.groupLabels).map(([k, l]) => <option key={k} value={`rel:${k}`}>{l}</option>)}
+                </optgroup>
+              </select>
+            </label>
+            <button type="submit" className="mlo-btn mlo-btn--ghost">{lc.addThem}</button>
           </form>
-          <p className="mlo-note">People already in this campaign aren&apos;t added twice. Anyone without permission for a step&apos;s channel is skipped for that step, and the reason is shown here.</p>
+          <p className="mlo-note">People already in this campaign aren&apos;t added twice. Only people your contact rules allow for this campaign&apos;s messages go in, and every step is checked again when it goes out; a step someone can&apos;t get is skipped, with the reason shown here.</p>
           {people.length === 0 ? <p className="mlo-note" style={{ marginTop: 10 }}>Nobody yet.</p> : (
             <div style={{ overflowX: "auto", marginTop: 10 }}>
               <table className="mlo-table">

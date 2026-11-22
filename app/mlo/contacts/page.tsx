@@ -21,6 +21,14 @@ import { tagBook } from "@/lib/contacts/tagging";
 import { tagHref } from "@/lib/contacts/tags";
 import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
 import { UNLOCK_ATTESTATION } from "@/lib/contacts/attestation";
+import { ADDED_DAYS, CONTACTED, describeRule, isEmptyRule, PERMISSIONS, ruleFromParams, ruleToParams } from "@/lib/contacts/filter";
+import { currentList, listsFor } from "@/lib/contacts/lists";
+import { listImports } from "@/lib/contacts/imports";
+import { assignees } from "@/lib/contacts/bulk";
+import { campaignStore } from "@/lib/campaigns/store";
+import { US_STATES } from "@/lib/us-states";
+import { contactListsCopy as lc } from "@/lib/content/contact-lists";
+import { deleteListAction, renameListAction, saveListAction } from "./actions";
 import "../mlo.css";
 import PageHead from "@/app/mlo/PageHead";
 
@@ -30,18 +38,21 @@ export const metadata: Metadata = { title: "Contacts", robots: { index: false, f
 const PAGE = 50;
 
 /** /mlo/contacts — the loan officer's people (D2). Loan officers see their own; leads and the owner see the team's. */
-export default async function Contacts({ searchParams }: { searchParams: Promise<{ q?: string; rel?: string; kind?: string; p?: string; f?: string; tag?: string; select?: string; import?: string }> }) {
+export default async function Contacts({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   const v = await requireViewer();
   const tenant = listTenants()[0];
-  const kind = sp.kind === "agent" ? "agent" : "contact";
+  // D78: the page's filters are one rule (lib/contacts/filter.ts): kind, search, relationship, tag, state,
+  // permission, added (days or one import), last contacted and never replied. A saved list is the same rule.
+  const rule = ruleFromParams(sp);
+  const kind = rule.kind ?? "contact";
   const page = Math.max(0, Number(sp.p) || 0);
   const me = v.user;
   const store = contactStore();
-  const tag = sp.tag?.trim().slice(0, 200) || undefined;
-  // D75: "See these people" after an import (created or changed by it).
-  const imp = /^imp_[A-Za-z0-9_-]{6,40}$/.test(sp.import ?? "") ? sp.import : undefined;
-  const { contacts, total } = me ? await store.list({ ownerUserId: scopeOf(me), kind, q: sp.q?.trim() || undefined, relationship: sp.rel || undefined, tag, importId: imp, limit: PAGE, offset: page * PAGE }) : { contacts: [], total: 0 };
+  const tag = rule.tagsAny?.[0];
+  const imp = rule.importId;
+  const now = new Date();
+  const { contacts, total } = me ? await store.list({ ownerUserId: scopeOf(me), rule, now, limit: PAGE, offset: page * PAGE }) : { contacts: [], total: 0 };
   // D73: tags in the list's scope (the chip row) and in the viewer's own book (the Tags panel).
   const book = me ? tagBook(me) : null;
   const listTags = me ? await store.tagCounts(scopeOf(me), kind) : [];
@@ -51,10 +62,26 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
   const consents = await store.consentsFor(contacts.map((c) => c.id));
   // D75: counted in the database (before, only the first 500 people were looked at).
   const held = me ? await store.countLocked(me.id) : 0;
+  // D78: saved lists (the four built in, then the viewer's own), and what the bulk bar offers.
+  const lists = me ? await listsFor(me) : [];
+  const current = currentList(lists, rule);
+  const filtered = !isEmptyRule(rule);
+  const recentImports = me ? (await listImports(me, 10)).filter((r) => r.kind === (kind === "agent" ? "agents" : "contacts")) : [];
+  const campaigns = me ? (await campaignStore().campaigns(me.id)).map((c) => ({ id: c.id, name: c.name, status: c.status })) : [];
+  const team = me ? (await assignees(me)).map((u) => ({ id: u.id, name: u.name || u.email })) : [];
+  const params = ruleToParams(rule);
   const qs = (extra: Record<string, string>, drop: string[] = []) => {
-    const u = new URLSearchParams({ ...(sp.q ? { q: sp.q } : {}), ...(sp.rel ? { rel: sp.rel } : {}), ...(tag ? { tag } : {}), ...(imp ? { import: imp } : {}), kind, ...extra });
+    const u = new URLSearchParams({ ...params, ...extra });
     for (const k of drop) u.delete(k);
-    return `/mlo/contacts?${u}`;
+    const s = u.toString();
+    return s ? `/mlo/contacts?${s}` : "/mlo/contacts";
+  };
+  const ruleQs = new URLSearchParams(params).toString();
+  const chips = describeRule(rule, { relationship: RELATIONSHIP_LABELS, permission: lc.permissionLabels, chip: lc.chip });
+  const dateOf = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
+  const listHref = (r: typeof rule) => {
+    const s = new URLSearchParams(ruleToParams(r)).toString();
+    return s ? `/mlo/contacts?${s}` : "/mlo/contacts";
   };
 
   // D77: one row per person: initials, name, "phone · state · relationship", tags, a plain badge, Call and Text.
@@ -105,20 +132,106 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
                 <button type="submit" className="mlo-btn">Release them from hold</button>
               </form>
             ) : null}
+            {lists.length ? (
+              <nav className="cc-tagrow cc-listrow" aria-label={lc.lists}>
+                <span className="cc-tagrow__label">{lc.lists}</span>
+                <Link href="/mlo/contacts" className="cc-tag" aria-current={!filtered && kind === "contact" ? "page" : undefined}>{lc.everyone}</Link>
+                {lists.map((l) => (
+                  <Link key={l.id} href={listHref(l.rule)} className="cc-tag" aria-current={current?.id === l.id ? "page" : undefined}>{l.name}</Link>
+                ))}
+              </nav>
+            ) : null}
             <form className="mlo-row-form" action="/mlo/contacts" method="get">
-              <input type="hidden" name="kind" value={kind} />
-              {tag ? <input type="hidden" name="tag" value={tag} /> : null}
-              {imp ? <input type="hidden" name="import" value={imp} /> : null}
-              <input name="q" defaultValue={sp.q ?? ""} placeholder="Search name, phone, email, city, tag" className="mlo-input" aria-label="Search" style={{ flex: "1 1 240px" }} />
-              {kind === "contact" ? (
-                <select name="rel" defaultValue={sp.rel ?? ""} className="mlo-select" aria-label="Relationship">
-                  <option value="">Everyone</option>
-                  {Object.entries(RELATIONSHIP_LABELS).filter(([k]) => k !== "agent").map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-                </select>
-              ) : null}
+              {Object.entries(params).filter(([k]) => k !== "q").map(([k, val]) => <input key={k} type="hidden" name={k} value={val} />)}
+              <input name="q" defaultValue={rule.q ?? ""} placeholder="Search name, phone, email, city, tag" className="mlo-input" aria-label="Search" style={{ flex: "1 1 240px" }} />
               <button type="submit" className="mlo-btn mlo-btn--ghost">Search</button>
               <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`} className="mlo-btn">Import contacts</Link>
             </form>
+            <details className="mlo-details cc-filters" id="filters">
+              <summary>{lc.filtersOn(chips.filter((c) => c.key !== "q").length)}</summary>
+              <form action="/mlo/contacts" method="get" className="cc-filters__form">
+                {kind === "agent" ? <input type="hidden" name="kind" value="agent" /> : null}
+                {rule.q ? <input type="hidden" name="q" value={rule.q} /> : null}
+                {kind === "contact" ? (
+                  <label className="mlo-field"><span>{lc.relationship}</span>
+                    <select name="rel" defaultValue={rule.relationship ?? ""} className="mlo-select">
+                      <option value="">{lc.any}</option>
+                      {Object.entries(RELATIONSHIP_LABELS).filter(([k]) => k !== "agent").map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                    </select>
+                  </label>
+                ) : null}
+                <label className="mlo-field"><span>{lc.tag}</span>
+                  <select name="tag" defaultValue={tag ?? ""} className="mlo-select">
+                    <option value="">{lc.any}</option>
+                    {[...new Set([...(tag ? [tag] : []), ...listTags.slice(0, 200).map((t) => t.tag)])].map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </label>
+                <label className="mlo-field"><span>{lc.state}</span>
+                  <select name="state" defaultValue={rule.state ?? ""} className="mlo-select">
+                    <option value="">{lc.any}</option>
+                    {US_STATES.map((st) => <option key={st.code} value={st.code}>{st.name}</option>)}
+                  </select>
+                </label>
+                <label className="mlo-field"><span>{lc.permission}</span>
+                  <select name="perm" defaultValue={rule.permission ?? ""} className="mlo-select" aria-describedby="cc-perm-note">
+                    <option value="">{lc.any}</option>
+                    {PERMISSIONS.map((p) => <option key={p} value={p}>{lc.permissionLabels[p]}</option>)}
+                  </select>
+                </label>
+                <label className="mlo-field"><span>{lc.added}</span>
+                  <select name="added" defaultValue={rule.importId ?? (rule.addedWithinDays ? String(rule.addedWithinDays) : "")} className="mlo-select">
+                    <option value="">{lc.any}</option>
+                    {ADDED_DAYS.map((d) => <option key={d} value={String(d)}>{lc.addedLabels[d]}</option>)}
+                    {recentImports.map((r) => <option key={r.id} value={r.id}>{lc.addedImport(dateOf(r.at), r.files.slice(0, 2).join(", "))}</option>)}
+                    {rule.importId && !recentImports.some((r) => r.id === rule.importId) ? <option value={rule.importId}>{lc.chip.importOne}</option> : null}
+                  </select>
+                </label>
+                <label className="mlo-field"><span>{lc.contacted}</span>
+                  <select name="contacted" defaultValue={params.contacted ?? ""} className="mlo-select">
+                    <option value="">{lc.any}</option>
+                    {CONTACTED.map((c) => <option key={c} value={c}>{lc.contactedLabels[c]}</option>)}
+                  </select>
+                </label>
+                <label className="mlo-check cc-filters__check">
+                  <input type="checkbox" name="noreply" value="1" defaultChecked={!!rule.neverReplied} />
+                  <span>{lc.noReplyBox}</span>
+                </label>
+                <p className="mlo-note cc-filters__note" id="cc-perm-note">{lc.permissionNote}</p>
+                <div className="mlo-actions cc-filters__go">
+                  <button type="submit" className="mlo-btn">{lc.apply}</button>
+                  <Link href={kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="mlo-btn mlo-btn--ghost">{lc.clearAll}</Link>
+                </div>
+              </form>
+            </details>
+            {chips.length ? (
+              <ul className="cc-rulechips" aria-label={lc.filters}>
+                {chips.map((c) => (
+                  <li key={`${c.key}|${c.label}`}>
+                    <Link href={qs({}, [c.key])} className="cc-tag" aria-label={lc.remove(c.label)}>{c.label} <span aria-hidden="true">×</span></Link>
+                  </li>
+                ))}
+                <li><Link href={kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="cc-linkbtn">{lc.clearAll}</Link></li>
+              </ul>
+            ) : null}
+            {filtered && !current ? (
+              <form action={saveListAction.bind(null, ruleQs)} className="mlo-row-form cc-savelist">
+                <label className="mlo-field"><span>{lc.saveTitle}</span><input name="name" maxLength={60} required placeholder={lc.savePlaceholder} autoComplete="off" /></label>
+                <button type="submit" className="mlo-btn mlo-btn--ghost">{lc.save}</button>
+              </form>
+            ) : null}
+            {current && !current.builtIn ? (
+              <details className="mlo-details cc-savelist">
+                <summary>{lc.manage}</summary>
+                <form action={renameListAction.bind(null, current.id, ruleQs)} className="mlo-row-form">
+                  <label className="mlo-field"><span>{lc.renameTo}</span><input name="name" defaultValue={current.name} maxLength={60} required autoComplete="off" /></label>
+                  <button type="submit" className="mlo-btn mlo-btn--ghost">{lc.rename}</button>
+                </form>
+                <form action={deleteListAction.bind(null, current.id, kind)} className="mlo-row-form">
+                  <p className="mlo-note">{lc.deleteNote}</p>
+                  <button type="submit" className="mlo-btn mlo-btn--ghost">{lc.deleteList}</button>
+                </form>
+              </details>
+            ) : null}
             <AddPerson
               agent={kind === "agent"}
               relationships={relationshipsFor(kind).map((r) => ({ value: r, label: RELATIONSHIP_LABELS[r] }))}
@@ -137,7 +250,7 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
               </nav>
             ) : null}
             <section className="mlo-section">
-              {total === 0 && (tag || imp || sp.q || sp.rel) ? (
+              {total === 0 && filtered ? (
                 <p className="mlo-note">Nobody matches. <Link href={kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"}>See everyone</Link>.</p>
               ) : total === 0 ? (
                 <p className="mlo-note">
@@ -145,8 +258,25 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
                 </p>
               ) : (
                 <>
-                  <p className="mlo-note">{imp ? tc.fromImport(total) : tag ? tc.tagged(tag, total) : `${total.toLocaleString("en-US")} ${total === 1 ? "person" : "people"}`}{imp ? <> · <Link href="/mlo/contacts/import/history">{tc.importHistory}</Link> · <Link href={qs({}, ["import"])}>{tc.clear}</Link></> : tag ? <> · <Link href={qs({}, ["tag"])}>{tc.clear}</Link></> : null}</p>
-                  <ContactsTable key={`${kind}|${sp.q ?? ""}|${sp.rel ?? ""}|${tag ?? ""}|${imp ?? ""}|${page}`} rows={rows} total={total} filter={{ kind, ...(sp.q?.trim() ? { q: sp.q.trim() } : {}), ...(sp.rel ? { rel: sp.rel } : {}), ...(tag ? { tag } : {}), ...(imp ? { imp } : {}) }} knownTags={listTags.map((t) => t.tag)} selectAll={sp.select === "all"} />
+                  <p className="mlo-note cc-resultline">
+                    {current ? <strong>{current.name}: </strong> : null}
+                    {imp && chips.length === 1 ? tc.fromImport(total) : tag && chips.length === 1 ? tc.tagged(tag, total) : lc.count(total)}
+                    {imp ? <> · <Link href="/mlo/contacts/import/history">{tc.importHistory}</Link></> : null}
+                    {filtered ? <> · <Link href={current ? `/mlo/calls?list=${encodeURIComponent(current.id)}` : `/mlo/calls?from=filter&${ruleQs}`}>{lc.callList}</Link></> : null}
+                    {total > 0 && sp.select !== "all" ? <> · <Link href={qs({ select: "all" })}>{lc.selectList}</Link></> : null}
+                    {filtered ? <> · <Link href={kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"}>{tc.clear}</Link></> : null}
+                  </p>
+                  <ContactsTable
+                    key={`${ruleQs}|${page}|${sp.select ?? ""}`}
+                    rows={rows}
+                    total={total}
+                    rule={rule}
+                    knownTags={listTags.map((t) => t.tag)}
+                    selectAll={sp.select === "all"}
+                    campaigns={campaigns}
+                    team={team}
+                    canDelete={me.role !== "assistant"}
+                  />
                   {page > 0 || (page + 1) * PAGE < total ? (
                     <nav className="mlo-row-form mlo-actions" aria-label="Pages">
                       {page > 0 ? <Link href={qs({ p: String(page - 1) })} className="mlo-btn mlo-btn--ghost">Previous</Link> : null}

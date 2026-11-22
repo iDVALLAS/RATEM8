@@ -3,8 +3,9 @@
 import { useRef, useState } from "react";
 import type { Campaign, Step, StepChannel } from "@/lib/campaigns/store";
 import { CAMPAIGN_FIELDS, FIELD_LABELS } from "@/lib/campaigns/library";
+import { contactListsCopy as lc } from "@/lib/content/contact-lists";
 
-type Draft = Pick<Campaign, "name" | "kind" | "purpose" | "trigger" | "days" | "hours"> & { steps: (Omit<Step, "id"> & { id?: string; key: string })[] };
+type Draft = Pick<Campaign, "name" | "kind" | "purpose" | "trigger" | "days" | "hours"> & { triggerTag: string } & { steps: (Omit<Step, "id"> & { id?: string; key: string })[] };
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const SAMPLE: Record<string, string> = { first: "Ann", myFirst: "Pat", myName: "Pat Quinn", myPhone: "(555) 010-0000", company: "Your Company", bookingLink: "https://…" };
 const hourLabel = (h: number) => `${((h + 11) % 12) + 1} ${h < 12 ? "AM" : "PM"}`;
@@ -13,8 +14,8 @@ let seq = 0;
 const key = () => `k${Date.now().toString(36)}${(seq++).toString(36)}`;
 
 /** D51: the campaign editor. Saves the whole draft as one JSON value. */
-export default function Editor({ campaign, action, textReady, emailReady }: { campaign: Campaign; action: (fd: FormData) => void; textReady: boolean; emailReady: boolean }) {
-  const [d, setD] = useState<Draft>({ name: campaign.name, kind: campaign.kind, purpose: campaign.purpose, trigger: campaign.trigger, days: campaign.days, hours: campaign.hours, steps: campaign.steps.map((s) => ({ ...s, key: s.id })) });
+export default function Editor({ campaign, action, textReady, emailReady, tags = [] }: { campaign: Campaign; action: (fd: FormData) => void; textReady: boolean; emailReady: boolean; tags?: string[] }) {
+  const [d, setD] = useState<Draft>({ name: campaign.name, kind: campaign.kind, purpose: campaign.purpose, trigger: campaign.trigger, triggerTag: campaign.triggerTag ?? "", days: campaign.days, hours: campaign.hours, steps: campaign.steps.map((s) => ({ ...s, key: s.id })) });
   const refs = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const set = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }));
   const setStep = (k: string, p: Partial<Draft["steps"][number]>) => setD((x) => ({ ...x, steps: x.steps.map((s) => (s.key === k ? { ...s, ...p } : s)) }));
@@ -62,8 +63,16 @@ export default function Editor({ campaign, action, textReady, emailReady }: { ca
           <select value={d.trigger} onChange={(e) => set({ trigger: e.target.value as Draft["trigger"] })} className="mlo-select">
             <option value="manual">People I add</option>
             <option value="new_lead">Every new lead, the moment it arrives</option>
+            <option value="tag_added">{lc.triggerTag}</option>
           </select>
         </label>
+        {d.trigger === "tag_added" ? (
+          <label className="mlo-field"><span>{lc.triggerTagLabel}</span>
+            <input value={d.triggerTag} maxLength={60} list="cp-trigger-tags" onChange={(e) => set({ triggerTag: e.target.value })} className="mlo-input" aria-describedby="cp-trigger-note" autoComplete="off" />
+            <datalist id="cp-trigger-tags">{tags.map((t) => <option key={t} value={t} />)}</datalist>
+            <span className="mlo-note" id="cp-trigger-note">{lc.triggerTagNote}</span>
+          </label>
+        ) : null}
         <fieldset className="cp-fs">
           <legend>Sending days and hours (their time zone)</legend>
           <div className="cp-days">{DAYS.map((n, i) => <label key={n} className={`cp-day ${d.days.includes(i) ? "is-on" : ""}`}><input type="checkbox" checked={d.days.includes(i)} onChange={() => set({ days: d.days.includes(i) ? d.days.filter((x) => x !== i) : [...d.days, i].sort() })} />{n}</label>)}</div>

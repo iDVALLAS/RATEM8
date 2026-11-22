@@ -14,14 +14,19 @@
 import type { User } from "@/lib/accounts/store";
 import { accountStore } from "@/lib/accounts/store";
 import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
-import { canSee, scopeOf } from "./service";
+import { canSee } from "./service";
 import { contactStore, type Contact, type ContactFilter } from "./store";
 import { cleanTag, MAX_CONTACT_TAGS, mergeTags, renameIn, sameTag, withoutTag } from "./tags";
+import { MAX_BULK_IDS, MAX_BULK_MATCHING, resolveTarget, type BulkTarget } from "./bulk";
 
-/** Ids sent from a page selection (one page is 50). */
-export const MAX_BULK_IDS = 500;
-/** People one "Select all N matching" request changes. */
-export const MAX_BULK_MATCHING = 25_000;
+export { MAX_BULK_IDS, MAX_BULK_MATCHING, type BulkTarget };
+
+/** D78: a tag added to people can put them in a "when I add this tag" campaign. Never fails the change. */
+async function tagsAdded(changes: { contact: Contact; added: string[] }[], now: Date) {
+  if (!changes.length) return;
+  const { onTagsAdded } = await import("@/lib/campaigns/service");
+  await onTagsAdded(changes, now).catch(() => 0);
+}
 
 type Result = { ok: true; changed: number; skipped: number } | { ok: false; error: string };
 
@@ -51,40 +56,28 @@ export async function setContactTags(actor: User, contactId: string, tags: reado
   if (!c || !canSee(actor, c)) return { ok: false, error: tc.noContact };
   const next = mergeTags(tags);
   if (next.length > MAX_CONTACT_TAGS) return { ok: false, error: tc.tooMany(MAX_CONTACT_TAGS) };
-  await store.put({ ...c, tags: next, updatedAt: now.toISOString() });
+  const updated = { ...c, tags: next, updatedAt: now.toISOString() };
+  await store.put(updated);
   await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "contact.tags", detail: { contactId, count: next.length } });
+  await tagsAdded([{ contact: updated, added: next.filter((t) => !c.tags.some((o) => sameTag(o, t))) }], now);
   return { ok: true, tags: next };
 }
 
-export type BulkTarget = { ids: string[] } | { filter: { kind: "contact" | "agent"; q?: string; rel?: string; tag?: string; imp?: string } };
 export type BulkOp = { op: "addTag" | "removeTag"; tag: string };
 
 /**
  * The bulk bar: add or remove one tag for the people picked, or for
- * everyone matching the list's filter (D78 adds the other actions).
+ * everyone matching the list (D78 adds the other actions in ./bulk.ts).
  */
 export async function bulkTags(actor: User, target: BulkTarget, op: BulkOp, now = new Date()): Promise<Result> {
   if (actor.status !== "active") return { ok: false, error: tc.noContact };
   const tag = cleanTag(op.tag);
   if (!tag) return { ok: false, error: tc.typeTag };
   const store = contactStore();
-  let people: Contact[];
-  if ("ids" in target) {
-    const ids = [...new Set(target.ids)];
-    if (!ids.length) return { ok: false, error: tc.pickPeople };
-    if (ids.length > MAX_BULK_IDS) return { ok: false, error: tc.tooManyPicked(MAX_BULK_IDS) };
-    people = [];
-    for (const id of ids) {
-      const c = await store.get(id);
-      // One person outside the viewer's book refuses everything, before anything changes.
-      if (!c || !canSee(actor, c)) return { ok: false, error: tc.notYours };
-      people.push(c);
-    }
-  } else {
-    const f = target.filter;
-    people = await allMatching({ ownerUserId: scopeOf(actor), kind: f.kind, q: f.q || undefined, relationship: f.rel || undefined, tag: f.tag || undefined, importId: f.imp || undefined }, MAX_BULK_MATCHING);
-    if (people.some((c) => !canSee(actor, c))) return { ok: false, error: tc.notYours };
-  }
+  const r = await resolveTarget(actor, target, now);
+  if (!r.ok) return r;
+  const people = r.people;
+  const added: { contact: Contact; added: string[] }[] = [];
   let changed = 0;
   let skipped = 0;
   const at = now.toISOString();
@@ -100,10 +93,13 @@ export async function bulkTags(actor: User, target: BulkTarget, op: BulkOp, now 
       next = [...c.tags, tag];
     } else if (has) next = withoutTag(c.tags, tag);
     if (!next) continue;
-    await store.put({ ...c, tags: next, updatedAt: at });
+    const updated = { ...c, tags: next, updatedAt: at };
+    await store.put(updated);
+    if (op.op === "addTag") added.push({ contact: updated, added: [tag] });
     changed++;
   }
-  await accountStore().audit({ at, actor: actor.email, action: `contacts.tags.${op.op === "addTag" ? "add" : "remove"}`, detail: { picked: people.length, changed, skipped, by: "ids" in target ? "selection" : "filter" } });
+  await accountStore().audit({ at, actor: actor.email, action: `contacts.tags.${op.op === "addTag" ? "add" : "remove"}`, detail: { picked: people.length, changed, skipped, by: r.by } });
+  await tagsAdded(added, now);
   return { ok: true, changed, skipped };
 }
 

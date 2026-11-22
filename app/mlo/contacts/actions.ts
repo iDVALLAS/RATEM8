@@ -20,6 +20,10 @@ import { contactStore } from "@/lib/contacts/store";
 import { UNLOCK_ATTESTATION } from "@/lib/contacts/attestation";
 import { CHANNELS, EVIDENCE, PROVENANCE, PURPOSES } from "@/lib/contacts/store";
 import { bulkTags, deleteTag, MAX_BULK_IDS, mergeTag, renameTag, setContactTags } from "@/lib/contacts/tagging";
+import { bulkAssign, bulkCsv, bulkDelete, bulkEnroll } from "@/lib/contacts/bulk";
+import { ListRuleSchema, ruleFromParams, ruleQuery } from "@/lib/contacts/filter";
+import { deleteList, renameList, saveList } from "@/lib/contacts/lists";
+import { contactListsCopy } from "@/lib/content/contact-lists";
 import { cleanTag, MAX_CONTACT_TAGS } from "@/lib/contacts/tags";
 import { contactTagsCopy } from "@/lib/content/contact-tags";
 import { contactPageCopy } from "@/lib/content/contact-page";
@@ -314,21 +318,84 @@ export async function setTagsAction(contactId: string, tags: unknown): Promise<{
 const BulkInput = z.object({
   target: z.union([
     z.object({ ids: z.array(z.string().max(64)).max(MAX_BULK_IDS) }),
+    // D78: the list's whole rule ("Select all N matching").
+    z.object({ rule: ListRuleSchema }),
     z.object({ filter: z.object({ kind: z.enum(["contact", "agent"]), q: z.string().max(200).optional(), rel: z.string().max(40).optional(), tag: z.string().max(200).optional(), imp: z.string().max(60).optional() }) }),
   ]),
-  op: z.object({ op: z.enum(["addTag", "removeTag"]), tag: z.string().max(200) }),
+  op: z.discriminatedUnion("op", [
+    z.object({ op: z.enum(["addTag", "removeTag"]), tag: z.string().max(200) }),
+    z.object({ op: z.literal("campaign"), campaignId: z.string().max(64) }),
+    z.object({ op: z.literal("assign"), userId: z.string().max(64) }),
+    z.object({ op: z.literal("download") }),
+    z.object({ op: z.literal("delete"), confirm: z.string().max(40) }),
+  ]),
 });
 
-/** D73: the bulk bar on the Contacts list (add or remove a tag). `canSee` is checked for every person. */
-export async function bulkContactsAction(target: unknown, op: unknown): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+/**
+ * D73/D78: the bulk bar on the Contacts list. `canSee` is checked for every
+ * person (one outside the book refuses all); a download comes back as CSV.
+ */
+export async function bulkContactsAction(target: unknown, op: unknown): Promise<{ ok: true; message: string; csv?: string } | { ok: false; error: string }> {
   const actor = await currentUser();
   if (!actor) return { ok: false, error: "Sign in again." };
   const parsed = BulkInput.safeParse({ target, op });
   if (!parsed.success) return { ok: false, error: contactTagsCopy.failed };
-  const r = await bulkTags(actor, parsed.data.target, parsed.data.op);
-  if (!r.ok) return r;
-  const tag = cleanTag(parsed.data.op.tag);
-  return { ok: true, message: parsed.data.op.op === "addTag" ? contactTagsCopy.added(tag, r.changed, r.skipped, MAX_CONTACT_TAGS) : contactTagsCopy.removed(tag, r.changed) };
+  const t = parsed.data.target;
+  const o = parsed.data.op;
+  const lc = contactListsCopy;
+  if (o.op === "addTag" || o.op === "removeTag") {
+    const r = await bulkTags(actor, t, o);
+    if (!r.ok) return r;
+    const tag = cleanTag(o.tag);
+    return { ok: true, message: o.op === "addTag" ? contactTagsCopy.added(tag, r.changed, r.skipped, MAX_CONTACT_TAGS) : contactTagsCopy.removed(tag, r.changed) };
+  }
+  if (o.op === "campaign") {
+    const r = await bulkEnroll(actor, t, o.campaignId);
+    return r.ok ? { ok: true, message: lc.enrolled(r.report) } : r;
+  }
+  if (o.op === "assign") {
+    const r = await bulkAssign(actor, t, o.userId);
+    return r.ok ? { ok: true, message: lc.assigned(r.moved, r.name, r.skipped) } : r;
+  }
+  if (o.op === "download") {
+    const r = await bulkCsv(actor, t);
+    return r.ok ? { ok: true, message: contactListsCopy.count(r.count), csv: r.csv } : r;
+  }
+  if (o.op !== "delete") return { ok: false, error: contactTagsCopy.failed };
+  const r = await bulkDelete(actor, t, o.confirm);
+  return r.ok ? { ok: true, message: lc.deletedPeople(r.deleted) } : r;
+}
+
+// ---- D78: saved lists ----
+
+const listsPage = (qs: string, flash: { ok: boolean; lines: string[] }) => `/mlo/contacts?${qs ? `${qs}&` : ""}f=${encodeFlash(flash)}`;
+/** The list's address, rebuilt from the rule (never passed through as typed). */
+const safeQs = (qs: string) => ruleQuery(ruleFromParams(new URLSearchParams(String(qs).slice(0, 2000))));
+
+/** "Save this list" (bound: `saveListAction.bind(null, ruleQuery)`). */
+export async function saveListAction(qs: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const back = safeQs(qs);
+  const r = await saveList(actor, String(fd.get("name") ?? ""), ruleFromParams(new URLSearchParams(back)));
+  redirect(listsPage(back, r.ok ? { ok: true, lines: [contactListsCopy.saved(r.list.name)] } : { ok: false, lines: [r.error] }));
+}
+
+/** Rename a saved list (bound: `renameListAction.bind(null, listId, ruleQuery)`). */
+export async function renameListAction(id: string, qs: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const back = safeQs(qs);
+  const r = await renameList(actor, String(id), String(fd.get("name") ?? ""));
+  redirect(listsPage(back, r.ok ? { ok: true, lines: [contactListsCopy.renamed] } : { ok: false, lines: [r.error] }));
+}
+
+/** Delete a saved list (bound: `deleteListAction.bind(null, listId, kind)`); nobody in it changes. */
+export async function deleteListAction(id: string, kind: string): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const r = await deleteList(actor, String(id));
+  redirect(listsPage(kind === "agent" ? "kind=agent" : "", r.ok ? { ok: true, lines: [contactListsCopy.deleted] } : { ok: false, lines: [r.error] }));
 }
 
 const tagsPage = (kind: string, flash: { ok: boolean; lines: string[] }) => `/mlo/contacts?${kind === "agent" ? "kind=agent&" : ""}f=${encodeFlash(flash)}#tags`;

@@ -293,8 +293,78 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     console.log('d77: list row:', (await rows.first().innerText()).replace(/\n/g, ' | '));
     if ((await rows.first().locator('.cc-iconbtn').count()) !== 2) problems.push('[d77] row lacks Call and Text buttons');
   });
+  // D78: filter, save a list, open it, bulk actions (download, add to a campaign), a campaign from a list, a call session from a list.
+  let d78List = '';
+  await step('d78: filter, save, open, bulk, campaign, calls', async () => {
+    await page.goto(B + '/mlo/contacts');
+    for (const t of ['Everyone', 'New this week', 'Needs permission', 'Past clients', 'Agents']) if (!(await page.locator('.cc-listrow').getByRole('link', { name: t, exact: true }).count())) problems.push('[d78] list tab missing: ' + t);
+    await page.locator('#filters > summary').click();
+    await page.locator('#filters select[name=state]').selectOption('WA');
+    await page.locator('#filters select[name=rel]').selectOption('past_client');
+    await page.locator('#filters').getByRole('button', { name: 'Show them' }).click(); await page.waitForURL(/state=WA/);
+    const chips = await page.locator('.cc-rulechips .cc-tag').allInnerTexts();
+    if (!chips.some((c) => /State: WA/.test(c)) || !chips.some((c) => /Relationship: Past client/.test(c))) problems.push('[d78] filter chips: ' + chips.join(' | '));
+    const n = await page.locator('.cc-people > li').count();
+    if (n < 1) problems.push('[d78] WA past clients found nobody');
+    await page.locator('.cc-savelist input[name=name]').fill('QA WA past clients');
+    await page.locator('.cc-savelist').getByRole('button', { name: 'Save list' }).click(); await page.waitForURL(/f=/);
+    console.log('d78: save:', await flash());
+    if (!/Saved “QA WA past clients”/.test(await flash())) problems.push('[d78] save flash: ' + await flash());
+    if ((await page.locator('.cc-listrow a[aria-current=page]').innerText()) !== 'QA WA past clients') problems.push('[d78] the saved list is not the current tab');
+    // Open it from Everyone.
+    await page.goto(B + '/mlo/contacts');
+    await page.locator('.cc-listrow').getByRole('link', { name: 'QA WA past clients', exact: true }).click(); await page.waitForURL(/state=WA/);
+    if ((await page.locator('.cc-people > li').count()) !== n) problems.push('[d78] the saved list opens a different count');
+    d78List = page.url();
+    // Built-in list: Needs permission reads the consent log.
+    await page.goto(B + '/mlo/contacts?perm=relationship');
+    console.log('d78: needs permission:', await page.locator('.cc-resultline').innerText().catch(() => '(none)'));
+    // Bulk: download the list as CSV (all matching).
+    await page.goto(d78List);
+    await page.getByRole('checkbox', { name: 'Select everyone on this page' }).check();
+    await page.locator('.cc-bulkbar select').first().selectOption('download');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('.cc-bulkbar').getByRole('button', { name: 'Download CSV' }).click()]);
+    const csv = fs.readFileSync(await dl.path(), 'utf8');
+    if (!/^﻿?First name,Last name,Phone/.test(csv)) problems.push('[d78] CSV header: ' + csv.slice(0, 60));
+    console.log('d78: csv rows:', csv.trim().split('\r\n').length - 1);
+    // A campaign to add people to.
+    await page.goto(B + '/mlo/campaigns?new=1');
+    await page.getByRole('button', { name: 'Use this one' }).first().click(); await page.waitForURL(/\/mlo\/campaigns\/cmp_/);
+    const camp = page.url().split('?')[0];
+    await page.goto(camp);
+    const opts = await page.locator('select[name=from] option').allInnerTexts();
+    if (!opts.includes('QA WA past clients')) problems.push('[d78] the campaign page lacks the saved list: ' + opts.slice(0, 8).join(' | '));
+    const val = await page.locator('select[name=from] option', { hasText: 'QA WA past clients' }).getAttribute('value');
+    await page.locator('select[name=from]').selectOption(val);
+    await page.getByRole('button', { name: 'Add them' }).click(); await page.waitForURL(/f=/);
+    console.log('d78: campaign from list:', await flash());
+    if (!/^Added \d+/.test(await flash())) problems.push('[d78] add from list: ' + await flash());
+    // The trigger "when I add this tag" is offered.
+    if (!(await page.locator('select', { has: page.locator('option[value=tag_added]') }).count())) problems.push('[d78] no tag trigger in the editor');
+    // Bulk: Add to a campaign.
+    await page.goto(d78List);
+    await page.getByRole('checkbox', { name: 'Select everyone on this page' }).check();
+    await page.locator('.cc-bulkbar select').first().selectOption('campaign');
+    await page.locator('.cc-bulkbar').getByRole('button', { name: 'Add to campaign' }).click();
+    await page.locator('.cc-bulk .mlo-flash').waitFor(); console.log('d78: bulk campaign:', await page.locator('.cc-bulk .mlo-flash').innerText());
+    if (!/Added \d+ (people|person)/.test(await page.locator('.cc-bulk .mlo-flash').innerText())) problems.push('[d78] bulk add to campaign: ' + await page.locator('.cc-bulk .mlo-flash').innerText());
+    // Bulk: Check do-not-call opens Record permission for just these people.
+    await page.getByRole('checkbox', { name: 'Select everyone on this page' }).check();
+    await page.locator('.cc-bulkbar select').first().selectOption('check');
+    await page.locator('.cc-bulkbar').getByRole('link', { name: 'Check them' }).click(); await page.waitForURL(/permission\?ids=/);
+    console.log('d78: check:', await page.locator('#lines h2').innerText());
+    // A call session from the list.
+    await page.goto(B + '/mlo/calls');
+    await page.locator('select[name=list]').selectOption({ label: 'QA WA past clients' });
+    await page.getByRole('button', { name: 'Start', exact: true }).click(); await page.waitForURL(/list=lst_/);
+    const head = await page.locator('main').innerText();
+    if (!/From your list “QA WA past clients”/.test(head)) problems.push('[d78] call session not from the list');
+    console.log('d78: calls:', (await page.locator('main h2').first().innerText()));
+    // Campaign page stays reachable.
+    await page.goto(camp);
+  });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {

@@ -54,6 +54,35 @@ export async function callQueue(user: User, now = new Date(), today0?: TodayCard
   return { ready, blocked, done };
 }
 
+/** D78: how many people a list's call session reads (each one is checked by the gate). */
+export const LIST_CALLS_MAX = 100;
+
+/**
+ * D78: a call session from a saved list (or the Contacts page's filters):
+ * the first `LIST_CALLS_MAX` people in it with a phone, not yet called today,
+ * each checked by the gate for a sales call you dial yourself.
+ */
+export async function listCallQueue(user: User, rule: import("@/lib/contacts/filter").ListRule, label: string, now = new Date()): Promise<{ ready: CallItem[]; blocked: CallItem[]; done: number; total: number }> {
+  const { peopleIn } = await import("@/lib/contacts/lists");
+  const people = (await peopleIn(user, rule, 5000, now)).filter((c) => !!c.phone);
+  const today = pacificDate(now);
+  const ready: CallItem[] = [];
+  const blocked: CallItem[] = [];
+  let done = 0;
+  for (const c of people.slice(0, LIST_CALLS_MAX)) {
+    if ((await touchStore().forContact(c.id, 20)).some((t) => t.channel === "call" && t.direction === "out" && pacificDate(new Date(t.at)) === today)) {
+      done++;
+      continue;
+    }
+    const name = `${c.firstName} ${c.lastName}`.trim() || c.email || "Someone";
+    const card: TodayCard = { kind: "check_in", contactId: c.id, name, title: label, reason: "", score: 0, next: "call" };
+    const g = await gateFor(user, c, "call", "marketing", now);
+    const [script] = await scriptStore().forContact(user.id, c.id, 1);
+    (g.allowed ? ready : blocked).push({ card, contact: c, purpose: "marketing", allowed: g.allowed, reason: g.reasons[0] ?? null, scriptId: script?.id ?? null });
+  }
+  return { ready, blocked, done, total: people.length };
+}
+
 export const CALL_RESULTS = ["reached", "voicemail", "no_answer", "booked", "not_now", "asked_to_stop", "wrong_number"] as const;
 export type CallResult = (typeof CALL_RESULTS)[number];
 export const CALL_RESULT_LABELS: Record<CallResult, string> = { reached: "Talked", voicemail: "Left a voicemail", no_answer: "No answer", booked: "Set a next step", not_now: "Not interested now", asked_to_stop: "Asked not to be contacted", wrong_number: "Wrong number" };

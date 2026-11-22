@@ -6266,3 +6266,93 @@ row badges ("Can text" / "Call only" / "Do not contact").
   permission summary is for keeping the current record; Call shows its reason only as a tooltip when disabled. One `command-center.mjs` run
   showed a React #418 on `/mlo/pricing` @1280 (not a D77 page); it didn't come back on 24 targeted loads or the next fresh run (as noted in D75).
 - **Next up:** D78 (saved lists, filters, bulk actions, campaigns from a list or tag), after the owner's sign-off.
+
+## D78 — Saved lists, filters, bulk actions, campaigns from a list or tag (2026-11-22)
+
+Spec: "### D78" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. Built in Command Center styles (D72 classes, tokens only) after the AskList
+mockup's list chips, rule chips and result bar ("N people · Save · Add to campaign · Call session · Download"). D80's "Ask M8 for a list" and
+loan fields are not built; the rule shape is made for D80 to extend.
+
+- **Files:** new `lib/contacts/filter.ts` (pure: `ListRule`, `ListRuleSchema`, `cleanRule`, `ruleFromParams`/`ruleToParams`, `describeRule`,
+  `permissionClass`, `matches`, `ruleSql`), `lib/contacts/lists.ts` (server: `cc_saved_lists` in memory and Neon, `DEFAULT_LISTS`, `listsFor`,
+  `listById`, `saveList`, `renameList`, `deleteList`, `currentList`, `peopleIn`), `lib/contacts/bulk.ts` (server: `resolveTarget`, `bulkEnroll`,
+  `assignees`, `bulkAssign`, `bulkCsv`, `bulkDelete`), `lib/contacts/sheet.ts` (pure: `contactsCsv`), `lib/contacts/scope.ts` (`checkScope`,
+  `scopePeople`), `lib/content/contact-lists.ts` (all the copy), `lib/contacts/lists.test.ts` (26); changed `lib/contacts/store.ts`
+  (`ContactFilter.rule`/`now` in both stores; a GIN index on `body->'tags'`; `cc_touches` made if missing), `lib/contacts/tagging.ts` (bulk tags
+  through `resolveTarget`; a tag added fires tag campaigns), `lib/contacts/service.ts` (an import's added tags fire tag campaigns),
+  `lib/campaigns/{store,service}.ts` (trigger `tag_added` + `triggerTag`, `reachableFor`, `enrollReachable`, `parseSource`, `enrollFrom`,
+  `onTagsAdded`; `enrollGroup` goes through them), `lib/messaging/service.ts` (`gateFor(..., { ignoreCaps })`), `lib/calls/session.ts`
+  (`listCallQueue`), `lib/content/{activity,import-check}.ts`, `app/mlo/contacts/{page,ContactsTable,actions}.tsx`,
+  `app/mlo/contacts/permission/{page,actions}.tsx`, `app/mlo/campaigns/{page,actions,Editor}.tsx`, `app/mlo/campaigns/[id]/page.tsx`,
+  `app/mlo/calls/{page,actions}.tsx`, `app/mlo/cc-shell.css` (D78 block), `scripts/qa/command-center.mjs`, `scripts/qa/buttons.mjs`, `CLAUDE.md`.
+- **Contacts:** a **Lists** row above the list: Everyone, **New this week**, **Needs permission** (relationship only), **Past clients**, **Agents**,
+  then the loan officer's own lists (oldest first, up to 30); the list the page is showing is filled. A **Filters** fold: Relationship, Tag,
+  State, Permission (Permission on file / Your word only / Relationship only / Do not contact / On hold), Added (last 7 / 30 / 90 days, or one of
+  the last 10 imports), Last contacted (in the last 7 or 30 days, not in 30 or 90, never), "Only people who have never written back". The
+  filters live in the address (`?tag=&state=&perm=&added=&import=&contacted=&noreply=1`, D73's `tag`/`import`/`q`/`rel`/`kind` unchanged) and show
+  as chips with × and Clear all. **Save this list** (name it) when the filters aren't already a list; a saved list has **Rename or delete this
+  list** (bound, the people never change). The result line: "QA WA past clients: 3 people · Call session · Select all · Clear".
+- **Bulk bar** (extends D73; the same pick boxes and "Select all N matching"): an **Action** select: Add or remove a tag (D73, the default) ·
+  **Add to a campaign** (your campaigns; only people the contact rules allow for its messages go in, with "N left out: … (most often: …)") ·
+  **Check do-not-call and phone type** (opens Record permission for just those people: `ids=` or `scope=list&…`, the D75 do-not-call list and the
+  Twilio phone-type check with its cost) · **Assign to a team member** (owners and team leads only; active non-assistant accounts in the same
+  company; the people move books, consent stays with them, their running campaigns stop) · **Download a spreadsheet (CSV)** (formula-safe; name,
+  phones, email, address, relationship, brokerage, tags, "Can reach", added; no proof, notes or messages) · **Delete** (type DELETE; not for
+  assistants; their campaigns stop; consent rows kept). Picked ids: every one read and `canSee`-checked, one outside the book refuses all; all
+  matching: the rule runs again on the server in the viewer's scope (assistants: the officer's book), up to 25,000.
+- **Campaigns:** "Add people from" one select: Saved lists · Tags (with counts) · Imports (last 20 not undone) · Relationships. A new **Who goes
+  in: When I add this tag** with the tag (type-ahead of the book's tags; required to turn it on): a tag added on a person's page, in bulk or by an
+  import puts them in when the contact rules allow; up to 25 new enrollments run their due steps at once, the rest with the next scheduled run.
+  The campaigns list says "when you add “Hot”". D75's "Add them to this one" (an import) and D51's relationship groups use the same check.
+- **Call session:** "Call from a list" (any saved or built-in list) and the Contacts result line's **Call session** (`?list=<id>` or
+  `?from=filter&…`): the first 100 people with a phone, not called today, each checked by the gate for a sales call you dial; logging keeps you in
+  the list; "Back to today's calls". The dialer hand-off stays on today's list.
+- **Compliance:** adding a list, tag, import or group to a campaign never skips the gate: `reachableFor` asks `gateFor` for each of the
+  campaign's message channels and its purpose (permission, stops, do-not-call, licensing, holds, reassigned numbers, state rules); only quiet
+  hours (returned as `retryAt`) and today's caps (`ignoreCaps`) are set aside at enrollment, because they only decide when; every step is asked
+  again with the real counts when it goes out. A task-only campaign (reminders to the loan officer) takes anyone. Fair lending: `ListRule` has no
+  field for any protected trait. No AI anywhere in D78; nothing goes to a model; RETR/agent lists are filtered and exported like any list but never
+  leave the server except as the loan officer's own CSV. Value-carrying submits are bound (`saveListAction.bind(null, ruleQuery)`,
+  `renameListAction.bind(null, id, ruleQuery)`, `deleteListAction.bind(null, id, kind)`, `logCallAction.bind(null, result, back)`), and every
+  bound or posted address is rebuilt from known keys (`ruleFromParams`, `checkScope`).
+- **Tests** (`lib/contacts/lists.test.ts`, 26): each filter in both stores (tag, state, relationship, permission's five classes with merged copies
+  ignored and the latest answer winning, added 7/30/90 and an import, contacted within / quiet / never with a failed send not counting, never
+  replied, kind, search, combined, another book) with the Neon SQL and its bound parameters checked; the pure matcher agrees with the store on the
+  built-in lists; the SQL builder binds hostile values; address round-trip and chips; a saved list round-trips (save, list, open, rename, delete,
+  another user refused, built-ins refused, empty/duplicate/too many refused, live: someone added later is in it, Neon row); enroll by tag only
+  enrolls the people the gate allows (one of three), from a saved list, a relationship, a task-only campaign, `parseSource`; the tag trigger from a
+  page and an import (and not for another tag); bulk Add to campaign refuses all for one outside the book; assign refused for an LO and an
+  assistant, to an assistant, a team lead outside their book, and an owner's move stops campaigns and keeps consent; the CSV is formula-safe (`=`,
+  `@`, `+`, `-` prefixed, a phone left as is, no proof); delete needs DELETE, never an assistant, refuses all, keeps the stop; an assistant's all
+  matching is the officer's book, D73's filter shape still works; the check scope; a call session from a list. `activity.ts` has words for
+  `contacts.assign`, `contacts.download`, `contacts.delete.bulk`.
+- **Verified:** `npm run verify` passes (805 tests). `node scripts/qa/command-center.mjs` on a freshly started server: PROBLEMS none (new step
+  "d78: filter, save, open, bulk, campaign, calls": the five list tabs, Filters → WA + Past client, the chips, Save this list "Saved “QA WA past
+  clients”" and its tab current, opened again from Everyone with the same count, Needs permission, all matching → Download CSV (header checked, 3
+  rows), a campaign from a starter → Add people from the saved list "Added 3 people.", the tag trigger offered, bulk Add to campaign "Added 0 people.
+  3 people already in it.", Check them → Record permission "Checks for the 3 people with a phone you picked", Call from a list → "From your list
+  “QA WA past clients”"; the sweep adds a filtered list with every filter and `/mlo/calls?list=d-past`). `node scripts/qa/buttons.mjs` on a freshly
+  started server: 448 page views, PROBLEMS none (adds the filtered list with folds open, the list call session, each bulk-bar action, and a
+  campaign page). Scratch sweep (`d78shots.mjs`): the list, filters open, a saved list, the bulk bar (campaign, assign, delete), Agents, the list
+  call session, a campaign's People and Record permission for a list at 390 and 1280 in Night, Dim and Paper: no sideways scroll, no page errors.
+  No React #418 in any run.
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d78/` (`list-*`, `filters-*`, `saved-*`,
+  `bulk-campaign-*`, `bulk-assign-*`, `bulk-delete-*` (the bar sits above the phone tabs at 390), `agents-*`, `calls-*`, `campaign-*`,
+  `permission-*`, each at 390/1280 in Night, Dim and Paper; `buttons/` has the audit's set incl. `bulk_campaign-*`, `bulk_delete-*`).
+- **Decisions:** (a) A saved list stores a `ListRule` (the spec's `{name, query}`), so D80 adds rate, program, ARM and closed-date fields to the
+  same type, matcher, SQL builder and chips. Lists are live. (b) Permission is one class per person, read like the list's badge: on hold first,
+  then any stop ("Do not contact"), then any yes with proof ("on file"), any yes on your word, else relationship only; Needs permission =
+  relationship only. (c) "Contacted" means a text, email or call out that wasn't failed, blocked or undelivered; "Not in N days" includes people
+  never contacted. (d) Enrolling from any source (list, tag, import, relationship, bulk, the tag trigger) leaves out people the gate refuses for
+  every message channel of the campaign, with the most common reason shown; before D78 everyone went in and each step was skipped later. A single
+  "Add to campaign" from a contact page (D77) is unchanged. (e) Assign is owners and team leads only, inside one company, to accounts with a book;
+  past messages, notes and loans stay where they were. (f) Bulk delete keeps the consent log (append-only, as D75's undo), unlike the single
+  contact Delete. Team leads may delete; assistants never. (g) A tag source and an import source read people and agents; a relationship reads
+  one kind. (h) A list's call session is sales calls (marketing), the first 100 people with a phone. (i) Tag rename/merge doesn't fire tag
+  campaigns (it isn't adding a tag). (j) Filters are a fold with selects (no client code), so the page works without scripts.
+- **Known gaps:** the Tag filter picks one tag (the rule holds several; D80's Ask can set more); the State filter lists every state; the list call
+  session reads up to 5,000 people and checks the first 100; "Send this list to my dialer" stays on today's list; a list's Download is CSV only;
+  Neon's permission and contacted filters are correlated subqueries (fine at today's sizes; an index on `cc_consents (contact_id, channel, purpose,
+  at)` can come if lists grow); assigning doesn't move Concierge reminders or drafts; Dim was swept in the scratch run only (it shares Night's
+  rules in the buttons audit).
+- **Next up:** D79 (inbox you can reply from, plus a new-lead alert), after the owner's sign-off.
