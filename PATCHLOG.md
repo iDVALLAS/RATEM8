@@ -6549,3 +6549,14 @@ lists on request ("all loans closed with a rate from 7.2% to 9%", "loans with AR
   the message). Suggestion counts and the saved list can differ (the list is live across the whole book). The earlier QA steps' imports now also save
   their suggested lists (default checked), so a QA book has more list tabs.
 - **Next up:** owner review of D69–D80, then "promote".
+
+## Promote — D70 through D80 to production (2026-11-22)
+
+Owner: "Promote anything that is waiting".
+
+- Remote M8 red team against the D80 preview (23f2bef): 43 of 43.
+- Production deployment of the exact commit 23f2bef (D80, which carries D70–D79), created from Git, not a promote of
+  the preview.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/api/health` 200,
+  `/chat` 307 (tester lock).
+- **Next up:** D81–D87, the lead sources rebuild, preview only until the owner signs off.
