@@ -10,6 +10,7 @@ import { summarize } from "@/lib/contacts/service";
 import { FlashBox, MloNav } from "../MloChrome";
 import KeyMaker from "../pipeline/KeyMaker";
 import PageHead from "../PageHead";
+import PermissionTip from "./PermissionTip";
 import { LEADS, SUBS } from "@/lib/content/cc-pages";
 import "../mlo.css";
 
@@ -41,7 +42,10 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
             <section className="mlo-section">
               <h2>Connect a lead source</h2>
               <p className="mlo-note">{LEADS.how} Name the address after the vendor so you can tell them apart.</p>
-              <p className="mlo-note">{LEADS.consent}</p>
+              <div className="cc-permline">
+                <p className="mlo-note">{LEADS.permissionLine}</p>
+                <PermissionTip />
+              </div>
               <KeyMaker endpoint={endpoint} defaultLabel="Lead vendor" owner={me.role === "owner"} />
               <p className="mlo-note">See and turn off your addresses on <Link href="/mlo/connections#keys">Connections</Link>.</p>
               <details className="mlo-details">
@@ -58,10 +62,20 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
                     {leads.map((c) => {
                       const s = summarize(consents.filter((e) => e.contactId === c.id));
                       const ok = s.text.marketing.granted || s.call.marketing.granted;
+                      const name = `${c.firstName} ${c.lastName}`.trim() || c.email || "";
                       return (
                         <tr key={c.id}>
-                          <th scope="row"><Link href={`/mlo/contacts/${c.id}`}>{`${c.firstName} ${c.lastName}`.trim() || c.email}</Link><br /><span className="mlo-note">{c.source.slice(6)} · {new Date(c.createdAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></th>
-                          <td className="mlo-note">{ok ? "Form named you: permission on file" : "No permission yet"}</td>
+                          <th scope="row"><Link href={`/mlo/contacts/${c.id}`}>{name}</Link><br /><span className="mlo-note">{c.source.slice(6)} · {new Date(c.createdAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></th>
+                          <td className="cc-leadperm-cell">
+                            {ok ? (
+                              <span className="cc-reach cc-reach--ok">{LEADS.status.ok}</span>
+                            ) : (
+                              <span className="cc-leadperm">
+                                <span className="cc-reach cc-reach--warn">{LEADS.status.none}</span>
+                                <PermissionTip label={LEADS.rowTipLabel(name)} tone="warn" size="sm" />
+                              </span>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}

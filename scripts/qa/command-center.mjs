@@ -588,6 +588,64 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     if (!/Loan details saved/.test(await flash())) problems.push('[d80] loan save: ' + await flash());
     await shot('9-loan-tab');
   });
+  // D81: Lead sources' permission "i": opened from the keyboard, focus moves in and stays in, Esc closes and gives focus back,
+  // a tap outside closes, Copy shows "Copied" (the note has the three field names); Eve's "No permission yet" has its own i;
+  // on a phone it's a bottom sheet that the backdrop closes.
+  const D81 = process.env.QA_D81_SHOTS || '';
+  if (D81) fs.mkdirSync(D81, { recursive: true });
+  await step('d81: permission i on Lead sources', async () => {
+    await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: B }).catch(() => {});
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(B + '/mlo/leads');
+    if (/duplicate is merged/i.test(await page.locator('main').innerText())) problems.push('[d81] the duplicate sentence is still on the page');
+    const i = page.getByRole('button', { name: 'When a lead counts as permission', exact: true });
+    const dialog = page.getByRole('dialog', { name: 'When a lead counts as permission' });
+    await i.focus(); await page.keyboard.press('Enter'); await dialog.waitFor();
+    if ((await i.getAttribute('aria-expanded')) !== 'true') problems.push('[d81] aria-expanded not true when open');
+    const inside = () => page.evaluate(() => !!document.activeElement && !!document.activeElement.closest('[role=dialog]'));
+    if (!(await inside())) problems.push('[d81] focus did not move into the pop-up');
+    for (let k = 0; k < 4; k++) await page.keyboard.press('Tab');
+    if (!(await inside())) problems.push('[d81] Tab left the pop-up');
+    const box = await i.boundingBox();
+    if (!box || box.width < 44 || box.height < 44) problems.push(`[d81] tap target ${box && box.width}x${box && box.height}`);
+    if (D81) await page.screenshot({ path: path.join(D81, 'qa-open-1280.png') });
+    await page.keyboard.press('Escape'); await dialog.waitFor({ state: 'detached' });
+    if (!(await i.evaluate((el) => el === document.activeElement))) problems.push('[d81] focus did not return to the i after Esc');
+    if ((await i.getAttribute('aria-expanded')) !== 'false') problems.push('[d81] aria-expanded not false after closing');
+    await i.click(); await dialog.waitFor();
+    await page.mouse.click(8, 860); await dialog.waitFor({ state: 'detached', timeout: 3000 }).catch(() => problems.push('[d81] a tap outside did not close it'));
+    await i.click(); await dialog.waitFor();
+    await dialog.getByRole('button', { name: 'Copy a note for your vendor' }).click();
+    await dialog.getByRole('status').filter({ hasText: 'Copied' }).waitFor({ timeout: 3000 }).catch(() => problems.push('[d81] no "Copied" after Copy'));
+    const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
+    console.log('d81: copied note:', JSON.stringify(clip).slice(0, 200));
+    for (const f of ['consent_text', 'consent_timestamp', 'page_url']) if (clip && !clip.includes(f)) problems.push('[d81] the note lacks ' + f);
+    await dialog.getByRole('button', { name: 'Close' }).click(); await dialog.waitFor({ state: 'detached' });
+    if (!(await i.evaluate((el) => el === document.activeElement))) problems.push('[d81] focus did not return after ×');
+    // Recent leads: Eve came in from Zillow with no consent wording.
+    const eve = page.locator('tr', { hasText: 'Eve Ng' }).first();
+    if (!/No permission yet/.test(await eve.innerText())) problems.push('[d81] Eve does not show No permission yet: ' + (await eve.innerText()));
+    const rowI = eve.getByRole('button', { name: 'Why no permission yet for Eve Ng' });
+    await rowI.click();
+    await page.getByRole('dialog', { name: 'When a lead counts as permission' }).waitFor().catch(() => problems.push('[d81] the row i did not open the pop-up'));
+    if (D81) await page.screenshot({ path: path.join(D81, 'qa-row-1280.png') });
+    await page.keyboard.press('Escape');
+    const rows = await page.locator('tr', { hasText: 'No permission yet' }).count();
+    const rowIs = await page.getByRole('button', { name: /^Why no permission yet/ }).count();
+    console.log('d81: rows with No permission yet:', rows, 'i buttons:', rowIs);
+    if (rows !== rowIs) problems.push(`[d81] ${rows} rows say No permission yet but ${rowIs} have an i`);
+    // A phone: a bottom sheet; the backdrop closes it.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(B + '/mlo/leads');
+    await i.click(); await dialog.waitFor(); await page.waitForTimeout(500); // the slide-up
+    const sheet = await dialog.boundingBox();
+    if (!sheet || Math.abs(sheet.y + sheet.height - 844) > 2 || sheet.width < 380) problems.push('[d81] not a bottom sheet on a phone: ' + JSON.stringify(sheet));
+    if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push('[d81] sideways scroll with the sheet open');
+    if (D81) await page.screenshot({ path: path.join(D81, 'qa-sheet-390.png') });
+    await page.mouse.click(195, 40); await dialog.waitFor({ state: 'detached', timeout: 3000 }).catch(() => problems.push('[d81] the backdrop did not close the sheet'));
+    if (!(await i.evaluate((el) => el === document.activeElement))) problems.push('[d81] focus did not return after the backdrop');
+    await page.setViewportSize({ width: 1280, height: 900 });
+  });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
   const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/inbox?tab=done', '/mlo/settings', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts?rmin=7.2&rmax=9&closed=1&asked=words', '/mlo/contacts?prog=fha,va&rtype=arm&cfrom=2023-01-01&cto=2025-12-31&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
   for (const w of [390, 1280]) {

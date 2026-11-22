@@ -228,6 +228,17 @@ function audit() {
           total++;
           for (const p of [...new Set(pr.problems)]) problems.push(`[${where} add a rule] ${p}`);
         }
+        // D81: Lead sources with the permission "i" open (beside it on desktop, a bottom sheet on phones).
+        if (label === '/mlo/leads') {
+          await page.getByRole('button', { name: 'When a lead counts as permission', exact: true }).click();
+          await page.getByRole('dialog').waitFor();
+          await page.waitForTimeout(450); // the sheet's slide-up
+          const tip = await page.evaluate(audit);
+          total++;
+          for (const p of [...new Set(tip.problems)]) problems.push(`[${where} permission i open] ${p}`);
+          if (out) await page.screenshot({ path: path.join(out, `leads_tip-${w}-${theme}.png`) });
+          await page.keyboard.press('Escape');
+        }
         if (out && SHOTS.has(label)) await page.screenshot({ path: path.join(out, `${label.replace(/\W+/g, '_').replace(/^_|_$/g, '') || 'home'}-${w}-${theme}.png`), fullPage: true });
       } catch (e) { problems.push(`[${where}] FAILED: ${e.message.split('\n')[0]}`); }
     }

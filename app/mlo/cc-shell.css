@@ -1010,3 +1010,54 @@
   .cc-app .im-lists__row { grid-template-columns: minmax(0, 1fr); }
   .cc-app .im-lists__count { grid-column: 1; grid-row: auto; }
 }
+/* ─── D81: the "i" pop-up (InfoTip, a bottom sheet on phones) and Lead sources ─── */
+/* A 44px tap target around a 28px circle (24px small); the negative margin keeps the line its own height. */
+.cc-tip-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -8px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--accent); font: inherit; cursor: pointer; vertical-align: middle; -webkit-tap-highlight-color: transparent; }
+.cc-tip-btn--warn { color: var(--cc-warn-text); }
+.cc-tip-btn__dot { display: inline-grid; place-items: center; width: 28px; height: 28px; box-sizing: border-box; border-radius: 999px; border: 1.5px solid currentColor; font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 14px; font-weight: 700; font-style: italic; line-height: 1; }
+.cc-tip-btn--sm .cc-tip-btn__dot { width: 24px; height: 24px; font-size: 12px; }
+.cc-tip-btn:hover .cc-tip-btn__dot { background: var(--accent-soft); }
+.cc-tip-btn--warn:hover .cc-tip-btn__dot { background: var(--cc-warn-bg); }
+.cc-tip-btn:focus-visible { outline: none; }
+.cc-tip-btn:focus-visible .cc-tip-btn__dot { outline: 2px solid currentColor; outline-offset: 3px; }
+.cc-tip-btn[aria-expanded="true"] .cc-tip-btn__dot { background: var(--accent); border-color: var(--accent); color: var(--bg-elevated); }
+.cc-tip-btn--warn[aria-expanded="true"] .cc-tip-btn__dot { background: var(--cc-warn-text); border-color: var(--cc-warn-text); }
+/* Desktop: a card beside the button, placed in page coordinates by InfoTip (under the sticky top bar when scrolled). */
+.cc-tip { position: absolute; z-index: 39; width: min(400px, calc(100vw - 32px)); }
+.cc-tip:not([data-placed]) { top: 0; left: 0; visibility: hidden; }
+.cc-tip__backdrop, .cc-tip__grip { display: none; }
+.cc-tip__panel { position: relative; box-sizing: border-box; padding: 18px 20px 20px; border: 1px solid var(--rule-strong); border-radius: 16px; background: var(--bg-elevated); color: var(--fg); box-shadow: var(--cc-shadow); font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 14.5px; line-height: 1.55; }
+.cc-tip__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.cc-tip__title { margin: 0; padding-top: 2px; font-size: 17px; font-weight: 600; line-height: 1.3; color: var(--fg); }
+.cc-tip__title:focus { outline: none; }
+.cc-tip__x { flex: none; display: inline-grid; place-items: center; width: 44px; height: 44px; margin: -10px -12px -8px 0; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--fg-soft); font: inherit; font-size: 22px; line-height: 1; cursor: pointer; }
+.cc-tip__x:hover { color: var(--fg); background: var(--cc-card-2); }
+.cc-tip__x:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cc-tip__body { color: var(--fg-soft); }
+.cc-tip__body p { margin: 10px 0 0; }
+.cc-tip__body ul { margin: 4px 0 0; padding-left: 20px; list-style: disc; }
+.cc-tip__body li { margin: 2px 0 0; }
+.cc-tip__body strong { color: var(--fg); font-weight: 600; }
+.cc-tip__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.cc-dsheet .cc-tip__copy { background: transparent; border-color: var(--accent); color: var(--fg); }
+.cc-dsheet .cc-tip__copy:hover { background: var(--accent-soft); }
+.cc-tip__body .cc-tip__status { margin: 8px 0 0; color: var(--fg); font-weight: 500; }
+.cc-tip__body .cc-tip__status:empty { display: none; }
+.cc-tip__note { display: block; }
+.cc-tip__note .mlo-textarea { margin-top: 8px; font-size: 13.5px; background: var(--bg-sunken); resize: vertical; }
+/* Phones: a bottom sheet over a dimmed page, the copy button full width. */
+@media (max-width: 639px) {
+  .cc-tip, .cc-tip:not([data-placed]) { position: fixed; inset: 0; z-index: 80; width: auto; display: flex; align-items: flex-end; visibility: visible; }
+  .cc-tip__backdrop { display: block; position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }
+  .cc-tip__panel { width: 100%; max-height: 86svh; overflow-y: auto; border-width: 1px 0 0; border-radius: 22px 22px 0 0; padding: 10px 20px calc(24px + env(safe-area-inset-bottom, 0px)); font-size: 15px; animation: sheet-up 420ms var(--ease-spring); }
+  .cc-tip__grip { display: block; width: 40px; height: 5px; margin: 0 auto 14px; border-radius: 999px; background: var(--rule-strong); }
+  .cc-tip__title { font-size: 19px; }
+  .cc-tip__actions .mlo-btn { flex: 1 1 100%; min-height: 48px; }
+  .cc-dsheet .cc-tip__copy { background: var(--cc-hi); border-color: var(--cc-hi); color: var(--cc-hi-text); }
+}
+@media (prefers-reduced-motion: reduce) { .cc-tip__panel { animation: none; } }
+/* Lead sources: the permission line and each lead's permission. */
+.cc-permline { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.cc-permline .mlo-note { margin: 0; }
+.cc-leadperm { display: inline-flex; align-items: center; gap: 6px; }
+.mlo-table td.cc-leadperm-cell { text-align: right; vertical-align: middle; white-space: nowrap; }

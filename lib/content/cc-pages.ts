@@ -177,9 +177,38 @@ export const PIPELINE = {
 
 /** Leads (D76): the consent fields in words. */
 export const LEADS = {
-  how: "Paste your connection address into your lead vendor's delivery settings (Zillow, LendingTree, Bankrate and others), or into a Zapier step from your web form. Each new lead lands in your contacts and at the top of Today. A duplicate is merged, never doubled.",
-  consent: "Permission: the vendor's consent wording is saved with the lead, but it counts as permission only when it names you or your company. Many forms only name “partners”; those leads show “no permission yet”. Ask your vendor to send their consent wording, when the person agreed, and the web page they agreed on.",
+  how: "Paste your connection address into your lead vendor's delivery settings (Zillow, LendingTree, Bankrate and others), or into a Zapier step from your web form. Each new lead lands in your contacts and at the top of Today.",
+  /** D81: one line, then the "i" (the old consent paragraph moved into the pop-up). */
+  permissionLine: "Permission is saved with every lead.",
+  /** D81: what Recent leads shows for each lead. */
+  status: { ok: "Permission on file", none: "No permission yet" },
+  /** D81: the "i" beside "No permission yet" in Recent leads (one name per lead, so a screen reader can tell them apart). */
+  rowTipLabel: (name: string) => (name ? `Why no permission yet for ${name}` : "Why no permission yet"),
+  /** D81: the pop-up (a bottom sheet on phones). */
+  tip: {
+    label: "When a lead counts as permission",
+    title: "When a lead counts as permission",
+    named: "Your vendor’s consent wording is saved with every lead. It counts as permission to text or call only when it names you or your company.",
+    /** Followed by the status in bold and a period. */
+    partners: "Many forms name only “partners.” Those leads show",
+    askIntro: "Ask your vendor to send three things with every lead:",
+    ask: ["Their consent wording", "When the person agreed", "The web page where they agreed"],
+    copy: "Copy a note for your vendor",
+    copied: "Copied. Paste it into an email or message to your vendor.",
+    copyManual: "Your browser didn’t let the page copy it. The note is selected below: copy it from there.",
+    noteLabel: "Note for your vendor",
+    /** What "Copy a note for your vendor" copies: short, polite, with the three field names. */
+    vendorNote:
+      "Hi, could you please include these three fields with every lead you send me?\n\n" +
+      "- consent_text: the consent wording the person agreed to\n" +
+      "- consent_timestamp: when they agreed\n" +
+      "- page_url: the web page where they agreed\n\n" +
+      "Thank you!",
+  },
   connectAt: "Make a connection address on Connections.",
 };
+
+/** D81: the reusable "i" pop-up's own words (app/mlo/InfoTip.tsx). */
+export const INFO_TIP = { close: "Close" };
 
 export const words = (n: number) => ["no", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"][n] ?? String(n);

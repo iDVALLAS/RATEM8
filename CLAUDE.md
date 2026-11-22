@@ -243,6 +243,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     list goes to the model, a strict tool answer is zod-checked (else dropped), no-AI word matching otherwise; protected-trait asks refused before any
     call; editable chips; rates are each client's own closed rate, LO only, never in messages. Import step 3 suggests lists from on-device counts (M8
     sees column names and counts only; agent imports never); agents in a client file go to Agents. Lists are live; "Freeze this list" tags today's people.
+    D81 Lead sources (`/mlo/leads`, D81–D87 brief `docs/work/D81-D87-lead-sources-2026-11-22.md`): "Permission is saved with every lead." plus
+    `InfoTip` (`app/mlo/InfoTip.tsx`: a real button with aria-label/aria-expanded, 44px target, focus in and back, Esc and a tap outside close,
+    a bottom sheet under 640px, `cc-dsheet` colors, words in `cc-pages.ts` `INFO_TIP`/`LEADS.tip`); the same i beside each "No permission yet";
+    "Copy a note for your vendor" (clipboard, else the note selected) names `consent_text`, `consent_timestamp`, `page_url`. Copy only; intake unchanged.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -351,7 +355,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 867 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 875 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

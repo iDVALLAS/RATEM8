@@ -6560,3 +6560,56 @@ Owner: "Promote anything that is waiting".
 - loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/api/health` 200,
   `/chat` 307 (tester lock).
 - **Next up:** D81–D87, the lead sources rebuild, preview only until the owner signs off.
+
+## D81 — Lead sources copy cleanup and the "i" pop-up (2026-11-22)
+
+Spec: "## D81" in `docs/work/D81-D87-lead-sources-2026-11-22.md` (the owner's brief, verbatim). Built in Command Center styles after the approved
+"1 · Lead sources, cleaned up" (desktop pop-up) and "1b · phone" (bottom sheet) mockups: D72 classes, tokens only, words in `lib/content/cc-pages.ts`.
+Copy and display only: `lib/leads/intake.ts` is untouched (duplicates still merge; permission still counts only when the wording names the loan
+officer or their company, as the pop-up now says).
+
+- **Files:** new `app/mlo/InfoTip.tsx` (the reusable "i"), `app/mlo/leads/PermissionTip.tsx` (the permission pop-up and "Copy a note for your vendor"),
+  `app/mlo/leads/leads.test.ts` (8); changed `lib/content/cc-pages.ts` (`LEADS.how` without "A duplicate is merged, never doubled."; `LEADS.consent`
+  replaced by `permissionLine`, `status`, `rowTipLabel`, `tip`; new `INFO_TIP`), `app/mlo/leads/page.tsx`, `app/mlo/cc-shell.css` (D81 block),
+  `scripts/qa/{command-center,buttons}.mjs`, `CLAUDE.md`.
+- **What the loan officer sees:** under "Connect a lead source", the how-to paragraph (no duplicate sentence) and one line, "Permission is saved with
+  every lead.", with a round "i". It opens "When a lead counts as permission": the consent wording is saved with every lead and counts as permission to
+  text or call only when it names you or your company; many forms name only "partners", and those leads show **No permission yet**; ask your vendor to
+  send three things (their consent wording, when the person agreed, the web page where they agreed); and **Copy a note for your vendor**. On desktop it
+  opens beside the i (above it when there's no room below); under 640px it's a bottom sheet over a dimmed page with the copy button full width. Recent
+  leads shows each lead's permission as a pill, "Permission on file" or "No permission yet", and every "No permission yet" has the same i (amber, 24px).
+- **InfoTip:** a real `<button>` with `aria-label` (its name), `aria-expanded`, `aria-haspopup="dialog"` and `aria-controls` while open; a 28px circle
+  (24px small) inside a 44px target, with a negative margin so the line keeps its height. The pop-up is `role="dialog"` named by its heading, rendered
+  into `<body>` with `cc-dsheet` (Night, Dim and Paper colors). Focus moves to the heading; Tab and Shift+Tab stay inside; Esc, ×, the button, the
+  phone's backdrop or a tap on an empty part of the page close it and give focus back to the button (a tap on another control leaves focus there).
+  Placement is written straight to the element before focus, so the heading is never focused while hidden. The page doesn't scroll behind the sheet
+  on phones (`cc-lock`). Its own word ("Close") is `INFO_TIP.close`; callers pass the name, title and body. Props `tone="warn"` and `size="sm"`.
+- **The vendor note:** "Hi, could you please include these three fields with every lead you send me?" then `consent_text` (the consent wording the
+  person agreed to), `consent_timestamp` (when they agreed) and `page_url` (the web page where they agreed), "Thank you!". Copied with the clipboard;
+  when the browser refuses, the note appears in a box, selected, and the older copy command is tried; the status line says "Copied. Paste it into an
+  email or message to your vendor." or "Your browser didn't let the page copy it. The note is selected below: copy it from there." (a live region).
+- **Tests** (`app/mlo/leads/leads.test.ts`, 8): `LEADS.how` has no duplicate sentence and `LEADS.consent` is gone; the owner's pop-up words exactly;
+  the note is polite, short and names the three fields (no numbers, NMLS or addresses); each row's i is named after its lead ("Why no permission yet for
+  Eve Ng", plain fallback); InfoTip renders a button with `aria-label`, `aria-expanded="false"`, `aria-haspopup` and no dialog until opened; the warn
+  and small classes and the row's own name; its 44px targets and tokens-only CSS; the page wires the line and an i beside every "No permission yet".
+- **Verified:** `npm run verify` passes (875 tests; check:copy, check:identity, check:licensing, build, check:bundle). `node scripts/qa/command-center.mjs`
+  on a freshly started server: PROBLEMS none (new step "d81": the duplicate sentence gone; the i opened with Enter, focus on the pop-up's heading and
+  still inside after four Tabs, the target 44×44, Esc closes with `aria-expanded="false"` and focus back on the i; a tap outside closes it; Copy shows
+  "Copied" and the clipboard holds the note with `consent_text`, `consent_timestamp` and `page_url`; × gives focus back; Eve Ng (Zillow, no consent
+  wording) shows No permission yet and "Why no permission yet for Eve Ng" opens the same pop-up; 2 rows say No permission yet and 2 have an i; at 390 it
+  is a full-width bottom sheet, no sideways scroll, and the backdrop closes it with focus back on the i). `node scripts/qa/buttons.mjs` on a freshly
+  started server: 492 page views (adds Lead sources with the i open at 390/1280 in Night and Paper), PROBLEMS none. Scratch sweep (`d81shots.mjs`,
+  three leads: one naming the company, one naming only "partners", one with no wording): Lead sources closed, the i open, Copy without clipboard
+  permission (the fallback: "Copied" with the note selected), and a row's i, at 390 and 1280 in Night, Dim and Paper: no sideways scroll, no page
+  errors, the pop-up inside the screen, row i 44×44, body text 11.6–13.1:1 and title 15.0–18.5:1 against the panel.
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d81/` (`leads-*`, `tip-*`, `tip-copied-*`, `row-tip-*`,
+  each `<390|1280>-<night|dim|paper>`; `qa-open-1280`, `qa-row-1280`, `qa-sheet-390` from the QA step; `buttons/` has the audit's `leads_tip-*`).
+- **Decisions:** (a) Recent leads' wording follows the mockup: "Permission on file" (was "Form named you: permission on file", which also showed for a
+  merged lead whose yes came from somewhere else) and "No permission yet", as D77's `cc-reach` pills. (b) Each row's i is named after its lead so a
+  screen reader can tell them apart. (c) The desktop copy button is outlined and the phone's is filled, as in the two mockups. (d) The pop-up is a
+  dialog that keeps focus inside while open (Tab cycles), on desktop too; a tap outside closes it. (e) The pop-up scrolls with the page and sits under
+  the sticky top bar (z-index 39); the phone sheet sits over the bottom tabs (80). (f) When the fallback copies, the note box stays visible so the
+  loan officer sees what was copied. (g) The "Field names for your vendor" fold stays (it's in the mockup and adds the `?source=` tip).
+- **Known gaps:** the pop-up doesn't follow its button if the page reflows while it's open (it re-places on resize only); the row i's are 30 copies
+  of the same pop-up (one per lead shown), each opened on its own; no example rows yet (D82).
+- **Next up:** D82 (example mode until real leads arrive), after the owner's sign-off.
