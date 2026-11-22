@@ -7,17 +7,26 @@ import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { contactStore } from "@/lib/contacts/store";
 import { summarize } from "@/lib/contacts/service";
+import { pipelineStore } from "@/lib/pipeline/store";
+import { SYSTEMS } from "@/lib/connect/catalog";
+import { connectedSourceLabels, isRealLead, leadPageMode, leadSourceLabel, recentLeads, sourceCounts, type SectionKey } from "@/lib/leads/mode";
 import { FlashBox, MloNav } from "../MloChrome";
-import KeyMaker from "../pipeline/KeyMaker";
 import PageHead from "../PageHead";
-import PermissionTip from "./PermissionTip";
+import { AddSource, AskBar, ExamplePlan, ExampleRecent, ExampleScorecard, RealRecent, RealScorecard } from "./LeadSections";
 import { LEADS, SUBS } from "@/lib/content/cc-pages";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Lead sources", robots: { index: false, follow: false } };
 
-/** /mlo/leads — connect lead vendors and web forms; see new leads and whether their form gave you permission (D14). */
+/** Connection addresses that aren't lead sources (made on Connections for a loan system or a dialer). */
+const NOT_LEADS = ["Loan system", "Dialer", ...SYSTEMS.filter((s) => s.brings === "loans").map((s) => s.name)];
+
+/**
+ * /mlo/leads — connect lead vendors and web forms; see new leads and whether their form gave you permission (D14).
+ * D82: until the first real lead the page shows its whole layout with example numbers (lib/leads/examples.ts),
+ * each example section labeled; each section switches to the loan officer's own data on its own (lib/leads/mode.ts).
+ */
 export default async function Leads({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
   const { f } = await searchParams;
   const v = await requireViewer();
@@ -25,9 +34,41 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
   const me = v.user;
   const h = await headers();
   const endpoint = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}/api/leads/inbound`;
-  const { contacts } = me ? await contactStore().list({ ownerUserId: me.id, kind: "contact", limit: 2000 }) : { contacts: [] };
-  const leads = contacts.filter((c) => c.source.startsWith("lead:")).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 30);
-  const consents = await contactStore().consentsFor(leads.map((c) => c.id));
+  const [{ contacts }, keys] = me
+    ? await Promise.all([contactStore().list({ ownerUserId: me.id, kind: "contact", limit: 2000 }), pipelineStore().keys(me.id).catch(() => [])])
+    : [{ contacts: [] }, []];
+  // D83 adds lead events and D86 saved plans; until then neither exists.
+  const mode = leadPageMode({ contacts, leadEvents: 0, savedPlan: false, assistant: me?.role === "assistant" });
+  const now = new Date();
+  const recent = recentLeads(contacts);
+  const counted = mode.scorecard === "real" ? contacts.filter(isRealLead) : [];
+  const ids = [...new Set([...recent, ...counted].map((c) => c.id))];
+  const consents = ids.length ? await contactStore().consentsFor(ids) : [];
+
+  const sections: Record<SectionKey, () => React.ReactNode> = {
+    add: () => (me ? <AddSource key="add" compact={mode.addCard === "compact"} endpoint={endpoint} owner={me.role === "owner"} connected={connectedSourceLabels(keys.map((k) => k.label), NOT_LEADS)} /> : null),
+    ask: () => (mode.ask === "off" ? null : <AskBar key="ask" />),
+    scorecard: () => (mode.scorecard === "off" ? null : mode.scorecard === "example" ? <ExampleScorecard key="scorecard" /> : <RealScorecard key="scorecard" rows={sourceCounts(counted, consents, now, LEADS.recent.vendorFile)} />),
+    plan: () => (mode.plan === "off" ? null : <ExamplePlan key="plan" afterLeads={mode.hasRealLeads} />),
+    recent: () =>
+      mode.recent === "example" ? (
+        <ExampleRecent key="recent" />
+      ) : (
+        <RealRecent
+          key="recent"
+          rows={recent.map((c) => {
+            const s = summarize(consents.filter((e) => e.contactId === c.id));
+            return {
+              id: c.id,
+              name: `${c.firstName} ${c.lastName}`.trim() || c.email || "",
+              source: leadSourceLabel(c, LEADS.recent.vendorFile),
+              at: new Date(c.createdAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
+              ok: s.text.marketing.granted || s.call.marketing.granted,
+            };
+          })}
+        />
+      ),
+  };
 
   return (
     <PageShell>
@@ -38,52 +79,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
         {!me ? (
           <section className="mlo-section"><p className="mlo-note"><Link href="/sign-in">Sign in with your email</Link> first.</p></section>
         ) : (
-          <>
-            <section className="mlo-section">
-              <h2>Connect a lead source</h2>
-              <p className="mlo-note">{LEADS.how} Name the address after the vendor so you can tell them apart.</p>
-              <div className="cc-permline">
-                <p className="mlo-note">{LEADS.permissionLine}</p>
-                <PermissionTip />
-              </div>
-              <KeyMaker endpoint={endpoint} defaultLabel="Lead vendor" owner={me.role === "owner"} />
-              <p className="mlo-note">See and turn off your addresses on <Link href="/mlo/connections#keys">Connections</Link>.</p>
-              <details className="mlo-details">
-                <summary>Field names for your vendor</summary>
-                <p className="mlo-note">The consent wording as <code>consent_text</code>, when they agreed as <code>consent_timestamp</code>, and the web page as <code>page_url</code>. Add <code>?source=</code> and the vendor&apos;s name to the address to label each lead.</p>
-              </details>
-            </section>
-
-            <section className="mlo-section">
-              <h2>Recent leads ({leads.length})</h2>
-              {leads.length === 0 ? <p className="mlo-note">None yet.</p> : (
-                <table className="mlo-table mlo-table--plain">
-                  <tbody>
-                    {leads.map((c) => {
-                      const s = summarize(consents.filter((e) => e.contactId === c.id));
-                      const ok = s.text.marketing.granted || s.call.marketing.granted;
-                      const name = `${c.firstName} ${c.lastName}`.trim() || c.email || "";
-                      return (
-                        <tr key={c.id}>
-                          <th scope="row"><Link href={`/mlo/contacts/${c.id}`}>{name}</Link><br /><span className="mlo-note">{c.source.slice(6)} · {new Date(c.createdAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span></th>
-                          <td className="cc-leadperm-cell">
-                            {ok ? (
-                              <span className="cc-reach cc-reach--ok">{LEADS.status.ok}</span>
-                            ) : (
-                              <span className="cc-leadperm">
-                                <span className="cc-reach cc-reach--warn">{LEADS.status.none}</span>
-                                <PermissionTip label={LEADS.rowTipLabel(name)} tone="warn" size="sm" />
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </section>
-          </>
+          mode.order.map((k) => sections[k]())
         )}
       </div>
     </PageShell>

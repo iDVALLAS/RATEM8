@@ -311,6 +311,41 @@ function audit() {
     }
     await signedIn.close(); await anon.close();
   }
+  // D82: Lead sources once a lead has arrived (the routes above saw it in example mode on a fresh book): the scorecard
+  // and Recent leads real, the compact add card in section 4.
+  if (!only.length || only.includes('leads real')) {
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+    await ctx.addCookies(cookies);
+    const lp = await ctx.newPage();
+    try {
+      await lp.goto(B + '/mlo/leads', { waitUntil: 'networkidle' });
+      if (!(await lp.locator('#recent a[href^="/mlo/contacts/"]').count())) {
+        await lp.locator('#add input.mlo-input').fill('Zillow');
+        await lp.locator('#add').getByRole('button', { name: 'Make my connection address' }).click();
+        const key = new URL((await lp.locator('#add code.mlo-code').first().innerText()).trim()).searchParams.get('key') ?? '';
+        await lp.request.post(B + '/api/leads/inbound?source=Zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
+      }
+    } catch (e) { problems.push(`[leads real seed] FAILED: ${e.message.split('\n')[0]}`); }
+    await ctx.close();
+    for (const theme of ['night', 'paper']) for (const w of [390, 1280]) {
+      const c = await b.newContext({ viewport: { width: w, height: 900 } });
+      await c.addCookies(cookies);
+      await c.addInitScript((t) => { try { localStorage.setItem('loanm8.theme', t); } catch {} }, theme);
+      const page = await c.newPage();
+      const where = `leads real @${w} ${theme}`;
+      try {
+        await page.goto(B + '/mlo/leads', { waitUntil: 'networkidle' });
+        await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+        await page.waitForTimeout(150);
+        const res = await page.evaluate(audit);
+        total++;
+        for (const p of [...new Set(res.problems)]) problems.push(`[${where}] ${p}`);
+        json[where] = { height: res.height, buttons: res.dump };
+        if (out) await page.screenshot({ path: path.join(out, `leads_real-${w}-${theme}.png`), fullPage: true });
+      } catch (e) { problems.push(`[${where}] FAILED: ${e.message.split('\n')[0]}`); }
+      await c.close();
+    }
+  }
   if (process.env.QA_JSON) fs.writeFileSync(process.env.QA_JSON, JSON.stringify(json, null, 1));
   console.log(`checked ${total} page views (${routes.length} pages × 390/1280 × Night/Paper)`);
   console.log('\nPROBLEMS:', problems.length ? `${problems.length}\n` + problems.join('\n') : 'none');

@@ -206,6 +206,69 @@ export const LEADS = {
       "Thank you!",
   },
   connectAt: "Make a connection address on Connections.",
+  /** D82: every example section's label (shown in capitals) and its one line. */
+  example: {
+    label: "Example",
+    line: "These are example numbers. Yours appear here after your first lead arrives.",
+    /** The plan card once real leads exist: it stays an example until a plan is saved. */
+    planLine: "These are example numbers. Yours appear here after you save your first plan.",
+  },
+  /** D82: the question box at the top (answers come with D85). */
+  ask: {
+    label: "Ask your Concierge about lead sources",
+    placeholder: "Ask your Concierge about lead sources, budget or cost per lead",
+    button: "Ask",
+    tryLabel: "Questions to try",
+    suggestions: ["Which source should I add next?", "Plan $1,500 a month for 90 days", "Which vendors don’t give me permission?"],
+    off: "Not on yet. Your Concierge answers questions about lead sources here once it can read your scorecard.",
+  },
+  /** D82: the scorecard (Option B: a table on desktop, cards on phones). */
+  score: {
+    title: "Scorecard",
+    periodLabel: "Period",
+    periods: ["30 days", "90 days", "This year"],
+    bannerWho: "Business Manager:",
+    review: "Review",
+    cols: { source: "Source", spent: "Spent", leads: "Leads", perLead: "Per lead", canCall: "You can call", loans: "Loans", perLoan: "Per loan", says: "Concierge says" },
+    perLoanUnit: "per loan",
+    noLoans: "None yet",
+    noLoansCard: "No loans yet",
+    badges: { best: "Best value", scale: "Scale up", watch: "Watch", fix: "Fix permission", pause: "Pause?" },
+    spendLine: "Spend comes from lead-spend lines in Expenses.",
+    logSpend: "Log spend",
+    canCallNote: "“You can call” = leads whose consent wording named you or your company.",
+    /** The real scorecard before spend and loans are tagged by source. */
+    real: {
+      sub: "Your leads in the last 90 days, by where they came from.",
+      none: "No leads in the last 90 days.",
+      notYet: "Spend, cost per lead and loans per source aren’t counted here yet.",
+    },
+  },
+  /** D82: the lead plan card (the planner comes with D86). */
+  plan: {
+    title: "Your lead plan",
+    line: (monthly: string, day: number, of: number) => `${monthly} a month · day ${day} of ${of}`,
+    next: (when: string) => `Next check-in ${when}`,
+    open: "Open budget planner",
+    off: "The budget planner isn’t on yet.",
+  },
+  /** D82: the add card (full on top until real leads arrive, then compact). */
+  add: {
+    title: "Add a lead source",
+    nameTip: "Name the address after the vendor so you can tell them apart.",
+    on: (label: string) => `${label} · on`,
+    connected: "Your lead connections",
+    manage: "Manage on Connections",
+    how: "How to connect a vendor, and the field names to send",
+    fieldsTitle: "Field names for your vendor",
+  },
+  /** D82: Recent leads. */
+  recent: {
+    title: (n: number) => `Recent leads (${n})`,
+    none: "None yet.",
+    /** An imported lead from a vendor file with no Lead source column. */
+    vendorFile: "Lead vendor file",
+  },
 };
 
 /** D81: the reusable "i" pop-up's own words (app/mlo/InfoTip.tsx). */

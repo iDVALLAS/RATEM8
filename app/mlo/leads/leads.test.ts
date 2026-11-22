@@ -77,7 +77,8 @@ describe("InfoTip (D81)", () => {
   });
 
   it("the page shows the line and the i, and an i beside every No permission yet", () => {
-    const page = readFileSync(join(process.cwd(), "app/mlo/leads/page.tsx"), "utf8");
+    // D82: the page's sections moved to LeadSections.tsx.
+    const page = ["page.tsx", "LeadSections.tsx"].map((f) => readFileSync(join(process.cwd(), "app/mlo/leads", f), "utf8")).join("\n");
     expect(page).toContain("{LEADS.permissionLine}");
     expect(page).not.toContain("LEADS.consent");
     expect(page).toMatch(/\{LEADS\.status\.none\}<\/span>\s*<PermissionTip label=\{LEADS\.rowTipLabel\(name\)\}/);

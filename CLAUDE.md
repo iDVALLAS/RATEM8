@@ -247,6 +247,11 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     `InfoTip` (`app/mlo/InfoTip.tsx`: a real button with aria-label/aria-expanded, 44px target, focus in and back, Esc and a tap outside close,
     a bottom sheet under 640px, `cc-dsheet` colors, words in `cc-pages.ts` `INFO_TIP`/`LEADS.tip`); the same i beside each "No permission yet";
     "Copy a note for your vendor" (clipboard, else the note selected) names `consent_text`, `consent_timestamp`, `page_url`. Copy only; intake unchanged.
+    D82 example mode (`lib/leads/mode.ts` pure switch, `lib/leads/examples.ts` fixed fixture, `app/mlo/leads/LeadSections.tsx`): until a real lead
+    (a `lead:` contact, an import marked lead vendor, or a D83 lead event) Lead sources shows Add a lead source on top, then the ask bar, scorecard
+    (table / phone cards), plan card and Recent leads from the fixture, each "EXAMPLE" plus its line; each section switches on its own (plan only on a
+    saved plan, D86), never mixed; then the add card is compact in section 4. Example buttons disabled, rows never links; only `LeadSections.tsx` may
+    import the fixture (test); assistants see the add card and Recent leads only.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -355,7 +360,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 875 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 894 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

@@ -6613,3 +6613,90 @@ officer or their company, as the pop-up now says).
 - **Known gaps:** the pop-up doesn't follow its button if the page reflows while it's open (it re-places on resize only); the row i's are 30 copies
   of the same pop-up (one per lead shown), each opened on its own; no example rows yet (D82).
 - **Next up:** D82 (example mode until real leads arrive), after the owner's sign-off.
+
+## D82 — Example mode until real leads arrive (2026-11-22)
+
+Spec: "## D82" in `docs/work/D81-D87-lead-sources-2026-11-22.md` (the owner's brief, verbatim), with the "Owner decisions (2026-11-22)" and
+"Builder notes" at its end. Built after the "page once built" mockup (section order and sample rows) and Options B and C (scorecard table and phone
+cards, plan card): D72 classes, tokens only, words in `lib/content/cc-pages.ts`. Display only: no store, intake, export, report, Concierge or agent
+code changed.
+
+- **Files:** new `lib/leads/mode.ts` (pure: `isRealLead`, `hasRealLeads`, `leadPageMode`, `leadSourceLabel`, `recentLeads`, `leadNamedYou`,
+  `sourceCounts`, `share`, `connectedSourceLabels`), `lib/leads/examples.ts` (the fixed fixture, deep-frozen, plus `exampleRow`),
+  `app/mlo/leads/LeadSections.tsx` (`AskBar`, `ExampleScorecard`, `RealScorecard`, `ExamplePlan`, `AddSource`, `ExampleRecent`, `RealRecent`),
+  `lib/leads/examples.test.ts` (19); changed `app/mlo/leads/page.tsx` (sections in the mode's order), `lib/content/cc-pages.ts` (`LEADS.example`,
+  `ask`, `score`, `plan`, `add`, `recent`), `app/mlo/cc-shell.css` (D82 block), `app/mlo/leads/leads.test.ts` (reads `LeadSections.tsx` too, where the
+  D81 markup moved), `scripts/qa/{command-center,buttons}.mjs`, `CLAUDE.md`.
+- **What the loan officer sees with no leads yet:** Add a lead source at the top (connecting a source is the first job): the how-to, "Permission is
+  saved with every lead." and its i, the connection address maker, a chip per lead connection ("Zillow · on", from their connection addresses minus
+  the loan system and dialer ones), "Manage on Connections" and the field names fold. Then the question box ("Ask your Concierge about lead sources,
+  budget or cost per lead", Ask, and the three questions to try) with "Not on yet. Your Concierge answers questions about lead sources here once it
+  can read your scorecard."; the **Scorecard** (EXAMPLE): 30 days / 90 days / This year, the Business Manager's line with Review, and Past clients &
+  sphere $120 · 18 · $7 · 100% · 2 · $60 Best value, Your web form $1,800 · 60 · $30 · 100% · 3 · $600 Scale up, Zillow $3,600 · 40 · $90 · 100% · 2 ·
+  $1,800 Watch, LendingTree $2,700 · 90 · $30 · 20% · 1 · $2,700 Fix permission, Bankrate $1,500 · 25 · $60 · 40% · 0 · None yet Pause?, as a table on
+  desktop and stacked cards under 720px (each with its line: "Cards & campaigns", "Google Ads → Zapier", "Highest cost per lead", "$150 per lead you can
+  call", "90 days, 0 closings"), "Spend comes from lead-spend lines in Expenses. Log spend" and what "You can call" means; **Your lead plan** (EXAMPLE):
+  "$1,500 a month · day 34 of 90", the split bar, "Past clients $150 · Web form ads $900 · Zillow $450 · Next check-in Dec 22", Open budget planner and
+  "The budget planner isn't on yet."; **Recent leads (3)** (EXAMPLE): Maria Lopez (Zillow, Permission on file), Dana Nguyen (LendingTree, No permission
+  yet with its i), Sam Patel (Your web form, Permission on file). Every example section has the EXAMPLE label and "These are example numbers. Yours
+  appear here after your first lead arrives."
+- **After the first real lead:** the question box, then the Scorecard with the loan officer's own leads in the last 90 days by source (Source ·
+  Leads · You can call as "1 · 33%", low shares in the warning color), "Spend, cost per lead and loans per source aren't counted here yet." and what
+  "You can call" means; the plan card still an example, its line now "…after you save your first plan."; Add a lead source in section 4, compact (the
+  how-to moves into the fold "How to connect a vendor, and the field names to send"); Recent leads as in D81, now also listing imported vendor leads.
+- **The switch** (`lib/leads/mode.ts`, pure, no imports): a real lead is a contact delivered to the lead address (`lead:` source), a contact from an
+  import the loan officer marked as from a lead vendor (provenance `lead_vendor`; its Lead source column names the source), or a lead event (D83 passes
+  `leadEvents`; 0 until then). Scorecard, question box and Recent leads go real with the first real lead; the plan card only with a saved plan (D86
+  passes `savedPlan`; always false now); the add card is "top" (full) or "compact" (section 4); `order` is the page order. Each section has one mode,
+  so example and real rows never share a section. Assistants get `off` for the question box, scorecard and plan (no spend) and the page as before:
+  the add card and their own Recent leads.
+- **The real scorecard before D83–D84:** `sourceCounts` counts real leads created in the last 90 days per source (case-insensitive, most leads
+  first) and "you can call" from the delivered form only: a granted text or call entry written by the intake (actor `lead:…`, not a merged copy), the
+  rule D83's `namesYou` backfill uses (decision 1). An imported lead counts as callable only with such an entry (else false, decision 4).
+- **Example rows stay on the page:** the fixture is display only and deep-frozen. A test walks every file under `app/`, `lib/` and `components/`:
+  only `LeadSections.tsx` (and the test) imports it, nothing outside `app/mlo/leads/` imports the page's files, `mode.ts` imports nothing, and the
+  sample names and the Business Manager's line appear in no other source file. With an empty book, rendering the example sections writes nothing to
+  the contact store, the Business Manager's `snapshot()` has no sources, and Download everything (unzipped) holds none of the example names or
+  figures. The Concierge (`lib/concierge/*`), the agents (`lib/agents/*`), exports (`lib/export/*`) and the weekly report can't reach the fixture
+  because nothing they import does.
+- **No pretend actions:** the question box's field and Ask, the period switch, Review and Open budget planner are disabled with a line saying what's
+  not on yet; the suggested questions are plain text; example names aren't links (a test checks every example section's buttons are disabled and
+  none links into contacts). "Log spend" goes to Expenses (a real page). The permission i on Dana's row works (it explains, nothing more).
+- **Tests** (`lib/leads/examples.test.ts`, 19): an empty book is all example with the add card on top; the first delivered lead flips the scorecard,
+  question box and Recent leads and moves the add card to section 4 (compact) while the plan stays an example; a saved plan flips only the plan; a lead
+  event alone counts; vendor imports count, a past-client or CRM file with a Lead source column, hand-added people and agents don't; assistants;
+  labels and newest-first; the 90-day counts and "you can call" (a later yes, an import's attested yes, a merged copy and a revocation don't count);
+  the add card's chips; the fixture's worked-out numbers equal the mockup's ($7, $30, $90, $30, $60; 100/100/100/20/40%; $60, $600, $1,800, $2,700,
+  None yet; $150 per lead you can call) and the plan split adds up to $1,500; frozen; no rates or banned words (built in pieces for check:copy);
+  every example section's label and line; disabled buttons and no contact links; the table and five phone cards with the mockup's words; real
+  sections carry no example rows; and the isolation tests above.
+- **Verified:** `npm run verify` passes (894 tests; check:copy, check:identity, check:licensing, build, check:bundle). `node scripts/qa/buttons.mjs` on
+  a freshly started server: 496 page views (adds "leads real": Lead sources after a lead arrives, folds open, at 390/1280 in Night and Paper; the
+  routes before it audit Lead sources in example mode on the fresh book), PROBLEMS none. `node scripts/qa/command-center.mjs` on a freshly started
+  server: PROBLEMS none (new step "d82: example mode on an empty book" before the first import: order add, ask, scorecard, plan, recent; EXAMPLE and the
+  line on the scorecard, plan and Recent leads, none on the add card; Maria, Dana and Sam shown, no contact links; no example button pressable; the
+  table at 1280, five cards and no table at 390, no sideways scroll. New step "d82: real mode after the first lead" after the QA lead intake: order
+  ask, scorecard, plan, add, recent; scorecard "zillow 1 0 · 0%" with no EXAMPLE and no sample vendors; the "Past clients" workbook's Lead Source
+  column (Referral, Zillow) not counted; plan still EXAMPLE with "after you save your first plan"; add card compact; Eve Ng a link in Recent leads).
+  One earlier run showed a React #418 hydration error on `/mlo/calls?list=d-past` at 390 that didn't come back on a rerun (not a D82 page). Scratch sweep
+  (`d82shots.mjs`): example mode on a fresh book, then a Zillow lead and a LendingTree lead naming the company, at 390 and 1280 in Night, Dim and
+  Paper: no sideways scroll, no page errors, smallest text contrast in the five sections 5.78:1 (Night), 5.62:1 (Dim), 5.60:1 (Paper).
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d82/` (`example-*` and `real-*` at
+  `<390|1280>-<night|dim|paper>`; `qa-example-1280`, `qa-example-390`, `qa-real-1280` from the QA steps; `buttons/` has the audit's set incl.
+  `leads_real-*`).
+- **Decisions:** (a) **An import counts as leads only when the loan officer marked the file as from a lead vendor** (provenance `lead_vendor`); a
+  Lead source column alone doesn't. The QA's "Past clients export" workbook has a Lead Source column ("Referral", "Zillow" on loans funded in 2021–22);
+  reading decision 4 as "a Lead source column or lead-vendor provenance" turned those past clients into "leads in the last 90 days" (their contacts
+  are dated by the import). For the owner to confirm: D83's backfill uses the same `isRealLead`. (b) The scorecard has a real form before D84: lead
+  counts and "you can call" by source for 90 days, with a line that spend and loans aren't counted yet, so the section can switch on its own as the
+  brief asks without inventing numbers. (c) The plan card keeps the brief's line while there are no leads and says "…after you save your first plan"
+  once there are (the first line would be untrue then). (d) The question box carries no EXAMPLE label (it shows no numbers); it is disabled with a
+  "Not on yet" line until D85. (e) The period switch, Review and Open budget planner are disabled buttons; "Set a monthly amount per source" is left out
+  until D83 builds it. (f) No page-wide "SAMPLE NUMBERS" pill: each example section has its own label, as the brief says. (g) The plan card's heading
+  is "Your lead plan" with the figures on the next line (a heading that reads as a name). (h) Phone cards under 720px (where the eight-column table
+  would scroll). (i) The add card's chips are the loan officer's connection addresses except loan systems (ARIVE, LendingPad, Encompass, any other
+  system) and the dialer; the PageHead sub stays as is until D87 updates `SUBS.leads`.
+- **Known gaps:** a lead delivered for someone already in the book (merged, the contact keeps its first source) doesn't switch the page by itself;
+  D83's lead events will. Imported vendor leads show no "you can call" until D83 backfills `namesYou`. The real scorecard is lead counts only
+  (spend, cost per lead and loans come with D83–D84); no period switch on it yet. No example mode for assistants (they never see spend).
+- **Next up:** D83 (lead spend tagged by source, and a lead-event log), after the owner's sign-off.

@@ -42,6 +42,36 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
   const importAll = async () => { await toColumns(); await toReview(); await finish(); };
 
   await page.goto(B + '/api/cc/dev-login?email=owner@example.com');
+  // D82: before any lead, Lead sources shows its whole layout with example numbers: Add a lead source on top, then the
+  // question box, the scorecard (a table here, cards on a phone), the plan card and Recent leads, each example labeled.
+  const D82 = process.env.QA_D82_SHOTS || '';
+  if (D82) fs.mkdirSync(D82, { recursive: true });
+  const leadSections = () => page.$$eval('main .mlo-section', (s) => s.map((x) => ({ id: x.id, example: x.dataset.example || '', label: !!x.querySelector('.cc-ex') })));
+  await step('d82: example mode on an empty book', async () => {
+    await page.goto(B + '/mlo/leads');
+    const secs = await leadSections();
+    console.log('d82: example order:', secs.map((x) => x.id + (x.label ? '(EXAMPLE)' : '')).join(', '));
+    if (secs.map((x) => x.id).join() !== 'add,ask,scorecard,plan,recent') problems.push('[d82] example order: ' + secs.map((x) => x.id).join());
+    for (const id of ['scorecard', 'plan', 'recent']) {
+      const sec = page.locator('#' + id);
+      if ((await sec.locator('.cc-ex').innerText()) !== 'EXAMPLE') problems.push(`[d82] #${id} has no EXAMPLE label`);
+      if (!/These are example numbers\. Yours appear here after your first lead arrives\./.test(await sec.innerText())) problems.push(`[d82] #${id} lacks the example line`);
+    }
+    if (await page.locator('#add .cc-ex').count()) problems.push('[d82] the add card is labeled an example');
+    if (await page.locator('#recent a[href^="/mlo/contacts/"]').count()) problems.push('[d82] example rows link into contacts');
+    for (const n of ['Maria Lopez', 'Dana Nguyen', 'Sam Patel']) if (!(await page.locator('#recent', { hasText: n }).count())) problems.push('[d82] example lead missing: ' + n);
+    const live = await page.locator('#ask button:not([disabled]), #scorecard button:not([disabled]), #plan button:not([disabled])').count();
+    if (live) problems.push(`[d82] ${live} example buttons can be pressed`);
+    if (!(await page.locator('#scorecard table').isVisible())) problems.push('[d82] no scorecard table at 1280');
+    if (D82) await page.screenshot({ path: path.join(D82, 'qa-example-1280.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    if (await page.locator('#scorecard table').isVisible()) problems.push('[d82] the scorecard table shows on a phone');
+    if ((await page.locator('#scorecard .cc-scard:visible').count()) !== 5) problems.push('[d82] expected 5 scorecard cards on a phone');
+    if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push('[d82] sideways scroll at 390');
+    if (D82) await page.screenshot({ path: path.join(D82, 'qa-example-390.png'), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
+  });
   await step('import', async () => {
     await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
     await page.setInputFiles('input[type=file]', CSV);
@@ -226,6 +256,27 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     if (!key) problems.push('[pipeline key] no key in the connection address');
     for (const st of ['Application Taken', 'Initial Disclosures Sent']) await page.request.post(B + '/api/pipeline/inbound', { headers: { 'X-CC-Key': key }, data: { loanNumber: 'L-1', borrowerFirstName: 'Bo', borrowerLastName: 'Park', borrowerPhone: '425-555-2222', loanStatus: st, loanPurpose: 'Purchase', applicationDate: '2026-11-17', closingDate: '2026-12-04', buyerAgentName: 'Al Agent' } });
     await page.request.post(B + '/api/leads/inbound?source=zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
+  });
+  // D82: once a lead has arrived, the scorecard and Recent leads are the loan officer's own (no EXAMPLE, Eve links to her
+  // contact), the add card moves to section 4 in its compact form, and the plan card stays an example until a plan is saved.
+  await step('d82: real mode after the first lead', async () => {
+    await page.goto(B + '/mlo/leads');
+    const secs = await leadSections();
+    console.log('d82: real order:', secs.map((x) => x.id + (x.label ? '(EXAMPLE)' : '')).join(', '));
+    if (secs.map((x) => x.id).join() !== 'ask,scorecard,plan,add,recent') problems.push('[d82] real order: ' + secs.map((x) => x.id).join());
+    for (const id of ['scorecard', 'recent']) if (await page.locator(`#${id} .cc-ex`).count()) problems.push(`[d82] #${id} still labeled an example`);
+    if (!(await page.locator('#plan .cc-ex').count())) problems.push('[d82] the plan card lost its EXAMPLE label');
+    if (!/after you save your first plan/.test(await page.locator('#plan').innerText())) problems.push('[d82] the plan card line');
+    if (!(await page.locator('#add.cc-addsrc--compact').count())) problems.push('[d82] the add card is not compact');
+    const score = await page.locator('#scorecard').innerText();
+    console.log('d82: real scorecard:', score.replace(/\n+/g, ' | ').slice(0, 200));
+    if (!/zillow\t1\t/i.test(score) || /LendingTree|Bankrate|\$3,600/.test(score)) problems.push('[d82] real scorecard rows: ' + score.slice(0, 200));
+    // The "Past clients" workbook imported earlier has a Lead Source column (Referral, Zillow): those people aren't new leads.
+    if (/Referral/.test(score)) problems.push('[d82] a past-client file\'s Lead Source column counted as a lead: ' + score.slice(0, 200));
+    const recent = await page.locator('#recent').innerText();
+    if (/Maria Lopez|Dana Nguyen|Sam Patel/.test(recent)) problems.push('[d82] example rows mixed into real Recent leads');
+    if (!(await page.locator('#recent a[href^="/mlo/contacts/"]', { hasText: 'Eve Ng' }).count())) problems.push('[d82] Eve is not a link in Recent leads');
+    if (D82) await page.screenshot({ path: path.join(D82, 'qa-real-1280.png'), fullPage: true });
   });
   // D77: add a person by hand (and a duplicate refused), record permission, edit the phone (permission set back, checks
   // cleared), merge a second record into them, and check the list's row and the header's one-tap actions.

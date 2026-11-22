@@ -1061,3 +1061,69 @@
 .cc-permline .mlo-note { margin: 0; }
 .cc-leadperm { display: inline-flex; align-items: center; gap: 6px; }
 .mlo-table td.cc-leadperm-cell { text-align: right; vertical-align: middle; white-space: nowrap; }
+
+/* ─── D82: Lead sources in example mode (and the sections D83–D86 fill in) ─── */
+/* A section's heading row: the title, the EXAMPLE label, and anything that sits on the right (the period switch). */
+.cc-leadsec__head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.cc-leadsec__head h2 { margin: 0; }
+.cc-leadsec__aside { margin-left: auto; }
+.cc-ex { display: inline-flex; align-items: center; min-height: 24px; padding: 1px 10px; border: 1px solid var(--rule-strong); border-radius: 999px; color: var(--fg-soft); font: 500 11px/1.4 var(--font-jetbrains), ui-monospace, monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+.cc-ex-line { margin: 6px 0 0; color: var(--fg-soft); font-size: 14px; line-height: 1.5; }
+/* The question box: one field and Ask, then the questions to try (plain text until D85 answers them). */
+.cc-leadask__form .mlo-input { flex: 1 1 240px; }
+.cc-app .cc-leadask__form .mlo-input:disabled { opacity: 1; color: var(--fg-soft); cursor: not-allowed; }
+.cc-app .cc-leadask__form .mlo-input::placeholder { color: var(--muted); opacity: 1; }
+.cc-leadask__try { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.cc-leadask__try li { display: inline-flex; align-items: center; min-height: 32px; padding: 4px 12px; border: 1px solid var(--rule-strong); border-radius: 999px; color: var(--fg-soft); font-size: 13.5px; }
+.cc-leadask .cc-leadask__off { margin: 10px 0 0; }
+/* The scorecard: a period switch, the Business Manager's line, a table on desktop and cards on phones. */
+.cc-period { display: inline-flex; gap: 2px; border-radius: 999px; background: var(--cc-card-2); }
+.cc-app .cc-period__b { min-height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--fg-soft); font: inherit; font-size: 13.5px; }
+.cc-app .cc-period__b[aria-pressed="true"] { background: var(--cc-nav-on); color: var(--cc-nav-on-fg); font-weight: 600; }
+.cc-app .cc-period__b:disabled { cursor: not-allowed; }
+.cc-leadbanner { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 16px; border-radius: 14px; background: var(--accent-soft); }
+.cc-leadbanner p { flex: 1 1 320px; margin: 0; color: var(--fg); font-size: 14.5px; line-height: 1.5; }
+.cc-leadbanner strong { font-weight: 600; }
+.cc-score__wide { margin-top: 12px; }
+.cc-score__tbl { font-variant-numeric: tabular-nums; }
+.cc-score__tbl:not(.cc-score__tbl--real) { min-width: 760px; }
+.cc-score__tbl th, .cc-score__tbl td { vertical-align: middle; }
+.cc-score__tbl .cc-num { text-align: right; white-space: nowrap; }
+.cc-score__tbl tbody td { font-size: 14px; color: var(--fg-soft); }
+.cc-score__tbl--real { margin-top: 10px; }
+.cc-app .cc-num--warn, .cc-app .cc-score__tbl td.cc-num--warn { color: var(--cc-warn-text); font-weight: 600; }
+.cc-reach--plain { background: var(--cc-card-2); color: var(--fg-soft); }
+.cc-score__cards { display: none; margin: 12px 0 0; padding: 0; list-style: none; gap: 10px; }
+.cc-scard { padding: 14px 16px; border-radius: 16px; background: var(--bg-sunken); }
+.cc-scard__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.cc-scard__name { margin: 0; font-size: 16px; font-weight: 600; color: var(--fg); }
+.cc-scard__big { margin: 8px 0 0; color: var(--fg-soft); font-size: 14px; }
+.cc-scard__big strong { color: var(--fg); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cc-scard__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; margin: 10px 0 0; }
+.cc-scard__stats dt { color: var(--muted); font-size: 12px; }
+.cc-scard__stats dd { margin: 0; color: var(--fg); font-size: 15px; font-variant-numeric: tabular-nums; }
+.cc-scard__note { margin: 10px 0 0; color: var(--fg-soft); font-size: 13px; }
+.cc-score .cc-score__foot { margin: 10px 0 0; }
+.cc-score .cc-score__foot + .cc-score__foot { margin-top: 4px; }
+@media (max-width: 719px) {
+  .cc-score__wide { display: none; }
+  .cc-score__cards { display: grid; }
+}
+/* The lead plan card: the month's budget, a split bar, and the planner button. */
+.cc-plan__row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; margin-top: 12px; }
+.cc-plan__main { flex: 1 1 320px; min-width: 0; }
+.cc-plan__line { margin: 0; color: var(--fg); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cc-plan__bar { display: flex; gap: 3px; height: 14px; margin-top: 12px; border-radius: 6px; overflow: hidden; }
+.cc-plan__seg { display: block; height: 100%; }
+.cc-plan__seg--1 { background: var(--accent); }
+.cc-plan__seg--2 { background: var(--cc-mint); }
+.cc-plan__seg--3 { background: var(--muted); }
+.cc-plan__main .mlo-note { margin: 8px 0 0; }
+.cc-plan > .mlo-note { margin: 10px 0 0; }
+/* The add card: the connection address maker, the permission line, the sources already connected. */
+.cc-addsrc .cc-permline { margin: 10px 0; }
+.cc-addsrc__chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.cc-addsrc__list { display: contents; list-style: none; }
+.cc-addsrc__list .cc-chip { min-height: 32px; box-sizing: border-box; padding: 6px 12px; border-radius: 999px; color: var(--fg); }
+.cc-app .cc-addsrc__manage { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--accent); font-size: 14px; }
+.cc-addsrc .mlo-details { margin-top: 8px; }
