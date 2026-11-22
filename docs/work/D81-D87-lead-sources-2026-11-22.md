@@ -182,3 +182,66 @@ Rules:
 * Update the Lead sources entry on the Tools page, `SUBS.leads`, to: "Where your leads come from, what each source costs, and what to do next."
 * Write the PATCHLOG entries.
 * Post the preview URL and a short list of anything you couldn't build or had to change.
+
+---
+
+## Owner decisions (2026-11-22), answering the pre-flight conflict check
+
+1. **"Leads you can call" — both.** The scorecard credits a vendor only when *that delivery's* consent wording named
+   the loan officer or their company (`namesYou`, frozen on the lead event at delivery; from `consentNamesUs` in
+   `lib/leads/intake.ts`). Recent leads keeps showing whether the person can be contacted *today* (the current
+   consent summary). A repeat delivery from a vendor whose form names only "partners" is not callable for that
+   vendor even if another vendor's form gave permission earlier.
+2. **Example mode keeps the real vendor names** (Zillow, LendingTree, Bankrate) from the mockup, under the visible
+   EXAMPLE label and its line "These are example numbers. Yours appear here after your first lead arrives." The
+   owner's reasoning: the label tells the user these are layout examples, not real data. Never mix example rows
+   with real rows, never send them to the AI or agents as real, never export or count them.
+3. **Sphere spend includes closing gifts, as written.** Owner: "closing gifts are allowed for clients and agents
+   under RESPA — they are not tied to referrals." So "Past clients & sphere" spend may include cards, Thanks.io and
+   closing gifts (client or agent) tagged with that source. Guardrails that stay: nothing — copy, Concierge answers,
+   Business Manager moves or the planner — may tie a gift to a referral, suggest a gift in exchange for referrals,
+   or describe gifts as "the cost of a referral"; the RESPA §8 guard lines stay. Record this decision in the PATCHLOG
+   for counsel.
+4. **Imported vendor leads count fully.** Contacts imported from a vendor file with a Lead source (`Contact.leadSource`,
+   or provenance `lead_vendor`) are backfilled as lead events and counted everywhere (leads, permission rates, loans),
+   and the loan officer can work them from Contacts the same as delivered leads. Their `namesYou` comes from what the
+   import recorded (a granted consent row for that person whose wording/attestation names the LO), else false.
+
+## Builder notes from the pre-flight check (obvious choices, apply unless they conflict)
+
+- **One source-key helper** (lowercase slug) with aliases for Zillow, LendingTree, Bankrate, LowerMyBills, Google Ads,
+  Meta, "Past clients & sphere" and "Your web form"; use it for `lead:` sources, the `lead:<slug>` tag, imports'
+  `leadSource`, expenses and `lib/agents/business.ts` (which slices the source differently from the page today).
+- Connection-address labels (`lib/pipeline/keys.ts`) are only picker suggestions; drop default labels like
+  "Loan system" and "Lead vendor".
+- **Webhook retries are not repeats:** skip a second event with the same owner, source and `externalId`.
+- Every delivery is a lead; repeats are a subset. Loans credit the contact's first source only.
+- Backfill `namesYou` from a granted consent row whose actor starts with `lead:` (not the current summary); the
+  `lead.inbound` audit rows hold duplicate history.
+- Past client / sphere are `Contact.relationship` values (`lib/contacts/filter.ts`), not tags — use the field.
+- Loans: no `createdAt`; "started" = `keyDates.application`, else the first history entry. "Closed" =
+  `closed && !dead` with `milestoneAt`, as `business.ts` does.
+- Expense parser: add Bankrate, LendingTree, LowerMyBills (and the other named vendors) under advertising.
+- `Entry.source` gains "monthly"; one draft per source per month, made by the morning run (Hobby: no new cron);
+  Neon `ALTER TABLE cc_expenses ADD COLUMN IF NOT EXISTS lead_source text`.
+- Tasks on Today: either allow a task with no contact plus a "plan step" card linking to `/mlo/leads/plan`, or use
+  Business Manager moves (`contactId: null`, `href`). Pick one and keep it consistent across D84–D86.
+- Approval: moves have no generic Approve today (`kind: "plan"` offers Done/Dismiss). Add an approve action that
+  passes Compliance (`reviewMove`); D84's approve stays disabled or "coming with the planner" until D86's plan store.
+- Concierge: a new `askLeadSources()` beside `ask()` in `lib/concierge/desk.ts`; keep the guard (a guard failure holds
+  the whole answer); only figures missing from the pack drop their sentence; figures in the question count as allowed;
+  vendor names go in nonce data blocks; in example mode send no example rows at all.
+- Red-team tests that must contain banned words go in `tests/` or build the strings in pieces (check:copy scans
+  `lib/**/*.test.ts`).
+- Exports: `expenses.csv` gains `leadSource`; add `lead-events.csv` and the saved plan to Download everything.
+- Contact merge re-points lead events (like tasks in `lib/contacts/manage.ts`); deleting a contact keeps events.
+- Expenses are private to their owner: the page stays own-book only; assistants see no spend.
+- `/mlo/agents` shows `snapshot.sources` with a conversion rate — update it and its test; name the new scorecard so it
+  doesn't collide with `scorecard()` in `lib/agents/service.ts`.
+- There is no Tools page: update `SUBS.leads` and the Leads entry's `desc` in `app/mlo/nav.ts`.
+- Test that "%" in "share you can call" doesn't trip the rate detector (`findRateMentions`).
+- Label planner ranges "estimates" (own-data only, like `goalPlan`).
+- For counsel in the PATCHLOG: the catalog's open-house line (`ATTORNEY_REVIEW_LIST.md` co-marketing), Meta and
+  search ads need Special Ad Category and fair-housing audiences, the trigger-lead block added to the guard, and the
+  closing-gift decision above.
+- The weekly report still counts leads from contacts; leave it and note the difference in the PATCHLOG.
