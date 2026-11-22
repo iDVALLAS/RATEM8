@@ -14,7 +14,9 @@
  *    Consent given to "partners" or another lender isn't permission to
  *    contact them from here (ledger §A/§B; carrier and state rules).
  *  - the lead's own message is kept as data, never as instructions
- *  - nothing is sent; the lead shows on Today right away (speed to lead)
+ *  - nothing is sent to the lead; the lead shows on Today right away (speed to lead)
+ *  - D79: a new person (not a duplicate) alerts the loan officer by text or
+ *    email, their choice, within their notification hours (lib/leads/alert.ts)
  */
 import { randomBytes } from "node:crypto";
 import { accountStore, type User } from "@/lib/accounts/store";
@@ -108,7 +110,7 @@ export function consentNamesUs(text: string, user: User): boolean {
 
 export type LeadResult = { contactId: string; created: boolean; permission: "recorded" | "not_naming_us" | "none" };
 
-export async function ingestLead(user: User, lead: Lead, now = new Date()): Promise<LeadResult> {
+export async function ingestLead(user: User, lead: Lead, now = new Date(), alertDeps: import("./alert").AlertDeps = {}): Promise<LeadResult> {
   const store = contactStore();
   const at = now.toISOString();
   const tag = `lead:${lead.vendor.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30)}`;
@@ -159,6 +161,11 @@ export async function ingestLead(user: User, lead: Lead, now = new Date()): Prom
     await onNewLead(user, c.id, now);
   } catch {
     // A campaign problem never loses the lead.
+  }
+  // D79: tell the loan officer (first name, state and source only). Never throws.
+  if (created) {
+    const { alertNewLead } = await import("./alert");
+    await alertNewLead(user, c, now, alertDeps);
   }
   return { contactId: c.id, created, permission };
 }

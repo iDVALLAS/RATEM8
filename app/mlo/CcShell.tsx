@@ -28,6 +28,13 @@ export default async function CcShell({ children }: { children: React.ReactNode;
       await sendQueuedOnOpen(user).catch(() => undefined);
     });
   }
+  // D79: new-lead alerts that waited for the notification hours go out once they're open.
+  if (user) {
+    after(async () => {
+      const { sendHeldAlerts } = await import("@/lib/leads/alert");
+      await sendHeldAlerts(user).catch(() => undefined);
+    });
+  }
   return (
     <div className="cc-app">
       <CcTopBar admin={admin} signedIn={!!user} pilot={pilotOn()} name={user?.name ?? (basic ? "Shared admin login" : "")} email={user?.email ?? ""} role={user ? ROLE_LABELS[user.role] : ""} tenantId={listTenants()[0]?.id ?? ""} badges={{ concierge: drafts, inbox: replies }} />

@@ -6356,3 +6356,91 @@ loan fields are not built; the rule shape is made for D80 to extend.
   at)` can come if lists grow); assigning doesn't move Concierge reminders or drafts; Dim was swept in the scratch run only (it shares Night's
   rules in the buttons audit).
 - **Next up:** D79 (inbox you can reply from, plus a new-lead alert), after the owner's sign-off.
+
+## D79 — Inbox you can reply from, plus a new-lead alert (2026-11-22)
+
+Spec: "### D79" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. Built in Command Center styles (D72 classes, D77's header card and
+timeline, tokens only). Nothing new is sent on its own: replies are the loan officer's, Concierge drafts wait for approval, and the only new
+automatic message is the alert to the loan officer themselves.
+
+- **Files:** new `lib/inbox/state.ts` (pure: `threadState`, tabs, `INBOX_TABS`, time-zone helpers `wallClock`/`zonedTime`/`tomorrowAt`/`whenIn`/
+  `shortWhen`, notification hours `inHours`/`nextOpen`, `TIME_ZONES`), `lib/inbox/store.ts` (`cc_inbox_marks`, memory and Neon),
+  `lib/inbox/service.ts` (`inboxThreads`, `needsReplyCount`, `markDone`/`markNotDone`, `snoozeThread`/`unsnooze`, `replyFromInbox`),
+  `lib/profile/prefs.ts` (`cc_user_prefs`: time zone, alert choice, hours, alert mobile, held alerts; `checkPrefs`, `savePrefs`, `zoneFor`),
+  `lib/leads/alert.ts` (`alertNewLead`, `sendHeldAlerts`, `alertOne`/`alertMany`, `leadLabel`), `lib/content/inbox.ts` (all the copy),
+  `app/mlo/inbox/actions.ts`, `app/mlo/settings/{page,actions}.tsx`, `app/api/cc/dev-inbound/route.ts` (local QA only), `lib/inbox/inbox.test.ts`
+  (22); changed `app/mlo/inbox/page.tsx` (rebuilt), `lib/messaging/service.ts` (`recordInbound` split out of `handleInbound`, same steps),
+  `lib/messaging/replies.ts` (the badge reads the Inbox state), `lib/leads/intake.ts` (alert after a new person), `lib/concierge/agent.ts`
+  (`draftReply`), `app/mlo/CcShell.tsx` (held alerts after a page view), `app/api/cc/concierge/sweep/route.ts` (held alerts in the morning run),
+  `app/mlo/nav.ts` (Your settings), `app/mlo/contacts/[id]/PhoneText.tsx` (`refresh`, `stopWhere`), `lib/content/activity.ts`,
+  `app/mlo/cc-shell.css` (D79 block), `scripts/qa/{command-center,buttons}.mjs`, `CLAUDE.md`.
+- **Inbox** (`/mlo/inbox`): tabs **Needs reply (N)** · **All** · **Done (N)**. Desktop (≥900px): the conversations on the left (sticky, scrolls on
+  its own), the one picked on the right (the first in the tab until one is tapped). Phones: the list; tapping opens the conversation full screen
+  with "‹ Back to Inbox". Each row: initials, name, time (today's time, a weekday this week, else the date), a two-line preview ("You: …" when
+  you wrote last) and a pill (Needs reply / Done / Snoozed until … / Said stop). The conversation: a slim card (name; phone or email · state ·
+  relationship; the reach badge and permission line; up to 6 tags), then **Done** (or **Not done**), **Snooze until tomorrow 9 AM** (or **Back to
+  Needs reply**), **Open their page**; the Concierge's draft (Approve and send / Edit / Skip) or **Draft a reply for me**; the **Reply** box (a
+  text through Command Center's texting when it's set up, else D67's "Text from my phone"; "Email instead" in a fold; the same purpose picker
+  with "allowed now / not now"); then the last 30 messages, newest first, times in the loan officer's zone.
+- **Needs reply:** the latest message came in from them and it isn't marked Done (Done covers every message up to the moment it's pressed) or
+  snoozed (pressed after their latest message, until 9 AM the next day where the loan officer is). A new message from them always brings it back.
+  A STOP (inbound note "Opt-out recorded") reads "Said stop" and never waits. You wrote last = out of Needs reply. The phone tab's and top bar's
+  Inbox badge and Home's replies chip count exactly Needs reply.
+- **New-lead alert:** after `ingestLead` makes a new person (a duplicate merge doesn't alert): "New lead: Maria, WA, from Zillow. Tap to call:
+  <link to /mlo/contacts/<id>>" by email (default), text, both, or off. Only first name, state and source, each cut to plain letters (a link or
+  markup in a lead's name or vendor can't ride along); never phone, email, last name or their message. Outside the notification hours (default
+  8 AM–9 PM in their zone; overnight ranges and "any time" work) or past 10 alerts an hour, it waits (ids only) and goes as one ("2 new leads came
+  in: - Maria, WA, from Zillow: <link> …") when the hours open: in the morning run or on the loan officer's next Command Center page view
+  (`after()`, never slows the page). Off drops anything waiting. Texts go through the company's registered sender (`textSender`), never to a
+  number that texted STOP; when a text can't go, the alert goes by email. Email through the platform's Resend sender (the dev server logs it as
+  `[dev-mail]`, as D44's mail does). Audited as `lead.alert` with outcome and channel only.
+- **Your settings** (`/mlo/settings`, Settings menu): time zone (Eastern, Central, Mountain, Arizona, Pacific, Alaska, Hawaii, Atlantic; default
+  from the loan officer's first license state, else Pacific), "Alert me for new leads" (Email / Text / Text and email / Off), the mobile for alert
+  texts (required for text; prefilled from their record; a fake 555-01xx refused), and notification hours (from / until). Only one's own settings.
+- **Compliance:** every reply goes through `sendText` / `textFromPhone` / `sendEmail`, so permission, stops, do-not-call, holds, quiet hours where
+  they live (the refusal says when their window opens, in the loan officer's zone), caps, licensing, the signed first text and the email footer
+  all apply. A STOP-type reply records the stop and ends every campaign, any reply ends follow-ups (unchanged D51 path, now in `recordInbound`);
+  webhooks are still signature-checked (`/api/twilio/inbound` untouched). Their words are rendered as React text, never HTML (QA sends `<b>`).
+  Every read and write checks `canSee` (an assistant works their officer's book; another book's thread can't be read, marked or answered).
+  "Draft a reply for me" is the Concierge's own book only, runs the same lanes first (stop: nothing; hard life event or protected topic: a "reply
+  personally" reminder), puts their words only inside nonce data blocks (no phone, email, rates or agent/RETR data), passes the same guard,
+  falls back to the plain reply template without the AI, says why when the contact rules hold it, and is never sent until approved. The alert
+  is to the loan officer, not marketing to the lead. No new cron (Hobby): held alerts ride the morning run and page views.
+- **Tests** (`lib/inbox/inbox.test.ts`, 22): the needs-reply state (in/out/done/new message after done/STOP), the list with states and the badge,
+  another book refused, an assistant in and out of a book, a STOP recorded and not waiting; snooze returns at 9 AM the next day (Pacific), hidden
+  until then, back at once on a new message; the time zone (Eastern snooze, late evening, the end of daylight saving, Hawaii, times shown);
+  settings validation; notification hours incl. overnight; Neon rows bind values; the alert's words (no phone/email/last name, plain letters
+  only), off, email by default, someone else's lead, quiet hours held then one alert, turning off drops waiting alerts, text with STOP falling back
+  to email, a burst held past 10; intake alerts a new person only; an Inbox reply goes through the gate (refused without permission and from
+  another book, sent and signed with permission, held by quiet hours) and from the loan officer's phone; the Concierge draft (off, template,
+  one at a time, the client's words inside the nonce block and no phone or email, another book), why there's no draft, and a hard life event.
+- **Verified:** `npm run verify` passes (827 tests). `node scripts/qa/command-center.mjs` on a freshly started server: PROBLEMS none (new step
+  "d79": three pretend replies → Needs reply (3) and the badge, `<b>` shown as text, open Ann, reply from the phone composer (at QA time, 9 PM
+  Pacific, the gate held it for quiet hours with the window time, which the step accepts; the sent path is covered by the tests), Done → "Marked Cy
+  done" and under Done, Snooze → "Snoozed Bo until Nov 22, 9:00 AM Pacific time" and "Snoozed until" in All, a new message brings Cy back, Your
+  settings refuses a fake mobile then saves Eastern any-time, a lead through `/api/leads/inbound` answers in under 10 ms and the alert email
+  "New lead: Wes, WA, from Zillow" with the contact link and nothing else is in the server log, Inbox times then in Eastern; the sweep adds
+  `/mlo/inbox?tab=all`, `?tab=done` and `/mlo/settings`). `node scripts/qa/buttons.mjs` on a freshly started server: 464 page views (adds
+  `/mlo/inbox?tab=all`, `/mlo/settings` and an open conversation with folds open), PROBLEMS none. Scratch sweep (`d79shots.mjs`): the Inbox's
+  three tabs, an open conversation and Your settings at 390 and 1280 in Night, Dim and Paper: no sideways scroll, no page errors.
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d79/` (`inbox-*`, `inbox-all-*`, `inbox-open-*`,
+  `inbox-done-*`, `settings-*`, each `<390|1280>-<night|dim|paper>`; `buttons/` has the audit's set).
+- **Decisions:** (a) "The officer's profile settings" didn't exist, so it's a new Settings page, **Your settings**, holding the time zone too
+  (the Inbox needed one; the default comes from their first license state, so the owner's stays Pacific). (b) Notification hours are a setting
+  (default 8 AM–9 PM); a waiting alert is sent once the hours open, as one alert, rather than dropped. (c) At most 10 alerts an hour per loan
+  officer; more wait and go together (a vendor's batch of 50 is one message). (d) A text alert that can't go (no texting, no mobile, or that
+  mobile texted STOP) becomes an email, so a lead is never missed silently. (e) Done and Snooze are per person, not per message, and cover only
+  what was there when pressed; snoozing clears Done and Done clears a snooze. (f) A STOP doesn't sit in Needs reply (a reply can't go). (g) The
+  draft is on request ("Draft a reply for me"), not made for every thread, so the AI runs only when asked; an existing pending draft shows in its
+  place. (h) After Done or Snooze the Inbox goes back to the tab (the next conversation), not the same one. (i) On desktop the first conversation
+  in the tab is shown until one is tapped (marked on wide screens only). (j) `/api/cc/dev-inbound` is how QA makes a reply without a carrier; it
+  is off unless CC_DEV_LOGIN=1 and never on Vercel. (k) Before the top bar is measured, the menu is clipped inside its bar (`:not([data-fit])`):
+  with reply and draft counts it was 40px too wide at 1280 for the moment before scripts ran (QA saw it once replies existed).
+- **Known gaps:** email replies don't come into the Inbox (the D52 mailbox is send-only; "They replied" on the contact page still ends follow-ups,
+  and their emails stay in the loan officer's own mail); a reply from the loan officer's own phone (D67) lands on their phone, not here; the
+  Inbox lists the latest 100 conversations; Approve on a Concierge draft sends a text through Command Center's texting only (as on the contact
+  page), so without texting set up a draft is copied by hand; at QA time (night) no draft could be made (quiet hours), so the draft card is
+  checked by the tests and the contact page's QA, not by a screenshot; alert emails come from the platform's address, not the loan officer's
+  mailbox; held alerts wait for the morning run or a page view (Hobby has no 15-minute cron); a merge (D77) leaves the other record's Done/Snooze
+  mark behind (harmless: it has no messages left); the time zone is used on the Inbox and for snoozes only (other pages still show Pacific).
+- **Next up:** D80 (loan details on contacts, lists suggested at import, "Ask M8 for a list"), after the owner's sign-off.

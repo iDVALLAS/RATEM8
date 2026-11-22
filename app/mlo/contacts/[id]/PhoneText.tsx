@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { phoneTextAction } from "../actions";
 
 /**
@@ -8,7 +9,8 @@ import { phoneTextAction } from "../actions";
  * writes the text, then opens Messages on the loan officer's own phone with
  * it filled in. They press send there; it goes from their own number.
  */
-export default function PhoneText({ contactId, first, maxLength, serviceOk, marketingOk }: { contactId: string; first: string; maxLength: number; serviceOk: boolean; marketingOk: boolean }) {
+export default function PhoneText({ contactId, first, maxLength, serviceOk, marketingOk, refresh = false, stopWhere = "under More ways to reach them" }: { contactId: string; first: string; maxLength: number; serviceOk: boolean; marketingOk: boolean; /** D79: read the page again once it's logged (the Inbox moves the conversation out of Needs reply). */ refresh?: boolean; /** Where "They asked to stop" is, from this page. */ stopWhere?: string }) {
+  const router = useRouter();
   const [body, setBody] = useState("");
   const [purpose, setPurpose] = useState<"service" | "marketing">("service");
   const [busy, setBusy] = useState(false);
@@ -24,6 +26,7 @@ export default function PhoneText({ contactId, first, maxLength, serviceOk, mark
       if (!r.ok) return setMsg({ ok: false, text: r.error });
       setMsg({ ok: true, text: "Messages is opening with your text. Press send on your phone. It's logged here.", href: r.href, body: r.body });
       setBody("");
+      if (refresh) router.refresh();
       window.location.href = r.href;
     } catch {
       setMsg({ ok: false, text: "That didn't work. Try again." });
@@ -55,7 +58,7 @@ export default function PhoneText({ contactId, first, maxLength, serviceOk, mark
         </select>
         <button type="submit" className="mlo-btn" disabled={busy || !body.trim()}>{busy ? "Checking…" : "Open in Messages"}</button>
       </div>
-      <p className="mlo-note">The same checks as any text, then Messages opens on your phone with it written; you press send, and it goes from your own number. Replies come to your phone. If they text STOP, press &ldquo;They asked to stop&rdquo; (under More ways to reach them).</p>
+      <p className="mlo-note">The same checks as any text, then Messages opens on your phone with it written; you press send, and it goes from your own number. Replies come to your phone. If they text STOP, press &ldquo;They asked to stop&rdquo; ({stopWhere}).</p>
       {msg ? (
         <div className={`mlo-flash ${msg.ok ? "mlo-flash--ok" : "mlo-flash--err"}`} role={msg.ok ? "status" : "alert"}>
           <p>{msg.text}</p>

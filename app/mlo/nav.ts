@@ -62,6 +62,7 @@ export const DESTS: Dest[] = [
   { key: "network", href: "/mlo/network", label: "Membership", icon: "network", group: "grow", desc: "People you brought in, your production share, AI use and your area's marketing.", account: true },
   { key: "expenses", href: "/mlo/expenses", label: "Expenses", icon: "receipt", group: "business", desc: "Talk or snap a receipt. A tax-ready report for your CPA at year end.", account: true },
   { key: "report", href: "/mlo/report", label: "Weekly report", icon: "chart", group: "business", desc: "Your week in numbers: reached, replies, drafts, loans moved." },
+  { key: "mysettings", href: "/mlo/settings", label: "Your settings", icon: "clock", group: "settings", desc: "Your time zone, and how you hear about new leads: text, email, both or off.", account: true },
   { key: "textsetup", href: "/mlo/text-setup", label: "Texting for your company", icon: "message", group: "settings", desc: "Register your company for business texting once; Command Center does the carrier paperwork and gets the number.", account: true },
   { key: "connections", href: "/mlo/connections", label: "Connections", icon: "network", group: "settings", desc: "Your loan system, application portal and CRM: ARIVE, LendingPad, Encompass, Shape, Bonzo and more.", account: true },
   { key: "email", href: "/mlo/email", label: "Email", icon: "send", group: "settings", desc: "Connect your Gmail or Microsoft 365, so emails to clients go from your own address.", account: true },

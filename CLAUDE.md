@@ -227,6 +227,14 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     do-not-call → Record permission `ids=`/`scope=list`, assign owners/team leads only, formula-safe CSV, Delete typing DELETE, not assistants,
     consent kept); campaigns "Add people from" a list/tag/import/relationship and trigger "when I add this tag" (`onTagsAdded`), all through
     `reachableFor` (gate, caps aside); call session `?list=`. D80 extends the same `ListRule`.
+    D79 Inbox (`lib/inbox/{state,store,service}.ts`, `app/mlo/inbox/{page,actions}.tsx`, copy `lib/content/inbox.ts`): two panes on desktop, a
+    conversation full screen on phones (`?c=`); Needs reply (last message in, not Done, not snoozed; a STOP reads "Said stop") / All / Done;
+    Done and "Snooze until tomorrow 9 AM" (`cc_inbox_marks`; a new message brings it back); replies through `sendText` / Text from my phone /
+    `sendEmail` (the gate); "Draft a reply for me" (`draftReply`, same lanes, nonce blocks, template without AI, never sent by itself); badge =
+    `needsReplyCount`. Your settings (`/mlo/settings`, `lib/profile/prefs.ts` `cc_user_prefs`): time zone (Inbox times, snooze) and new-lead
+    alerts text/email/both/off (default email) in notification hours (`lib/leads/alert.ts`: first name, state, source and a link only; outside
+    the hours or past 10 an hour they wait and go as one, via the morning run or the next page view; a text that can't go becomes an email).
+    `/api/cc/dev-inbound` is a local-only pretend reply (CC_DEV_LOGIN guard), same path as a real one (`recordInbound`).
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -335,7 +343,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 805 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 827 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

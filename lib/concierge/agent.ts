@@ -385,3 +385,52 @@ export async function sweep(user: User, opts: { now?: Date; call?: ModelCall | n
   await accountStore().audit({ at: now.toISOString(), actor: "concierge", action: "concierge.sweep", detail: { owner: user.id, people: out.people, proposals: out.proposals, tasks: out.tasks, remembered: out.remembered, personal: out.personal, refused: out.refused.length, errors: out.errors, mode: out.mode, models: out.models.join(",") || null } });
   return out;
 }
+
+/**
+ * D79: "Draft a reply for me" from the Inbox, for one person who wrote in.
+ * The same lanes run first (a stop: nothing; a hard life event or a
+ * protected topic: a "reply personally" reminder and no draft), then one
+ * draft through the same brief (their words only inside nonce data blocks,
+ * never contact details, rates or agent data), the same guard and the same
+ * gate answer. Without the AI it's the plain reply template. It's saved for
+ * the loan officer to approve; nothing is ever sent from here.
+ */
+export type DraftReplyResult = { kind: "made" | "template" | "exists" | "personal" | "none" | "off" | "skip"; reason?: string };
+
+export async function draftReply(user: User, contactId: string, opts: { now?: Date; call?: ModelCall | null } = {}): Promise<DraftReplyResult> {
+  const now = opts.now ?? new Date();
+  const s = await conciergeStore().settings(user.id);
+  if (!s.enabled) return { kind: "off" };
+  const c = await contactStore().get(contactId);
+  // The Concierge works its own loan officer's book only (an assistant's drafts would land on nobody's desk).
+  if (!c || c.ownerUserId !== user.id || c.locked || user.status !== "active") return { kind: "skip" };
+  if ((await conciergeStore().proposals(user.id, "pending")).some((p) => p.contactId === c.id)) return { kind: "exists" };
+  const lane = await laneFor(user, c, now);
+  if (lane.kind === "skip") return { kind: "skip" };
+  if (lane.kind === "personal") {
+    await conciergeStore().putTask({ id: id("k"), ownerUserId: user.id, contactId: c.id, title: lane.title, why: lane.why, due: now.toISOString().slice(0, 10), done: false, createdAt: now.toISOString(), lane: "personal" });
+    return { kind: "personal" };
+  }
+  const card: TodayCard = { kind: "reply", contactId: c.id, name: c.firstName, title: "", reason: "", score: 0, next: "reply" };
+  const b = await briefFor(user, c, card, now);
+  const out: SweepResult = { people: 1, proposals: 0, tasks: 0, remembered: 0, personal: 0, refused: [], mode: "template", models: [], errors: 0 };
+  const call = opts.call !== undefined ? opts.call : await aiCall(user, "concierge", anthropicModelCall, now);
+  let used: DraftReplyResult["kind"] = "template";
+  if (call) {
+    out.mode = "model";
+    try {
+      await runModel(call, user, b, s, now, out);
+      used = "made";
+    } catch {
+      out.errors++;
+    }
+  }
+  // No AI, an AI error, or the AI chose not to draft: the plain reply, when a service text is allowed.
+  if (!out.proposals) {
+    used = "template";
+    await runTemplates(user, b, { ...s, tasks: false }, now, out);
+  }
+  await accountStore().audit({ at: now.toISOString(), actor: "concierge", action: "concierge.draft_reply", detail: { owner: user.id, proposals: out.proposals, mode: out.mode, errors: out.errors, refused: out.refused.length } });
+  // No draft: say why when it's the contact rules (no permission, quiet hours where they live).
+  return out.proposals ? { kind: used } : { kind: "none", ...(b.allowed.service.ok ? {} : { reason: b.allowed.service.reason ?? undefined }) };
+}

@@ -363,8 +363,103 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     // Campaign page stays reachable.
     await page.goto(camp);
   });
+  // D79: replies land in the Inbox (a pretend text through /api/cc/dev-inbound, the same path a real one takes after the
+  // signature check), reply from it, mark one Done, snooze one; Your settings; a new lead sends the alert (dev-mail in the log).
+  await step('d79: inbox reply, done, snooze; settings; new-lead alert', async () => {
+    const idOf = async (q, name) => { await page.goto(B + '/mlo/contacts?q=' + encodeURIComponent(q)); return ((await page.getByRole('link', { name }).first().getAttribute('href')) ?? '').split('/').pop().split('?')[0]; };
+    const ann = await idOf('Lee', /Ann Lee/); const cy = await idOf('Ng', /Cy Ng/); const bo = await idOf('Park', /Bo Park/);
+    if (!/^c_/.test(ann) || !/^c_/.test(cy) || !/^c_/.test(bo)) problems.push(`[d79] contacts not found: ${ann} ${cy} ${bo}`);
+    // Ann can be texted (written permission), so a reply can go if her quiet hours allow.
+    await page.goto(B + '/mlo/contacts/' + ann + '?tab=permission');
+    const pf = page.locator('#permission form').first();
+    await pf.locator('select[name=channel]').selectOption('text'); await pf.locator('select[name=evidence]').selectOption('written');
+    await pf.locator('input[name=proof]').fill('Signed form, Nov 21'); await pf.getByRole('button', { name: 'Record it' }).click(); await page.waitForURL(/f=/);
+    const before = await page.goto(B + '/mlo/inbox').then(() => page.locator('.cc-ibx-tabs a').first().innerText());
+    for (const [id, body] of [[ann, 'Is the appraisal back yet?'], [cy, 'Thanks, got it.'], [bo, 'Can we talk tomorrow? <b>not bold</b>']]) {
+      const r = await page.request.post(B + '/api/cc/dev-inbound', { data: { contactId: id, body } });
+      if (r.status() !== 200) problems.push(`[d79] dev-inbound ${r.status()}`);
+    }
+    await page.goto(B + '/mlo/inbox');
+    const tabs = await page.locator('.cc-ibx-tabs a').allInnerTexts();
+    console.log('d79: tabs before/after:', before, '→', tabs.join(' | '));
+    if (!/^Needs reply \(\d+\)$/.test(tabs[0]) || Number(tabs[0].match(/\d+/)[0]) < 3) problems.push('[d79] Needs reply count: ' + tabs[0]);
+    const names = await page.locator('.cc-thread__name').allInnerTexts();
+    for (const n of ['Ann Lee', 'Cy Ng', 'Bo Park']) if (!names.includes(n)) problems.push(`[d79] ${n} not in Needs reply: ${names.join(', ')}`);
+    // Their words are text, never markup.
+    if (await page.locator('.cc-thread__preview b').count()) problems.push('[d79] a reply rendered as HTML');
+    if (!(await page.locator('.cc-thread__preview', { hasText: '<b>not bold</b>' }).count())) problems.push('[d79] the raw reply text is not shown as written');
+    const badge = await page.locator('.cc-badge').allInnerTexts();
+    console.log('d79: badges:', badge.join(','));
+    // Open Ann: the pane, the slim card, the reply box.
+    await page.locator('.cc-thread', { hasText: 'Ann Lee' }).click(); await page.waitForURL(/c=c_/);
+    if (!/Ann Lee/.test(await page.locator('.cc-ibx-card').innerText())) problems.push('[d79] pane is not Ann');
+    if (!(await page.locator('.cc-tl--in', { hasText: 'Is the appraisal back yet?' }).count())) problems.push('[d79] Ann\'s message not in the conversation');
+    // Reply (texting isn't set up here, so it's "Text from my phone": the same checks, then logged).
+    await page.locator('#phone-text textarea').fill('Yes, it came in at value. I will call you.');
+    await page.locator('#phone-text').getByRole('button', { name: 'Open in Messages' }).click();
+    await page.locator('#phone-text .mlo-flash').waitFor();
+    const said = await page.locator('#phone-text .mlo-flash').innerText();
+    console.log('d79: reply:', said.replace(/\n/g, ' | ').slice(0, 160));
+    if (/Messages is opening/.test(said)) {
+      await page.goto(B + '/mlo/inbox?tab=all&c=' + ann);
+      if ((await page.locator('.cc-thread', { hasText: 'Ann Lee' }).getAttribute('data-state')) !== 'sent') problems.push('[d79] Ann still needs a reply after the reply');
+      if (!(await page.locator('.cc-tl', { hasText: 'Yes, it came in at value.' }).count())) problems.push('[d79] the reply is not in the conversation');
+    } else if (!/window|quiet|hours|opens/i.test(said)) problems.push('[d79] reply refused for a reason other than quiet hours: ' + said);
+    // Done: Cy leaves Needs reply and shows under Done.
+    await page.goto(B + '/mlo/inbox?c=' + cy);
+    await page.locator('.cc-ibx-acts').getByRole('button', { name: 'Done', exact: true }).click(); await page.waitForURL(/f=/);
+    console.log('d79: done:', await flash());
+    if (!/Marked Cy done/.test(await flash())) problems.push('[d79] done flash: ' + await flash());
+    if (await page.locator('.cc-thread', { hasText: 'Cy Ng' }).count()) problems.push('[d79] Cy still in Needs reply');
+    await page.goto(B + '/mlo/inbox?tab=done');
+    if (!(await page.locator('.cc-thread', { hasText: 'Cy Ng' }).count())) problems.push('[d79] Cy not under Done');
+    // Snooze: Bo leaves Needs reply until tomorrow 9 AM.
+    await page.goto(B + '/mlo/inbox?c=' + bo);
+    await page.getByRole('button', { name: 'Snooze until tomorrow 9 AM' }).click(); await page.waitForURL(/f=/);
+    console.log('d79: snooze:', await flash());
+    if (!/Snoozed Bo until .* 9:00 AM/.test(await flash())) problems.push('[d79] snooze flash: ' + await flash());
+    if (await page.locator('.cc-thread', { hasText: 'Bo Park' }).count()) problems.push('[d79] Bo still in Needs reply');
+    await page.goto(B + '/mlo/inbox?tab=all');
+    if (!/Snoozed until/.test(await page.locator('.cc-thread', { hasText: 'Bo Park' }).innerText())) problems.push('[d79] Bo not shown as snoozed in All');
+    // A new message from Cy brings the conversation back.
+    await page.request.post(B + '/api/cc/dev-inbound', { data: { contactId: cy, body: 'One more question' } });
+    await page.goto(B + '/mlo/inbox');
+    if (!(await page.locator('.cc-thread', { hasText: 'Cy Ng' }).count())) problems.push('[d79] Cy did not come back after writing again');
+    // Your settings: Eastern, text and email, alerts any time.
+    await page.goto(B + '/mlo/settings');
+    await page.locator('select[name=timeZone]').selectOption('America/New_York');
+    await page.getByLabel('Text and email').check();
+    await page.locator('input[name=alertPhone]').fill('(206) 555-0123');
+    await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForURL(/f=/);
+    if (!/isn't a US mobile number/.test(await flash())) problems.push('[d79] a fake mobile number was accepted: ' + await flash());
+    await page.locator('select[name=timeZone]').selectOption('America/New_York');
+    await page.getByLabel('Email', { exact: true }).check();
+    await page.locator('input[name=alertPhone]').fill('');
+    await page.locator('select[name=alertFrom]').selectOption('0'); await page.locator('select[name=alertTo]').selectOption('24');
+    await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.locator('.mlo-flash--ok').waitFor();
+    console.log('d79: settings:', await flash(), '|', await page.locator('#alerts .mlo-note').last().innerText());
+    if (!/Saved/.test(await flash())) problems.push('[d79] settings not saved: ' + await flash());
+    if ((await page.locator('select[name=timeZone]').inputValue()) !== 'America/New_York') problems.push('[d79] time zone not kept');
+    // A new lead: alert email (no Resend here, so the dev server logs it).
+    const t0 = Date.now();
+    const r = await page.request.post(B + '/api/leads/inbound?source=Zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Wes', last_name: 'Ray', phone: '(206) 234-7781', email: 'wes@example.com', state: 'WA', message: 'Call me after 5' } });
+    console.log('d79: lead:', r.status(), 'in', Date.now() - t0, 'ms');
+    const log = process.env.QA_SERVER_LOG && fs.existsSync(process.env.QA_SERVER_LOG) ? fs.readFileSync(process.env.QA_SERVER_LOG, 'utf8') : '';
+    const mail = log.split('\n').filter((l) => l.includes('[dev-mail]') && l.includes('New lead: Wes')).pop();
+    if (!process.env.QA_SERVER_LOG) console.log('d79: alert: set QA_SERVER_LOG to check the alert email');
+    else if (!mail) problems.push('[d79] no new-lead alert in the server log');
+    else {
+      console.log('d79: alert:', mail.slice(0, 220));
+      if (!/"subject":"New lead: Wes, WA, from Zillow"/.test(mail)) problems.push('[d79] alert subject: ' + mail.slice(0, 200));
+      if (/234-7781|2342347781|wes@example|Call me|Ray/.test(mail)) problems.push('[d79] alert carries more than name, state and source');
+      if (!/\/mlo\/contacts\/c_/.test(mail)) problems.push('[d79] alert has no link to the contact');
+    }
+    // Times in the Inbox follow the zone picked (Eastern now).
+    await page.goto(B + '/mlo/inbox?tab=all&c=' + cy);
+    console.log('d79: time shown:', await page.locator('.cc-tl time').first().innerText());
+  });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/inbox?tab=done', '/mlo/settings', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {

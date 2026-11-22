@@ -140,22 +140,30 @@ export async function handleInbound(from: string, sender: string, rawBody: strin
   const out = isOptOut(body);
   if (out) await ts.optOut(from, sender, at, "text reply");
   else if (isOptIn(body)) await ts.clear(from, sender);
-  for (const c of contacts) {
-    // D8.1: anything they send makes waiting Concierge drafts stale (they were written before it).
-    await conciergeStore().markStale(c.id);
-    if (out) await recordConsent(SYSTEM, c.id, { channel: "text", purpose: "marketing", granted: false, evidence: "revoked", proof: `texted "${body.slice(0, 60)}"` }, now);
-    await ts.add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose: "service", direction: "in", body, status: "received", providerId: null, phone: from, sender, note: out ? "Opt-out recorded: texts and calls are off for this number." : isOptIn(body) ? "They texted START. Texting is unblocked, but permission still has to be on file." : null, at, actor: "contact" });
-  }
-  // D51: a reply ends "follow up" campaigns; STOP ends every campaign.
-  if (contacts.length) {
-    const { onContactReply } = await import("@/lib/campaigns/service");
-    for (const c of contacts) await onContactReply(c.id, out, now).catch(() => 0);
-    // D65: a Zapier hook for "a client replied" hears who replied (never what they wrote).
-    const { emit } = await import("@/lib/zapier/service");
-    for (const c of contacts) await emit(c.ownerUserId, "client_replied", { firstName: c.firstName, lastName: c.lastName, phone: c.phone, optedOut: out, contactUrl: `${CONFIG.siteUrl.replace(/\/$/, "")}/mlo/contacts/${encodeURIComponent(c.id)}` }, now).catch(() => null);
-  }
+  for (const c of contacts) await recordInbound(c, from, sender, body, out, now);
   await accountStore().audit({ at, actor: "twilio", action: out ? "text.inbound.optout" : "text.inbound", detail: { matched: contacts.length } });
   return { contacts: contacts.length, optedOut: out };
+}
+
+/**
+ * One inbound text on one contact (D79: split out of handleInbound so a local
+ * test reply takes exactly the same path). Stale drafts, the opt-out on
+ * their record, the message itself (it lands in the Inbox as Needs reply),
+ * campaigns (a reply ends follow-ups; STOP ends every campaign) and the
+ * "a client replied" hook (who, never what).
+ */
+export async function recordInbound(c: Contact, from: string, sender: string, body: string, out: boolean, now = new Date()): Promise<void> {
+  const at = now.toISOString();
+  // D8.1: anything they send makes waiting Concierge drafts stale (they were written before it).
+  await conciergeStore().markStale(c.id);
+  if (out) await recordConsent(SYSTEM, c.id, { channel: "text", purpose: "marketing", granted: false, evidence: "revoked", proof: `texted "${body.slice(0, 60)}"` }, now);
+  await touchStore().add({ id: tid(), contactId: c.id, ownerUserId: c.ownerUserId, channel: "text", purpose: "service", direction: "in", body, status: "received", providerId: null, phone: from, sender, note: out ? "Opt-out recorded: texts and calls are off for this number." : isOptIn(body) ? "They texted START. Texting is unblocked, but permission still has to be on file." : null, at, actor: "contact" });
+  // D51: a reply ends "follow up" campaigns; STOP ends every campaign.
+  const { onContactReply } = await import("@/lib/campaigns/service");
+  await onContactReply(c.id, out, now).catch(() => 0);
+  // D65: a Zapier hook for "a client replied" hears who replied (never what they wrote).
+  const { emit } = await import("@/lib/zapier/service");
+  await emit(c.ownerUserId, "client_replied", { firstName: c.firstName, lastName: c.lastName, phone: c.phone, optedOut: out, contactUrl: `${CONFIG.siteUrl.replace(/\/$/, "")}/mlo/contacts/${encodeURIComponent(c.id)}` }, now).catch(() => null);
 }
 
 export async function handleStatus(messageSid: string, status: string): Promise<void> {
