@@ -5,6 +5,7 @@
  * always confirmed by the loan officer before they count.
  */
 import { guessCategory, type Category } from "./categories";
+import { guessLeadSource, isLeadSpendCategory } from "@/lib/leads/source-key";
 
 export type Draft = {
   kind: "expense" | "income" | "mileage" | "charity";
@@ -15,6 +16,8 @@ export type Draft = {
   category: Category;
   businessPct: number;
   purpose: string;
+  /** D83: a named lead source on lead spend (Zillow, LendingTree…), pre-selected for the loan officer to confirm. */
+  leadSource?: string | null;
 };
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
@@ -79,6 +82,7 @@ export function parseLine(line: string, today: string): Draft | null {
     category,
     businessPct: category === "utilities" ? 50 : 100,
     purpose: text.slice(0, 200),
+    leadSource: kind === "expense" && isLeadSpendCategory(category) ? guessLeadSource(text) : null,
   };
 }
 

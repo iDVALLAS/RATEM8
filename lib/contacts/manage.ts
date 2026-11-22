@@ -22,6 +22,7 @@ import { conciergeStore } from "@/lib/concierge/store";
 import { checkNote } from "@/lib/concierge/guard";
 import { gateFor } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
+import { leadEventStore } from "@/lib/leads/events";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { contactPageCopy as cp } from "@/lib/content/contact-page";
 import { contactListsCopy as lc } from "@/lib/content/contact-lists";
@@ -280,6 +281,8 @@ export async function mergeContacts(actor: User, keepId: string, dropId: string,
   await cs.markStale(drop.id);
   // Loans from the loan system point at the kept record.
   for (const l of await pipelineStore().list(owner)) if (l.contactId === drop.id) await pipelineStore().put({ ...l, contactId: keep.id, updatedAt: at });
+  // D83: lead events (every delivery of either record) now count for the kept one.
+  await leadEventStore().repoint(owner, drop.id, keep.id);
   // Campaigns: carried over unless the kept record is already in that campaign.
   const camps = campaignStore();
   const inAlready = new Set((await camps.activeForContact(keep.id)).map((e) => e.campaignId));

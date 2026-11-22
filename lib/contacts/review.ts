@@ -159,9 +159,11 @@ export type FileAnswers = { dateOrder?: DateOrder; nameOrder?: NameOrder; consen
  * 03/04/2021 in it is asked about once.
  */
 export function dateNeeds(t: Csv, mapping: Mapping): { order: DateOrder | null; question: DateQuestion | null } {
-  const col = mapping.closedOn;
-  if (col === undefined) return { order: null, question: null };
-  const scan = scanDates(t.rows.map((r) => r[col] ?? ""));
+  // D83: the Application date column reads the same way as the closing date.
+  const cols = [mapping.closedOn, mapping.appliedOn].filter((c): c is number => c !== undefined);
+  if (!cols.length) return { order: null, question: null };
+  const col = cols[0];
+  const scan = scanDates(t.rows.flatMap((r) => cols.map((c) => r[c] ?? "")));
   if (scan.dmyOnly && !scan.mdyOnly) return { order: "dmy", question: null };
   if (scan.mdyOnly && !scan.dmyOnly) return { order: "mdy", question: null };
   if (!scan.example && !(scan.dmyOnly && scan.mdyOnly)) return { order: null, question: null };

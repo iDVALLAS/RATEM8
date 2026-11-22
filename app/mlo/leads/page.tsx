@@ -8,24 +8,25 @@ import { requireViewer } from "@/lib/mlo/page-auth";
 import { contactStore } from "@/lib/contacts/store";
 import { summarize } from "@/lib/contacts/service";
 import { pipelineStore } from "@/lib/pipeline/store";
-import { SYSTEMS } from "@/lib/connect/catalog";
-import { connectedSourceLabels, isRealLead, leadPageMode, leadSourceLabel, recentLeads, sourceCounts, type SectionKey } from "@/lib/leads/mode";
+import { connectedSourceLabels, dated, eventCounts, leadPageMode, recentEvents, type SectionKey } from "@/lib/leads/mode";
+import { syncLeadEvents } from "@/lib/leads/sync";
+import { makeMonthlyDrafts, monthlyStore, pacificMonth } from "@/lib/leads/spend";
+import { NOT_LEADS, sourceOptions } from "@/lib/leads/sources";
 import { FlashBox, MloNav } from "../MloChrome";
 import PageHead from "../PageHead";
-import { AddSource, AskBar, ExamplePlan, ExampleRecent, ExampleScorecard, RealRecent, RealScorecard } from "./LeadSections";
-import { LEADS, SUBS } from "@/lib/content/cc-pages";
+import { AddSource, AskBar, ExamplePlan, ExampleRecent, ExampleScorecard, MonthlyAmounts, RealRecent, RealScorecard } from "./LeadSections";
+import { SUBS } from "@/lib/content/cc-pages";
 import "../mlo.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Lead sources", robots: { index: false, follow: false } };
 
-/** Connection addresses that aren't lead sources (made on Connections for a loan system or a dialer). */
-const NOT_LEADS = ["Loan system", "Dialer", ...SYSTEMS.filter((s) => s.brings === "loans").map((s) => s.name)];
-
 /**
  * /mlo/leads — connect lead vendors and web forms; see new leads and whether their form gave you permission (D14).
  * D82: until the first real lead the page shows its whole layout with example numbers (lib/leads/examples.ts),
  * each example section labeled; each section switches to the loan officer's own data on its own (lib/leads/mode.ts).
+ * D83: counts come from the lead-event log (every delivery, repeats too), brought up to date here first
+ * (lib/leads/sync.ts); a monthly amount per source makes this month's draft expense (lib/leads/spend.ts).
  */
 export default async function Leads({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
   const { f } = await searchParams;
@@ -37,33 +38,50 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
   const [{ contacts }, keys] = me
     ? await Promise.all([contactStore().list({ ownerUserId: me.id, kind: "contact", limit: 2000 }), pipelineStore().keys(me.id).catch(() => [])])
     : [{ contacts: [] }, []];
-  // D83 adds lead events and D86 saved plans; until then neither exists.
-  const mode = leadPageMode({ contacts, leadEvents: 0, savedPlan: false, assistant: me?.role === "assistant" });
+  const assistant = me?.role === "assistant";
   const now = new Date();
-  const recent = recentLeads(contacts);
-  const counted = mode.scorecard === "real" ? contacts.filter(isRealLead) : [];
-  const ids = [...new Set([...recent, ...counted].map((c) => c.id))];
-  const consents = ids.length ? await contactStore().consentsFor(ids) : [];
+  // D83: the lead-event log, brought up to date (the first time, the leads that came before it). A big book reads its own list.
+  const { events } = me ? await syncLeadEvents(me, { now, contacts: contacts.length < 2000 ? contacts : undefined }).catch(() => ({ events: [] })) : { events: [] };
+  if (me && !assistant) await makeMonthlyDrafts(me, now).catch(() => 0);
+  const monthly = me && !assistant ? await monthlyStore().list(me.id).catch(() => []) : [];
+  // D86 adds saved plans; until then there are none.
+  const mode = leadPageMode({ contacts, leadEvents: events.length, savedPlan: false, assistant });
+  const month = pacificMonth(now);
+  const byId = new Map(contacts.map((c) => [c.id, c]));
+  const recent = recentEvents(events, 60).filter((e) => byId.has(e.contactId)).slice(0, 30);
+  const consents = recent.length ? await contactStore().consentsFor(recent.map((e) => e.contactId)) : [];
 
   const sections: Record<SectionKey, () => React.ReactNode> = {
     add: () => (me ? <AddSource key="add" compact={mode.addCard === "compact"} endpoint={endpoint} owner={me.role === "owner"} connected={connectedSourceLabels(keys.map((k) => k.label), NOT_LEADS)} /> : null),
     ask: () => (mode.ask === "off" ? null : <AskBar key="ask" />),
-    scorecard: () => (mode.scorecard === "off" ? null : mode.scorecard === "example" ? <ExampleScorecard key="scorecard" /> : <RealScorecard key="scorecard" rows={sourceCounts(counted, consents, now, LEADS.recent.vendorFile)} />),
+    scorecard: () => (mode.scorecard === "off" ? null : mode.scorecard === "example" ? <ExampleScorecard key="scorecard" /> : <RealScorecard key="scorecard" rows={eventCounts(events, now)} undated={events.filter((e) => !dated(e)).length} />),
     plan: () => (mode.plan === "off" ? null : <ExamplePlan key="plan" afterLeads={mode.hasRealLeads} />),
+    monthly: () =>
+      mode.monthly === "off" ? null : (
+        <MonthlyAmounts
+          key="monthly"
+          month={new Date(`${month}-15T12:00:00Z`).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" })}
+          rows={monthly.map((m) => ({ key: m.sourceKey, label: m.sourceLabel, cents: m.cents, madeThisMonth: m.lastMonth === month }))}
+          options={sourceOptions(events, keys.map((k) => k.label), monthly.map((m) => m.sourceKey))}
+        />
+      ),
     recent: () =>
       mode.recent === "example" ? (
         <ExampleRecent key="recent" />
       ) : (
         <RealRecent
           key="recent"
-          rows={recent.map((c) => {
-            const s = summarize(consents.filter((e) => e.contactId === c.id));
+          rows={recent.map((e) => {
+            const c = byId.get(e.contactId)!;
+            // Decision 1: Recent leads shows whether they can be contacted today (the current answer), not the delivery's wording.
+            const s = summarize(consents.filter((x) => x.contactId === c.id));
             return {
               id: c.id,
               name: `${c.firstName} ${c.lastName}`.trim() || c.email || "",
-              source: leadSourceLabel(c, LEADS.recent.vendorFile),
-              at: new Date(c.createdAt).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
+              source: e.sourceLabel,
+              at: new Date(e.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", ...(e.datedBy === "delivery" || e.datedBy === "import" ? { hour: "numeric", minute: "2-digit" } : { year: "numeric" }) }),
               ok: s.text.marketing.granted || s.call.marketing.granted,
+              repeat: e.duplicate,
             };
           })}
         />

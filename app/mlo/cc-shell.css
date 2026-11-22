@@ -1127,3 +1127,12 @@
 .cc-addsrc__list .cc-chip { min-height: 32px; box-sizing: border-box; padding: 6px 12px; border-radius: 999px; color: var(--fg); }
 .cc-app .cc-addsrc__manage { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--accent); font-size: 14px; }
 .cc-addsrc .mlo-details { margin-top: 8px; }
+
+/* ─── D83: monthly amount per source, and the Lead source picker ─── */
+.cc-monthly__list { margin: 12px 0 0; padding: 0; list-style: none; }
+.cc-monthly__row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.cc-monthly__name { flex: 1 1 160px; min-width: 0; color: var(--fg); font-weight: 600; overflow-wrap: anywhere; }
+.cc-monthly__amt { color: var(--fg-soft); font-variant-numeric: tabular-nums; }
+.cc-monthly__form { margin-top: 14px; }
+.cc-monthly__form .mlo-field { flex: 1 1 180px; }
+.cc-monthly > .mlo-note:last-child { margin: 10px 0 0; }

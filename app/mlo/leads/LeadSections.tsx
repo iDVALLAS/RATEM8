@@ -1,6 +1,8 @@
 import Link from "next/link";
 import KeyMaker from "../pipeline/KeyMaker";
 import PermissionTip from "./PermissionTip";
+import SourcePicker, { type PickerOption } from "../SourcePicker";
+import { removeMonthlyAction, saveMonthlyAction } from "./actions";
 import { EXAMPLES, exampleRow, type ExampleBadge } from "@/lib/leads/examples";
 import { share, type SourceCount } from "@/lib/leads/mode";
 import { LEADS } from "@/lib/content/cc-pages";
@@ -130,15 +132,18 @@ export function ExampleScorecard() {
         })}
       </ul>
       <p className="mlo-note cc-score__foot">
-        {s.spendLine} <Link href="/mlo/expenses">{s.logSpend}</Link>
+        {s.spendLine} <Link href="/mlo/expenses">{s.logSpend}</Link> · <Link href="#monthly">{s.setMonthly}</Link>
       </p>
       <p className="mlo-note cc-score__foot">{s.canCallNote}</p>
     </section>
   );
 }
 
-/** The scorecard from the loan officer's own leads, before spend and loans are tagged by source (D83–D84). */
-export function RealScorecard({ rows }: { rows: SourceCount[] }) {
+/**
+ * The scorecard from the loan officer's own lead events (D83: every delivery counts, repeats too), before D84 adds
+ * spend, cost per lead and loans per source.
+ */
+export function RealScorecard({ rows, undated }: { rows: SourceCount[]; undated: number }) {
   const s = LEADS.score;
   return (
     <section className="mlo-section cc-score" id="scorecard" aria-labelledby="leads-score" data-example="false">
@@ -151,24 +156,62 @@ export function RealScorecard({ rows }: { rows: SourceCount[] }) {
               <th scope="col">{s.cols.source}</th>
               <th scope="col" className="cc-num">{s.cols.leads}</th>
               <th scope="col" className="cc-num">{s.cols.canCall}</th>
+              <th scope="col" className="cc-num">{s.cols.repeats}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => {
               const pct = share(r.canCall, r.leads);
               return (
-                <tr key={r.source}>
+                <tr key={r.key}>
                   <th scope="row">{r.source}</th>
                   <td className="cc-num">{r.leads}</td>
                   <td className={`cc-num${pct < LOW_SHARE ? " cc-num--warn" : ""}`}>{r.canCall} · {pct}%</td>
+                  <td className="cc-num">{r.repeats}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       )}
-      <p className="mlo-note cc-score__foot">{s.real.notYet}</p>
+      {undated ? <p className="mlo-note cc-score__foot">{s.real.undated(undated)}</p> : null}
+      <p className="mlo-note cc-score__foot">
+        {s.real.notYet} <Link href="/mlo/expenses">{s.logSpend}</Link> · <Link href="#monthly">{s.setMonthly}</Link>
+      </p>
       <p className="mlo-note cc-score__foot">{s.canCallNote}</p>
+      <p className="mlo-note cc-score__foot">{s.repeatsNote}</p>
+    </section>
+  );
+}
+
+export type MonthlyRow = { key: string; label: string; cents: number; madeThisMonth: boolean };
+
+/** D83: a monthly amount per source; each month it becomes a draft expense to confirm on Expenses. Always the loan officer's own. */
+export function MonthlyAmounts({ rows, options, month }: { rows: MonthlyRow[]; options: PickerOption[]; month: string }) {
+  const m = LEADS.monthly;
+  return (
+    <section className="mlo-section cc-monthly" id="monthly" aria-labelledby="leads-monthly">
+      <h2 id="leads-monthly">{m.title}</h2>
+      <p className="mlo-note">{m.intro}</p>
+      {rows.length === 0 ? <p className="mlo-note">{m.none}</p> : (
+        <ul className="cc-monthly__list">
+          {rows.map((r) => (
+            <li key={r.key} className="cc-monthly__row">
+              <span className="cc-monthly__name">{r.label}</span>
+              <span className="cc-monthly__amt">{m.each(usd(Math.round(r.cents / 100)))}{r.madeThisMonth ? <span className="mlo-note"> · {m.made(month)}</span> : null}</span>
+              <form action={removeMonthlyAction.bind(null, r.key)}>
+                <button type="submit" className="mlo-btn mlo-btn--ghost" aria-label={m.remove(r.label)}>{m.removeWord}</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form action={saveMonthlyAction} className="mlo-row-form cc-monthly__form">
+        <SourcePicker options={options} name="source" otherName="sourceOther" label={m.source} required />
+        <label className="mlo-field"><span>{m.amount}</span><input name="dollars" type="number" min={1} max={100000} step="1" inputMode="decimal" className="mlo-input" required /></label>
+        <button type="submit" className="mlo-btn">{m.save}</button>
+      </form>
+      <p className="mlo-note"><Link href="/mlo/expenses#drafts">{m.drafts}</Link></p>
     </section>
   );
 }
@@ -257,7 +300,7 @@ export function ExampleRecent() {
   );
 }
 
-export type RecentRow = { id: string; name: string; source: string; at: string; ok: boolean };
+export type RecentRow = { id: string; name: string; source: string; at: string; ok: boolean; repeat: boolean };
 
 /** Recent leads from the loan officer's own book (D14, D81). */
 export function RealRecent({ rows }: { rows: RecentRow[] }) {
@@ -267,9 +310,9 @@ export function RealRecent({ rows }: { rows: RecentRow[] }) {
       {rows.length === 0 ? <p className="mlo-note">{LEADS.recent.none}</p> : (
         <table className="mlo-table mlo-table--plain">
           <tbody>
-            {rows.map(({ id, name, source, at, ok }) => (
+            {rows.map(({ id, name, source, at, ok, repeat }) => (
               <tr key={id}>
-                <th scope="row"><Link href={`/mlo/contacts/${id}`}>{name}</Link><br /><span className="mlo-note">{source} · {at}</span></th>
+                <th scope="row"><Link href={`/mlo/contacts/${id}`}>{name}</Link><br /><span className="mlo-note">{source}{repeat ? ` · ${LEADS.recent.repeat}` : ""} · {at}</span></th>
                 <td className="cc-leadperm-cell">
                   {ok ? (
                     <span className="cc-reach cc-reach--ok">{LEADS.status.ok}</span>

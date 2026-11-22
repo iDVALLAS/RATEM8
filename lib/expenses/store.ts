@@ -27,7 +27,13 @@ export type Entry = {
   /** Who received a gift (for the $25-per-person rule), else null. */
   recipient: string | null;
   receiptId: string | null;
-  source: "typed" | "m8" | "receipt";
+  /** D83: "monthly" = made from a monthly amount set on Lead sources (a draft to confirm, like the others). */
+  source: "typed" | "m8" | "receipt" | "monthly";
+  /**
+   * D83: the lead source this spend was for (`sourceKey()`: "zillow", "past-clients-sphere"), or null when it isn't
+   * lead spend. Spend and leads join on it (the scorecard, D84).
+   */
+  leadSource: string | null;
   status: "draft" | "confirmed";
   createdAt: string;
   updatedAt: string;
@@ -53,7 +59,7 @@ export class MemoryExpenseStore implements ExpenseStore {
   private r = new Map<string, Receipt>();
   private p = new Map<string, TaxProfile>();
   async put(x: Entry) {
-    this.e.set(x.id, { ...x });
+    this.e.set(x.id, { ...x, leadSource: x.leadSource ?? null });
   }
   async get(owner: string, id: string) {
     const x = this.e.get(id);
@@ -95,6 +101,8 @@ export class NeonExpenseStore implements ExpenseStore {
       this.ready = (async () => {
         await this.q(`CREATE TABLE IF NOT EXISTS cc_expenses (id text PRIMARY KEY, owner_user_id text NOT NULL, kind text NOT NULL, date date NOT NULL, amount_cents integer NOT NULL, miles numeric, vendor text NOT NULL, category text NOT NULL, business_pct integer NOT NULL, purpose text NOT NULL, recipient text, receipt_id text, source text NOT NULL, status text NOT NULL, created_at timestamptz NOT NULL, updated_at timestamptz NOT NULL)`);
         await this.q(`CREATE INDEX IF NOT EXISTS cc_expenses_owner ON cc_expenses (owner_user_id, date)`);
+        // D83: the lead source of lead spend (existing rows stay null).
+        await this.q(`ALTER TABLE cc_expenses ADD COLUMN IF NOT EXISTS lead_source text`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_expense_receipts (id text PRIMARY KEY, owner_user_id text NOT NULL, name text NOT NULL, type text NOT NULL, size integer NOT NULL, data text NOT NULL, created_at timestamptz NOT NULL)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_tax_profiles (owner_user_id text NOT NULL, year integer NOT NULL, home_office_sqft integer NOT NULL, notes text NOT NULL, updated_at timestamptz NOT NULL, PRIMARY KEY (owner_user_id, year))`);
       })().catch((e) => {
@@ -104,14 +112,14 @@ export class NeonExpenseStore implements ExpenseStore {
     }
     return this.ready;
   }
-  private toEntry = (r: Row): Entry => ({ id: r.id as string, ownerUserId: r.owner_user_id as string, kind: r.kind as Entry["kind"], date: iso(r.date).slice(0, 10), amountCents: Number(r.amount_cents), miles: r.miles === null || r.miles === undefined ? null : Number(r.miles), vendor: r.vendor as string, category: r.category as Category, businessPct: Number(r.business_pct), purpose: r.purpose as string, recipient: (r.recipient as string | null) ?? null, receiptId: (r.receipt_id as string | null) ?? null, source: r.source as Entry["source"], status: r.status as Entry["status"], createdAt: iso(r.created_at), updatedAt: iso(r.updated_at) });
+  private toEntry = (r: Row): Entry => ({ id: r.id as string, ownerUserId: r.owner_user_id as string, kind: r.kind as Entry["kind"], date: iso(r.date).slice(0, 10), amountCents: Number(r.amount_cents), miles: r.miles === null || r.miles === undefined ? null : Number(r.miles), vendor: r.vendor as string, category: r.category as Category, businessPct: Number(r.business_pct), purpose: r.purpose as string, recipient: (r.recipient as string | null) ?? null, receiptId: (r.receipt_id as string | null) ?? null, source: r.source as Entry["source"], leadSource: (r.lead_source as string | null) ?? null, status: r.status as Entry["status"], createdAt: iso(r.created_at), updatedAt: iso(r.updated_at) });
   async put(e: Entry) {
     await this.init();
     await this.q(
-      `INSERT INTO cc_expenses (id, owner_user_id, kind, date, amount_cents, miles, vendor, category, business_pct, purpose, recipient, receipt_id, source, status, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-       ON CONFLICT (id) DO UPDATE SET kind = EXCLUDED.kind, date = EXCLUDED.date, amount_cents = EXCLUDED.amount_cents, miles = EXCLUDED.miles, vendor = EXCLUDED.vendor, category = EXCLUDED.category, business_pct = EXCLUDED.business_pct, purpose = EXCLUDED.purpose, recipient = EXCLUDED.recipient, receipt_id = EXCLUDED.receipt_id, status = EXCLUDED.status, updated_at = EXCLUDED.updated_at
+      `INSERT INTO cc_expenses (id, owner_user_id, kind, date, amount_cents, miles, vendor, category, business_pct, purpose, recipient, receipt_id, source, status, created_at, updated_at, lead_source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+       ON CONFLICT (id) DO UPDATE SET kind = EXCLUDED.kind, date = EXCLUDED.date, amount_cents = EXCLUDED.amount_cents, miles = EXCLUDED.miles, vendor = EXCLUDED.vendor, category = EXCLUDED.category, business_pct = EXCLUDED.business_pct, purpose = EXCLUDED.purpose, recipient = EXCLUDED.recipient, receipt_id = EXCLUDED.receipt_id, status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, lead_source = EXCLUDED.lead_source
        WHERE cc_expenses.owner_user_id = EXCLUDED.owner_user_id`,
-      [e.id, e.ownerUserId, e.kind, e.date, e.amountCents, e.miles, e.vendor, e.category, e.businessPct, e.purpose, e.recipient, e.receiptId, e.source, e.status, e.createdAt, e.updatedAt],
+      [e.id, e.ownerUserId, e.kind, e.date, e.amountCents, e.miles, e.vendor, e.category, e.businessPct, e.purpose, e.recipient, e.receiptId, e.source, e.status, e.createdAt, e.updatedAt, e.leadSource ?? null],
     );
   }
   async get(owner: string, id: string) {

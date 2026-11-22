@@ -60,7 +60,8 @@ export const KEYWORDS: [RegExp, Category][] = [
   [/\b(ce|continuing ed\w*|course|class|conference|seminar|book)\b/i, "education"],
   [/\b(e&o|e and o|errors and omissions|liability insurance|insurance)\b/i, "insurance"],
   [/\b(cpa|accountant|attorney|lawyer|bookkeep\w*)\b/i, "legal_professional"],
-  [/\b(ads?|advertis\w*|facebook|meta|google ads|zillow|postcards?|flyers?|mailer|sponsor\w*|signs?|website|domain)\b/i, "advertising"],
+  // D83: the lead vendors too (their spend is tagged with the source).
+  [/\b(ads?|advertis\w*|facebook|instagram|meta|google ads|adwords|zillow|lending ?tree|bankrate|lower ?my ?bills|leads?|postcards?|flyers?|mailer|sponsor\w*|signs?|website|domain)\b/i, "advertising"],
   [/\b(crm|software|subscription|app|docusign|canva|loanm8|bonzo|zoom|adobe)\b/i, "software"],
   [/\b(phone|cell|internet|wifi)\b/i, "utilities"],
   [/\b(hotel|flight|airfare|uber|lyft|rideshare|parking|toll)\b/i, "travel"],

@@ -14,7 +14,7 @@ import { snapshot } from "@/lib/agents/business";
 import { buildExport } from "@/lib/export/service";
 import { LEADS } from "@/lib/content/cc-pages";
 import { EXAMPLES, exampleRow } from "./examples";
-import { connectedSourceLabels, hasRealLeads, isRealLead, leadNamedYou, leadPageMode, leadSourceLabel, recentLeads, share, sourceCounts, type LeadLike } from "./mode";
+import { connectedSourceLabels, eventCounts, hasRealLeads, isRealLead, leadNamedYou, leadPageMode, recentEvents, share, type EventLike, type LeadLike } from "./mode";
 import { AskBar, ExamplePlan, ExampleRecent, ExampleScorecard, RealRecent, RealScorecard } from "@/app/mlo/leads/LeadSections";
 
 /** D82: example mode on Lead sources until real leads arrive. */
@@ -28,12 +28,12 @@ const consent = (contactId: string, actor: string, over: Partial<ConsentEntry> =
 describe("which sections show examples (D82)", () => {
   it("an empty book is all example, with Add a lead source on top", () => {
     const m = leadPageMode({ contacts: [] });
-    expect(m).toEqual({ hasRealLeads: false, ask: "example", scorecard: "example", plan: "example", recent: "example", addCard: "top", order: ["add", "ask", "scorecard", "plan", "recent"] });
+    expect(m).toEqual({ hasRealLeads: false, ask: "example", scorecard: "example", plan: "example", recent: "example", monthly: "real", addCard: "top", order: ["add", "ask", "scorecard", "plan", "monthly", "recent"] });
   });
 
   it("the first delivered lead turns the scorecard and Recent leads real and moves the add card to section 4, compact; the plan stays an example", () => {
     const m = leadPageMode({ contacts: [person({ id: "c_a" }), delivered("c_b", "Zillow")] });
-    expect(m).toEqual({ hasRealLeads: true, ask: "real", scorecard: "real", plan: "example", recent: "real", addCard: "compact", order: ["ask", "scorecard", "plan", "add", "recent"] });
+    expect(m).toEqual({ hasRealLeads: true, ask: "real", scorecard: "real", plan: "example", recent: "real", monthly: "real", addCard: "compact", order: ["ask", "scorecard", "plan", "add", "monthly", "recent"] });
     expect(m.order.indexOf("add")).toBe(3);
   });
 
@@ -48,48 +48,45 @@ describe("which sections show examples (D82)", () => {
     expect(leadPageMode({ contacts: [], leadEvents: 1 })).toMatchObject({ scorecard: "real", recent: "real", addCard: "compact" });
   });
 
-  it("imported vendor leads count (decision 4); past-client exports with a Lead source column, hand-added people and agents don't", () => {
+  it("imported leads count (decisions 4 and 5): a Lead source or a lead-vendor file; hand-added people, files with no Lead source and agents don't", () => {
     expect(isRealLead(person({ source: "import: zillow.csv", provenance: "lead_vendor", leadSource: "Zillow" }))).toBe(true);
     expect(isRealLead(person({ source: "import: vendor.csv", provenance: "lead_vendor" }))).toBe(true);
     expect(isRealLead(person({ source: "import: book.csv", provenance: "personal" }))).toBe(false);
-    // "Past clients export" with a Lead Source column ("Referral", "Zillow" on a loan funded in 2022): not new leads.
-    expect(isRealLead(person({ source: "import: Past clients.xlsx", provenance: "personal", leadSource: "Zillow" }))).toBe(false);
-    expect(isRealLead(person({ source: "import: crm.csv", provenance: "unknown", leadSource: "Referral" }))).toBe(false);
+    // D83, decision 5 ("count all, date right"): a past-client export's Lead Source column counts too, dated by the file (lib/leads/backfill.ts).
+    expect(isRealLead(person({ source: "import: Past clients.xlsx", provenance: "personal", leadSource: "Zillow" }))).toBe(true);
+    expect(isRealLead(person({ source: "import: crm.csv", provenance: "unknown", leadSource: "Referral" }))).toBe(true);
+    expect(isRealLead(person({ source: "import: crm.csv", provenance: "unknown", leadSource: "  " }))).toBe(false);
     expect(isRealLead(person({ source: "added by hand", provenance: "lead_vendor", leadSource: "Zillow" }))).toBe(false);
     expect(isRealLead(person({ kind: "agent", source: "lead: Zillow" }))).toBe(false);
-    expect(leadPageMode({ contacts: [person({ source: "import: book.csv", leadSource: "Zillow" })] }).scorecard).toBe("example");
+    expect(leadPageMode({ contacts: [person({ source: "import: book.csv" })] }).scorecard).toBe("example");
     expect(leadPageMode({ contacts: [person({ source: "import: z.csv", provenance: "lead_vendor", leadSource: "Zillow" })] }).scorecard).toBe("real");
   });
 
   it("assistants see the page as before: the add card and their own Recent leads, no spend and no examples", () => {
     for (const contacts of [[], [delivered("c_b", "Zillow")]]) {
-      expect(leadPageMode({ contacts, assistant: true })).toMatchObject({ ask: "off", scorecard: "off", plan: "off", recent: "real", addCard: "top", order: ["add", "recent"] });
+      expect(leadPageMode({ contacts, assistant: true })).toMatchObject({ ask: "off", scorecard: "off", plan: "off", recent: "real", monthly: "off", addCard: "top", order: ["add", "recent"] });
     }
   });
 
-  it("names each lead's source, newest leads first", () => {
-    expect(leadSourceLabel(delivered("c_1", "LendingTree"), "Lead vendor file")).toBe("LendingTree");
-    expect(leadSourceLabel(person({ source: "import: v.csv", provenance: "lead_vendor", leadSource: " Bankrate " }), "Lead vendor file")).toBe("Bankrate");
-    expect(leadSourceLabel(person({ source: "import: v.csv", provenance: "lead_vendor" }), "Lead vendor file")).toBe("Lead vendor file");
-    const r = recentLeads([delivered("c_old", "Zillow", 9), person({ id: "c_x" }), delivered("c_new", "Zillow", 1), person({ id: "c_i", source: "import: z.csv", provenance: "lead_vendor", leadSource: "Zillow", createdAt: ago(5) })]);
-    expect(r.map((c) => c.id)).toEqual(["c_new", "c_i", "c_old"]);
-    expect(recentLeads(Array.from({ length: 40 }, (_, i) => delivered(`c_${i}`, "Zillow", i)))).toHaveLength(30);
+  it("Recent leads: each person's newest dated lead event first (D83), a repeat bringing them back to the top", () => {
+    const ev = (contactId: string, days: number, over: Partial<EventLike> = {}): EventLike => ({ contactId, sourceKey: "zillow", sourceLabel: "Zillow", at: ago(days), duplicate: false, namesYou: false, datedBy: "delivery", ...over });
+    const r = recentEvents([ev("c_old", 9), ev("c_new", 1), ev("c_i", 5, { datedBy: "import" }), ev("c_old", 0.5, { duplicate: true, sourceKey: "lendingtree", sourceLabel: "LendingTree" }), ev("c_none", 0, { datedBy: "none" })]);
+    expect(r.map((e) => [e.contactId, e.sourceLabel, e.duplicate])).toEqual([["c_old", "LendingTree", true], ["c_new", "Zillow", false], ["c_i", "Zillow", false]]);
+    expect(recentEvents(Array.from({ length: 40 }, (_, i) => ev(`c_${i}`, i)))).toHaveLength(30);
   });
 
-  it("the real scorecard counts the last 90 days by source, and leads you can call from the delivered form only", () => {
-    const contacts = [delivered("c_1", "Zillow"), delivered("c_2", "zillow", 10), delivered("c_3", "LendingTree"), delivered("c_4", "Zillow", 120), person({ id: "c_5" }), person({ id: "c_6", source: "import: v.csv", provenance: "lead_vendor", leadSource: "Bankrate" })];
-    const entries = [
-      consent("c_1", "lead:Zillow"),
-      consent("c_3", "lo@x.com", { evidence: "written" }), // a later yes from the loan officer isn't the form naming them
-      consent("c_6", "lo@x.com", { evidence: "attested" }), // an import's attested yes: false (decision 4)
-      consent("c_2", "lead:Zillow", { mergedFrom: "c_old" }), // history from a merged record
-      consent("c_2", "lead:Zillow", { granted: false, evidence: "revoked" }),
-    ];
-    expect(sourceCounts(contacts, entries, NOW, "Lead vendor file")).toEqual([
-      { source: "Zillow", leads: 2, canCall: 1 },
-      { source: "Bankrate", leads: 1, canCall: 0 },
-      { source: "LendingTree", leads: 1, canCall: 0 },
+  it("the real scorecard counts lead events of the last 90 days by source, with leads you can call and repeats (D83)", () => {
+    const ev = (key: string, label: string, days: number, over: Partial<EventLike> = {}): EventLike => ({ contactId: `c_${key}_${days}`, sourceKey: key, sourceLabel: label, at: ago(days), duplicate: false, namesYou: false, datedBy: "delivery", ...over });
+    const events = [ev("zillow", "Zillow", 1, { namesYou: true }), ev("zillow", "Zillow", 10, { duplicate: true }), ev("lendingtree", "LendingTree", 1), ev("zillow", "Zillow", 120), ev("bankrate", "Bankrate", 2, { datedBy: "import" }), ev("past-clients-sphere", "Past clients & sphere", 3, { datedBy: "none" })];
+    expect(eventCounts(events, NOW)).toEqual([
+      { key: "zillow", source: "Zillow", leads: 2, canCall: 1, repeats: 1 },
+      { key: "bankrate", source: "Bankrate", leads: 1, canCall: 0, repeats: 0 },
+      { key: "lendingtree", source: "LendingTree", leads: 1, canCall: 0, repeats: 0 },
     ]);
+    // The delivered form's wording (decision 1): a later yes, a merged copy, an email yes and a revocation don't count.
+    expect(leadNamedYou("c_1", [consent("c_1", "lead:Zillow")])).toBe(true);
+    expect(leadNamedYou("c_3", [consent("c_3", "lo@x.com", { evidence: "written" })])).toBe(false);
+    expect(leadNamedYou("c_2", [consent("c_2", "lead:Zillow", { mergedFrom: "c_old" }), consent("c_2", "lead:Zillow", { granted: false, evidence: "revoked" })])).toBe(false);
     expect(leadNamedYou("c_1", [consent("c_1", "lead:Zillow", { channel: "email" })])).toBe(false);
     expect(share(1, 2)).toBe(50);
     expect(share(0, 0)).toBe(0);
@@ -168,8 +165,8 @@ describe("example sections (D82)", () => {
   });
 
   it("real sections carry no example rows", () => {
-    const score = renderToStaticMarkup(createElement(RealScorecard, { rows: [{ source: "Zillow", leads: 3, canCall: 1 }] }));
-    const recent = renderToStaticMarkup(createElement(RealRecent, { rows: [{ id: "c_1", name: "Eve Ng", source: "Zillow", at: "Nov 22, 9:00 AM", ok: false }] }));
+    const score = renderToStaticMarkup(createElement(RealScorecard, { rows: [{ key: "zillow", source: "Zillow", leads: 3, canCall: 1, repeats: 1 }], undated: 0 }));
+    const recent = renderToStaticMarkup(createElement(RealRecent, { rows: [{ id: "c_1", name: "Eve Ng", source: "Zillow", at: "Nov 22, 9:00 AM", ok: false, repeat: false }] }));
     for (const html of [score, recent]) {
       expect(html).toContain('data-example="false"');
       expect(html).not.toContain("cc-ex");

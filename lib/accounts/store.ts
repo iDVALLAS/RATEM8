@@ -53,6 +53,8 @@ export interface AccountStore {
   deleteSessionsFor(userId: string): Promise<void>;
   audit(e: AuditEntry): Promise<void>;
   recentAudit(limit: number): Promise<AuditEntry[]>;
+  /** D83: one action's rows for one loan officer (`detail.owner`), oldest first. */
+  auditFor(action: string, owner: string, limit: number): Promise<AuditEntry[]>;
 }
 
 export class MemoryAccountStore implements AccountStore {
@@ -116,6 +118,9 @@ export class MemoryAccountStore implements AccountStore {
   }
   async recentAudit(limit: number) {
     return this.log.slice(-limit).reverse();
+  }
+  async auditFor(action: string, owner: string, limit: number) {
+    return this.log.filter((e) => e.action === action && (e.detail as Record<string, unknown>).owner === owner).slice(0, limit);
   }
 }
 
@@ -238,6 +243,11 @@ export class NeonAccountStore implements AccountStore {
   async recentAudit(limit: number) {
     await this.init();
     const r = await this.q(`SELECT at, actor, action, detail FROM cc_audit ORDER BY id DESC LIMIT $1`, [limit]);
+    return r.map((x) => ({ at: new Date(x.at as string).toISOString(), actor: x.actor as string, action: x.action as string, detail: (typeof x.detail === "string" ? JSON.parse(x.detail) : x.detail) as AuditEntry["detail"] }));
+  }
+  async auditFor(action: string, owner: string, limit: number) {
+    await this.init();
+    const r = await this.q(`SELECT at, actor, action, detail FROM cc_audit WHERE action = $1 AND detail->>'owner' = $2 ORDER BY id LIMIT $3`, [action, owner, limit]);
     return r.map((x) => ({ at: new Date(x.at as string).toISOString(), actor: x.actor as string, action: x.action as string, detail: (typeof x.detail === "string" ? JSON.parse(x.detail) : x.detail) as AuditEntry["detail"] }));
   }
 }

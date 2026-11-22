@@ -6700,3 +6700,100 @@ code changed.
   D83's lead events will. Imported vendor leads show no "you can call" until D83 backfills `namesYou`. The real scorecard is lead counts only
   (spend, cost per lead and loans come with D83–D84); no period switch on it yet. No example mode for assistants (they never see spend).
 - **Next up:** D83 (lead spend tagged by source, and a lead-event log), after the owner's sign-off.
+
+## D83 — Lead spend tagged by source, and a lead-event log (2026-11-22)
+
+Spec: "## D83" in `docs/work/D81-D87-lead-sources-2026-11-22.md` (the owner's brief, verbatim), with "Owner decisions (2026-11-22)" 1–4, the
+"Builder notes" and "Owner decision 5" (dating imported leads) at its end. Data and plumbing for D84–D86: spend joins leads on one source key,
+every delivery is an event, and the Lead sources page reads counts from the events. No AI call reads lead events or spend in D83.
+
+- **Files:** new `lib/leads/source-key.ts` (pure: `sourceKey`, `sourceLabel`, `guessLeadSource`, `LEAD_SPEND_CATEGORIES`, the named sources and
+  their aliases), `lib/leads/events.ts` (`LeadEvent`, `eventId`, Memory and Neon stores, `cc_lead_events` + `cc_lead_event_marks`),
+  `lib/leads/backfill.ts` (pure planner: history and imports, `importDate`), `lib/leads/sync.ts` (`syncLeadEvents`), `lib/leads/spend.ts` (monthly
+  amounts, `cc_lead_monthly`, `setMonthly`, `removeMonthly`, `makeMonthlyDrafts`), `lib/leads/sources.ts` (`NOT_LEADS`, `sourceOptions`),
+  `app/mlo/SourcePicker.tsx`, `app/mlo/expenses/CategorySource.tsx`, `app/mlo/leads/actions.ts`, `lib/leads/d83.test.ts` (17); changed
+  `lib/leads/{intake,mode}.ts`, `lib/expenses/{store,parse,service,categories}.ts`, `app/mlo/expenses/{page,actions}.tsx`,
+  `app/mlo/expenses/report/page.tsx`, `app/mlo/leads/{page,LeadSections}.tsx`, `lib/content/cc-pages.ts` (`LEADS.score` repeats/setMonthly/undated,
+  `LEADS.monthly`, `LEADS.recent.repeat`, new `LEAD_SPEND`; `LEADS.recent.vendorFile` moved into the key's label), `lib/accounts/store.ts`
+  (`auditFor`), `lib/contacts/{manage,imports,mapping,loan,review}.ts`, `app/mlo/contacts/actions.ts`, `lib/agents/business.ts`,
+  `lib/export/service.ts`, `app/api/cc/concierge/sweep/route.ts`, `app/mlo/cc-shell.css` (D83 block), `lib/leads/examples.test.ts`,
+  `app/mlo/leads/leads.test.ts` (+1), `scripts/qa/command-center.mjs`, `CLAUDE.md`.
+- **What the loan officer sees:** *Expenses* — on advertising, software, office (card postage) and client-gift lines, a "Lead source" picker (Not
+  lead spend, their own sources, Past clients & sphere, Your web form, Other… with a box to name it). "Zillow leads $1,200" typed or told to M8
+  arrives as an Advertising draft with Zillow already picked (LendingTree, Bankrate, LowerMyBills, Google Ads and Meta too); they confirm it as
+  every draft. Confirmed lines show "Lead source: Zillow". A line under "To confirm" says what the picker is for. *Lead sources* — the scorecard
+  (real mode) is Source · Leads · You can call · Repeats from the event log, with "Log spend · Set a monthly amount per source" and a line saying
+  what Repeats means (and, when there are any, how many imported leads have no date of their own); the example scorecard gets the same
+  monthly link. A new "Monthly amount per source" section (before Recent leads, own settings, never an example): each source's "$1,200 a month ·
+  Draft made for November 2026" with Remove, and a Source + Amount a month + Save form; this month's draft appears in Expenses at once as "Your
+  monthly amount for Zillow". Recent leads lists each person's newest lead event (a repeat says "LendingTree · repeat") with today's permission
+  pill (decision 1). The import's column cards gain "Application date".
+- **Source key:** lowercase slug (30 characters) with aliases for Zillow, LendingTree, Bankrate, LowerMyBills, Google Ads, Meta, "Past clients &
+  sphere" and "Your web form"; a vendor named inside a longer label is that vendor ("Zillow Premier Agent leads"); referral, past-client,
+  sphere, SOI, friends and family, word of mouth and repeat-client values go to `past-clients-sphere` (decision 5). Used by intake (the
+  `lead:<key>` tag, so "lead:lending-tree" is now "lead:lendingtree" for new leads), imports, expenses, monthly amounts and the Business
+  Manager's `snapshot.sources` ("zillow" and "Zillow.com" are one row now).
+- **Lead events:** `{ id, ownerUserId, sourceKey, sourceLabel, contactId, at, duplicate, namesYou, externalId, origin, datedBy }`, no personal
+  data. The intake writes one per delivery (`duplicate` = merged into someone already in the book; `namesYou` = that delivery's wording named
+  the loan officer, frozen), and the `lead.inbound` audit row records the event id (or null). A retry with the same owner, source and vendor
+  lead id adds nothing (a unique partial index in Neon, the same check in memory). Merge re-points the other record's events; deleting a
+  contact keeps them; undoing an import removes the events of the people the undo deleted.
+- **Backfill (decisions 4 and 5), lazy:** `syncLeadEvents` runs on each Lead sources view and in the morning run. Once per loan officer
+  (`history-v1` mark): one event per pre-D83 `lead.inbound` audit row (repeats included, `namesYou` from `permission: "recorded"`, a merged-away
+  contact resolved through `mergedFrom`), and one per `lead:` contact the audit log misses (`namesYou` from a granted text/call entry with actor
+  `lead:…`). Every run: one event per imported contact with a Lead source (or from a lead-vendor file), dated by the file's own Application date,
+  else its closed/funded date; a lead-vendor file with no date uses the import day; anyone else gets `datedBy: "none"` (counted as a lead, in no
+  period). Ids are hashes of owner + contact + delivery time (or "import"), so the intake and the backfill write the same id and nothing doubles.
+- **Monthly drafts:** one per source per month (Pacific), dated the 1st, Advertising, 100%, tagged, `source: "monthly"`, status draft. Made when
+  the amount is saved, on the next Lead sources or Expenses view, or by the morning run (owners with only monthly amounts get just this and the
+  event sync, not the full Concierge run; no new cron). A draft the loan officer deletes isn't made again that month; changing the amount
+  doesn't make a second. Assistants can't set or see amounts.
+- **Expenses:** `Entry.leadSource: string | null` (a key) and `source: "monthly"`; Neon `ALTER TABLE cc_expenses ADD COLUMN IF NOT EXISTS
+  lead_source text` (existing rows null), bound as `$17`. The parser and M8's drafts pre-select only on lead-spend categories (worked out from the
+  vendor and words, not asked of the model); saving keeps a source only on those categories. Expenses stay private: nothing else reads them.
+- **Exports:** `expenses.csv` has `leadSource` after `category`; new `lead-events.csv` (at, source, contact, repeat, formNamedYou, sourceKey,
+  contactId, vendorLeadId, from, datedBy) and `lead-monthly-amounts.csv`, own book only, formula-safe, in the README.
+- **Tests** (`lib/leads/d83.test.ts`, 17; `app/mlo/leads/leads.test.ts` +1): keys and aliases, sphere values, labels, the picker's options;
+  the parser and M8's drafts pre-select named vendors only on lead spend, "Other…" becomes a key, "Not lead spend" and a meals line clear it,
+  gifts and postage can be sphere; monthly drafts once per source per month, never confirmed, not remade after a delete, a new one next month,
+  bad input and assistants refused; Neon expense store adds the column and binds it; intake events (repeat, frozen `namesYou`, retry skipped,
+  audit ids, no personal data); history backfill once (audit repeats, merged-away contacts, `lead:` contacts without audit, other owners left
+  out, a second run adds nothing); imports dated per decision 5 (Application date, closed date, vendor import day, none; Referral and Sphere to
+  the sphere row; a loan-system application not used; an opt-in attestation in a file named after the company doesn't name you), idempotent,
+  undo removes, delete keeps; merge re-points; export columns and own book; the Business Manager's one row per key; Neon event store dedupe
+  index and parameters; the D83 copy has no rates, banned words or gift-and-referral wording; the monthly section's bound Remove and form. D82's
+  tests updated for decision 5 and the event counts (`eventCounts`, `recentEvents`).
+- **Verified:** `npm run verify` passes (912 tests; check:copy, check:identity, check:licensing, build, check:bundle). `node
+  scripts/qa/command-center.mjs` on a freshly started server: PROBLEMS none (new step "d83": "Zillow leads $1,200 yesterday" → Advertising with
+  Zillow pre-selected, no picker on an Other line, the picker after choosing Advertising, Other… shows its box, Confirm → "Lead source: Zillow";
+  a monthly amount for "Lending Tree" under Other… → "Saved: LendingTree. This month's draft is waiting in Expenses to confirm." and one "Your
+  monthly amount for LendingTree" draft tagged lendingtree; Ida delivered, retried with the same lead id, then sent again → "LendingTree 2 0 · 0%
+  1" and "Zillow 1 0 · 0% 0", Ida's row "LendingTree · repeat"; no sideways scroll at 390, monthly buttons 44px; the D82 steps' orders now include
+  `monthly`). `node scripts/qa/buttons.mjs` on a freshly started server: 496 page views, PROBLEMS none. Scratch sweep (`d83seed.mjs` +
+  `d83shots.mjs`: a Zillow lead and its retry, a LendingTree lead naming the company and a LendingTree repeat, Zillow $1,200 and Past clients &
+  sphere $150 a month, a Bankrate draft): Lead sources, Lead sources with Other… open, and Expenses at 390 and 1280 in Night, Dim and Paper: no
+  sideways scroll, no page errors, smallest text contrast 5.78:1 (Night), 5.62:1 (Dim), 5.60:1 (Paper).
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d83/` (`leads-*`, `monthly-other-*`, `expenses-*` at
+  `<390|1280>-<night|dim|paper>`; `qa-expense-draft-1280`, `qa-leads-1280`, `qa-leads-390` from the QA step; `buttons/` has the audit's set).
+- **Decisions:** (a) **Imports are dated by the file's own columns only** (decision 5's words): a new "Application date" import field
+  (`Contact.loan.appliedOn`, matched from "Application Date", "App Date", "Lead Date", "Date Received"…, read in the file's date order), else
+  "Loan closed on". A loan-system application date isn't used: the QA's past client Bo, with a 2022 Zillow loan and a new application this week,
+  would otherwise have counted as a Zillow lead this week. (b) **An import with a Lead source but no date, from a file not marked as from a lead
+  vendor, is a lead with no period** (`datedBy: "none"`): it switches the page to real and is counted in exports, but in no 30/90-day count; the
+  scorecard says how many. For the owner to confirm. (c) Events are dated once, when first written; a date column added by a later re-import
+  doesn't move them. (d) **Undoing an import removes its leads' events** (the undo means the import never happened); any other delete keeps them.
+  (e) An import's opt-in column is the loan officer's attestation with no wording, so an imported lead's `namesYou` is false unless the intake's
+  own wording named them (as D82's "you can call" rule). (f) The picker shows on Advertising, Software, Office expense (card postage) and Client
+  gifts lines; other categories drop the source on save. (g) The monthly section is its own section before Recent leads (the add card stays
+  section 4 in real mode) and shows in example mode too (it's the loan officer's own setting, never example data). (h) The monthly draft is dated
+  the 1st of the month and is Advertising; the loan officer fixes either when confirming. (i) Recent leads now reads the event log (a repeat
+  brings the person back to the top), so it lists every source's deliveries, imported leads by their file date. (j) The "Expenses by Schedule C
+  line" table on the year-end report is in a scroll box like the report's other wide tables: four-figure amounts made it wider than a phone.
+- **For counsel:** closing gifts (to clients or agents) may be tagged "Past clients & sphere" as lead spend (owner decision 3: allowed under
+  RESPA, not tied to referrals). Nothing in D83's copy ties a gift to a referral or calls it the cost of one (a test checks the D83 copy); the
+  picker's help line is neutral ("Which lead source this spend is for, so the scorecard on Lead sources can count it.").
+- **Known gaps:** the weekly report (D27) still counts leads from contacts, not events, so its numbers can differ from the scorecard (repeats and
+  imported leads); left as the builder notes say. Spend, cost per lead and loans per source come with D84 (the data is here: confirmed lines with
+  `leadSource`, at their business share). Pre-D83 repeats exist only where the audit log kept them, and webhook retries before D83 can't be told
+  apart (no vendor id was stored). The Lead sources page reads up to 2,000 contacts itself; bigger books are synced with a full read.
+- **Next up:** D84 (scorecard, Option B), after the owner's sign-off.

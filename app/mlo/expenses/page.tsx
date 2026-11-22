@@ -6,12 +6,17 @@ import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { listenOn } from "@/lib/voice/google";
 import { ccAnthropicKey } from "@/lib/concierge/agent";
-import { CATEGORIES, CATEGORY_KEYS } from "@/lib/expenses/categories";
+import { CATEGORIES } from "@/lib/expenses/categories";
 import { expenseStore, type Entry } from "@/lib/expenses/store";
 import { pacificToday, yearSummary } from "@/lib/expenses/service";
 import { mileageRate, nextEstimatedDate } from "@/lib/expenses/tax";
 import { FlashBox, MloNav } from "../MloChrome";
 import Tell from "./Tell";
+import CategorySource from "./CategorySource";
+import { makeMonthlyDrafts } from "@/lib/leads/spend";
+import { sourceOptionsFor, type SourceOption } from "@/lib/leads/sources";
+import { sourceLabel } from "@/lib/leads/source-key";
+import { LEAD_SPEND } from "@/lib/content/cc-pages";
 import { profileAction, removeEntryAction, saveEntryAction } from "./actions";
 import "../mlo.css";
 import "./expenses.css";
@@ -24,7 +29,7 @@ export const metadata: Metadata = { title: "Expenses", robots: { index: false, f
 const $ = (c: number) => `$${(c / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const nice = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-function EntryFields({ e, today }: { e: Partial<Entry> & { kind: Entry["kind"] }; today: string }) {
+function EntryFields({ e, today, options }: { e: Partial<Entry> & { kind: Entry["kind"] }; today: string; options: SourceOption[] }) {
   return (
     <div className="ex-fields">
       <label className="mlo-field"><span>Type</span>
@@ -39,11 +44,7 @@ function EntryFields({ e, today }: { e: Partial<Entry> & { kind: Entry["kind"] }
       <label className="mlo-field"><span>Amount $</span><input type="number" name="dollars" min={0} step="0.01" defaultValue={e.kind === "mileage" || e.kind === "charity" || !e.amountCents ? "" : (e.amountCents / 100).toFixed(2)} className="mlo-input" inputMode="decimal" /></label>
       <label className="mlo-field"><span>Miles</span><input type="number" name="miles" min={0} step="0.1" defaultValue={e.miles ?? ""} className="mlo-input" inputMode="decimal" /></label>
       <label className="mlo-field"><span>Vendor or payer</span><input name="vendor" defaultValue={e.vendor ?? ""} maxLength={80} className="mlo-input" /></label>
-      <label className="mlo-field"><span>Category</span>
-        <select name="category" defaultValue={e.category ?? "other"} className="mlo-select">
-          {CATEGORY_KEYS.map((k) => <option key={k} value={k}>{CATEGORIES[k].label} (line {CATEGORIES[k].line})</option>)}
-        </select>
-      </label>
+      <CategorySource category={e.category ?? "other"} leadSource={e.leadSource ?? null} options={options} />
       <label className="mlo-field"><span>Business %</span><input type="number" name="businessPct" min={1} max={100} step={1} defaultValue={e.businessPct ?? 100} className="mlo-input" inputMode="numeric" /></label>
       <label className="mlo-field ex-wide"><span>Business purpose</span><input name="purpose" defaultValue={e.purpose ?? ""} maxLength={200} className="mlo-input" placeholder="Who, where and why (the IRS asks)" /></label>
       <label className="mlo-field"><span>Gift for (first name)</span><input name="recipient" defaultValue={e.recipient ?? ""} maxLength={40} className="mlo-input" /></label>
@@ -59,9 +60,12 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
   const me = v.user;
   const today = pacificToday();
   const year = Number(y) >= 2020 && Number(y) <= Number(today.slice(0, 4)) ? Number(y) : Number(today.slice(0, 4));
+  // D83: this month's drafts from the monthly amounts set on Lead sources (nothing posts on its own).
+  if (me) await makeMonthlyDrafts(me).catch(() => 0);
   const sum = me ? await yearSummary(me, year) : null;
   const all = me ? await expenseStore().list(me.id, null) : [];
   const drafts = all.filter((e) => e.status === "draft");
+  const options = me ? await sourceOptionsFor(me.id, all.map((e) => e.leadSource)) : [];
   const recent = (sum?.entries ?? []).slice().reverse().slice(0, 60);
   const rate = mileageRate(today);
   return (
@@ -96,13 +100,14 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
 
             <section className="mlo-section" id="drafts">
               <h2>To confirm ({drafts.length})</h2>
+              <p className="mlo-note">{LEAD_SPEND.hint}</p>
               {drafts.length === 0 ? <p className="mlo-note">Nothing waiting.</p> : (
                 <ol className="ex-drafts">
                   {drafts.map((d) => (
                     <li key={d.id} className="cc-card">
-                      <p className="cc-card__title">{d.source === "receipt" ? "From a receipt" : "From what you told M8"}{d.receiptId ? <> · <a href={`/api/cc/expenses/receipt/${d.receiptId}`} target="_blank" rel="noopener noreferrer">see the receipt</a></> : null}</p>
+                      <p className="cc-card__title">{d.source === "receipt" ? "From a receipt" : d.source === "monthly" ? LEAD_SPEND.monthly(d.leadSource ? sourceLabel(d.leadSource, d.vendor) : d.vendor) : "From what you told M8"}{d.receiptId ? <> · <a href={`/api/cc/expenses/receipt/${d.receiptId}`} target="_blank" rel="noopener noreferrer">see the receipt</a></> : null}</p>
                       <form action={saveEntryAction.bind(null, d.id)} className="mlo-grid">
-                        <EntryFields e={d} today={today} />
+                        <EntryFields e={d} today={today} options={options} />
                         <div className="mlo-row-form">
                           <button type="submit" className="mlo-btn">Confirm</button>
                           <button type="submit" formAction={removeEntryAction.bind(null, d.id)} formNoValidate className="mlo-btn mlo-btn--ghost">Delete</button>
@@ -115,7 +120,7 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
               <details className="mlo-details">
                 <summary>Add one by hand</summary>
                 <form action={saveEntryAction.bind(null, null)} className="mlo-grid">
-                  <EntryFields e={{ kind: "expense" }} today={today} />
+                  <EntryFields e={{ kind: "expense" }} today={today} options={options} />
                   <button type="submit" className="mlo-btn">Save</button>
                 </form>
               </details>
@@ -140,7 +145,7 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
                     {recent.map((e) => (
                       <tr key={e.id}>
                         <td>{e.date}</td>
-                        <td>{e.kind === "income" ? "Income" : e.kind === "charity" ? "Charity miles" : CATEGORIES[e.category].label}{e.vendor ? ` · ${e.vendor}` : ""}<br /><span className="mlo-note">{e.purpose}{e.miles !== null ? ` · ${e.miles} mi` : ""}{e.businessPct < 100 ? ` · ${e.businessPct}% business` : ""}{e.receiptId ? " · receipt" : ""}</span></td>
+                        <td>{e.kind === "income" ? "Income" : e.kind === "charity" ? "Charity miles" : CATEGORIES[e.category].label}{e.vendor ? ` · ${e.vendor}` : ""}{e.leadSource ? ` · ${LEAD_SPEND.label}: ${sourceLabel(e.leadSource)}` : ""}<br /><span className="mlo-note">{e.purpose}{e.miles !== null ? ` · ${e.miles} mi` : ""}{e.businessPct < 100 ? ` · ${e.businessPct}% business` : ""}{e.receiptId ? " · receipt" : ""}</span></td>
                         <td>{$(e.amountCents)}</td>
                         <td><form action={removeEntryAction.bind(null, e.id)}><button type="submit" className="mlo-btn mlo-btn--ghost" aria-label={`Delete ${e.date} ${e.vendor}`}>Delete</button></form></td>
                       </tr>

@@ -40,6 +40,8 @@ const input = (fd: FormData) => ({
   businessPct: Number(fd.get("businessPct") || 100),
   purpose: String(fd.get("purpose") ?? ""),
   recipient: String(fd.get("recipient") ?? ""),
+  // D83: the Lead source picker ("other" takes what was typed beside it).
+  leadSource: fd.get("leadSource") === "other" ? String(fd.get("leadSourceOther") ?? "") : String(fd.get("leadSource") ?? ""),
 });
 
 /** Bound to the entry id (null for a new one). */

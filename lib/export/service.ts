@@ -7,6 +7,8 @@
  * every text, email and call logged, notes, reminders, drafts, loans,
  * campaigns, templates, call scripts, cards and expenses. Only their own
  * book. Nothing secret goes in (no connection tokens or loan-system keys).
+ * D83: each expense's lead source, the lead-event log and the monthly
+ * amounts per source.
  */
 import type { User } from "@/lib/accounts/store";
 import { CONFIG, mloById } from "@/lib/config";
@@ -20,6 +22,8 @@ import { scriptStore } from "@/lib/scripts/store";
 import { cardStore } from "@/lib/cards/store";
 import { videoStore } from "@/lib/videos/store";
 import { expenseStore } from "@/lib/expenses/store";
+import { leadEventStore } from "@/lib/leads/events";
+import { monthlyStore } from "@/lib/leads/spend";
 import { signatureFor } from "@/lib/profile/signature";
 import { toCsv } from "./csv";
 import { zip, type ZipFile } from "./zip";
@@ -42,7 +46,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
 
   const consents = [];
   for (let i = 0; i < all.length; i += 500) consents.push(...(await contactStore().consentsFor(all.slice(i, i + 500).map((c) => c.id))));
-  const [touches, notes, tasks, drafts, loans, campaigns, templates, scripts, cards, expenses, receipts, sig, videos, videoSends] = await Promise.all([
+  const [touches, notes, tasks, drafts, loans, campaigns, templates, scripts, cards, expenses, receipts, sig, videos, videoSends, leadEvents, monthly] = await Promise.all([
     touchStore().since(owner, "1970-01-01T00:00:00.000Z"),
     conciergeStore().allMemory(owner, nowIso),
     conciergeStore().tasks(owner, false),
@@ -57,6 +61,8 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
     signatureFor(user).catch(() => ""),
     videoStore().videosFor(owner, 5000).catch(() => []),
     videoStore().sendsFor(owner, 20000).catch(() => []),
+    leadEventStore().list(owner).catch(() => []),
+    monthlyStore().list(owner).catch(() => []),
   ]);
   const enrollments = (await Promise.all(campaigns.map((c) => campaignStore().enrollments(c.id)))).flat();
   const mine = templates.filter((t) => t.ownerUserId === owner);
@@ -82,7 +88,10 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
     cards: add("cards-by-mail.csv", cards.map((o) => ({ ...o, contactIds: undefined, people: o.contactIds.map(who).join("; ") })), { first: ["createdAt", "status", "kind", "people"], omit: ["contactIds"] }),
     videos: add("videos.csv", videos.map((v) => ({ createdAt: v.createdAt, title: v.title, seconds: v.durationSec, status: v.status, reason: v.reason, whatItSays: v.transcript, file: v.url ? `${CONFIG.siteUrl.replace(/\/$/, "")}/api/cc/videos/file/${encodeURIComponent(v.id)}` : "" })), { first: ["createdAt", "title", "status"] }),
     videoSends: add("video-sends.csv", videoSends.map((s) => ({ at: s.at, contact: s.contactName, channel: s.channel, video: videos.find((v) => v.id === s.videoId)?.title ?? "(deleted)", views: s.views, firstViewedAt: s.firstViewedAt, lastViewedAt: s.lastViewedAt })), { first: ["at", "contact", "video", "views"] }),
-    expenses: add("expenses.csv", expenses, { first: ["date", "kind", "amountCents", "miles", "vendor", "category", "purpose"] }),
+    expenses: add("expenses.csv", expenses.map((e) => ({ ...e, leadSource: e.leadSource ?? null })), { first: ["date", "kind", "amountCents", "miles", "vendor", "category", "leadSource", "purpose"] }),
+    // D83: one row per lead delivered or imported (no personal data in the log; the name is looked up from the book).
+    leadEvents: add("lead-events.csv", leadEvents.map((e) => ({ at: e.at, source: e.sourceLabel, sourceKey: e.sourceKey, contact: who(e.contactId), contactId: e.contactId, repeat: e.duplicate, formNamedYou: e.namesYou, vendorLeadId: e.externalId, from: e.origin, datedBy: e.datedBy })), { first: ["at", "source", "contact", "repeat", "formNamedYou"] }),
+    monthlyAmounts: add("lead-monthly-amounts.csv", monthly.map((m) => ({ source: m.sourceLabel, sourceKey: m.sourceKey, dollarsAMonth: (m.cents / 100).toFixed(2), lastDraftMonth: m.lastMonth, updatedAt: m.updatedAt })), { first: ["source", "dollarsAMonth"] }),
   };
 
   // Receipt files, newest first, as many as fit.
@@ -123,7 +132,9 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
       "loans.csv: loans synced from your loan system.",
       "campaigns.csv, campaign-people.csv, templates.csv, call-scripts.csv, cards-by-mail.csv: what you built and sent.",
       "videos.csv, video-sends.csv: your video messages (with a link to each file and what it says) and who watched.",
-      "expenses.csv and receipts/: your business expenses, income and mileage.",
+      "expenses.csv and receipts/: your business expenses, income and mileage (leadSource: the lead source a line of spend was for).",
+      "lead-events.csv: every lead delivered to you or imported with a lead source, by source (repeat: they were already in your book; formNamedYou: that lead's consent wording named you or your company).",
+      "lead-monthly-amounts.csv: the monthly amount you set for each lead source.",
       "",
       "Not included, on purpose: passwords, connection keys and sign-in codes.",
     ].join("\r\n"),

@@ -229,19 +229,25 @@ export const LEADS = {
     periods: ["30 days", "90 days", "This year"],
     bannerWho: "Business Manager:",
     review: "Review",
-    cols: { source: "Source", spent: "Spent", leads: "Leads", perLead: "Per lead", canCall: "You can call", loans: "Loans", perLoan: "Per loan", says: "Concierge says" },
+    cols: { source: "Source", spent: "Spent", leads: "Leads", perLead: "Per lead", canCall: "You can call", loans: "Loans", perLoan: "Per loan", says: "Concierge says", repeats: "Repeats" },
     perLoanUnit: "per loan",
     noLoans: "None yet",
     noLoansCard: "No loans yet",
     badges: { best: "Best value", scale: "Scale up", watch: "Watch", fix: "Fix permission", pause: "Pause?" },
     spendLine: "Spend comes from lead-spend lines in Expenses.",
     logSpend: "Log spend",
+    /** D83: links to the monthly amounts on this page. */
+    setMonthly: "Set a monthly amount per source",
+    /** D83: what the Repeats column means. */
+    repeatsNote: "“Repeats” = leads a source sent you who were already in your book. Each one counts as a lead from that source; ask the vendor about credit for them.",
     canCallNote: "“You can call” = leads whose consent wording named you or your company.",
     /** The real scorecard before spend and loans are tagged by source. */
     real: {
       sub: "Your leads in the last 90 days, by where they came from.",
       none: "No leads in the last 90 days.",
       notYet: "Spend, cost per lead and loans per source aren’t counted here yet.",
+      /** D83: a lead counted from an import with no date of its own isn't in any period. */
+      undated: (n: number) => `${n === 1 ? "One imported lead has" : `${n} imported leads have`} no date of their own, so ${n === 1 ? "it isn’t" : "they aren’t"} counted in a period.`,
     },
   },
   /** D82: the lead plan card (the planner comes with D86). */
@@ -262,13 +268,42 @@ export const LEADS = {
     how: "How to connect a vendor, and the field names to send",
     fieldsTitle: "Field names for your vendor",
   },
+  /** D83: a monthly amount per source, made into a draft expense each month. */
+  monthly: {
+    title: "Monthly amount per source",
+    intro: "Paying a source every month? Set the amount once. Each month it becomes a draft in Expenses, tagged with the source, for you to confirm. Nothing posts on its own.",
+    none: "No monthly amounts yet.",
+    each: (amount: string) => `${amount} a month`,
+    made: (month: string) => `Draft made for ${month}`,
+    source: "Source",
+    amount: "Amount a month ($)",
+    save: "Save",
+    remove: (label: string) => `Remove the monthly amount for ${label}`,
+    removeWord: "Remove",
+    drafts: "Drafts to confirm",
+    saved: (label: string, n: number) => `Saved: ${label}.${n ? " This month’s draft is waiting in Expenses to confirm." : ""}`,
+    removed: "Removed. Drafts already made stay in Expenses until you confirm or delete them.",
+    errors: { source: "Pick a source, or name it under Other.", amount: "Enter an amount a month between $1 and $100,000.", assistant: "Spend is private to each loan officer." },
+  },
   /** D82: Recent leads. */
   recent: {
     title: (n: number) => `Recent leads (${n})`,
     none: "None yet.",
-    /** An imported lead from a vendor file with no Lead source column. */
-    vendorFile: "Lead vendor file",
+    /** D83: a delivery of someone already in the book. */
+    repeat: "repeat",
   },
+};
+
+/** D83: the Lead source picker (Expenses, and the monthly amounts on Lead sources). */
+export const LEAD_SPEND = {
+  label: "Lead source",
+  none: "Not lead spend",
+  pick: "Pick a source",
+  other: "Other…",
+  otherLabel: "Name the source",
+  hint: "Which lead source this spend is for, so the scorecard on Lead sources can count it.",
+  /** Where a draft came from, on Expenses' "To confirm". */
+  monthly: (label: string) => `Your monthly amount for ${label}`,
 };
 
 /** D81: the reusable "i" pop-up's own words (app/mlo/InfoTip.tsx). */

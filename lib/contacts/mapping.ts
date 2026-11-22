@@ -31,6 +31,8 @@ export const CONTACT_FIELDS = {
   tags: "Tags",
   notes: "Notes",
   closedOn: "Loan closed on",
+  // D83: when they applied (or came in as a lead); dates an imported lead (owner decision 5).
+  appliedOn: "Application date",
   loanAmount: "Loan amount",
   noteRate: "Note rate",
   // D80: more about their loan, so lists can find it ("ARM loans", "FHA and VA").
@@ -136,6 +138,7 @@ const SYNONYMS: [Field, RegExp][] = [
   // D74: a bare "Stage" / "Pipeline stage" column goes to notes for now (the stage board comes later).
   ["relationship", /relationship|contact type|lead type|client type|category|lifecycle|^type$|^status$/],
   ["tags", /^(tags?|labels?|groups?|lists?)$|\btags?\b/],
+  ["appliedOn", /^app(l|lication)?\.? ?date$|appl(ication|ied).*(date|on)|date.*appl(ication|ied)|^applied$|^lead ?date$|^date (received|of inquiry)$|^inquiry date$/],
   ["closedOn", /(close|closing|funded|fund).*date|date.*(closed|funded)|closed on/],
   ["loanAmount", /loan.*amount|^amount$/],
   ["armMargin", /margin/],
@@ -425,6 +428,9 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
     const rawClosed = get("closedOn");
     const closedOn = isoDate(rawClosed, { order: opts.dateOrder });
     if (rawClosed && !closedOn && !isPlaceholder(rawClosed)) warn("closedOn", "date", rawClosed, dateProblem(rawClosed, opts.dateOrder), "closedOn");
+    const rawApplied = get("appliedOn");
+    const appliedOn = isoDate(rawApplied, { order: opts.dateOrder });
+    if (rawApplied && !appliedOn && !isPlaceholder(rawApplied)) asWritten.push(`${label("appliedOn")} (as written): ${rawApplied.slice(0, 120)}`);
     const amount = num(get("loanAmount"));
     const noteRate = num(get("noteRate"));
     // D80: one "Program" column ("5/1 ARM", "FHA 30") also gives fixed or ARM and the term when no column of their own does.
@@ -433,6 +439,7 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
     const armFirstChange = isoDate(rawChange, { order: opts.dateOrder });
     if (rawChange && !armFirstChange && !isPlaceholder(rawChange)) asWritten.push(`${label("armFirstChange")} (as written): ${rawChange.slice(0, 120)}`);
     const more: Partial<LoanDetails> = {
+      appliedOn,
       program: prog.program,
       rateType: readRateType(get("rateType")) ?? prog.rateType,
       termMonths: readTerm(get("termMonths")) ?? prog.termMonths,

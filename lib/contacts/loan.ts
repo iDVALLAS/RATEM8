@@ -34,6 +34,8 @@ export type PropertyType = (typeof PROPERTY_TYPES)[number];
 /** A contact's loan. The first three are D2's; the rest are D80's (optional, so older records still read). */
 export type LoanDetails = {
   closedOn: string | null;
+  /** D83: YYYY-MM-DD, when they applied (an import's Application date column); dates an imported lead. */
+  appliedOn?: string | null;
   amount: number | null;
   noteRate: number | null;
   program?: LoanProgram | null;

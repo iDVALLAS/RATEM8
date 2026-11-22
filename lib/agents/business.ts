@@ -9,6 +9,7 @@ import type { User } from "@/lib/accounts/store";
 import { contactStore } from "@/lib/contacts/store";
 import { yearSummary } from "@/lib/expenses/service";
 import { pipelineStore } from "@/lib/pipeline/store";
+import { sourceKey, sourceLabel } from "@/lib/leads/source-key";
 import type { Proposal } from "./runner";
 
 /** A common starting point for self-employed set-asides; the CPA sets the real number. */
@@ -36,14 +37,16 @@ export async function snapshot(user: User, now = new Date()): Promise<Snapshot> 
   const spent = y?.expenseCents ?? 0;
   const profit = income - spent;
   const loanContacts = new Set(loans.filter((l) => l.contactId && !l.dead).map((l) => l.contactId as string));
-  const bySource = new Map<string, { leads: number; loans: number }>();
+  // D83: one row per source key (the same key spend and the Lead sources page use), so "zillow" and "Zillow" are one.
+  const bySource = new Map<string, { label: string; leads: number; loans: number }>();
   for (const c of contacts) {
     if (!c.source.startsWith("lead:")) continue;
-    const s = c.source.slice(5).trim() || "unknown";
-    const row = bySource.get(s) ?? { leads: 0, loans: 0 };
+    const named = c.source.slice(5).trim();
+    const k = sourceKey(named) || "unknown";
+    const row = bySource.get(k) ?? { label: k === "unknown" ? "unknown" : sourceLabel(k, named), leads: 0, loans: 0 };
     row.leads++;
     if (loanContacts.has(c.id)) row.loans++;
-    bySource.set(s, row);
+    bySource.set(k, row);
   }
   return {
     year,
@@ -55,7 +58,7 @@ export async function snapshot(user: User, now = new Date()): Promise<Snapshot> 
     costPerLoanCents: closedThisYear.length ? Math.round(spent / closedThisYear.length) : null,
     drafts: y?.drafts ?? 0,
     missingReceipts: y?.missingReceipts ?? 0,
-    sources: [...bySource.entries()].map(([source, r]) => ({ source, ...r })).sort((a, b) => b.leads - a.leads).slice(0, 8),
+    sources: [...bySource.values()].map(({ label, leads, loans }) => ({ source: label, leads, loans })).sort((a, b) => b.leads - a.leads).slice(0, 8),
   };
 }
 

@@ -51,7 +51,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.goto(B + '/mlo/leads');
     const secs = await leadSections();
     console.log('d82: example order:', secs.map((x) => x.id + (x.label ? '(EXAMPLE)' : '')).join(', '));
-    if (secs.map((x) => x.id).join() !== 'add,ask,scorecard,plan,recent') problems.push('[d82] example order: ' + secs.map((x) => x.id).join());
+    if (secs.map((x) => x.id).join() !== 'add,ask,scorecard,plan,monthly,recent') problems.push('[d82] example order: ' + secs.map((x) => x.id).join());
     for (const id of ['scorecard', 'plan', 'recent']) {
       const sec = page.locator('#' + id);
       if ((await sec.locator('.cc-ex').innerText()) !== 'EXAMPLE') problems.push(`[d82] #${id} has no EXAMPLE label`);
@@ -263,7 +263,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.goto(B + '/mlo/leads');
     const secs = await leadSections();
     console.log('d82: real order:', secs.map((x) => x.id + (x.label ? '(EXAMPLE)' : '')).join(', '));
-    if (secs.map((x) => x.id).join() !== 'ask,scorecard,plan,add,recent') problems.push('[d82] real order: ' + secs.map((x) => x.id).join());
+    if (secs.map((x) => x.id).join() !== 'ask,scorecard,plan,add,monthly,recent') problems.push('[d82] real order: ' + secs.map((x) => x.id).join());
     for (const id of ['scorecard', 'recent']) if (await page.locator(`#${id} .cc-ex`).count()) problems.push(`[d82] #${id} still labeled an example`);
     if (!(await page.locator('#plan .cc-ex').count())) problems.push('[d82] the plan card lost its EXAMPLE label');
     if (!/after you save your first plan/.test(await page.locator('#plan').innerText())) problems.push('[d82] the plan card line');
@@ -271,12 +271,78 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     const score = await page.locator('#scorecard').innerText();
     console.log('d82: real scorecard:', score.replace(/\n+/g, ' | ').slice(0, 200));
     if (!/zillow\t1\t/i.test(score) || /LendingTree|Bankrate|\$3,600/.test(score)) problems.push('[d82] real scorecard rows: ' + score.slice(0, 200));
-    // The "Past clients" workbook imported earlier has a Lead Source column (Referral, Zillow): those people aren't new leads.
-    if (/Referral/.test(score)) problems.push('[d82] a past-client file\'s Lead Source column counted as a lead: ' + score.slice(0, 200));
+    // The "Past clients" workbook imported earlier has a Lead Source column (Referral, Zillow): D83 counts them (decision 5),
+    // dated by their closing dates, so they're not in the last 90 days, and "Referral" is never a row of its own.
+    if (/Referral/.test(score)) problems.push('[d82] a past-client file\'s Lead Source column shows as Referral: ' + score.slice(0, 200));
     const recent = await page.locator('#recent').innerText();
     if (/Maria Lopez|Dana Nguyen|Sam Patel/.test(recent)) problems.push('[d82] example rows mixed into real Recent leads');
     if (!(await page.locator('#recent a[href^="/mlo/contacts/"]', { hasText: 'Eve Ng' }).count())) problems.push('[d82] Eve is not a link in Recent leads');
     if (D82) await page.screenshot({ path: path.join(D82, 'qa-real-1280.png'), fullPage: true });
+  });
+  // D83: lead spend tagged by source, a monthly amount per source, and the lead-event log (repeats).
+  const D83 = process.env.QA_D83_SHOTS || '';
+  if (D83) fs.mkdirSync(D83, { recursive: true });
+  await step('d83: lead spend, monthly amount, repeats', async () => {
+    // An advertising expense naming Zillow: its Lead source is pre-selected; the loan officer confirms it.
+    await page.goto(B + '/mlo/expenses');
+    await page.locator('#tell textarea').fill('Zillow leads $1,200 yesterday');
+    await page.locator('#tell').getByRole('button', { name: 'Add', exact: true }).click();
+    await page.locator('#tell [role=status]').waitFor();
+    const card = page.locator('#drafts .cc-card', { has: page.locator('input[name=vendor]') }).filter({ has: page.locator('select[name=leadSource]') }).first();
+    await card.waitFor({ timeout: 10000 });
+    const cat = await card.locator('select[name=category]').inputValue();
+    const src = await card.locator('select[name=leadSource]').inputValue();
+    console.log('d83: draft category:', cat, '| lead source:', src);
+    if (cat !== 'advertising' || src !== 'zillow') problems.push(`[d83] Zillow draft: category ${cat}, lead source ${src}`);
+    // A meal shows no picker; switching the category to Advertising shows it.
+    const hand = page.locator('#drafts details.mlo-details');
+    await hand.locator('summary').click();
+    if (await hand.locator('select[name=leadSource]').count()) problems.push('[d83] the picker shows on an "Other" line');
+    await hand.locator('select[name=category]').selectOption('advertising');
+    if (!(await hand.locator('select[name=leadSource]').count())) problems.push('[d83] no picker after choosing Advertising');
+    await hand.locator('select[name=leadSource]').selectOption('other');
+    if (!(await hand.locator('input[name=leadSourceOther]').isVisible())) problems.push('[d83] Other… shows no box');
+    await hand.locator('summary').click();
+    if (D83) await page.screenshot({ path: path.join(D83, 'qa-expense-draft-1280.png'), fullPage: true });
+    await card.getByRole('button', { name: 'Confirm' }).click(); await page.waitForURL(/f=/);
+    console.log('d83: confirm:', await flash());
+    if (!/Saved/.test(await flash())) problems.push('[d83] confirm: ' + await flash());
+    if (!(await page.locator('#entries', { hasText: 'Lead source: Zillow' }).count())) problems.push('[d83] the confirmed line lacks its lead source');
+    // A monthly amount per source (named under Other…), and this month's draft waiting in Expenses.
+    await page.goto(B + '/mlo/leads#monthly');
+    const mon = page.locator('#monthly');
+    await mon.locator('select[name=source]').selectOption('other');
+    await mon.locator('input[name=sourceOther]').fill('Lending Tree');
+    await mon.locator('input[name=dollars]').fill('450');
+    await mon.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForURL(/f=/);
+    console.log('d83: monthly:', await flash(), '|', (await mon.locator('.cc-monthly__row').allInnerTexts()).join(' / ').replace(/\n/g, ' '));
+    if (!/Saved: LendingTree\. This month’s draft is waiting in Expenses to confirm\./.test(await flash())) problems.push('[d83] monthly save: ' + await flash());
+    if (!(await mon.locator('.cc-monthly__row', { hasText: /LendingTree\s*\$450 a month · Draft made for/ }).count())) problems.push('[d83] no LendingTree row with its draft');
+    await page.goto(B + '/mlo/expenses#drafts');
+    const md = page.locator('#drafts .cc-card', { hasText: 'Your monthly amount for LendingTree' });
+    if ((await md.count()) !== 1) problems.push(`[d83] expected one monthly draft, got ${await md.count()}`);
+    else if ((await md.locator('select[name=leadSource]').inputValue()) !== 'lendingtree') problems.push('[d83] the monthly draft is not tagged LendingTree');
+    // Same person delivered twice (and a webhook retry of the first): one lead, one repeat.
+    const lt = { first_name: 'Ida', last_name: 'Moss', phone: '(503) 555-1357' };
+    await page.request.post(B + '/api/leads/inbound?source=LendingTree', { headers: { 'X-CC-Key': key }, data: { ...lt, lead_id: 'LT-9' } });
+    await page.request.post(B + '/api/leads/inbound?source=LendingTree', { headers: { 'X-CC-Key': key }, data: { ...lt, lead_id: 'LT-9' } });
+    await page.request.post(B + '/api/leads/inbound?source=lendingtree', { headers: { 'X-CC-Key': key }, data: { ...lt, lead_id: 'LT-10' } });
+    await page.goto(B + '/mlo/leads');
+    const score = await page.locator('#scorecard').innerText();
+    console.log('d83: scorecard:', score.replace(/\n+/g, ' | ').slice(0, 260));
+    if (!/LendingTree\t2\t0 · 0%\t1/.test(score)) problems.push('[d83] LendingTree row should be 2 leads, 1 repeat: ' + score.slice(0, 260));
+    if (!/Zillow\t1\t0 · 0%\t0/.test(score)) problems.push('[d83] Zillow row: ' + score.slice(0, 260));
+    if (!/Repeats/.test(score)) problems.push('[d83] no Repeats column');
+    const ida = page.locator('#recent tr', { hasText: 'Ida Moss' });
+    if ((await ida.count()) !== 1 || !/LendingTree · repeat/.test(await ida.innerText())) problems.push('[d83] Recent leads row for Ida: ' + (await ida.allInnerTexts()).join(' / '));
+    if (D83) await page.screenshot({ path: path.join(D83, 'qa-leads-1280.png'), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push('[d83] sideways scroll at 390');
+    const btn = await page.locator('#monthly button').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+    if (btn.some((h) => h < 44)) problems.push('[d83] a monthly button under 44px: ' + btn.join(','));
+    if (D83) await page.screenshot({ path: path.join(D83, 'qa-leads-390.png'), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
   });
   // D77: add a person by hand (and a duplicate refused), record permission, edit the phone (permission set back, checks
   // cleared), merge a second record into them, and check the list's row and the header's one-tap actions.

@@ -24,6 +24,7 @@ import type { User } from "@/lib/accounts/store";
 import { accountStore } from "@/lib/accounts/store";
 import { campaignStore } from "@/lib/campaigns/store";
 import { touchStore } from "@/lib/messaging/store";
+import { leadEventStore } from "@/lib/leads/events";
 import type { ImportKind, ImportRecord } from "./mapping";
 import { applyImport, changeLabels, classify, undoOpen, undoSnapshot, type MatchKind, type ReimportMode } from "./reimport";
 import { bookOf, canSee, importOwner, isUndoneYes } from "./service";
@@ -290,6 +291,8 @@ export async function undoImport(actor: User, id: string, now = new Date()): Pro
       }
       // The consent log stays as it was (append-only); the person goes.
       await store.remove(c.id, { keepConsents: true });
+      // D83: an undone import never happened, so its leads aren't counted (a person deleted any other way keeps theirs).
+      await leadEventStore().removeImported(run.owner, c.id);
       for (const e of await campaignStore().activeForContact(c.id)) await campaignStore().putEnrollment({ ...e, status: "stopped", endedAt: at, reason: "Import undone." });
       r.deleted++;
       continue;

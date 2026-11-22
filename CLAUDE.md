@@ -252,6 +252,15 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     (table / phone cards), plan card and Recent leads from the fixture, each "EXAMPLE" plus its line; each section switches on its own (plan only on a
     saved plan, D86), never mixed; then the add card is compact in section 4. Example buttons disabled, rows never links; only `LeadSections.tsx` may
     import the fixture (test); assistants see the add card and Recent leads only.
+    D83 lead spend and lead events (`lib/leads/{source-key,events,backfill,sync,spend,sources}.ts`, `app/mlo/SourcePicker.tsx`): one `sourceKey()`
+    (slug + aliases; referral/past-client/sphere values → `past-clients-sphere`) joins spend and leads (`lead:<key>` tag, imports, expenses, Business
+    Manager); `Entry.leadSource` (Neon `lead_source`, picker on advertising/software/gifts/office lines, named vendors pre-selected by the parser and
+    M8's drafts); monthly amount per source on Lead sources (`cc_lead_monthly`, bound actions) makes one `source: "monthly"` draft per source per month
+    (page views of Lead sources/Expenses, morning run), never posted; `cc_lead_events` = one event per delivery (repeat = `duplicate`, `namesYou`
+    frozen, retries with the same owner+source+`externalId` skipped), backfilled lazily once from `lead.inbound` audit rows + `lead:` contacts, plus
+    every imported contact with a Lead source dated by the file's Application date (new import field `appliedOn`) else closed date, vendor file =
+    import day, else undated ("none", in no period); merge re-points, delete keeps, import undo removes; scorecard counts and Repeats come from
+    events; `lead-events.csv` + `lead-monthly-amounts.csv` in Download everything; assistants see no spend.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -360,7 +369,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 894 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 912 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

@@ -17,6 +17,10 @@
  *  - nothing is sent to the lead; the lead shows on Today right away (speed to lead)
  *  - D79: a new person (not a duplicate) alerts the loan officer by text or
  *    email, their choice, within their notification hours (lib/leads/alert.ts)
+ *  - D83: every delivery is a lead event (lib/leads/events.ts), a repeat too,
+ *    so the vendor that sent someone you already have still gets the lead
+ *    counted; whether that delivery's wording named you is frozen on it. A
+ *    webhook retry (same vendor and lead id) is not a new event.
  */
 import { randomBytes } from "node:crypto";
 import { accountStore, type User } from "@/lib/accounts/store";
@@ -25,6 +29,8 @@ import { cleanEmail, cleanState, splitName, stateFromZip, toE164 } from "@/lib/c
 import { redactChatInput } from "@/lib/m8/redact";
 import { mloById } from "@/lib/config";
 import { companyDetails } from "@/lib/accounts/company";
+import { eventId, leadEventStore } from "./events";
+import { sourceKey, sourceLabel } from "./source-key";
 
 export type Lead = {
   externalId: string | null;
@@ -113,7 +119,9 @@ export type LeadResult = { contactId: string; created: boolean; permission: "rec
 export async function ingestLead(user: User, lead: Lead, now = new Date(), alertDeps: import("./alert").AlertDeps = {}): Promise<LeadResult> {
   const store = contactStore();
   const at = now.toISOString();
-  const tag = `lead:${lead.vendor.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30)}`;
+  // D83: the tag uses the same key as spend and the scorecard ("lead:zillow", "lead:lendingtree").
+  const key = sourceKey(lead.vendor) || "lead-vendor";
+  const tag = `lead:${key}`;
   let c: Contact | null = await store.findDuplicate(user.id, lead.phone, lead.email);
   const created = !c;
   const note = lead.message ? `Lead form message (${lead.vendor}, ${at.slice(0, 10)}): ${lead.message}` : null;
@@ -154,7 +162,12 @@ export async function ingestLead(user: User, lead: Lead, now = new Date(), alert
       permission = "recorded";
     } else permission = "not_naming_us";
   }
-  await accountStore().audit({ at, actor: `lead:${lead.vendor}`, action: "lead.inbound", detail: { owner: user.id, contactId: c.id, created, permission } });
+  // D83: the lead event (a repeat when they were already in the book). Never loses the lead if the log can't be written.
+  const event = eventId(user.id, c.id, at);
+  const counted = await leadEventStore()
+    .add({ id: event, ownerUserId: user.id, sourceKey: key, sourceLabel: sourceLabel(key, lead.vendor), contactId: c.id, at, duplicate: !created, namesYou: permission === "recorded", externalId: lead.externalId, origin: "delivery", datedBy: "delivery" })
+    .catch(() => false);
+  await accountStore().audit({ at, actor: `lead:${lead.vendor}`, action: "lead.inbound", detail: { owner: user.id, contactId: c.id, created, permission, event: counted ? event : null } });
   // D51: into the loan officer's active "new lead" campaigns; steps due now go out at once (through the contact rules).
   try {
     const { onNewLead } = await import("@/lib/campaigns/service");

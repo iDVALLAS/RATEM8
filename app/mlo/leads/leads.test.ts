@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { INFO_TIP, LEADS } from "@/lib/content/cc-pages";
 import InfoTip from "../InfoTip";
 import PermissionTip from "./PermissionTip";
+import { ExampleScorecard, MonthlyAmounts, RealScorecard } from "./LeadSections";
 
 /** D81: Lead sources copy cleanup and the permission "i". */
 describe("Lead sources copy (D81)", () => {
@@ -82,5 +83,21 @@ describe("InfoTip (D81)", () => {
     expect(page).toContain("{LEADS.permissionLine}");
     expect(page).not.toContain("LEADS.consent");
     expect(page).toMatch(/\{LEADS\.status\.none\}<\/span>\s*<PermissionTip label=\{LEADS\.rowTipLabel\(name\)\}/);
+  });
+});
+
+describe("the monthly amounts section (D83)", () => {
+  it("lists each amount with its own bound Remove (no value-carrying buttons), and the form picks or names a source", () => {
+    const html = renderToStaticMarkup(createElement(MonthlyAmounts, { month: "November 2026", rows: [{ key: "zillow", label: "Zillow", cents: 120000, madeThisMonth: true }], options: [{ key: "zillow", label: "Zillow" }, { key: "past-clients-sphere", label: "Past clients & sphere" }] }));
+    expect(html).toContain('id="monthly"');
+    expect(html).toContain("$1,200 a month");
+    expect(html).toContain("Draft made for November 2026");
+    expect(html).toContain('aria-label="Remove the monthly amount for Zillow"');
+    expect(html).not.toMatch(/<button[^>]*\bvalue=/);
+    expect(html).toContain('<option value="other">Other…</option>');
+    expect(html).toContain('name="dollars"');
+    expect(html).not.toContain("cc-ex");
+    for (const el of [createElement(ExampleScorecard), createElement(RealScorecard, { rows: [], undated: 2 })]) expect(renderToStaticMarkup(el)).toContain('href="#monthly"');
+    expect(renderToStaticMarkup(createElement(RealScorecard, { rows: [], undated: 2 }))).toContain("2 imported leads have no date of their own");
   });
 });

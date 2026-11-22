@@ -17,6 +17,8 @@ import { loaStore } from "@/lib/loa/store";
 import { loaMorning } from "@/lib/loa/autopilot";
 import { prefsStore } from "@/lib/profile/prefs";
 import { sendHeldAlerts } from "@/lib/leads/alert";
+import { syncLeadEvents } from "@/lib/leads/sync";
+import { makeMonthlyDrafts, monthlyStore } from "@/lib/leads/spend";
 
 /**
  * GET /api/cc/concierge/sweep — the morning run for every loan officer who
@@ -40,6 +42,9 @@ export async function GET(req: Request) {
     try {
       // D79: new-lead alerts that waited overnight (when their hours are open).
       await sendHeldAlerts(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-alerts" }));
+      // D83: the lead-event log kept complete (imports since yesterday), and this month's drafts from monthly amounts per source.
+      await syncLeadEvents(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-events" }));
+      if (user.role !== "assistant") await makeMonthlyDrafts(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-monthly" }));
       await runDaily(user);
       // D54: the Concierge team plans the day (its sends go out in the midday run).
       if (teamOn()) await runTeam(user);
@@ -59,6 +64,13 @@ export async function GET(req: Request) {
       await accountStore().audit({ at: new Date().toISOString(), actor: "concierge", action: "concierge.sweep_failed", detail: { owner, error: kind } });
       await report("error", e, { route: "concierge-sweep", stage: "sweep" });
     }
+  }
+  // D83: loan officers with a monthly amount per source but none of the above get only their drafts and their lead log.
+  for (const owner of (await monthlyStore().owners().catch(() => [])).filter((o) => !owners.includes(o)).slice(0, 200)) {
+    const user = await accountStore().userById(owner);
+    if (!user || user.status !== "active" || user.role === "assistant") continue;
+    await syncLeadEvents(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-events" }));
+    await makeMonthlyDrafts(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-monthly" }));
   }
   // D51: campaign steps due now (East Coast mornings; the midday run covers the West).
   const campaigns = await runDue(new Date()).catch(async (e) => {

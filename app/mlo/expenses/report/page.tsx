@@ -58,7 +58,8 @@ export default async function Report({ searchParams }: { searchParams: Promise<{
         ) : <p className="mlo-note">No income entered. Bring each 1099-NEC you receive; your CPA reports what&apos;s on them.</p>}
 
         <h2>Expenses by Schedule C line</h2>
-        <table>
+        {/* D83: in the scroll box like the other wide tables (four-figure amounts pushed it past a phone's width). */}
+        <div className="ex-scroll"><table>
           <thead><tr><th>Line</th><th>Category</th><th className="num">Items</th><th className="num">Spent</th><th className="num">Counts</th></tr></thead>
           <tbody>
             {s.lines.flatMap((l) =>
@@ -68,7 +69,7 @@ export default async function Report({ searchParams }: { searchParams: Promise<{
             )}
             <tr className="ex-total"><td colSpan={4}>Total</td><td className="num">{$(s.expenseCents)}</td></tr>
           </tbody>
-        </table>
+        </table></div>
         {s.membership.months ? <p className="mlo-note">Includes the LoanM8 membership ({plural(s.membership.months, "month", "months")}), from the Membership ledger.</p> : null}
 
         <h2>Mileage log</h2>

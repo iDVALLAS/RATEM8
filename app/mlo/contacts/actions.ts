@@ -59,6 +59,7 @@ const Record_ = z.object({
   loan: z
     .object({
       closedOn: s(10).nullable(),
+      appliedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
       amount: n,
       noteRate: n,
       program: z.enum(LOAN_PROGRAMS).nullable().optional(),

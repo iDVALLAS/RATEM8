@@ -30,6 +30,7 @@ import { CATEGORIES, CATEGORY_KEYS, LINE_NAMES, LINE_ORDER, type Category } from
 import { parseDate, parseText, type Draft } from "./parse";
 import { expenseStore, type Entry, type TaxProfile } from "./store";
 import { CHARITY_CENTS_PER_MILE, GIFT_CAP_CENTS, homeOfficeCents, MEALS_SHARE, mileageRate } from "./tax";
+import { guessLeadSource, isLeadSpendCategory, sourceKey } from "@/lib/leads/source-key";
 
 export const MAX_RECEIPT_BYTES = 5 * 1024 * 1024; // the server-action body limit is 6 MB (next.config.ts)
 export const RECEIPT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"] as const;
@@ -140,6 +141,8 @@ function toEntry(user: User, d: Draft & { recipient?: string }, source: Entry["s
     recipient: d.category === "gifts" && d.recipient ? cleanText(d.recipient, 40) : null,
     receiptId,
     source,
+    // D83: only expenses that can be lead spend carry a lead source.
+    leadSource: d.kind === "expense" && !byMile && isLeadSpendCategory(d.category) ? (d.leadSource ?? null) : null,
     status: "draft",
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
@@ -151,7 +154,8 @@ function fromModel(json: string | null, today: string): (Draft & { recipient: st
   try {
     const p = Out.safeParse(JSON.parse(json));
     if (!p.success) return null;
-    return p.data.items.map((i) => ({ kind: i.kind, date: /^\d{4}-\d{2}-\d{2}$/.test(i.date) ? i.date : today, amountCents: Math.round(i.amount * 100), miles: i.kind === "mileage" || i.kind === "charity" ? i.miles : null, vendor: i.vendor, category: i.category, businessPct: i.businessPct, purpose: i.purpose, recipient: i.recipient }));
+    // D83: a named lead vendor in M8's draft pre-selects its Lead source (worked out here, not by the model).
+    return p.data.items.map((i) => ({ kind: i.kind, date: /^\d{4}-\d{2}-\d{2}$/.test(i.date) ? i.date : today, amountCents: Math.round(i.amount * 100), miles: i.kind === "mileage" || i.kind === "charity" ? i.miles : null, vendor: i.vendor, category: i.category, businessPct: i.businessPct, purpose: i.purpose, recipient: i.recipient, leadSource: i.kind === "expense" && isLeadSpendCategory(i.category) ? guessLeadSource(`${i.vendor} ${i.purpose}`) : null }));
   } catch {
     return null;
   }
@@ -211,7 +215,10 @@ export async function addReceipt(user: User, file: { name: string; type: string;
   return { ok: true, drafts: 1, by: drafts?.length ? "m8" : "parser" };
 }
 
-export type EntryInput = { kind: string; date: string; dollars: number; miles: number; vendor: string; category: string; businessPct: number; purpose: string; recipient: string };
+export type EntryInput = { kind: string; date: string; dollars: number; miles: number; vendor: string; category: string; businessPct: number; purpose: string; recipient: string; leadSource?: string };
+
+/** D83: the picker's value: a source key, "" for not lead spend, or what was typed under "Other…" (made into a key). */
+export const leadSourceOf = (v: string | undefined) => (v ? sourceKey(v.slice(0, 60)) || null : null);
 
 /** Confirm (or fix and confirm) a draft, or edit a confirmed entry. */
 export async function saveEntry(user: User, entryId: string | null, input: EntryInput, now = new Date()): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -225,7 +232,7 @@ export async function saveEntry(user: User, entryId: string | null, input: Entry
   if (kind === "charity" && cleanText(`${input.vendor} ${input.purpose}`, 200).length < 3) return { ok: false, error: "Name the charity and what you drove for." };
   const before = entryId ? await expenseStore().get(user.id, entryId) : null;
   if (entryId && !before) return { ok: false, error: "That entry is gone." };
-  const draft: Draft & { recipient: string } = { kind, date: input.date, amountCents: Math.round(input.dollars * 100), miles: byMile ? input.miles : null, vendor: input.vendor, category, businessPct: kind === "income" || kind === "charity" ? 100 : input.businessPct, purpose: input.purpose, recipient: input.recipient };
+  const draft: Draft & { recipient: string } = { kind, date: input.date, amountCents: Math.round(input.dollars * 100), miles: byMile ? input.miles : null, vendor: input.vendor, category, businessPct: kind === "income" || kind === "charity" ? 100 : input.businessPct, purpose: input.purpose, recipient: input.recipient, leadSource: leadSourceOf(input.leadSource) };
   const e = toEntry(user, draft, before?.source ?? "typed", before?.receiptId ?? null, now);
   await expenseStore().put({ ...e, id: before?.id ?? e.id, createdAt: before?.createdAt ?? e.createdAt, status: "confirmed" });
   return { ok: true };
