@@ -24,8 +24,9 @@ import { gateFor } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { contactPageCopy as cp } from "@/lib/content/contact-page";
+import { contactListsCopy as lc } from "@/lib/content/contact-lists";
 import { canSee } from "./service";
-import { changedFields, checkEdit, type EditField, type EditInput } from "./editing";
+import { changedFields, checkEdit, checkLoanEdit, type EditField, type EditInput, type LoanEditInput } from "./editing";
 import { mergeConsent, mergeFields, nameOf, type PairOutcome } from "./merge";
 import { lastFour } from "./normalize";
 import { CHANNELS, contactStore, liveEntries, PROVENANCE, PURPOSES, type Channel, type ConsentEntry, type Contact, type Provenance } from "./store";
@@ -140,6 +141,25 @@ export async function updateContact(actor: User, id: string, input: EditInput, n
   const sameAs = (await possibleMatches(actor, next))[0] ?? null;
   await audit(actor, at, "contact.edit", { contactId: c.id, fields: changed.join(","), phoneChanged, emailChanged, resets, ...(c.ownerUserId !== actor.id ? { book: c.ownerUserId } : {}) });
   return { ok: true, changed, phoneChanged, emailChanged, resets, sameAs };
+}
+
+/**
+ * D80: the loan details on the Loan & agent tab, checked like an import
+ * (`checkLoanEdit`). Agents have none. The rate is the client's own closed
+ * rate, for the loan officer only.
+ */
+export async function updateLoan(actor: User, id: string, input: LoanEditInput, now = new Date()): Promise<{ ok: true; changed: boolean } | { ok: false; errors: string[] }> {
+  const store = contactStore();
+  const c = await store.get(id);
+  if (!c || !canSee(actor, c)) return { ok: false, errors: [cp.errors.gone] };
+  if (c.kind === "agent") return { ok: false, errors: [lc.loan.errors.agent] };
+  const chk = checkLoanEdit(input);
+  if (!chk.ok) return { ok: false, errors: Object.values(chk.errors).filter((x): x is string => !!x) };
+  if (JSON.stringify(chk.loan) === JSON.stringify(c.loan ?? null)) return { ok: true, changed: false };
+  const at = now.toISOString();
+  await store.put({ ...c, loan: chk.loan, updatedAt: at });
+  await audit(actor, at, "contact.loan", { contactId: c.id, ...(c.ownerUserId !== actor.id ? { book: c.ownerUserId } : {}) });
+  return { ok: true, changed: true };
 }
 
 /** A note for the loan officer and their team, checked like an after-call note (no protected topics or someone's numbers). */

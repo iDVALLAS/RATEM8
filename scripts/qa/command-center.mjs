@@ -302,7 +302,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.locator('#filters select[name=state]').selectOption('WA');
     await page.locator('#filters select[name=rel]').selectOption('past_client');
     await page.locator('#filters').getByRole('button', { name: 'Show them' }).click(); await page.waitForURL(/state=WA/);
-    const chips = await page.locator('.cc-rulechips .cc-tag').allInnerTexts();
+    const chips = await page.locator('.cc-ask__chips .cc-tag').allInnerTexts();
     if (!chips.some((c) => /State: WA/.test(c)) || !chips.some((c) => /Relationship: Past client/.test(c))) problems.push('[d78] filter chips: ' + chips.join(' | '));
     const n = await page.locator('.cc-people > li').count();
     if (n < 1) problems.push('[d78] WA past clients found nobody');
@@ -458,8 +458,138 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.goto(B + '/mlo/inbox?tab=all&c=' + cy);
     console.log('d79: time shown:', await page.locator('.cc-tl time').first().innerText());
   });
+  // D80: import a file with loan columns, accept the suggested lists, ask for "closed with a rate from 7.2% to 9%",
+  // change a chip, save it, open the saved list, add it to a campaign (the gate decides), freeze one, the loan
+  // fields on a contact (and the edit checks them), and a protected-trait ask refused.
+  const D80 = process.env.QA_D80_SHOTS || '';
+  if (D80) fs.mkdirSync(D80, { recursive: true });
+  const shot = async (n) => { if (D80) await page.screenshot({ path: path.join(D80, `${n}.png`), fullPage: true }); };
+  await step('d80: loan import, suggested lists, ask, chips, save, campaign, freeze, loan tab', async () => {
+    const FX = path.join(process.cwd(), 'tests/fixtures/import/loans-programs.csv');
+    await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
+    await page.setInputFiles('input[type=file]', FX);
+    await toColumns();
+    const card = (h) => page.locator('.im-col', { has: page.locator('.im-col__h', { hasText: h }) });
+    const prog = await card('Program').locator('select').inputValue();
+    if (prog !== 'loanProgram') problems.push('[d80] Program column goes into ' + prog);
+    if ((await card('Lender').locator('select').inputValue()) !== 'lender') problems.push('[d80] Lender column not matched');
+    const marital = card('Marital Status');
+    if (!/Not imported/.test(await marital.locator('.im-chip').textContent()) || !(await marital.locator('select').isDisabled())) problems.push('[d80] Marital Status column is not "Not imported"');
+    console.log('d80: marital card:', ((await marital.locator('.im-col__note').textContent().catch(() => '')) || '').slice(0, 90));
+    if (!(await page.locator('.im-colpanel').first().evaluate((d) => d.open))) await page.locator('.im-colpanel > summary').first().click();
+    await shot('1-columns');
+    await toReview();
+    await page.locator('#im-lists-title').waitFor();
+    const rows = page.locator('.im-lists__row');
+    await page.waitForFunction(() => document.querySelectorAll('.im-lists__row').length > 0);
+    const names = await rows.locator('.im-lists__pick strong').allInnerTexts();
+    console.log('d80: suggested:', names.join(' | '));
+    for (const want of ['Real estate agents', '2025 closed loans', '2024 closed loans', 'ARM loans', 'FHA and VA', 'Rate 7% and up']) if (!names.includes(want)) problems.push('[d80] suggestion missing: ' + want);
+    const agentsBox = await page.locator('.im-lists__info').innerText();
+    if (!/2 real estate agents in this file go to Agents/.test(agentsBox)) problems.push('[d80] agents box: ' + agentsBox.slice(0, 120));
+    // Rename one, drop one, describe another.
+    const arm = rows.filter({ hasText: 'ARM loans' });
+    await arm.getByRole('button', { name: 'Rename or edit' }).click();
+    await arm.locator('.im-lists__editor input').fill('QA ARM loans');
+    await rows.filter({ hasText: 'Rate 7% and up' }).locator('input[type=checkbox]').uncheck();
+    await page.locator('#im-lists-ask').fill('Loans over $500k');
+    await page.locator('.im-lists__ask').getByRole('button', { name: 'Add list' }).click();
+    await page.locator('.im-lists__row', { hasText: 'Loans over $500k' }).waitFor();
+    console.log('d80: total:', await page.locator('.im-lists__total').innerText());
+    await shot('2-suggested-lists');
+    await finish();
+    const made = await page.locator('.im-next__tile', { hasText: /ARM|closed loans|agents|FHA|500k/ }).allInnerTexts();
+    console.log('d80: done lists:', made.map((t) => t.split('\n')[0]).join(' | '));
+    if (!made.some((t) => /QA ARM loans/.test(t))) problems.push('[d80] renamed list not made');
+    if (!made.some((t) => /already your list “Agents”/.test(t))) problems.push('[d80] the agents list did not link to Agents');
+    if (made.some((t) => /Rate 7% and up/.test(t))) problems.push('[d80] an unchecked list was made');
+    await shot('3-done');
+    await page.locator('.im-next__tile', { hasText: 'QA ARM loans' }).click(); await page.waitForURL(/rtype=arm/);
+    const armN = await page.locator('.cc-people > li').count();
+    const loanLine = await page.locator('.cc-person__loan').first().innerText().catch(() => '');
+    console.log('d80: ARM list:', armN, 'people; first loan line:', loanLine);
+    if (armN < 3 || !/ARM/.test(loanLine)) problems.push(`[d80] ARM list: ${armN} people, line "${loanLine}"`);
+    // Agents went to Agents.
+    await page.goto(B + '/mlo/contacts?kind=agent&q=Turner');
+    if (!(await page.locator('.cc-people > li', { hasText: 'Jake Turner' }).count())) problems.push('[d80] the realtor in the client file is not under Agents');
+    // Ask M8 for a list (no AI key here: the words are read).
+    await page.goto(B + '/mlo/contacts');
+    await page.locator('#cc-ask-input').fill('All loans closed with a rate from 7.2% to 9%');
+    await page.locator('.cc-ask').getByRole('button', { name: 'Ask', exact: true }).click(); await page.waitForURL(/rmin=7\.2/);
+    const asChips = await page.locator('.cc-ask__chips .cc-tag').allInnerTexts();
+    console.log('d80: read as:', await page.locator('.cc-ask__as').innerText(), asChips.join(' | '));
+    if (!asChips.includes('Has a closed date') || !asChips.includes('Note rate 7.200% to 9.000%')) problems.push('[d80] ask chips: ' + asChips.join(' | '));
+    const asked = await page.locator('.cc-people > li').count();
+    const lines = await page.locator('.cc-person__loan').allInnerTexts();
+    console.log('d80: ask found', asked, '|', lines.slice(0, 3).join(' / '));
+    if (asked < 5) problems.push('[d80] the rate ask found ' + asked);
+    for (const l of lines) { const r = Number((/^(\d+\.\d{3})%/.exec(l) || [])[1]); if (!(r >= 7.2 && r <= 9)) problems.push('[d80] a rate outside 7.2–9: ' + l); }
+    if (!(await page.locator('.cc-ratenote').count())) problems.push('[d80] no "for your eyes only" rate note');
+    await shot('4-ask-result');
+    // Change a chip: rate to 8%.
+    await page.locator('.cc-ask__chips').getByRole('button', { name: 'Change: Note rate 7.200% to 9.000%' }).click();
+    await page.locator('.cc-ask__edit input').nth(1).fill('8');
+    await shot('5-edit-chip');
+    await page.locator('.cc-ask__edit').getByRole('button', { name: 'Show them' }).click(); await page.waitForURL(/rmax=8/);
+    const edited = await page.locator('.cc-people > li').count();
+    if (!(await page.locator('.cc-ask__chips .cc-tag', { hasText: 'Note rate 7.200% to 8.000%' }).count())) problems.push('[d80] the edited chip is not shown');
+    if (edited >= asked) problems.push(`[d80] narrowing the rate kept ${edited} of ${asked}`);
+    // Save it, then open it from Everyone.
+    await page.locator('.cc-savelist input[name=name]').fill('QA rate 7.2 to 8');
+    await page.locator('.cc-savelist').getByRole('button', { name: 'Save list' }).click(); await page.waitForURL(/f=/);
+    if (!/Saved “QA rate 7.2 to 8”/.test(await flash())) problems.push('[d80] save: ' + await flash());
+    await page.goto(B + '/mlo/contacts');
+    await page.locator('.cc-listrow').getByRole('link', { name: 'QA rate 7.2 to 8', exact: true }).click(); await page.waitForURL(/rmax=8/);
+    if ((await page.locator('.cc-people > li').count()) !== edited) problems.push('[d80] the saved list opens a different count');
+    const saved = page.url();
+    await shot('6-saved-list');
+    // Add it to a campaign from the result bar: the gate decides who goes in.
+    await page.locator('.cc-resultline').getByRole('link', { name: 'Add to campaign' }).click(); await page.waitForURL(/act=campaign/);
+    if (await page.locator('.cc-bulkbar').getByRole('button', { name: 'Add to campaign' }).count()) {
+      await page.locator('.cc-bulkbar').getByRole('button', { name: 'Add to campaign' }).click();
+      await page.locator('.cc-bulk .mlo-flash').waitFor();
+      const said = await page.locator('.cc-bulk .mlo-flash').innerText();
+      console.log('d80: campaign:', said.slice(0, 200));
+      if (!/Added \d+/.test(said)) problems.push('[d80] add to campaign: ' + said);
+    } else console.log('d80: campaign: no campaign to add to');
+    await shot('7-campaign');
+    // Freeze the saved list.
+    await page.goto(saved);
+    await page.locator('details.cc-savelist > summary').click();
+    await page.locator('details.cc-savelist').getByRole('button', { name: 'Freeze this list' }).click(); await page.waitForURL(/f=/);
+    console.log('d80: freeze:', await flash());
+    if (!/Froze “QA rate 7.2 to 8” with \d+/.test(await flash())) problems.push('[d80] freeze: ' + await flash());
+    // ARMs by words, and a protected-trait ask refused.
+    await page.goto(B + '/mlo/contacts');
+    await page.locator('#cc-ask-input').fill('loans with ARMs');
+    await page.locator('.cc-ask').getByRole('button', { name: 'Ask', exact: true }).click(); await page.waitForURL(/rtype=arm/);
+    await page.locator('#cc-ask-input').fill('past clients with kids');
+    await page.locator('.cc-ask').getByRole('button', { name: 'Ask', exact: true }).click();
+    await page.locator('.cc-ask__error').waitFor();
+    if (!/protected traits/.test(await page.locator('.cc-ask__error').innerText())) problems.push('[d80] protected ask: ' + await page.locator('.cc-ask__error').innerText());
+    await shot('8-refused');
+    // The loan fields on a contact, and the edit checks them.
+    await page.goto(B + '/mlo/contacts?q=Priya');
+    await page.getByRole('link', { name: /Priya Nair/ }).first().click(); await page.waitForURL(/contacts\/c_/);
+    const cid = page.url().split('/').pop().split('?')[0];
+    await page.goto(B + `/mlo/contacts/${cid}?tab=loan`);
+    const dl = await page.locator('#loan-details dl').innerText();
+    console.log('d80: loan tab:', dl.replace(/\n/g, ' ').slice(0, 200));
+    for (const w of ['8.125%', 'ARM', 'Refinance', 'Kind Lending']) if (!dl.includes(w)) problems.push('[d80] loan tab lacks ' + w);
+    await page.locator('#loan-details summary').click();
+    await page.locator('#loan-details input[name=noteRate]').fill('45');
+    await page.locator('#loan-details').getByRole('button', { name: 'Save loan details' }).click(); await page.waitForURL(/f=/);
+    if (!/Note rate: a percent/.test(await flash())) problems.push('[d80] a 45% rate was accepted: ' + await flash());
+    if (!(await page.locator('#loan-details details').evaluate((d) => d.open))) await page.locator('#loan-details summary').click();
+    await page.locator('#loan-details input[name=noteRate]').fill('8.125');
+    await page.locator('#loan-details select[name=occupancy]').selectOption('primary');
+    const before = page.url();
+    await page.locator('#loan-details').getByRole('button', { name: 'Save loan details' }).click(); await page.waitForURL((u) => u.toString() !== before);
+    if (!/Loan details saved/.test(await flash())) problems.push('[d80] loan save: ' + await flash());
+    await shot('9-loan-tab');
+  });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/inbox?tab=done', '/mlo/settings', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/inbox?tab=done', '/mlo/settings', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts?rmin=7.2&rmax=9&closed=1&asked=words', '/mlo/contacts?prog=fha,va&rtype=arm&cfrom=2023-01-01&cto=2025-12-31&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {

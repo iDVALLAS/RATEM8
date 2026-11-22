@@ -5,15 +5,18 @@
  *
  * Only what a loan officer needs to work a list: names, phones, email,
  * address, relationship, tags and how they can be reached. No permission
- * proof, notes, messages or loan numbers.
+ * proof, notes or messages. D80: the loan's closed date, type and note rate
+ * too (the loan officer's own records, in their own download; a list built
+ * on rates is worked from them). Never put a rate into a message.
  */
 import { toCsv } from "@/lib/export/csv";
 import { RELATIONSHIP_LABELS } from "./mapping";
 import { reachBadge } from "./reach";
+import { loanKind } from "./loan";
 import type { ConsentSummary } from "./service";
 import type { Contact } from "./store";
 
-export const SHEET_COLUMNS = ["First name", "Last name", "Phone", "Other phone", "Email", "Street", "City", "State", "ZIP", "Relationship", "Brokerage", "Tags", "Can reach", "Added"] as const;
+export const SHEET_COLUMNS = ["First name", "Last name", "Phone", "Other phone", "Email", "Street", "City", "State", "ZIP", "Relationship", "Brokerage", "Tags", "Can reach", "Added", "Closed on", "Loan type", "Note rate"] as const;
 
 export function contactsCsv(rows: { contact: Contact; summary: ConsentSummary }[]): string {
   return toCsv(
@@ -32,6 +35,9 @@ export function contactsCsv(rows: { contact: Contact; summary: ConsentSummary }[
       Tags: (c.tags ?? []).join("; "),
       "Can reach": reachBadge({ summary, hasPhone: !!c.phone, hasEmail: !!c.email, locked: c.locked }).label,
       Added: c.createdAt.slice(0, 10),
+      "Closed on": c.loan?.closedOn ?? "",
+      "Loan type": loanKind(c.loan),
+      "Note rate": typeof c.loan?.noteRate === "number" ? c.loan.noteRate.toFixed(3) : "",
     })),
     { first: [...SHEET_COLUMNS] },
   );

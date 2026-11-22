@@ -61,6 +61,7 @@ export const contactsImportCopy = {
     useAs: (field: string) => `Use it as ${field}`,
     notes: {
       private: "This looks like private data (a Social Security number, birth date or account number), so it's never imported.",
+      protected: "Not imported: contacts and lists never use age, race, sex, family status or other protected traits.",
       optout: (n: number) => `This is an opt-out column. ${n.toLocaleString("en-US")} ${n === 1 ? "person" : "people"} asked to stop and will be marked Do not contact. Confirm before importing.`,
       optoutDone: "Opt-out column: anything that isn't a plain no counts as a stop.",
       question: "There's a question about this column below.",

@@ -9,6 +9,7 @@
 import { cleanEmail, cleanState, dateProblem, emailProblem, isoDate, isPlaceholder, phoneProblem, splitName, stateFromZip, toE164, type DateOrder, type NameOrder } from "./normalize";
 import { MAX_TAG, MAX_TAGS, mergeTags, splitTags, withExtraTags } from "./tags";
 import type { Csv } from "./csv";
+import { anyLoan, readLender, readMargin, readOccupancy, readProgram, readPropertyType, readPurpose, readRateType, readTerm, type LoanDetails } from "./loan";
 
 export type ImportKind = "contacts" | "agents";
 
@@ -32,6 +33,16 @@ export const CONTACT_FIELDS = {
   closedOn: "Loan closed on",
   loanAmount: "Loan amount",
   noteRate: "Note rate",
+  // D80: more about their loan, so lists can find it ("ARM loans", "FHA and VA").
+  loanProgram: "Loan type or program",
+  rateType: "Fixed or ARM",
+  termMonths: "Loan term",
+  armFirstChange: "ARM first change date",
+  armMargin: "ARM margin",
+  loanPurpose: "Loan purpose",
+  occupancy: "Occupancy",
+  propertyType: "Property type",
+  lender: "Lender or investor",
   // D69: opt-outs come before opt-ins. A "yes" here is a revocation and always wins.
   optOutText: "Opted out of texts (yes/no)",
   optOutCall: "Opted out of calls (yes/no)",
@@ -77,6 +88,13 @@ export type Mapping = Partial<Record<Field, number>>;
 export const OPT_OUT_HEADER = /opt(ed)?.?out|unsub|do.?not|dnd|dnc|stop|revok/i;
 export const OPT_OUT_FIELDS = ["optOutText", "optOutCall", "optOutEmail", "doNotContact"] as const;
 export type OptOutField = (typeof OPT_OUT_FIELDS)[number];
+/**
+ * D80 (fair lending): a column about a protected trait, or a close proxy, is
+ * never imported, offered as a field, a note or a tag, or used in a list:
+ * age, birth date, race, ethnicity, sex or gender, marital or familial
+ * status, national origin or citizenship, religion, disability, language.
+ */
+export const PROTECTED_HEADER = /\b(ages?|aged|birth\w*|born|dob|race|racial|ethnic\w*|hispanic|latin[oax]|gender|sex|male|female|marital|married|spouse.?status|famil(y|ial).?(status|size)|children|kids|dependents?|religio\w*|national.?origin|nationality|citizenship|immigration|disabilit\w*|handicap\w*|language|hmda)\b/i;
 /** D69: a second borrower's details never fill the person's own name, phone or email. */
 const CO_BORROWER = /co-?borrower|spouse/;
 const PERSON_FIELDS = new Set<Field>(["firstName", "lastName", "fullName", "email", "phone", "phone2"]);
@@ -103,6 +121,8 @@ const SYNONYMS: [Field, RegExp][] = [
   ["brokerage", /brokerage|office|company|firm/],
   ["leadSource", /^(lead )?source$|lead.?source|referral.?source|^(lead )?origin$/],
   ["referredBy", /referred.?by|^referr(al|er)( name)?$|^referred$/],
+  // D80: an ARM's change date ("First Change Date") before first names and the closing date.
+  ["armFirstChange", /(first|initial|next).*(change|adjust|reset)|(change|adjust|reset).*date|arm.*(change|reset|adjust)/],
   ["firstName", /^(first|given|fname|first name|contact first name)|first.?name/],
   ["lastName", /^(last|surname|family|lname)|last.?name/],
   ["fullName", /^(name|full name|contact name|agent name|agent|client|borrower)$|full.?name/],
@@ -118,13 +138,23 @@ const SYNONYMS: [Field, RegExp][] = [
   ["tags", /^(tags?|labels?|groups?|lists?)$|\btags?\b/],
   ["closedOn", /(close|closing|funded|fund).*date|date.*(closed|funded)|closed on/],
   ["loanAmount", /loan.*amount|^amount$/],
+  ["armMargin", /margin/],
+  ["termMonths", /\bterm\b|^(months|years)$/],
+  ["rateType", /amorti[sz]ation|rate.?type|fixed.?(or|\/|&).?(arm|adj)|arm.?(or|\/|&).?fixed|^arm$|fixed.?vs/],
   ["noteRate", /^(note |interest )?rate$|note rate|interest rate/],
+  ["loanProgram", /^(loan )?(program|product)( name| type)?$|loan.?(program|product|type)|mortgage.?(type|program|product)|^product/],
+  ["loanPurpose", /purpose|transaction.?type|loan.?reason|refi.?(or|\/).?purch|purch.?(or|\/).?refi/],
+  ["occupancy", /occupan|occupied|property.?use/],
+  ["propertyType", /property.?type|dwelling|home.?type|prop.?type/],
+  ["lender", /^(lender|investor)( name)?$|wholesale.?lender|investor.?name|^lender\b|funding.?lender/],
   ["notes", /notes?|comments?|memo/],
 ];
 
 /** Whether a column with this header may feed this field at all (D69 rules, before any pattern). */
 export function headerAllowed(field: Field, header: string): boolean {
   const h = header.trim().toLowerCase();
+  // D80: a protected trait never feeds any field.
+  if (PROTECTED_HEADER.test(h)) return false;
   const optOut = OPT_OUT_HEADER.test(h);
   if ((OPT_OUT_FIELDS as readonly string[]).includes(field)) return optOut;
   if (optOut) return false;
@@ -207,7 +237,8 @@ export type ImportRecord = {
   /** D74: "Zillow", "Open house"…, and who referred them. */
   leadSource?: string | null;
   referredBy?: string | null;
-  loan: { closedOn: string | null; amount: number | null; noteRate: number | null } | null;
+  /** D80: plus program, fixed or ARM, term, purpose, occupancy, property type, lender and the ARM's change date and margin. */
+  loan: LoanDetails | null;
   agent: { brokerage: string | null; units: number | null; volume: number | null; buyerUnits: number | null; listingUnits: number | null; avgPrice: number | null; topLender: string | null } | null;
   /** Channels a column said "yes" to. Recorded as the loan officer's attestation, not proof. */
   attestedOptIns: ConsentChannel[];
@@ -326,7 +357,7 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
   const safe = guardOptOuts(csv.headers, mapping);
   const used = new Set(Object.values(safe));
   // D74: extra columns never repeat a matched one, and an opt-out column is never a note or a tag.
-  const extraCols = (cols: readonly number[] | undefined) => (cols ?? []).filter((c) => c >= 0 && c < csv.headers.length && !used.has(c) && !OPT_OUT_HEADER.test(csv.headers[c] ?? ""));
+  const extraCols = (cols: readonly number[] | undefined) => (cols ?? []).filter((c) => c >= 0 && c < csv.headers.length && !used.has(c) && !OPT_OUT_HEADER.test(csv.headers[c] ?? "") && !PROTECTED_HEADER.test(csv.headers[c] ?? ""));
   const noteCols = extraCols(opts.columns?.notes);
   const tagCols = extraCols(opts.columns?.tags).filter((c) => !noteCols.includes(c));
   const header = (f: Field) => (safe[f] !== undefined ? (csv.headers[safe[f]!] ?? "").trim() : "");
@@ -396,6 +427,23 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
     if (rawClosed && !closedOn && !isPlaceholder(rawClosed)) warn("closedOn", "date", rawClosed, dateProblem(rawClosed, opts.dateOrder), "closedOn");
     const amount = num(get("loanAmount"));
     const noteRate = num(get("noteRate"));
+    // D80: one "Program" column ("5/1 ARM", "FHA 30") also gives fixed or ARM and the term when no column of their own does.
+    const prog = readProgram(get("loanProgram"));
+    const rawChange = get("armFirstChange");
+    const armFirstChange = isoDate(rawChange, { order: opts.dateOrder });
+    if (rawChange && !armFirstChange && !isPlaceholder(rawChange)) asWritten.push(`${label("armFirstChange")} (as written): ${rawChange.slice(0, 120)}`);
+    const more: Partial<LoanDetails> = {
+      program: prog.program,
+      rateType: readRateType(get("rateType")) ?? prog.rateType,
+      termMonths: readTerm(get("termMonths")) ?? prog.termMonths,
+      armFirstChange,
+      armMargin: readMargin(get("armMargin")),
+      purpose: readPurpose(get("loanPurpose")),
+      occupancy: readOccupancy(get("occupancy")),
+      propertyType: readPropertyType(get("propertyType")),
+      lender: readLender(get("lender")),
+    };
+    const loanMore = Object.fromEntries(Object.entries(more).filter(([, v]) => v !== null && v !== undefined)) as Partial<LoanDetails>;
     // D69: an opt-out is a revocation. It always wins over an opt-in in the same row.
     const optOuts: Partial<Record<ConsentChannel, string>> = {};
     if (readsOptOut(cell("doNotContact"))) for (const c of ["text", "call", "email"] as const) optOuts[c] = whereFrom("doNotContact");
@@ -424,7 +472,7 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
       tags,
       notes: noteLines.join("\n").slice(0, 2000) || null,
       ...(kind === "contacts" && (leadSource || referredBy) ? { leadSource, referredBy } : {}),
-      loan: kind === "contacts" && (closedOn || amount || noteRate) ? { closedOn, amount, noteRate: noteRate !== null && noteRate > 0 && noteRate < 20 ? noteRate : null } : null,
+      loan: kind === "contacts" && (closedOn || amount || noteRate || anyLoan(loanMore)) ? { closedOn, amount, noteRate: noteRate !== null && noteRate > 0 && noteRate < 20 ? noteRate : null, ...loanMore } : null,
       agent:
         kind === "agents"
           ? { brokerage: get("brokerage").slice(0, 120) || null, units: num(get("units")), volume: num(get("volume")), buyerUnits: num(get("buyerUnits")), listingUnits: num(get("listingUnits")), avgPrice: num(get("avgPrice")), topLender: get("topLender").slice(0, 120) || null }

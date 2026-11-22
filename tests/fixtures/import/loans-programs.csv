@@ -1,0 +1,14 @@
+First Name,Last Name,Mobile,Email,Contact Type,State,Program,Note Rate,Close Date,Loan Purpose,Lender,Loan Amount,Marital Status
+Maria,Garcia,(206) 321-4401,maria.garcia@example.com,Past Client,WA,Conventional 30 Yr Fixed,7.875,10/14/2023,Purchase,United Wholesale,"$452,000",Married
+Robert,Allen Jr.,(206) 321-4402,rallen@example.com,Past Client,WA,FHA 30,7.25,06/03/2024,Purchase,Rocket Pro TPO,"$318,500",Single
+Priya,Nair,(425) 321-4403,priya.nair@example.com,Past Client,WA,7/6 ARM,8.125,11/20/2023,Refinance,Kind Lending,"$610,000",Married
+Luis,Romero,(503) 321-4404,luis.romero@example.com,Past Client,OR,VA 30 Yr Fixed,7.49,02/12/2024,Purchase,Freedom Mortgage,"$389,000",Married
+Tom,Becker,(206) 321-4405,tom.becker@example.com,Past Client,WA,Jumbo 5/1 ARM,8.99,10/02/2023,Cash-Out Refi,The Loan Store,"$1,150,000",Single
+Ana,de la Cruz,(425) 321-4406,ana.delacruz@example.com,Past Client,WA,Conventional 30 Yr Fixed,7.625,03/18/2024,Purchase,Pennymac TPO,"$402,000",Married
+Kevin,Oduya,(206) 321-4407,kevin.oduya@example.com,Past Client,WA,Conventional 15 Yr Fixed,5.99,04/22/2025,Refinance,United Wholesale,"$275,000",Married
+Grace,Lindqvist,(503) 321-4408,grace.l@example.com,Past Client,OR,FHA 30,6.75,08/09/2025,Purchase,PRMG,"$296,000",Single
+Hannah,Brooks,(206) 321-4409,hannah.brooks@example.com,Past Client,WA,10/6 ARM,6.375,01/30/2025,Purchase,Newrez Wholesale,"$705,000",Married
+Daniel,Kim,(425) 321-4410,daniel.kim@example.com,Past Client,WA,Conventional 30 Yr Fixed,3.25,07/15/2021,Refinance,Rocket Pro TPO,"$380,000",Married
+Sofia,Marino,(206) 321-4411,sofia.marino@example.com,Lead,WA,,,,,,,
+Jake,Turner,(206) 321-4412,jake.turner@realty.example,Realtor,WA,,,,,,,
+Lena,Ortiz,(503) 321-4413,lena@homes.example,Realtor,OR,,,,,,,

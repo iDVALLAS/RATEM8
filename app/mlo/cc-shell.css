@@ -960,3 +960,53 @@
 .cc-bar__in:not([data-fit]) .cc-nav { overflow-x: clip; }
 /* D79: the conversation shown beside the list without being tapped is marked on wide screens only (phones show just the list). */
 @media (min-width: 900px) { .cc-app a.cc-thread[data-shown] { box-shadow: inset 0 0 0 2px var(--accent); } }
+
+/* ─── D80: Ask M8 for a list, loan lines, and the lists suggested at import ─── */
+.cc-app .cc-ask { margin-top: 12px; padding: 16px; border-radius: 20px; background: var(--bg-elevated); border: 1px solid var(--rule); display: grid; gap: 10px; min-width: 0; }
+:root[data-theme="paper"] .cc-app .cc-ask { box-shadow: 0 2px 10px rgba(15, 60, 40, 0.05); border-color: transparent; }
+.cc-ask__form { display: grid; gap: 8px; min-width: 0; }
+.cc-app .cc-ask__title { color: var(--accent); font-family: var(--font-jetbrains), monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.cc-ask__row > .mlo-input { flex: 1 1 240px; min-width: 0; }
+.cc-app .cc-ask__error { margin: 0; color: var(--cc-bad-text); font-size: 14px; }
+.cc-ask__read { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.cc-ask__as { color: var(--fg-soft); font-size: 14px; }
+.cc-ask__chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.cc-ask__chip { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--accent); border-radius: 999px; }
+.cc-app .cc-ask__chip > .cc-tag { border: 0; color: var(--fg); padding-right: 4px; cursor: pointer; min-height: 36px; }
+.cc-app .cc-ask__chip > span.cc-tag { cursor: default; }
+.cc-app .cc-ask__chip > .cc-tag[aria-expanded="true"] { text-decoration: underline; }
+.cc-app .cc-ask__x { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; min-height: 36px; padding: 0 10px 0 4px; border: 0; background: none; color: var(--fg-soft); font: inherit; font-size: 18px; line-height: 1; cursor: pointer; border-radius: 999px; }
+.cc-app .cc-ask__x:hover { color: var(--fg); }
+.cc-app .cc-ask__add { min-height: 36px; }
+.cc-ask__pick { max-width: 320px; }
+.cc-app .cc-ask__edit { display: grid; gap: 10px; padding: 14px 16px; }
+.cc-app .cc-ask__edit .cc-card__title { margin: 0; }
+.cc-ask__fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 10px 12px; align-items: end; }
+.cc-ask__set { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; border: 0; }
+.cc-app .cc-ask__note { margin: 0; font-size: 13px; }
+.cc-app .cc-person__loan { margin: 0; color: var(--fg-soft); font-size: 13.5px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cc-app .cc-ratenote { margin: 0 0 8px; font-size: 13px; }
+.cc-filters__sub { grid-column: 1 / -1; margin: 6px 0 0; color: var(--fg-soft); font-weight: 600; font-size: 14px; }
+.cc-savelist__freeze { margin-top: 4px; }
+/* The import's step 3 lists. */
+.im-lists__rows { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.cc-app .im-lists__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 12px 16px; }
+.cc-app .im-lists__row:not([data-on]) { opacity: 0.8; }
+.im-lists__pick { grid-column: 1; min-width: 0; }
+.im-lists__pick strong { overflow-wrap: anywhere; }
+.cc-app .im-lists__count { grid-column: 2; grid-row: 1; margin: 0; color: var(--fg); font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cc-app .im-lists__rule { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; }
+.cc-app .im-lists__edit { grid-column: 1 / -1; justify-self: start; min-height: 36px; }
+.im-lists__editor { grid-column: 1 / -1; display: grid; gap: 10px; }
+.im-lists__editor .mlo-field { max-width: 420px; }
+.im-lists__ask { margin-top: 16px; display: grid; gap: 6px; }
+.im-lists__ask .mlo-input { flex: 1 1 240px; min-width: 0; }
+.im-lists__info { display: grid; gap: 10px; margin-top: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.cc-app .im-lists__info .cc-card { padding: 12px 16px; }
+.cc-app .im-lists__info .cc-card__title { margin: 0 0 4px; }
+.cc-app .im-lists__info .mlo-note { margin: 0; }
+.cc-app .im-lists__total { margin: 12px 0 0; }
+@media (max-width: 480px) {
+  .cc-app .im-lists__row { grid-template-columns: minmax(0, 1fr); }
+  .cc-app .im-lists__count { grid-column: 1; grid-row: auto; }
+}

@@ -9,7 +9,9 @@ import { cleanEmail, toE164 } from "@/lib/contacts/normalize";
 import { buildAnswers, columnCards, consentSummary, extraColumns, fileQuestions, matchFlags, skippedCsv, unanswered } from "@/lib/contacts/review";
 import { mergeRecords, parseVcf, relationshipFromName, shapes, smartMap, toCleanCsv, toTable } from "@/lib/contacts/smart";
 import { browserInflate, readXlsx } from "@/lib/contacts/xlsx";
-import { aiMapAction, checkExistingAction, finishImportAction, importBatchAction, startImportAction, undoImportAction } from "../actions";
+import { aiMapAction, checkExistingAction, finishImportAction, importBatchAction, saveSuggestedListsAction, startImportAction, undoImportAction } from "../actions";
+import ListsStep, { chosenLists, emptyPicks, shownLists, type ListPicks } from "./ListsStep";
+import { contactListsCopy as lc } from "@/lib/content/contact-lists";
 import type { Provenance } from "@/lib/contacts/store";
 import type { ExistingCheck } from "@/lib/contacts/imports";
 import type { ReimportMode } from "@/lib/contacts/reimport";
@@ -34,6 +36,7 @@ const MAX_TOTAL = 50_000;
 const MAX_FILE = 25 * 1024 * 1024;
 
 type Step = 1 | 2 | 3 | 4;
+type SavedLine = { name: string; ok: boolean; href: string | null; existing: boolean; as: string | null; error: string | null };
 type Sum = { created: number; merged: number; updated: number; skipped: number; optedOut: number; possible: number };
 /** D75: who's already in the book, for the records as they were when checked. */
 export type Existing = { sig: string; by: Record<string, ExistingCheck> } | "checking" | "failed" | null;
@@ -93,7 +96,9 @@ export default function ImportWizard({ initialKind, knownTags = [], lookupPrice 
   const [reading, setReading] = useState(false);
   const [paste, setPaste] = useState("");
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [result, setResult] = useState<(Sum & { inFile: number; total: number; skippedCsv: string | null; tags: string[]; importId: string | null; people: number; withPhone: number; files: string[]; mode: ReimportMode }) | null>(null);
+  const [result, setResult] = useState<(Sum & { inFile: number; total: number; skippedCsv: string | null; tags: string[]; importId: string | null; people: number; withPhone: number; files: string[]; mode: ReimportMode; lists: SavedLine[] }) | null>(null);
+  // D80: the lists suggested at step 3 (M8's from column names and counts only, or the fixed ones), and the loan officer's picks.
+  const [listPicks, setListPicks] = useState<ListPicks>(emptyPicks);
   // D69: where a stopped import picks up again (the first person not yet sent), and what was already done. D75: and its run.
   const [resume, setResume] = useState<{ at: number; sum: Sum; importId: string | null } | null>(null);
   // D75: people already in the book: fill blanks (default) or take the newer information; the merge review's answers.
@@ -296,11 +301,16 @@ export default function ImportWizard({ initialKind, knownTags = [], lookupPrice 
     }
     const csv = built.skipped.length ? skippedCsv(built.skipped) : null;
     const fin = importId ? await finishImportAction(importId, { inFile: built.merged, skipped: built.skipped.length, skippedCsv: csv && csv.length <= 256 * 1024 ? csv : null }).catch(() => null) : null;
+    // D80: the lists the loan officer kept at step 3, saved as live lists now that everyone is in.
+    const picked = chosenLists(shownLists(listPicks, records, kind, new Date()));
+    const saved = picked.length ? await saveSuggestedListsAction(picked).catch(() => null) : null;
+    const lists: SavedLine[] = saved?.ok ? saved.saved : picked.map((x) => ({ name: x.name, ok: false, href: null, existing: false, as: null, error: lc.failed }));
     setProgress(null);
     setResume(null);
     const people = fin?.ok ? fin.people : sum.created + sum.merged;
-    setResult({ ...sum, skipped: sum.skipped + built.skipped.length, inFile: built.merged, total: sum.created + sum.merged, skippedCsv: csv, tags: [...importTags], importId, people, withPhone: fin?.ok ? fin.withPhone : records.filter((r) => r.phone).length, files, mode });
+    setResult({ ...sum, skipped: sum.skipped + built.skipped.length, inFile: built.merged, total: sum.created + sum.merged, skippedCsv: csv, tags: [...importTags], importId, people, withPhone: fin?.ok ? fin.withPhone : records.filter((r) => r.phone).length, files, mode, lists });
     setItems([]);
+    setListPicks(emptyPicks());
     setDecide({});
     setMatchTo({});
     setExisting(null);
@@ -352,6 +362,22 @@ export default function ImportWizard({ initialKind, knownTags = [], lookupPrice 
           <li><button type="button" className="cc-card im-next__tile" onClick={again}><strong>{d.another}</strong><span className="mlo-note">{d.anotherNote}</span></button></li>
           <li><Link href="/mlo/contacts/import/history" className="cc-card im-next__tile"><strong>{d.history}</strong><span className="mlo-note">{d.historyNote}</span></Link></li>
         </ul>
+        {result.lists.length ? (
+          <>
+            <h3 className="cc-card__title im-sub">{lc.suggest.doneTitle}</h3>
+            <ul className="im-next">
+              {result.lists.map((l) => (
+                <li key={l.name}>
+                  {l.ok && l.href ? (
+                    <Link href={l.href} className="cc-card im-next__tile"><strong>{l.existing && l.as ? lc.suggest.doneExisting(l.name, l.as) : lc.suggest.doneLine(l.name)}</strong><span className="mlo-note">{lc.liveLabel}</span></Link>
+                  ) : (
+                    <p className="cc-card im-next__tile mlo-note">{lc.suggest.doneFailed(l.name, l.error ?? lc.failed)}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
         {imp ? (
           <div className="cc-card im-undo">
             <p className="cc-card__title">{d.undoTitle}</p>
@@ -493,6 +519,7 @@ export default function ImportWizard({ initialKind, knownTags = [], lookupPrice 
               />
             }
           />
+          <ListsStep kind={kind} records={built.records} columns={[...new Set(items.flatMap((it) => it.table.headers.map((h) => h.trim()).filter(Boolean)))]} picks={listPicks} setPicks={setListPicks} />
           <section className="mlo-section im-navsec">
             <div className="mlo-row-form im-nav">
               <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setStep(2)}>{ic.back}</button>

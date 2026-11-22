@@ -21,11 +21,11 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const B = 'http://localhost:3100';
-const STATIC = ['/mlo', '/mlo/campaigns?new=1', '/mlo/connections?sys=arive', '/mlo/academy', '/mlo/agents', '/mlo/agents/setup', '/mlo/automations', '/mlo/calls', '/mlo/campaigns', '/mlo/cards', '/mlo/concierge', '/mlo/connections', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?select=all', '/mlo/contacts?state=WA&perm=relationship&select=all', '/mlo/calls?list=d-past', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/email', '/mlo/expenses', '/mlo/expenses/report', '/mlo/export', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/settings', '/mlo/launch', '/mlo/leads', '/mlo/loa', '/mlo/messages', '/mlo/network', '/mlo/pilot', '/mlo/pipeline', '/mlo/pricing', '/mlo/pricing/receive', '/mlo/refi', '/mlo/refi?ref=5.75', '/mlo/report', '/mlo/rules', '/mlo/scripts', '/mlo/security', '/mlo/setup', '/mlo/setup-help', '/mlo/signature', '/mlo/signups', '/mlo/team', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/text-setup', '/mlo/texting', '/mlo/training', '/mlo/videos', '/mlo/voice', '/mlo/voicemail', '/mlo/welcome', '/mlo/academy/p1', '/mlo/academy/p5', '/mlo/academy/l2'];
+const STATIC = ['/mlo', '/mlo/campaigns?new=1', '/mlo/connections?sys=arive', '/mlo/academy', '/mlo/agents', '/mlo/agents/setup', '/mlo/automations', '/mlo/calls', '/mlo/campaigns', '/mlo/cards', '/mlo/concierge', '/mlo/connections', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?select=all', '/mlo/contacts?state=WA&perm=relationship&select=all', '/mlo/calls?list=d-past', '/mlo/contacts?rmin=7.2&rmax=9&closed=1&asked=words', '/mlo/contacts?prog=fha,va&rtype=arm&cfrom=2023-01-01&act=campaign&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/email', '/mlo/expenses', '/mlo/expenses/report', '/mlo/export', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/settings', '/mlo/launch', '/mlo/leads', '/mlo/loa', '/mlo/messages', '/mlo/network', '/mlo/pilot', '/mlo/pipeline', '/mlo/pricing', '/mlo/pricing/receive', '/mlo/refi', '/mlo/refi?ref=5.75', '/mlo/report', '/mlo/rules', '/mlo/scripts', '/mlo/security', '/mlo/setup', '/mlo/setup-help', '/mlo/signature', '/mlo/signups', '/mlo/team', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/text-setup', '/mlo/texting', '/mlo/training', '/mlo/videos', '/mlo/voice', '/mlo/voicemail', '/mlo/welcome', '/mlo/academy/p1', '/mlo/academy/p5', '/mlo/academy/l2'];
 const AUTH = ['/sign-in', '/sign-up', '/sign-up/confirm'];
 const SHOTS = new Set(['/mlo/academy', '/mlo/expenses', '/mlo/contacts/permission', '/mlo/refi', '/mlo/concierge', '/mlo/team', 'contact', 'loan', '/mlo/loa', '/mlo/contacts', '/mlo/pricing', '/mlo/templates', '/mlo/scripts', '/mlo', '/sign-in', 'client page']);
 // D76: audited a second time with every <details> open.
-const OPEN_ALL = new Set(['/mlo', '/mlo/automations', '/mlo/concierge', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/campaigns?new=1', '/mlo/inbox', 'inbox open', '/mlo/calls', '/mlo/agents', '/mlo/email', '/mlo/pipeline', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/rules', '/mlo/leads', 'contact', 'contact details', 'contact permission', '/mlo/contacts', '/mlo/contacts?state=WA&perm=relationship&select=all']);
+const OPEN_ALL = new Set(['/mlo', '/mlo/automations', '/mlo/concierge', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/campaigns?new=1', '/mlo/inbox', 'inbox open', '/mlo/calls', '/mlo/agents', '/mlo/email', '/mlo/pipeline', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/rules', '/mlo/leads', 'contact', 'contact details', 'contact permission', '/mlo/contacts', '/mlo/contacts?state=WA&perm=relationship&select=all', 'contact loan', '/mlo/contacts?rmin=7.2&rmax=9&closed=1&asked=words']);
 const out = process.env.QA_OUT || '';
 if (out) fs.mkdirSync(out, { recursive: true });
 const only = (process.env.QA_ONLY || '').split(',').filter(Boolean);
@@ -211,6 +211,22 @@ function audit() {
           total++;
           for (const p of [...new Set(ed.problems)]) problems.push(`[${where} editing] ${p}`);
           if (out) await page.screenshot({ path: path.join(out, `contact_edit-${w}-${theme}.png`), fullPage: true });
+        }
+        // D80: Ask M8 for a list: a chip's editor and "+ Add a rule".
+        if (label === '/mlo/contacts?rmin=7.2&rmax=9&closed=1&asked=words') {
+          await page.locator('.cc-ask__chips').getByRole('button', { name: /^Change: Note rate/ }).click();
+          await page.locator('.cc-ask__edit').waitFor();
+          const ed = await page.evaluate(audit);
+          total++;
+          for (const p of [...new Set(ed.problems)]) problems.push(`[${where} chip editor] ${p}`);
+          if (out) await page.screenshot({ path: path.join(out, `ask_edit-${w}-${theme}.png`), fullPage: true });
+          await page.locator('.cc-ask__chips').getByRole('button', { name: /^Change: Note rate/ }).click();
+          await page.locator('.cc-ask__add').click();
+          await page.locator('.cc-ask__pick select').selectOption('program');
+          await page.locator('.cc-ask__edit').waitFor();
+          const pr = await page.evaluate(audit);
+          total++;
+          for (const p of [...new Set(pr.problems)]) problems.push(`[${where} add a rule] ${p}`);
         }
         if (out && SHOTS.has(label)) await page.screenshot({ path: path.join(out, `${label.replace(/\W+/g, '_').replace(/^_|_$/g, '') || 'home'}-${w}-${theme}.png`), fullPage: true });
       } catch (e) { problems.push(`[${where}] FAILED: ${e.message.split('\n')[0]}`); }

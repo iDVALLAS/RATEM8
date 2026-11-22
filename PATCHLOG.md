@@ -6444,3 +6444,108 @@ automatic message is the alert to the loan officer themselves.
   mailbox; held alerts wait for the morning run or a page view (Hobby has no 15-minute cron); a merge (D77) leaves the other record's Done/Snooze
   mark behind (harmless: it has no messages left); the time zone is used on the Inbox and for snoozes only (other pages still show Pacific).
 - **Next up:** D80 (loan details on contacts, lists suggested at import, "Ask M8 for a list"), after the owner's sign-off.
+
+## D80 — Loan details on contacts, lists suggested at import, "Ask M8 for a list" (2026-11-22)
+
+Spec: "### D80" in `docs/work/D69-D79-build-prompt-2026-11-21.md`. The owner's ask (2026-11-21): after an import and inside Contacts, M8 pulls up
+lists on request ("all loans closed with a rate from 7.2% to 9%", "loans with ARMs"), looks over an imported file and offers separate lists such as
+"Real estate contacts" and "2025 closed loans". Built in Command Center styles after the approved "ImportLists" and "AskList" mockups.
+
+- **Files:** new `lib/contacts/loan.ts` (pure: the fixed values, `readProgram`/`readRateType`/`readTerm`/`readPurpose`/`readOccupancy`/
+  `readPropertyType`/`readMargin`, `loanFromPipeline`, `loanLine`, `loanKind`), `lib/contacts/ask-words.ts` (pure: `listRefusal`, `parseListRequest`),
+  `lib/contacts/ask.ts` (server: `askForList`, `RULE_FIELD_GUIDE`, `ASK_SYSTEM`, the strict `make_list` tool, `AskOut`, `ruleFromAnswer`, `askMessage`),
+  `lib/contacts/suggest.ts` (pure: `importCounts`, `fixedSuggestions`, `checkSuggestion`, `countRule`, `mergeSuggestions`), `lib/contacts/suggest-ai.ts`
+  (server: `suggestListsAI`, `SuggestInput`, `suggestMessage`), `app/mlo/contacts/AskList.tsx`, `app/mlo/contacts/import/ListsStep.tsx`,
+  `lib/contacts/loans.test.ts` (40), `tests/fixtures/import/loans-programs.csv`; changed `lib/contacts/filter.ts` (the D78 `ListRule` extended: `tagsAll`,
+  `closedFrom`/`closedTo`, `hasClosedDate`, `rateMin`/`rateMax`, `amountMin`/`amountMax`, `program[]`, `rateType`, `armChangeWithinDays`, `purpose`,
+  `lender`; schema, `cleanRule`, address keys, chips, `matches`, `ruleSql`, `hasLoanRule`), `lib/contacts/mapping.ts` (nine loan fields, synonyms,
+  `PROTECTED_HEADER`), `lib/contacts/review.ts` (protected columns "Not imported"), `lib/contacts/ai-map.ts` (instructions), `lib/contacts/lists.ts`
+  (`freezeList`, `saveList(..., { freeze })`, `saveSuggested`, `frozen` on a saved list), `lib/contacts/service.ts` (agents in a client file are kind
+  agent), `lib/contacts/editing.ts` (`checkLoanEdit`), `lib/contacts/manage.ts` (`updateLoan`), `lib/contacts/sheet.ts` (CSV: Closed on, Loan type, Note
+  rate), `lib/pipeline/intake.ts` (loan sync fills program, rate type, term, purpose), `lib/concierge/tell.ts` (`find_clients` takes the same rule:
+  `findRule`), `lib/content/{contact-lists,contacts-import,activity}.ts`, `app/mlo/contacts/{page,ContactsTable,actions}.tsx`,
+  `app/mlo/contacts/[id]/page.tsx`, `app/mlo/contacts/import/ImportWizard.tsx`, `app/mlo/cc-shell.css` (D80 block), `scripts/qa/{command-center,buttons}.mjs`,
+  `lib/contacts/lists.test.ts` (CSV header), `CLAUDE.md`.
+- **Loan details:** a contact's loan keeps, besides closed date, amount and note rate: program (conventional, FHA, VA, USDA, jumbo, HELOC, non-QM,
+  other), fixed or ARM, term in months, the ARM's first change date and margin (only when a column has them), purpose (purchase, refinance, cash-out),
+  occupancy, property type and lender. An import's column cards offer them under "Goes into"; one "Program"/"Product"/"Loan Type" column ("5/1 ARM",
+  "7/6 ARM", "30 Yr Fixed", "FHA 30") fills program, fixed or ARM and the term. Re-imports fill blanks or take the newer values (D75's `mergeNumbers`).
+  The loan system's sync fills the same fields from `loanType`/`purpose`. The **Loan & agent** tab starts with **Their loan** (every field on file,
+  "The rate they closed at, from your records. For you only") and **Edit loan details** (bound `updateLoanAction.bind(null, id)`; real dates, a rate
+  between 0 and 20, a margin between 0 and 10, a term in years or months, fixed lists for the rest; `canSee`, assistants in the officer's book; never
+  for an agent). Details shows "closed … · FHA · $… · 7.875% note rate".
+- **Ask M8 for a list** (top of Contacts): a box ("All loans closed with a rate from 7.2% to 9%"), Ask; the page then shows "M8 read that as:" (or
+  "Read as:" without the AI, with a line saying so) and the rule as chips. Tap a chip to change it (rate, closed dates, amount, loan type, fixed/ARM,
+  ARM change window, purpose, lender, has a closed date, relationship, state, tag), × to drop it, "+ Add a rule". Every change is a new address, so the
+  filter runs on the server in the viewer's own book. A list about loans shows each person's loan line ("7.875% · Closed Oct 2023 · Conventional ARM")
+  and "Rates shown are the rate each client closed at, from your own records, for your eyes only. Messages to this list still go through permission
+  checks." The result line: N people · Save as a list · Add to campaign · Call session · Download · Select all · Clear (Add to campaign and Download open
+  the D78 bulk bar on all matching with that action picked). The Filters fold has a "Their loan" group (loan type, fixed or ARM, note rate from/to,
+  closed from/to, closed date on file or not, purpose). A request about a protected trait: "Lists can't be built on age, family status or other
+  protected traits." Tell your Concierge's `find_clients` takes the same rule (note rate range, programs, fixed/ARM, ARM change window, purpose), so "my
+  ARM clients adjusting next year" works there; its results still carry no rates or amounts.
+- **Lists suggested at import** (step 3, after Fix and tag, before Continue): "M8 found lists in your files" (or "Lists in your files" without the
+  AI). Counts are worked out in the browser (people and agents, relationship, closed year, program, fixed/ARM, rate bands under 5% / 5–6.99% / 7% and
+  up, state); M8 gets only those numbers and the column names. With no AI: "Real estate agents", "<year> closed loans" (the two latest years), "ARM
+  loans", "FHA and VA", "Rate 7% and up" (checked), "Past clients in <state>", "No closing date on file" (not checked). Each row: checkbox, name, rule,
+  "N people in this file", "Rename or edit" (name, drop a part of the rule). "Describe another list" uses the same Ask. "Agents stay separate": agents
+  in a client file are imported as kind agent (Agents, never a client list, never client messages). After the import the checked lists are saved as live
+  lists; the done screen's "Your lists" links each one (a rule that's already a list, like Agents, links to it instead of making a second).
+- **Live and frozen:** lists are live. "Freeze this list" (on a saved list's Rename or delete fold, or "Freeze it" when saving) tags today's people
+  "<name> (Nov 22, 2026)" and the list becomes that tag; people who fit later don't join. People with 30 tags already are counted as left out.
+- **Compliance:** contact data never reaches the model. Ask sends exactly the data rule and the request in a nonce block (test asserts the exact
+  string), with the field guide in the system text; the answer goes through one strict tool, `AskOut.strict()` and `ListRuleSchema` (an unknown key, a
+  rate over 20, an unknown program, a made-up state or date drops the whole answer and the words are read instead); M8 can't add a tag the request
+  doesn't contain. Import suggestions send column names (nonce blocks) and the counts only; the server's `SuggestInput` is strict (rows can't be sent),
+  count keys that aren't a code, year or fixed word are dropped, and agent imports (RETR) never call it. Every proposed list is checked on the device
+  (schema, protected words in its name, nobody fits = dropped). Protected traits are never fields, rules, notes, tags or lists: a column like "Applicant
+  Race", "Age" or "Marital Status" is "Not imported" (its select disabled), M8's column matcher is told the same, and `listRefusal` (the D8.1
+  protected-topic lane plus list words like "older clients", "women", "born before") runs before any model call. Rates are shown to the loan officer
+  only; no campaign merge field or message carries one. Every send from a list still goes through `reachableFor` / `gateFor` / `sendText` /
+  `sendEmail`. The Neon SQL binds every value (a lender's `%`/`_` escaped with `ESCAPE`); loan numbers are read only when stored as numbers.
+- **Tests** (`lib/contacts/loans.test.ts`, 40): "5/1 ARM", "7/6 ARM", "10/6 ARM Jumbo", "30 Yr Fixed", "FHA 30", "Conventional 15 Year Fixed", VA, USDA,
+  HELOC, non-QM, other; "30 yr"/"30"/"360"/"15 years"; purpose, occupancy, property type, the pipeline's values; a file with Program, Note Rate, Close
+  Date, Purpose, Lender, First Change Date, Margin, Occupancy, Property Type maps and builds, and its race, age and marital columns are never fields,
+  notes or tags (cards "protected"); chips and loan line wording; address round trip for every key, backwards ranges, bad dates, an old D78 rule;
+  `matches` and the SQL builder agree on 30 generated people for 20 rules (rate ranges with 7.2/9 exactly and 7.199/9.001, years, has a closed date,
+  programs, fixed/ARM, ARM change windows, purpose, lender, amounts, tagsAll; the SQL evaluated by a small interpreter of the clauses it writes) and
+  the memory store agrees; hostile lender/tag values stay out of the SQL text; the fake model's answer for "closed 7.2 to 9 percent" is `rateMin 7.2,
+  rateMax 9, hasClosedDate true`; the exact payload has no contact values; seven protected asks refused with no call (and the model's own flag);
+  eight kinds of invalid output dropped to the words; no invented tags; the owner's four examples (plus FHA and VA, VA in WA, Oregon 7% and up, ARMs
+  adjusting in 12 months, agents not talked to in 90 days, over $500k, no closing date, cash-out 2021–2022) without a key; `findRule` for ARM clients
+  adjusting next year; fixed suggestions and counts; the suggester's request body has no name, phone, email or rate, rows are refused, agents never
+  call, odd count keys are dropped; agents in a client file land in Agents; saving picked lists (Agents linked, no doubles on a re-import); a live list
+  picks up a contact added later and a frozen one doesn't (and only its owner can freeze); the loan form's checks; `updateLoan` with `canSee` and an
+  assistant.
+- **Verified:** `npm run verify` passes (867 tests). `node scripts/qa/command-center.mjs` on a freshly started server: PROBLEMS none (new step "d80":
+  the loan fixture's Program → "Loan type or program", Lender matched, Marital Status "Not imported"; step 3 offered Real estate agents · 2025 closed
+  loans · 2024 closed loans · ARM loans · FHA and VA · Rate 7% and up · Past clients in WA with "The 2 real estate agents in this file go to Agents";
+  renamed ARM loans, unchecked Rate 7% and up, described "Loans over $500k"; done screen made 5 and linked "Real estate agents: already your list
+  “Agents”"; QA ARM loans opened 3 people with "8.990% · Closed Oct 2023 · Jumbo ARM"; the realtor is under Agents; Ask "All loans closed with a rate
+  from 7.2% to 9%" → "Read as: Has a closed date | Note rate 7.200% to 9.000%", 7 people, every rate inside 7.2–9; the rate chip changed to 8% (fewer
+  people), saved "QA rate 7.2 to 8", reopened with the same count, Add to campaign "Added 5 people.", frozen "Froze “QA rate 7.2 to 8” with 5 people.";
+  "loans with ARMs" → ARM loans; "past clients with kids" refused; Priya's Loan & agent tab shows 8.125%, ARM, Refinance, Kind Lending, a 45% rate is
+  refused and a fixed save is saved). `node scripts/qa/buttons.mjs` on a freshly started server: 488 page views, PROBLEMS none (adds the Ask result
+  page with folds open, its chip editor and "+ Add a rule", a loan-filtered bulk bar, and the contact's Loan & agent tab with the edit open; the import
+  walk now includes step 3's lists). Scratch sweep (`d80shots.mjs`): Ask result, chip editor, add a rule, the loan filters, the Loan & agent tab with
+  the edit open and import step 3 with a list being renamed, at 390 and 1280 in Night, Dim and Paper: no sideways scroll, no page errors.
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d80/` (`1-columns` … `9-loan-tab` from the QA flow at
+  1280; `ask-*`, `ask-edit-*`, `ask-add-rule-*`, `filters-loan-*`, `loan-tab-*`, `import-lists-*` at 390/1280 in night/dim/paper; `buttons/` has the
+  audit's set incl. `ask_edit-*`).
+- **Decisions:** (a) One rule: D78's `ListRule` was extended in place (the spec's keys added; D78's `q`, `contactedWithinDays`, `neverContacted`,
+  `neverReplied`, `importId` kept), so saved lists, bulk, campaigns, the call session and the Concierge share one matcher and one SQL builder; old saved
+  lists load unchanged. (b) "From 7.2 to 9" is inclusive, compared to the thousandth. (c) "Closed in 2025" is Jan 1 to Dec 31 (a date range implies a
+  closed date, so `hasClosedDate` is dropped then). (d) The ARM window is "first change between today and N days from now", from the file's or the
+  loan officer's date only (never estimated from the program, as the spec says). (e) Program is left blank when a cell says only rate and term ("5/1
+  ARM", "30 Yr Fixed"); unknown loan words are "other". (f) Suggestions are checked by default as in the mockup (the two optional ones not); a picked
+  list whose rule is already a list links to it. (g) A suggested list is live across the whole book; its "N people in this file" is this import's
+  count. (h) The Ask uses the "import" AI route and meter (like column matching); the request is audited as `contacts.ask` with how it was read, never
+  the text. (i) The list CSV now has Closed on, Loan type and Note rate (the loan officer's own records, their own download; D78 had left loan numbers
+  out). (j) Without scripts, the old chip links show in a `<noscript>` row and the Filters fold still works. (k) Occupancy and property type are kept
+  and shown but aren't list rules yet (not in the spec's rule).
+- **Known gaps:** no AI key here, so the browser QA ran the word-matching path; M8's path is covered by fake-model tests only. The word matcher knows
+  the common asks; anything else says so and points to the chips. Lists on occupancy, property type, term or ARM margin aren't offered. The loan system
+  sync doesn't carry an ARM change date, lender or occupancy (the D6 payload has none). A frozen list skips people who already have 30 tags (counted in
+  the message). Suggestion counts and the saved list can differ (the list is live across the whole book). The earlier QA steps' imports now also save
+  their suggested lists (default checked), so a QA book has more list tabs.
+- **Next up:** owner review of D69–D80, then "promote".

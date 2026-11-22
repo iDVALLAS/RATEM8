@@ -6,6 +6,7 @@
  * Field names are matched loosely (case, spaces, underscores and common
  * synonyms), so a Zap can send ARIVE's own field names.
  */
+import { loanFromPipeline } from "@/lib/contacts/loan";
 import { randomBytes } from "node:crypto";
 import { onLoanChange } from "@/lib/automations/engine";
 import { report } from "@/lib/monitoring";
@@ -112,7 +113,8 @@ export async function ingest(ownerUserId: string, u: LoanUpdate, source: string,
   if (contact) {
     if (closed) {
       contact.relationship = "past_client";
-      contact.loan = { closedOn: u.keyDates.closing ?? at.slice(0, 10), amount: u.amount, noteRate: u.noteRate };
+      // D80: the loan type and purpose read the same way as an import's (program, fixed or ARM, term, purpose).
+      contact.loan = { ...(contact.loan ?? {}), closedOn: u.keyDates.closing ?? at.slice(0, 10), amount: u.amount, noteRate: u.noteRate, ...loanFromPipeline(u.loanType, u.purpose) };
     }
     contact.email ??= u.email;
     contact.phone ??= u.phone;

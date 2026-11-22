@@ -21,14 +21,16 @@ import { tagBook } from "@/lib/contacts/tagging";
 import { tagHref } from "@/lib/contacts/tags";
 import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
 import { UNLOCK_ATTESTATION } from "@/lib/contacts/attestation";
-import { ADDED_DAYS, CONTACTED, describeRule, isEmptyRule, PERMISSIONS, ruleFromParams, ruleToParams } from "@/lib/contacts/filter";
+import { ADDED_DAYS, CONTACTED, describeRule, hasLoanRule, isEmptyRule, PERMISSIONS, ruleFromParams, ruleToParams } from "@/lib/contacts/filter";
+import { LOAN_PROGRAMS, LOAN_PURPOSES, loanLine, RATE_TYPES } from "@/lib/contacts/loan";
+import AskList from "./AskList";
 import { currentList, listsFor } from "@/lib/contacts/lists";
 import { listImports } from "@/lib/contacts/imports";
 import { assignees } from "@/lib/contacts/bulk";
 import { campaignStore } from "@/lib/campaigns/store";
 import { US_STATES } from "@/lib/us-states";
 import { contactListsCopy as lc } from "@/lib/content/contact-lists";
-import { deleteListAction, renameListAction, saveListAction } from "./actions";
+import { deleteListAction, freezeListAction, renameListAction, saveListAction } from "./actions";
 import "../mlo.css";
 import PageHead from "@/app/mlo/PageHead";
 
@@ -79,6 +81,13 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
   const ruleQs = new URLSearchParams(params).toString();
   const chips = describeRule(rule, { relationship: RELATIONSHIP_LABELS, permission: lc.permissionLabels, chip: lc.chip });
   const dateOf = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
+  // D80: a list about loans shows each person's loan line (their own closed rate, for the loan officer only).
+  const loanList = hasLoanRule(rule);
+  const asked = sp.asked === "m8" || sp.asked === "words" ? sp.asked : null;
+  const askedQs = (extra: Record<string, string>) => {
+    const u = new URLSearchParams({ ...params, ...extra });
+    return `/mlo/contacts?${u.toString()}`;
+  };
   const listHref = (r: typeof rule) => {
     const s = new URLSearchParams(ruleToParams(r)).toString();
     return s ? `/mlo/contacts?${s}` : "/mlo/contacts";
@@ -100,6 +109,7 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
       tags: c.tags ?? [],
       canCall: !!c.phone && !phoneStop && !c.locked,
       hasPhone: !!c.phone,
+      ...(loanList && c.kind === "contact" ? { loan: loanLine(c.loan) || lc.loan.notSet } : {}),
     };
   });
 
@@ -141,6 +151,7 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
                 ))}
               </nav>
             ) : null}
+            <AskList key={`${ruleQs}|${asked ?? ""}`} rule={rule} asked={asked} />
             <form className="mlo-row-form" action="/mlo/contacts" method="get">
               {Object.entries(params).filter(([k]) => k !== "q").map(([k, val]) => <input key={k} type="hidden" name={k} value={val} />)}
               <input name="q" defaultValue={rule.q ?? ""} placeholder="Search name, phone, email, city, tag" className="mlo-input" aria-label="Search" style={{ flex: "1 1 240px" }} />
@@ -192,6 +203,44 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
                     {CONTACTED.map((c) => <option key={c} value={c}>{lc.contactedLabels[c]}</option>)}
                   </select>
                 </label>
+                {kind === "contact" ? (
+                  <>
+                    <p className="cc-filters__sub">{lc.loanFilters}</p>
+                    <label className="mlo-field"><span>{lc.programLabel}</span>
+                      <select name="prog" defaultValue={rule.program?.join(",") ?? ""} className="mlo-select">
+                        <option value="">{lc.any}</option>
+                        {rule.program && rule.program.length > 1 ? <option value={rule.program.join(",")}>{rule.program.map((p) => lc.loan.programs[p]).join(" or ")}</option> : null}
+                        {LOAN_PROGRAMS.map((p) => <option key={p} value={p}>{lc.loan.programs[p]}</option>)}
+                      </select>
+                    </label>
+                    <label className="mlo-field"><span>{lc.rateTypeLabel}</span>
+                      <select name="rtype" defaultValue={rule.rateType ?? ""} className="mlo-select">
+                        <option value="">{lc.any}</option>
+                        {RATE_TYPES.map((t) => <option key={t} value={t}>{lc.loan.rateTypes[t]}</option>)}
+                      </select>
+                    </label>
+                    <label className="mlo-field"><span>{lc.rateMinLabel}</span><input name="rmin" type="number" step="0.001" min="0" max="19.999" inputMode="decimal" defaultValue={rule.rateMin ?? ""} className="mlo-input" /></label>
+                    <label className="mlo-field"><span>{lc.rateMaxLabel}</span><input name="rmax" type="number" step="0.001" min="0" max="19.999" inputMode="decimal" defaultValue={rule.rateMax ?? ""} className="mlo-input" /></label>
+                    <label className="mlo-field"><span>{lc.closedFromLabel}</span><input name="cfrom" type="date" defaultValue={rule.closedFrom ?? ""} className="mlo-input" /></label>
+                    <label className="mlo-field"><span>{lc.closedToLabel}</span><input name="cto" type="date" defaultValue={rule.closedTo ?? ""} className="mlo-input" /></label>
+                    <label className="mlo-field"><span>{lc.hasClosedLabel}</span>
+                      <select name="closed" defaultValue={rule.hasClosedDate === undefined ? "" : rule.hasClosedDate ? "1" : "0"} className="mlo-select">
+                        <option value="">{lc.any}</option>
+                        {Object.entries(lc.hasClosedOptions).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                      </select>
+                    </label>
+                    <label className="mlo-field"><span>{lc.purposeLabel}</span>
+                      <select name="purpose" defaultValue={rule.purpose ?? ""} className="mlo-select">
+                        <option value="">{lc.any}</option>
+                        {LOAN_PURPOSES.map((p) => <option key={p} value={p}>{lc.loan.purposes[p]}</option>)}
+                      </select>
+                    </label>
+                    {rule.armChangeWithinDays ? <input type="hidden" name="armdays" value={rule.armChangeWithinDays} /> : null}
+                    {rule.lender ? <input type="hidden" name="lender" value={rule.lender} /> : null}
+                    {rule.amountMin !== undefined ? <input type="hidden" name="amin" value={rule.amountMin} /> : null}
+                    {rule.amountMax !== undefined ? <input type="hidden" name="amax" value={rule.amountMax} /> : null}
+                  </>
+                ) : null}
                 <label className="mlo-check cc-filters__check">
                   <input type="checkbox" name="noreply" value="1" defaultChecked={!!rule.neverReplied} />
                   <span>{lc.noReplyBox}</span>
@@ -204,28 +253,42 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
               </form>
             </details>
             {chips.length ? (
-              <ul className="cc-rulechips" aria-label={lc.filters}>
-                {chips.map((c) => (
-                  <li key={`${c.key}|${c.label}`}>
-                    <Link href={qs({}, [c.key])} className="cc-tag" aria-label={lc.remove(c.label)}>{c.label} <span aria-hidden="true">×</span></Link>
-                  </li>
-                ))}
-                <li><Link href={kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"} className="cc-linkbtn">{lc.clearAll}</Link></li>
-              </ul>
+              <noscript>
+                <ul className="cc-rulechips" aria-label={lc.filters}>
+                  {chips.map((c) => (
+                    <li key={`${c.key}|${c.label}`}>
+                      <Link href={qs({}, c.key.split(","))} className="cc-tag" aria-label={lc.remove(c.label)}>{c.label} <span aria-hidden="true">×</span></Link>
+                    </li>
+                  ))}
+                </ul>
+              </noscript>
             ) : null}
             {filtered && !current ? (
-              <form action={saveListAction.bind(null, ruleQs)} className="mlo-row-form cc-savelist">
-                <label className="mlo-field"><span>{lc.saveTitle}</span><input name="name" maxLength={60} required placeholder={lc.savePlaceholder} autoComplete="off" /></label>
-                <button type="submit" className="mlo-btn mlo-btn--ghost">{lc.save}</button>
+              <form action={saveListAction.bind(null, ruleQs)} className="cc-savelist" id="save-list">
+                <div className="mlo-row-form">
+                  <label className="mlo-field"><span>{lc.saveTitle}</span><input name="name" maxLength={60} required placeholder={lc.savePlaceholder} autoComplete="off" /></label>
+                  <button type="submit" className="mlo-btn mlo-btn--ghost">{lc.save}</button>
+                </div>
+                <label className="mlo-check cc-savelist__freeze">
+                  <input type="checkbox" name="freeze" value="yes" />
+                  <span>{lc.freezeBox}</span>
+                </label>
               </form>
             ) : null}
             {current && !current.builtIn ? (
               <details className="mlo-details cc-savelist">
                 <summary>{lc.manage}</summary>
+                <p className="mlo-note">{current.frozenAt ? lc.frozenLabel(dateOf(current.frozenAt)) : lc.liveLabel}</p>
                 <form action={renameListAction.bind(null, current.id, ruleQs)} className="mlo-row-form">
                   <label className="mlo-field"><span>{lc.renameTo}</span><input name="name" defaultValue={current.name} maxLength={60} required autoComplete="off" /></label>
                   <button type="submit" className="mlo-btn mlo-btn--ghost">{lc.rename}</button>
                 </form>
+                {!current.frozenAt ? (
+                  <form action={freezeListAction.bind(null, current.id)} className="mlo-row-form">
+                    <p className="mlo-note">{lc.freezeNote}</p>
+                    <button type="submit" className="mlo-btn mlo-btn--ghost">{lc.freeze}</button>
+                  </form>
+                ) : null}
                 <form action={deleteListAction.bind(null, current.id, kind)} className="mlo-row-form">
                   <p className="mlo-note">{lc.deleteNote}</p>
                   <button type="submit" className="mlo-btn mlo-btn--ghost">{lc.deleteList}</button>
@@ -262,12 +325,17 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
                     {current ? <strong>{current.name}: </strong> : null}
                     {imp && chips.length === 1 ? tc.fromImport(total) : tag && chips.length === 1 ? tc.tagged(tag, total) : lc.count(total)}
                     {imp ? <> · <Link href="/mlo/contacts/import/history">{tc.importHistory}</Link></> : null}
+                    {filtered && !current ? <> · <a href="#save-list">{lc.ask.saveAs}</a></> : null}
+                    {filtered ? <> · <Link href={askedQs({ select: "all", act: "campaign" })}>{lc.ask.addToCampaign}</Link></> : null}
                     {filtered ? <> · <Link href={current ? `/mlo/calls?list=${encodeURIComponent(current.id)}` : `/mlo/calls?from=filter&${ruleQs}`}>{lc.callList}</Link></> : null}
+                    {filtered ? <> · <Link href={askedQs({ select: "all", act: "download" })}>{lc.ask.download}</Link></> : null}
                     {total > 0 && sp.select !== "all" ? <> · <Link href={qs({ select: "all" })}>{lc.selectList}</Link></> : null}
                     {filtered ? <> · <Link href={kind === "agent" ? "/mlo/contacts?kind=agent" : "/mlo/contacts"}>{tc.clear}</Link></> : null}
                   </p>
+                  {loanList ? <p className="mlo-note cc-ratenote">{lc.ask.rateNote}</p> : null}
                   <ContactsTable
-                    key={`${ruleQs}|${page}|${sp.select ?? ""}`}
+                    key={`${ruleQs}|${page}|${sp.select ?? ""}|${sp.act ?? ""}`}
+                    initialAction={sp.act === "campaign" || sp.act === "download" ? sp.act : undefined}
                     rows={rows}
                     total={total}
                     rule={rule}

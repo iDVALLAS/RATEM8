@@ -1,7 +1,16 @@
 /**
  * lib/content/contact-lists.ts — strings for saved lists, filters and the
  * bulk bar's actions (D78). Internal Command Center copy, behind sign-in.
+ *
+ * D80: loan details, "Ask M8 for a list" and the lists suggested at import.
+ * No rate claims: a rate here is always a client's own closed rate, shown to
+ * the loan officer only.
  */
+const programs = { conventional: "Conventional", fha: "FHA", va: "VA", usda: "USDA", jumbo: "Jumbo", heloc: "HELOC", non_qm: "Non-QM", other: "Other" } as const;
+const rateTypes = { fixed: "Fixed", arm: "ARM" } as const;
+const purposes = { purchase: "Purchase", refi: "Refinance", cash_out: "Cash-out refinance" } as const;
+const span = (a: string | null, b: string | null, unit = "") => (a && b ? `${a} to ${b}${unit}` : a ? `${a}${unit} or more` : `${b}${unit} or less`);
+const days = (d: number) => (d % 365 === 0 ? `${d / 365 === 1 ? "12 months" : `${d / 365} years`}` : d % 30 === 0 ? `${d / 30} months` : `${d} days`);
 const people = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? "person" : "people"}`;
 
 export const contactListsCopy = {
@@ -42,6 +51,23 @@ export const contactListsCopy = {
     quiet: (d: number) => `Not contacted in ${d} days`,
     never: "Never contacted",
     noReply: "Never replied",
+    // D80
+    loan: {
+      tagAll: (t: string) => `Also tagged: ${t}`,
+      rate: (min: string | null, max: string | null) => `Note rate ${min && max ? `${min} to ${max}` : min ? `${min} or higher` : `${max} or lower`}`,
+      amount: (min: string | null, max: string | null) => `Loan amount ${span(min, max)}`,
+      closed: (from: string | null, to: string | null) => (from && to ? `Closed ${from} to ${to}` : from ? `Closed on or after ${from}` : `Closed on or before ${to}`),
+      hasClosed: "Has a closed date",
+      noClosed: "No closed date on file",
+      program: (names: string[]) => `Loan type: ${names.join(" or ")}`,
+      rateType: (name: string) => (name === "ARM" ? "ARM loans" : `${name} rate`),
+      armChange: (d: number) => `ARM first change in the next ${days(d)}`,
+      purpose: (name: string) => `Purpose: ${name}`,
+      lender: (name: string) => `Lender: ${name}`,
+      programs,
+      rateTypes,
+      purposes,
+    },
   },
   // Saving
   saveTitle: "Save this list",
@@ -88,7 +114,7 @@ export const contactListsCopy = {
   assignNote: "They move to that loan officer's book. Permission on file stays with each person; campaigns they're in stop.",
   assigned: (n: number, name: string, skipped: number) => `Moved ${people(n)} to ${name}'s book.${skipped ? ` ${people(skipped)} were already there.` : ""}`,
   download: "Download CSV",
-  downloadNote: "Name, phone, email, address, relationship, tags and how they can be reached. No permission proof or notes.",
+  downloadNote: "Name, phone, email, address, relationship, tags, how they can be reached and their loan (closed date, type, note rate). No permission proof or notes.",
   deleteConfirm: "Type DELETE to confirm",
   deleteWord: "DELETE",
   deleteButton: (n: number) => `Delete ${people(n)}`,
@@ -122,5 +148,123 @@ export const contactListsCopy = {
   groupLabels: { past_client: "All past clients", lead: "All leads", sphere: "Everyone in my sphere", agent: "All agents", other: "Everyone else" } as Record<string, string>,
   triggerTag: "When I add this tag",
   triggerTagLabel: "The tag",
+  // ---- D80: loan details ----
+  loan: {
+    programs,
+    rateTypes,
+    purposes,
+    occupancies: { primary: "Primary home", second_home: "Second home", investment: "Investment property" },
+    propertyTypes: { single_family: "Single-family", condo: "Condo", townhouse: "Townhouse", multi_unit: "2 to 4 units", manufactured: "Manufactured", other: "Other" },
+    closedShort: (monthYear: string) => `Closed ${monthYear}`,
+    heading: "Their loan",
+    none: "No loan details yet. Import a file with a Program or Rate column, connect your loan system, or add them here.",
+    fields: { closedOn: "Closed on", amount: "Loan amount", noteRate: "Note rate", program: "Loan type", rateType: "Fixed or ARM", termMonths: "Term", armFirstChange: "ARM first change", armMargin: "ARM margin", purpose: "Purpose", occupancy: "Occupancy", propertyType: "Property type", lender: "Lender or investor" },
+    term: (m: number) => (m % 12 === 0 ? `${m / 12} years` : `${m} months`),
+    edit: "Edit loan details",
+    save: "Save loan details",
+    saved: "Loan details saved.",
+    nothing: "Nothing changed.",
+    notSet: "Not set",
+    rateNote: "The rate they closed at, from your records. For you only: it never goes into a message.",
+    errors: {
+      date: (label: string) => `${label}: use a real date, like 2023-10-15.`,
+      rate: "Note rate: a percent between 0 and 20, like 7.875.",
+      amount: "Loan amount: a dollar amount, like 425000.",
+      margin: "ARM margin: a percent between 0 and 10, like 2.75.",
+      term: "Term: years (30) or months (360).",
+      lender: "Lender: 120 characters at most.",
+      agent: "Agents don't have loan details.",
+    },
+  },
+  // ---- D80: the filters fold's loan rows ----
+  loanFilters: "Their loan",
+  programLabel: "Loan type",
+  rateTypeLabel: "Fixed or ARM",
+  rateMinLabel: "Note rate from (%)",
+  rateMaxLabel: "Note rate to (%)",
+  closedFromLabel: "Closed from",
+  closedToLabel: "Closed to",
+  purposeLabel: "Purpose",
+  hasClosedLabel: "Closed date",
+  hasClosedOptions: { "1": "On file", "0": "Not on file" } as Record<string, string>,
+  // ---- D80: Ask M8 for a list ----
+  ask: {
+    title: "Ask M8 for a list",
+    label: "Describe the list you want",
+    placeholder: "All loans closed with a rate from 7.2% to 9%",
+    go: "Ask",
+    working: "Reading…",
+    readAs: "M8 read that as:",
+    readAsWords: "Read as:",
+    filters: "Showing:",
+    noAi: "M8's AI isn't on, so this was read by simple word matching. Check the rules, or change them by hand.",
+    unread: "M8 couldn't turn that into rules. Try words like “ARM loans”, “FHA and VA”, “closed in 2025”, “rate 7 to 9”, or set the filters by hand.",
+    refused: "Lists can't be built on age, family status or other protected traits.",
+    tooLong: "Keep it under 300 characters.",
+    empty: "Type what list you want first.",
+    tryLine: "Try: “ARM loans that adjust in the next 12 months” · “VA loans in WA” · “agents I haven't talked to in 90 days”. M8 turns your words into these rules; it never sees the people.",
+    addRule: "+ Add a rule",
+    pickRule: "Rule to add",
+    apply: "Show them",
+    cancel: "Cancel",
+    edit: (label: string) => `Change: ${label}`,
+    remove: (label: string) => `Remove: ${label}`,
+    min: "From",
+    max: "To",
+    yes: "Yes",
+    no: "No",
+    withinDays: "Within",
+    fields: { rate: "Note rate", closed: "Closed between", program: "Loan type", rateType: "Fixed or ARM", arm: "ARM first change", purpose: "Purpose", lender: "Lender", amount: "Loan amount", hasClosed: "Has a closed date", relationship: "Relationship", state: "State", tag: "Tag" } as Record<string, string>,
+    rateNote: "Rates shown are the rate each client closed at, from your own records, for your eyes only. Messages to this list still go through permission checks.",
+    saveAs: "Save as a list",
+    addToCampaign: "Add to campaign",
+    download: "Download",
+  },
+  // ---- D80: live and frozen lists ----
+  freeze: "Freeze this list",
+  freezeNote: "Keeps only the people in it today, by giving them a tag. New people who fit won't join. Live lists (the usual kind) update themselves.",
+  freezeBox: "Freeze it: keep only today's people (new people who fit won't join)",
+  frozen: (name: string, n: number, skipped: number) => `Froze “${name}” with ${people(n)}.${skipped ? ` ${people(skipped)} already had 30 tags, so they're not in it.` : ""}`,
+  frozenLabel: (when: string) => `Frozen ${when}`,
+  liveLabel: "Live: anyone who fits joins",
+  frozenTag: (name: string, when: string) => `${name} (${when})`,
+  // ---- D80: lists suggested at import ----
+  suggest: {
+    title: "M8 found lists in your files",
+    titleWords: "Lists in your files",
+    note: "Pick the ones you want. Lists update themselves: anyone you add later who fits the rule joins the list. A person can be on more than one list.",
+    rule: (r: string) => `Rule: ${r}`,
+    inFile: (n: number) => `${people(n)} in this file`,
+    rename: "Rename or edit",
+    nameLabel: "List name",
+    removePart: (label: string) => `Remove from this rule: ${label}`,
+    make: (n: number) => `Make the list ${n}`,
+    makeOne: (name: string) => `Make the list ${name}`,
+    another: "Describe another list",
+    anotherPlaceholder: "Loans over $500k in WA",
+    addList: "Add list",
+    how: "How M8 found these",
+    howNote: "From your column names and counts worked out on your device (how many per loan type and per year). Names, phones and emails never go to the AI.",
+    howWords: "From counts worked out on your device (how many per loan type and per year). Nothing about the people leaves this device for this step.",
+    howRetr: "Agent lists get only the standard suggestions: nothing about them goes to the AI.",
+    agentsTitle: "Agents stay separate",
+    agents: (n: number) => (n === 1 ? "The real estate agent in this file goes to Agents, not your client list, and never gets client messages." : `The ${n.toLocaleString("en-US")} real estate agents in this file go to Agents, not your client list, and never get client messages.`),
+    none: "No separate lists stand out in these files. You can still describe one.",
+    count: (n: number) => (n === 1 ? "1 list will be made" : `${n} lists will be made`),
+    names: {
+      agents: "Real estate agents",
+      year: (y: string) => `${y} closed loans`,
+      arm: "ARM loans",
+      fhaVa: "FHA and VA",
+      rate7: "Rate 7% and up",
+      pastIn: (st: string) => `Past clients in ${st}`,
+      noClosed: "No closing date on file",
+      agentsIn: (st: string) => `Agents in ${st}`,
+    },
+    doneTitle: "Your lists",
+    doneLine: (name: string) => `${name}`,
+    doneExisting: (name: string, as: string) => `${name}: already your list “${as}”`,
+    doneFailed: (name: string, why: string) => `${name}: not made (${why.replace(/\.$/, "")})`,
+  },
   triggerTagNote: "Someone goes in when this tag is added to them (on their page, in bulk or at import), if your contact rules allow this campaign's messages for them.",
 } as const;

@@ -19,7 +19,7 @@
  */
 import { cell } from "@/lib/export/csv";
 import type { Csv } from "./csv";
-import { headerAllowed, OPT_OUT_FIELDS, OPT_OUT_HEADER, readOptIn, readsOptOut, type BuildOptions, type Field, type FixField, type ImportKind, type ImportRecord, type Mapping, type OptOutField, type RowProblem, type RowWarning, fieldsFor } from "./mapping";
+import { headerAllowed, OPT_OUT_FIELDS, OPT_OUT_HEADER, PROTECTED_HEADER, readOptIn, readsOptOut, type BuildOptions, type Field, type FixField, type ImportKind, type ImportRecord, type Mapping, type OptOutField, type RowProblem, type RowWarning, fieldsFor } from "./mapping";
 import { cleanEmail, cleanState, formatPhone, isoDate, scanDates, spellDate, splitName, toE164, type DateOrder, type NameOrder } from "./normalize";
 import { MAX_TAG, MAX_TAGS, mergeTags, splitTags } from "./tags";
 import { usStateName } from "@/lib/us-states";
@@ -31,7 +31,7 @@ export type ColumnTarget = Field | ColumnChoice;
 export type ColumnStatus = "sure" | "check" | "none";
 /** Why a matched column needs a look: M8 wasn't sure, M8 and the name match disagree, or it was matched by its contents only. */
 export type ColumnFlag = "unsure" | "disagree" | "contents";
-export type ColumnNote = "private" | "optout" | "question" | ColumnFlag | "notes" | "stage" | "tags" | "empty" | "skip" | null;
+export type ColumnNote = "private" | "protected" | "optout" | "question" | ColumnFlag | "notes" | "stage" | "tags" | "empty" | "skip" | null;
 export type OptInField = "optInText" | "optInCall" | "optInEmail";
 export const OPT_IN_FIELDS: readonly OptInField[] = ["optInText", "optInCall", "optInEmail"];
 
@@ -54,6 +54,8 @@ export function columnValues(t: Csv, col: number, n = 200): string[] {
 
 export function isSensitive(header: string, values: string[]): boolean {
   if (SENSITIVE_HEADER.test(header)) return true;
+  // D80: protected traits (age, race, sex, marital or familial status…) are never imported either.
+  if (PROTECTED_HEADER.test(header)) return true;
   return values.length > 0 && values.filter((v) => SSN_VALUE.test(v)).length / values.length > 0.5;
 }
 
@@ -254,13 +256,13 @@ export type ColumnCard = {
 export function columnCards(t: Csv, mapping: Mapping, kind: ImportKind, choice: Record<number, ColumnChoice>, review: { flags?: Record<number, ColumnFlag>; ok?: number[]; optOutOk?: number[] }, questionCols: number[] = []): ColumnCard[] {
   return t.headers.map((header, col) => {
     const values = columnValues(t, col, 60);
-    const sensitive = !fieldOfColumn(mapping, col) && isSensitive(header, values);
+    const sensitive = (!fieldOfColumn(mapping, col) || PROTECTED_HEADER.test(header)) && isSensitive(header, values);
     const target = targetOf(t, mapping, choice, col);
     const optOut = OPT_OUT_HEADER.test(header) || (OPT_OUT_FIELDS as readonly string[]).includes(target);
     const ok = review.ok?.includes(col);
     let status: ColumnStatus = "sure";
     let note: ColumnNote = null;
-    if (sensitive) [status, note] = ["none", "private"];
+    if (sensitive) [status, note] = ["none", PROTECTED_HEADER.test(header) && !SENSITIVE_HEADER.test(header) ? "protected" : "private"];
     else if (!values.length) [status, note] = ["none", "empty"];
     else if (target === "skip") [status, note] = ["none", "skip"];
     else if (optOut && !review.optOutOk?.includes(col)) [status, note] = ["check", "optout"];

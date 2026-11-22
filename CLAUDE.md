@@ -235,6 +235,14 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     alerts text/email/both/off (default email) in notification hours (`lib/leads/alert.ts`: first name, state, source and a link only; outside
     the hours or past 10 an hour they wait and go as one, via the morning run or the next page view; a text that can't go becomes an email).
     `/api/cc/dev-inbound` is a local-only pretend reply (CC_DEV_LOGIN guard), same path as a real one (`recordInbound`).
+    D80 loan details and lists (`lib/contacts/{loan,ask-words,ask,suggest,suggest-ai}.ts`, `app/mlo/contacts/{AskList.tsx,import/ListsStep.tsx}`, copy in
+    `lib/content/contact-lists.ts`): `Contact.loan` adds program, fixed/ARM, term, ARM first change and margin, purpose, occupancy, property type, lender
+    (a "5/1 ARM" or "FHA 30" Program column fills program, rate type and term; the loan sync fills them too; edit on Loan & agent, checked); D78's one
+    `ListRule` gains closed dates, has a closed date, note rate and amount ranges (to the thousandth), programs, rate type, ARM change window, purpose,
+    lender, tagsAll, with the same matcher, bound-only SQL and chips (old lists load). "Ask M8 for a list": the request alone (nonce block) plus the field
+    list goes to the model, a strict tool answer is zod-checked (else dropped), no-AI word matching otherwise; protected-trait asks refused before any
+    call; editable chips; rates are each client's own closed rate, LO only, never in messages. Import step 3 suggests lists from on-device counts (M8
+    sees column names and counts only; agent imports never); agents in a client file go to Agents. Lists are live; "Freeze this list" tags today's people.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -343,7 +351,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 827 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 867 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

@@ -29,6 +29,13 @@ import { contactTagsCopy } from "@/lib/content/contact-tags";
 import { contactPageCopy } from "@/lib/content/contact-page";
 import { addContact, addNote, addToCampaign, logDial, mergeContacts, remindMe, updateContact } from "@/lib/contacts/manage";
 import { nameOf } from "@/lib/contacts/merge";
+import { LOAN_PROGRAMS, LOAN_PURPOSES, OCCUPANCIES, PROPERTY_TYPES, RATE_TYPES } from "@/lib/contacts/loan";
+import { askForList } from "@/lib/contacts/ask";
+import { suggestListsAI } from "@/lib/contacts/suggest-ai";
+import { freezeList, saveSuggested } from "@/lib/contacts/lists";
+import { updateLoan } from "@/lib/contacts/manage";
+import { accountStore } from "@/lib/accounts/store";
+import type { ListRule } from "@/lib/contacts/filter";
 
 const n = z.number().finite().nullable();
 const s = (max: number) => z.string().max(max);
@@ -48,7 +55,23 @@ const Record_ = z.object({
   // D74: where a lead came from, and who sent them.
   leadSource: s(120).nullable().optional(),
   referredBy: s(120).nullable().optional(),
-  loan: z.object({ closedOn: s(10).nullable(), amount: n, noteRate: n }).nullable(),
+  // D80: the loan's program, fixed or ARM, term, ARM change and margin, purpose, occupancy, property type and lender (fixed values only).
+  loan: z
+    .object({
+      closedOn: s(10).nullable(),
+      amount: n,
+      noteRate: n,
+      program: z.enum(LOAN_PROGRAMS).nullable().optional(),
+      rateType: z.enum(RATE_TYPES).nullable().optional(),
+      termMonths: z.number().int().min(12).max(600).nullable().optional(),
+      armFirstChange: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+      armMargin: z.number().gt(0).lt(10).nullable().optional(),
+      purpose: z.enum(LOAN_PURPOSES).nullable().optional(),
+      occupancy: z.enum(OCCUPANCIES).nullable().optional(),
+      propertyType: z.enum(PROPERTY_TYPES).nullable().optional(),
+      lender: s(120).nullable().optional(),
+    })
+    .nullable(),
   agent: z.object({ brokerage: s(120).nullable(), units: n, volume: n, buyerUnits: n, listingUnits: n, avgPrice: n, topLender: s(120).nullable() }).nullable(),
   attestedOptIns: z.array(z.enum(["text", "call", "email"])).max(3),
   // D69: where each opt-out came from ("<file> column <header>").
@@ -377,8 +400,12 @@ export async function saveListAction(qs: string, fd: FormData): Promise<void> {
   const actor = await currentUser();
   if (!actor) redirect("/sign-in");
   const back = safeQs(qs);
-  const r = await saveList(actor, String(fd.get("name") ?? ""), ruleFromParams(new URLSearchParams(back)));
-  redirect(listsPage(back, r.ok ? { ok: true, lines: [contactListsCopy.saved(r.list.name)] } : { ok: false, lines: [r.error] }));
+  // D80: "Freeze it" keeps only today's people (a tag); otherwise the list is live.
+  const freeze = fd.get("freeze") === "yes";
+  const r = await saveList(actor, String(fd.get("name") ?? ""), ruleFromParams(new URLSearchParams(back)), new Date(), { freeze });
+  if (r.ok && freeze) await accountStore().audit({ at: new Date().toISOString(), actor: actor.email, action: "contacts.list.freeze", detail: { list: r.list.id } });
+  const shown = r.ok ? ruleQuery(r.list.rule) : back;
+  redirect(listsPage(shown, r.ok ? { ok: true, lines: [contactListsCopy.saved(r.list.name)] } : { ok: false, lines: [r.error] }));
 }
 
 /** Rename a saved list (bound: `renameListAction.bind(null, listId, ruleQuery)`). */
@@ -396,6 +423,75 @@ export async function deleteListAction(id: string, kind: string): Promise<void> 
   if (!actor) redirect("/sign-in");
   const r = await deleteList(actor, String(id));
   redirect(listsPage(kind === "agent" ? "kind=agent" : "", r.ok ? { ok: true, lines: [contactListsCopy.deleted] } : { ok: false, lines: [r.error] }));
+}
+
+/** D80 "Freeze this list" (bound: `freezeListAction.bind(null, listId)`): today's people get a tag; the list becomes that tag. */
+export async function freezeListAction(id: string): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const r = await freezeList(actor, String(id));
+  if (r.ok) await accountStore().audit({ at: new Date().toISOString(), actor: actor.email, action: "contacts.list.freeze", detail: { list: r.list.id, people: r.count } });
+  redirect(listsPage(r.ok ? ruleQuery(r.list.rule) : "", r.ok ? { ok: true, lines: [contactListsCopy.frozen(r.list.name, r.count, r.skipped)] } : { ok: false, lines: [r.error] }));
+}
+
+/**
+ * D80 "Ask M8 for a list". Only the request goes to M8 (never a contact);
+ * the answer is a rule, shown as chips, run on the page in the viewer's own
+ * book. Returns the page address for the rule, never any people.
+ */
+export async function askListAction(request: string): Promise<{ ok: true; query: string; by: "m8" | "words" } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor || actor.status !== "active") return { ok: false, error: "Sign in again." };
+  const a = contactListsCopy.ask;
+  const r = await askForList(actor, String(request ?? "").slice(0, 2000));
+  await accountStore().audit({ at: new Date().toISOString(), actor: actor.email, action: "contacts.ask", detail: r.ok ? { by: r.by } : { refused: r.reason } }).catch(() => undefined);
+  if (!r.ok) return { ok: false, error: r.reason === "refused" ? a.refused : r.reason === "empty" ? a.empty : r.reason === "too_long" ? a.tooLong : a.unread };
+  return { ok: true, query: ruleQuery(r.rule), by: r.by };
+}
+
+/** D80: an import's "Describe another list": the same Ask, returning the rule itself for the browser to count. */
+export async function askRuleAction(request: string): Promise<{ ok: true; rule: ListRule; by: "m8" | "words" } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor || actor.status !== "active") return { ok: false, error: "Sign in again." };
+  const a = contactListsCopy.ask;
+  const r = await askForList(actor, String(request ?? "").slice(0, 2000));
+  if (!r.ok) return { ok: false, error: r.reason === "refused" ? a.refused : r.reason === "empty" ? a.empty : r.reason === "too_long" ? a.tooLong : a.unread };
+  return { ok: true, rule: r.rule, by: r.by };
+}
+
+/** D80: M8's lists for an import, from column names and counts only (agent lists never reach the AI). */
+export async function suggestListsAction(input: unknown): Promise<{ ok: true; lists: { name: string; rule: ListRule }[] } | { ok: false }> {
+  const actor = await currentUser();
+  if (!actor || actor.status !== "active") return { ok: false };
+  return suggestListsAI(actor, input);
+}
+
+const SuggestedLists = z.array(z.object({ name: z.string().max(80), rule: z.unknown() })).max(12);
+
+/** D80: the lists picked at import, saved as live lists after the import finishes. */
+export async function saveSuggestedListsAction(input: unknown): Promise<{ ok: true; saved: { name: string; ok: boolean; href: string | null; existing: boolean; as: string | null; error: string | null }[] } | { ok: false; error: string }> {
+  const actor = await currentUser();
+  if (!actor || actor.status !== "active") return { ok: false, error: "Sign in again." };
+  const p = SuggestedLists.safeParse(input);
+  if (!p.success) return { ok: false, error: contactListsCopy.failed };
+  const r = await saveSuggested(actor, p.data);
+  return {
+    ok: true,
+    saved: r.map((x) => ({ name: x.name, ok: x.ok, href: x.list ? `/mlo/contacts${ruleQuery(x.list.rule) ? `?${ruleQuery(x.list.rule)}` : ""}` : null, existing: !!x.existing, as: x.existing && x.list ? x.list.name : null, error: x.error ?? null })),
+  };
+}
+
+const LoanForm = z.object({ closedOn: s(40), amount: s(40), noteRate: s(40), program: s(40), rateType: s(40), termMonths: s(40), armFirstChange: s(40), armMargin: s(40), purpose: s(40), occupancy: s(40), propertyType: s(40), lender: s(200) }).partial();
+
+/** D80: the Loan & agent tab's form (bound: `updateLoanAction.bind(null, contactId)`). */
+export async function updateLoanAction(contactId: string, fd: FormData): Promise<void> {
+  const actor = await currentUser();
+  if (!actor) redirect("/sign-in");
+  const p = LoanForm.safeParse(Object.fromEntries(["closedOn", "amount", "noteRate", "program", "rateType", "termMonths", "armFirstChange", "armMargin", "purpose", "occupancy", "propertyType", "lender"].map((k) => [k, String(fd.get(k) ?? "")])));
+  if (!p.success) redirect(contactHref(contactId, { ok: false, lines: [contactListsCopy.failed] }, "#loan-details", "loan"));
+  const r = await updateLoan(actor, String(contactId), p.data);
+  const l = contactListsCopy.loan;
+  redirect(contactHref(contactId, r.ok ? { ok: true, lines: [r.changed ? l.saved : l.nothing] } : { ok: false, lines: r.errors }, "#loan-details", "loan"));
 }
 
 const tagsPage = (kind: string, flash: { ok: boolean; lines: string[] }) => `/mlo/contacts?${kind === "agent" ? "kind=agent&" : ""}f=${encodeFlash(flash)}#tags`;

@@ -383,7 +383,7 @@ describe("bulk actions (D78)", () => {
     const evil = base({ id: "c_evilevil", firstName: "=HYPERLINK(\"http://x\")", lastName: "@SUM(A1)", city: "+cmd|' /C calc'!A0", tags: ["-2+3", "VIP"], phone: "+12065550199", email: "e@x.com" });
     const csv = contactsCsv([{ contact: evil, summary: summarize([consent("c_evilevil", { proof: "signed form in drawer 3" })]) }]);
     const [head, row] = csv.replace(/^﻿/, "").trim().split("\r\n");
-    expect(head).toBe("First name,Last name,Phone,Other phone,Email,Street,City,State,ZIP,Relationship,Brokerage,Tags,Can reach,Added");
+    expect(head).toBe("First name,Last name,Phone,Other phone,Email,Street,City,State,ZIP,Relationship,Brokerage,Tags,Can reach,Added,Closed on,Loan type,Note rate");
     expect(row).toContain(`"'=HYPERLINK(""http://x"")"`);
     expect(row).toContain("'@SUM(A1)");
     expect(row).toContain(`,'+cmd|' /C calc'!A0,`);

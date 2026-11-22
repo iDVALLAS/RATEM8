@@ -6,7 +6,11 @@
  * plain English; the model can only:
  *   find_clients   look people up in the loan officer's own book (first
  *                  names, relationship, state, tags, year closed; never
- *                  phones, emails, amounts or rates)
+ *                  phones, emails, amounts or rates). D80: it filters with
+ *                  the same ListRule as Contacts' lists (note rate range,
+ *                  loan type, fixed or ARM, the ARM's first change, purpose),
+ *                  so "my ARM clients adjusting next year" works; results
+ *                  still carry no rates or amounts.
  *   draft_text     a draft for one of those people, onto the desk
  *   add_reminder   a reminder for one of those people (titles from a fixed list)
  * Nothing is sent. Every draft passes the Concierge guard, the send gate's
@@ -26,6 +30,8 @@ import { laneFor, scanCtx, TASK_ACTIONS } from "./agent";
 import { checkDraft, checkNote } from "./guard";
 import { cleanData, dataRule, newNonce } from "./data";
 import { conciergeStore } from "./store";
+import { cleanRule, type ListRule } from "@/lib/contacts/filter";
+import { LOAN_PROGRAMS, LOAN_PURPOSES, RATE_TYPES } from "@/lib/contacts/loan";
 
 export const MAX_DRAFTS = 15;
 const DAY = 86_400_000;
@@ -53,8 +59,14 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         state: { type: "string", description: "Two-letter state, or empty." },
         tag: { type: "string", description: "A tag, or empty." },
         quietDays: { type: "integer", description: "No conversation in at least this many days, or 0." },
+        rateMin: { type: "number", description: "Their note rate at least this percent (7.2 = 7.200%), or 0." },
+        rateMax: { type: "number", description: "Their note rate at most this percent, or 0." },
+        programs: { type: "array", items: { type: "string", enum: [...LOAN_PROGRAMS] }, description: "Loan types, or []." },
+        rateType: { type: "string", enum: ["any", ...RATE_TYPES] },
+        armChangeWithinDays: { type: "integer", description: "An ARM whose first rate change is within this many days (next year = 365), or 0." },
+        purpose: { type: "string", enum: ["any", ...LOAN_PURPOSES] },
       },
-      required: ["name", "relationship", "closedYearFrom", "closedYearTo", "state", "tag", "quietDays"],
+      required: ["name", "relationship", "closedYearFrom", "closedYearTo", "state", "tag", "quietDays", "rateMin", "rateMax", "programs", "rateType", "armChangeWithinDays", "purpose"],
     },
   },
   {
@@ -71,7 +83,39 @@ const TOOLS: Anthropic.Messages.Tool[] = [
   },
 ];
 
-const FindIn = z.object({ name: z.string().max(60), relationship: z.enum(["any", "past_client", "lead", "sphere", "other"]), closedYearFrom: z.number().int(), closedYearTo: z.number().int(), state: z.string().max(2), tag: z.string().max(40), quietDays: z.number().int() });
+const FindIn = z.object({
+  name: z.string().max(60),
+  relationship: z.enum(["any", "past_client", "lead", "sphere", "other"]),
+  closedYearFrom: z.number().int(),
+  closedYearTo: z.number().int(),
+  state: z.string().max(2),
+  tag: z.string().max(40),
+  quietDays: z.number().int(),
+  // D80: the loan rules (older answers without them still read).
+  rateMin: z.number().min(0).lt(20).default(0),
+  rateMax: z.number().min(0).lt(20).default(0),
+  programs: z.array(z.enum(LOAN_PROGRAMS)).max(LOAN_PROGRAMS.length).default([]),
+  rateType: z.enum(["any", ...RATE_TYPES]).default("any"),
+  armChangeWithinDays: z.number().int().min(0).max(3650).default(0),
+  purpose: z.enum(["any", ...LOAN_PURPOSES]).default("any"),
+});
+
+/** D80: find_clients' filters as the Contacts list rule (the same matcher and Neon SQL as saved lists). */
+export function findRule(f: z.infer<typeof FindIn>): ListRule {
+  const year = (y: number) => (y >= 1970 && y <= 2100 ? y : 0);
+  return cleanRule({
+    relationship: f.relationship === "any" ? undefined : f.relationship,
+    state: f.state.trim().toUpperCase() || undefined,
+    closedFrom: year(f.closedYearFrom) ? `${year(f.closedYearFrom)}-01-01` : undefined,
+    closedTo: year(f.closedYearTo) ? `${year(f.closedYearTo)}-12-31` : undefined,
+    rateMin: f.rateMin || undefined,
+    rateMax: f.rateMax || undefined,
+    program: f.programs.length ? f.programs : undefined,
+    rateType: f.rateType === "any" ? undefined : f.rateType,
+    armChangeWithinDays: f.armChangeWithinDays || undefined,
+    purpose: f.purpose === "any" ? undefined : f.purpose,
+  });
+}
 const DraftIn = z.object({ clientId: z.string().max(40), purpose: z.enum(["service", "marketing"]), body: z.string().max(2000), why: z.string().max(400) });
 const ReminderIn = z.object({ clientId: z.string().max(40), action: z.enum(TASK_ACTIONS), why: z.string().max(400), dueInDays: z.number().int() });
 
@@ -106,22 +150,14 @@ export type TellResult = { answer: string; drafts: number; reminders: number; sk
 
 /** Finds people in the loan officer's own book. Returns only safe fields, as data. */
 async function find(user: User, f: z.infer<typeof FindIn>, now: Date): Promise<Contact[]> {
-  const { contacts } = await contactStore().list({ ownerUserId: user.id, kind: "contact", limit: 2000 });
+  const { contacts } = await contactStore().list({ ownerUserId: user.id, kind: "contact", rule: findRule(f), now, limit: 2000 });
   const threads = await touchStore().threads(user.id, 2000);
   const last = new Map(threads.map((t) => [t.contactId, t.at]));
   const n = f.name.trim().toLowerCase();
   return contacts
     .filter((c) => !c.locked)
     .filter((c) => !n || `${c.firstName} ${c.lastName}`.toLowerCase().includes(n))
-    .filter((c) => f.relationship === "any" || c.relationship === f.relationship)
-    .filter((c) => !f.state || c.state === f.state.toUpperCase())
     .filter((c) => !f.tag || c.tags.some((t) => t.toLowerCase() === f.tag.toLowerCase()))
-    .filter((c) => {
-      const y = c.loan?.closedOn ? Number(c.loan.closedOn.slice(0, 4)) : null;
-      if (f.closedYearFrom && !(y && y >= f.closedYearFrom)) return false;
-      if (f.closedYearTo && !(y && y <= f.closedYearTo)) return false;
-      return true;
-    })
     .filter((c) => {
       if (!f.quietDays) return true;
       const at = last.get(c.id);

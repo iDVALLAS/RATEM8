@@ -10,6 +10,10 @@ import { cleanEmail, cleanState, cleanZip, emailProblem, phoneProblem, toE164 } 
 import { RELATIONSHIP_LABELS } from "./mapping";
 import { contactPageCopy as cp } from "@/lib/content/contact-page";
 import type { Contact } from "./store";
+import { isDay } from "./filter";
+import { isoDate } from "./normalize";
+import { anyLoan, LOAN_PROGRAMS, LOAN_PURPOSES, OCCUPANCIES, PROPERTY_TYPES, RATE_TYPES, readMargin, readTerm, type LoanDetails } from "./loan";
+import { contactListsCopy as lc } from "@/lib/content/contact-lists";
 
 /** The fields a person can edit by hand. */
 export const EDIT_FIELDS = ["firstName", "lastName", "phone", "phone2", "email", "street", "city", "state", "zip", "relationship", "leadSource", "referredBy", "notes"] as const;
@@ -79,4 +83,65 @@ export function changedFields(c: Contact, v: EditValues): EditField[] {
     return x === undefined || x === null || x === "" ? null : String(x);
   };
   return EDIT_FIELDS.filter((f) => now(f) !== (v[f] === "" ? null : v[f]));
+}
+
+// ---- D80: loan details, edited by hand on the Loan & agent tab ----
+
+export const LOAN_EDIT_FIELDS = ["closedOn", "amount", "noteRate", "program", "rateType", "termMonths", "armFirstChange", "armMargin", "purpose", "occupancy", "propertyType", "lender"] as const;
+export type LoanEditField = (typeof LOAN_EDIT_FIELDS)[number];
+export type LoanEditInput = Partial<Record<LoanEditField, string>>;
+export type LoanCheck = { ok: true; loan: LoanDetails | null } | { ok: false; errors: Partial<Record<LoanEditField, string>> };
+
+const oneOf = <T extends string>(list: readonly T[], v: string): T | null => ((list as readonly string[]).includes(v) ? (v as T) : null);
+
+/**
+ * Checks the loan form the same way an import reads a file: dates must be
+ * real days, a note rate is a percent between 0 and 20, a margin between 0
+ * and 10, the program, rate type, purpose, occupancy and property type come
+ * from fixed lists. A blank field is "not set". All blank = no loan.
+ */
+export function checkLoanEdit(input: LoanEditInput): LoanCheck {
+  const errors: Partial<Record<LoanEditField, string>> = {};
+  const raw = (f: LoanEditField) => String(input[f] ?? "").trim();
+  const F = lc.loan.fields;
+  const E = lc.loan.errors;
+  const day = (f: "closedOn" | "armFirstChange") => {
+    const v = raw(f);
+    if (!v) return null;
+    const iso = isDay(v) ? v : isoDate(v);
+    if (!iso) errors[f] = E.date(F[f]);
+    return iso;
+  };
+  const closedOn = day("closedOn");
+  const armFirstChange = day("armFirstChange");
+  const amountRaw = raw("amount").replace(/[$,\s]/g, "");
+  const amount = amountRaw ? Number(amountRaw) : null;
+  if (amountRaw && !(amount !== null && Number.isFinite(amount) && amount > 0 && amount <= 100_000_000)) errors.amount = E.amount;
+  const rateRaw = raw("noteRate").replace(/[%\s]/g, "");
+  const noteRate = rateRaw ? Number(rateRaw) : null;
+  if (rateRaw && !(noteRate !== null && Number.isFinite(noteRate) && noteRate > 0 && noteRate < 20)) errors.noteRate = E.rate;
+  const marginRaw = raw("armMargin");
+  const armMargin = marginRaw ? readMargin(marginRaw) : null;
+  if (marginRaw && armMargin === null) errors.armMargin = E.margin;
+  const termRaw = raw("termMonths");
+  const termMonths = termRaw ? readTerm(termRaw) : null;
+  if (termRaw && termMonths === null) errors.termMonths = E.term;
+  const lender = raw("lender").replace(/\s+/g, " ");
+  if (lender.length > 120) errors.lender = E.lender;
+  if (Object.keys(errors).length) return { ok: false, errors };
+  const loan: LoanDetails = {
+    closedOn,
+    amount: amount !== null ? Math.round(amount) : null,
+    noteRate: noteRate !== null ? Math.round(noteRate * 1000) / 1000 : null,
+    program: oneOf(LOAN_PROGRAMS, raw("program")),
+    rateType: oneOf(RATE_TYPES, raw("rateType")),
+    termMonths,
+    armFirstChange,
+    armMargin,
+    purpose: oneOf(LOAN_PURPOSES, raw("purpose")),
+    occupancy: oneOf(OCCUPANCIES, raw("occupancy")),
+    propertyType: oneOf(PROPERTY_TYPES, raw("propertyType")),
+    lender: lender || null,
+  };
+  return { ok: true, loan: anyLoan(loan) ? loan : null };
 }

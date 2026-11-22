@@ -54,6 +54,9 @@ import DetailSheet from "@/components/ui/DetailSheet";
 import ContactTabs from "./ContactTabs";
 import CallButton from "./CallButton";
 import EditDetails from "./EditDetails";
+import { LOAN_PROGRAMS, LOAN_PURPOSES, loanKind, OCCUPANCIES, PROPERTY_TYPES, RATE_TYPES, showRate } from "@/lib/contacts/loan";
+import { contactListsCopy as lc } from "@/lib/content/contact-lists";
+import { updateLoanAction } from "../actions";
 import "../../mlo.css";
 import "../../scripts/scripts.css";
 import PageHead from "@/app/mlo/PageHead";
@@ -356,7 +359,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
             <div><dt>Relationship</dt><dd>{RELATIONSHIP_LABELS[c.relationship]}</dd></div>
             {c.leadSource ? <div><dt>Lead source</dt><dd>{c.leadSource}</dd></div> : null}
             {c.referredBy ? <div><dt>Referred by</dt><dd>{c.referredBy}</dd></div> : null}
-            {c.loan ? <div><dt>Their loan</dt><dd>{[c.loan.closedOn ? `closed ${c.loan.closedOn}` : "", money(c.loan.amount), c.loan.noteRate ? `${c.loan.noteRate}% note rate` : ""].filter(Boolean).join(" · ")}</dd></div> : null}
+            {c.loan ? <div><dt>Their loan</dt><dd>{[c.loan.closedOn ? `closed ${c.loan.closedOn}` : "", loanKind(c.loan), money(c.loan.amount), c.loan.noteRate ? `${showRate(c.loan.noteRate)} note rate` : ""].filter(Boolean).join(" · ")}</dd></div> : null}
             {c.agent ? <div><dt>Production</dt><dd>{[c.agent.brokerage, c.agent.units !== null ? `${c.agent.units} units` : "", c.agent.volume !== null ? `${money(c.agent.volume)} volume` : "", c.agent.buyerUnits !== null ? `${c.agent.buyerUnits} buyer-side` : "", c.agent.listingUnits !== null ? `${c.agent.listingUnits} listings` : "", c.agent.topLender ? `usually works with ${c.agent.topLender}` : ""].filter(Boolean).join(" · ") || "Not known"}</dd></div> : null}
             {c.notes ? <div><dt>Notes</dt><dd className="cc-dl__pre">{c.notes}</dd></div> : null}
             <div><dt>Added</dt><dd>{fmt(c.createdAt)} · {c.source}</dd></div>
@@ -475,8 +478,69 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
     </>
   );
 
+  // D80: the loan's details (program, fixed or ARM, term, purpose, lender, the ARM's change), edited and checked here.
+  const L = lc.loan;
+  const lf = L.fields;
+  const ln = c.loan;
+  const loanRows: [string, string][] = ln
+    ? ([
+        [lf.closedOn, ln.closedOn ?? ""],
+        [lf.amount, ln.amount ? money(ln.amount) : ""],
+        [lf.noteRate, showRate(ln.noteRate)],
+        [lf.program, ln.program ? L.programs[ln.program] : ""],
+        [lf.rateType, ln.rateType ? L.rateTypes[ln.rateType] : ""],
+        [lf.termMonths, ln.termMonths ? L.term(ln.termMonths) : ""],
+        [lf.armFirstChange, ln.armFirstChange ?? ""],
+        [lf.armMargin, ln.armMargin ? showRate(ln.armMargin) : ""],
+        [lf.purpose, ln.purpose ? L.purposes[ln.purpose] : ""],
+        [lf.occupancy, ln.occupancy ? L.occupancies[ln.occupancy] : ""],
+        [lf.propertyType, ln.propertyType ? L.propertyTypes[ln.propertyType] : ""],
+        [lf.lender, ln.lender ?? ""],
+      ] as [string, string][]).filter(([, v]) => v)
+    : [];
+  const pick = (name: string, value: string | null | undefined, opts: readonly string[], labels: Record<string, string>) => (
+    <select name={name} defaultValue={value ?? ""} className="mlo-select">
+      <option value="">{L.notSet}</option>
+      {opts.map((o) => <option key={o} value={o}>{labels[o]}</option>)}
+    </select>
+  );
+  const loanDetails = c.kind === "contact" ? (
+    <section className="mlo-section" id="loan-details">
+      <h2>{L.heading}</h2>
+      {loanRows.length ? (
+        <dl className="cc-dl">
+          {loanRows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+        </dl>
+      ) : <p className="mlo-note">{L.none}</p>}
+      {ln?.noteRate ? <p className="mlo-note">{L.rateNote}</p> : null}
+      {me.status === "active" ? (
+        <details className="mlo-details">
+          <summary>{L.edit}</summary>
+          <form action={updateLoanAction.bind(null, c.id)} className="mlo-grid">
+            <div className="mlo-grid mlo-grid--2">
+              <label className="mlo-field"><span>{lf.closedOn}</span><input name="closedOn" type="date" defaultValue={ln?.closedOn ?? ""} /></label>
+              <label className="mlo-field"><span>{lf.amount}</span><input name="amount" inputMode="numeric" defaultValue={ln?.amount ?? ""} placeholder="425000" autoComplete="off" /></label>
+              <label className="mlo-field"><span>{lf.noteRate}</span><input name="noteRate" inputMode="decimal" defaultValue={ln?.noteRate ?? ""} placeholder="6.875" autoComplete="off" /></label>
+              <label className="mlo-field"><span>{lf.program}</span>{pick("program", ln?.program, LOAN_PROGRAMS, L.programs)}</label>
+              <label className="mlo-field"><span>{lf.rateType}</span>{pick("rateType", ln?.rateType, RATE_TYPES, L.rateTypes)}</label>
+              <label className="mlo-field"><span>{lf.termMonths}</span><input name="termMonths" defaultValue={ln?.termMonths ?? ""} placeholder="360" autoComplete="off" /></label>
+              <label className="mlo-field"><span>{lf.armFirstChange}</span><input name="armFirstChange" type="date" defaultValue={ln?.armFirstChange ?? ""} /></label>
+              <label className="mlo-field"><span>{lf.armMargin}</span><input name="armMargin" inputMode="decimal" defaultValue={ln?.armMargin ?? ""} placeholder="2.75" autoComplete="off" /></label>
+              <label className="mlo-field"><span>{lf.purpose}</span>{pick("purpose", ln?.purpose, LOAN_PURPOSES, L.purposes)}</label>
+              <label className="mlo-field"><span>{lf.occupancy}</span>{pick("occupancy", ln?.occupancy, OCCUPANCIES, L.occupancies)}</label>
+              <label className="mlo-field"><span>{lf.propertyType}</span>{pick("propertyType", ln?.propertyType, PROPERTY_TYPES, L.propertyTypes)}</label>
+              <label className="mlo-field"><span>{lf.lender}</span><input name="lender" maxLength={120} defaultValue={ln?.lender ?? ""} autoComplete="off" /></label>
+            </div>
+            <div className="mlo-actions"><button type="submit" className="mlo-btn">{L.save}</button></div>
+          </form>
+        </details>
+      ) : null}
+    </section>
+  ) : null;
+
   const loan = (
     <>
+      {loanDetails}
       {c.kind === "contact" ? (
         <section className="mlo-section" id="partner">
           <h2>Updates to their agent</h2>

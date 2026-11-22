@@ -7,6 +7,11 @@
  * (New this week, Needs permission, Past clients, Agents) are written in code
  * and can't be renamed or deleted.
  *
+ * D80: a list can be frozen ("Freeze this list"): today's people get a tag
+ * and the list's rule becomes that tag, so people who fit later don't join.
+ * `saveSuggested` saves the lists picked at import (a rule that's already a
+ * list links to it instead of making a second one).
+ *
  * `peopleIn` is the one way the bulk actions, campaigns and the call session
  * read a list: the viewer's own scope (`scopeOf`), and `canSee` for everyone.
  */
@@ -19,8 +24,8 @@ import { cleanRule, isEmptyRule, ListRuleSchema, sameRule, type ListRule } from 
 import { canSee, scopeOf } from "./service";
 import { contactStore, type Contact } from "./store";
 
-export type SavedList = { id: string; userId: string; name: string; rule: ListRule; createdAt: string; updatedAt: string };
-export type ListRef = { id: string; name: string; rule: ListRule; builtIn: boolean };
+export type SavedList = { id: string; userId: string; name: string; rule: ListRule; createdAt: string; updatedAt: string; frozen?: { at: string; tag: string } | null };
+export type ListRef = { id: string; name: string; rule: ListRule; builtIn: boolean; frozenAt?: string | null };
 
 export const MAX_LISTS = 30;
 export const MAX_LIST_NAME = 60;
@@ -115,7 +120,7 @@ const tidyName = (s: string) => s.replace(/\s+/g, " ").trim().slice(0, MAX_LIST_
 export async function listsFor(user: User): Promise<ListRef[]> {
   if (user.status !== "active") return DEFAULT_LISTS;
   const own = await listStore().forUser(user.id);
-  return [...DEFAULT_LISTS, ...own.map((l) => ({ id: l.id, name: l.name, rule: cleanRule(l.rule), builtIn: false }))];
+  return [...DEFAULT_LISTS, ...own.map((l) => ({ id: l.id, name: l.name, rule: cleanRule(l.rule), builtIn: false, frozenAt: l.frozen?.at ?? null }))];
 }
 
 /** One list by id: a built-in one, or one of the user's own (anyone else's is "not yours"). */
@@ -124,13 +129,13 @@ export async function listById(user: User, id: string): Promise<ListRef | null> 
   if (d) return d;
   if (!/^lst_[A-Za-z0-9_-]{6,40}$/.test(id) || user.status !== "active") return null;
   const l = await listStore().get(id);
-  return l && l.userId === user.id ? { id: l.id, name: l.name, rule: cleanRule(l.rule), builtIn: false } : null;
+  return l && l.userId === user.id ? { id: l.id, name: l.name, rule: cleanRule(l.rule), builtIn: false, frozenAt: l.frozen?.at ?? null } : null;
 }
 
 type Saved = { ok: true; list: ListRef } | { ok: false; error: string };
 
-/** "Save this list". The rule is checked again here (it came from the page). */
-export async function saveList(user: User, name: string, raw: unknown, now = new Date()): Promise<Saved> {
+/** "Save this list". The rule is checked again here (it came from the page). D80: `freeze` keeps only today's people. */
+export async function saveList(user: User, name: string, raw: unknown, now = new Date(), opts: { freeze?: boolean } = {}): Promise<Saved> {
   if (user.status !== "active") return { ok: false, error: lc.noList };
   const n = tidyName(name);
   if (!n) return { ok: false, error: lc.nameFirst };
@@ -144,7 +149,61 @@ export async function saveList(user: User, name: string, raw: unknown, now = new
   const at = now.toISOString();
   const l: SavedList = { id: `lst_${randomBytes(9).toString("base64url")}`, userId: user.id, name: n, rule, createdAt: at, updatedAt: at };
   await listStore().put(l);
+  if (opts.freeze) {
+    const f = await freezeList(user, l.id, now);
+    if (f.ok) return { ok: true, list: f.list };
+  }
   return { ok: true, list: { id: l.id, name: l.name, rule, builtIn: false } };
+}
+
+const shortDay = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
+
+/**
+ * D80 "Freeze this list": everyone the list finds today gets a tag
+ * ("<name> (Nov 22, 2026)"), and the list becomes that tag. Nobody who fits
+ * later joins. The people themselves change only by the tag.
+ */
+export async function freezeList(user: User, id: string, now = new Date()): Promise<{ ok: true; list: ListRef; count: number; skipped: number } | { ok: false; error: string }> {
+  const l = /^lst_/.test(id) ? await listStore().get(id) : null;
+  if (DEFAULT_LISTS.some((d) => d.id === id)) return { ok: false, error: lc.defaultList };
+  if (!l || l.userId !== user.id || user.status !== "active") return { ok: false, error: lc.noList };
+  if (l.frozen) return { ok: true, list: { id: l.id, name: l.name, rule: cleanRule(l.rule), builtIn: false, frozenAt: l.frozen.at }, count: 0, skipped: 0 };
+  const tag = lc.frozenTag(l.name.slice(0, 44), shortDay(now)).slice(0, 60);
+  const { bulkTags } = await import("./tagging");
+  const r = await bulkTags(user, { rule: l.rule }, { op: "addTag", tag }, now);
+  if (!r.ok) return { ok: false, error: r.error };
+  const rule = cleanRule({ kind: l.rule.kind, tagsAny: [tag] });
+  const at = now.toISOString();
+  await listStore().put({ ...l, rule, frozen: { at, tag }, updatedAt: at });
+  const people = await peopleIn(user, rule, MAX_LIST_PEOPLE, now);
+  return { ok: true, list: { id: l.id, name: l.name, rule, builtIn: false, frozenAt: at }, count: people.length, skipped: r.skipped };
+}
+
+export type SuggestedSave = { name: string; ok: boolean; list?: ListRef; existing?: boolean; error?: string };
+
+/**
+ * D80: the lists picked at import, saved as live lists. A rule that's
+ * already one of the user's lists (or a built-in one, like Agents) links to
+ * that list instead of making a second.
+ */
+export async function saveSuggested(user: User, items: readonly { name: string; rule: unknown }[], now = new Date()): Promise<SuggestedSave[]> {
+  const out: SuggestedSave[] = [];
+  for (const it of items.slice(0, 12)) {
+    const parsed = ListRuleSchema.safeParse(it.rule);
+    if (!parsed.success) {
+      out.push({ name: tidyName(it.name), ok: false, error: lc.failed });
+      continue;
+    }
+    const rule = cleanRule(parsed.data);
+    const have = currentList(await listsFor(user), rule);
+    if (have) {
+      out.push({ name: tidyName(it.name), ok: true, list: have, existing: true });
+      continue;
+    }
+    const r = await saveList(user, it.name, rule, now);
+    out.push(r.ok ? { name: r.list.name, ok: true, list: r.list } : { name: tidyName(it.name), ok: false, error: r.error });
+  }
+  return out;
 }
 
 export async function renameList(user: User, id: string, name: string, now = new Date()): Promise<{ ok: true } | { ok: false; error: string }> {

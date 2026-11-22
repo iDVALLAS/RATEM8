@@ -23,6 +23,8 @@ export type ContactRow = {
   /** A hand-dialed call isn't stopped, held or impossible (the gate still decides when it's tapped). */
   canCall: boolean;
   hasPhone: boolean;
+  /** D80: on a list about loans, "7.875% · Closed Oct 2023 · FHA" (their own closed rate, for the loan officer only). */
+  loan?: string;
 };
 type Action = "tag" | "campaign" | "check" | "assign" | "download" | "delete";
 
@@ -44,7 +46,7 @@ function downloadCsv(text: string, name: string) {
  * The server checks every person is in the viewer's book (`bulkContactsAction`);
  * "all matching" sends the list's rule, which the server runs again.
  */
-export default function ContactsTable({ rows, total, rule, knownTags, selectAll, campaigns, team, canDelete }: { rows: ContactRow[]; total: number; rule: ListRule; knownTags: string[]; selectAll: boolean; campaigns: { id: string; name: string; status: string }[]; team: { id: string; name: string }[]; canDelete: boolean }) {
+export default function ContactsTable({ rows, total, rule, knownTags, selectAll, campaigns, team, canDelete, initialAction }: { rows: ContactRow[]; total: number; rule: ListRule; knownTags: string[]; selectAll: boolean; campaigns: { id: string; name: string; status: string }[]; team: { id: string; name: string }[]; canDelete: boolean; initialAction?: "campaign" | "download" }) {
   const kind = rule.kind ?? "contact";
   const id = useId();
   const router = useRouter();
@@ -55,7 +57,7 @@ export default function ContactsTable({ rows, total, rule, knownTags, selectAll,
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const [calling, setCalling] = useState<string | null>(null);
-  const [action, setAction] = useState<Action>("tag");
+  const [action, setAction] = useState<Action>(initialAction ?? "tag");
   const [campaignId, setCampaignId] = useState(campaigns[0]?.id ?? "");
   const [member, setMember] = useState(team[0]?.id ?? "");
   const [confirm, setConfirm] = useState("");
@@ -127,6 +129,7 @@ export default function ContactsTable({ rows, total, rule, knownTags, selectAll,
             <div className="cc-person__main">
               <Link className="cc-person__name" href={`/mlo/contacts/${r.id}`}>{r.name}</Link>
               {r.line ? <p className="cc-person__line">{r.line}</p> : null}
+              {r.loan ? <p className="cc-person__loan">{r.loan}</p> : null}
               <div className="cc-person__meta">
                 <span className={`cc-reach cc-reach--${r.tone}`}>{r.badge}</span>
                 {r.tags.length ? <Chips tags={r.tags} kind={kind} /> : null}

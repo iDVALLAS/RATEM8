@@ -124,7 +124,9 @@ export async function importBatch(actor: User, kind: ImportKind, records: Import
       if (changed.length) out.updated++;
       if (possible) out.possible++;
     } else {
-      contact = { ...fields, tags: mergeTags(r.tags).slice(0, MAX_TAGS), id: id(), ownerUserId: owner, kind: kind === "agents" ? "agent" : "contact", provenance, locked: provenance === "prior_employer", source: `import: ${file}`.slice(0, 160), createdAt: at, updatedAt: at, ...(importId ? { importId } : {}) };
+      // D80: a real estate agent in a client file goes to Agents (their own kind), never a client list, and gets no client messages.
+      const asAgent = kind === "agents" || r.relationship === "agent";
+      contact = { ...fields, ...(asAgent && kind !== "agents" ? { loan: null } : {}), tags: mergeTags(r.tags).slice(0, MAX_TAGS), id: id(), ownerUserId: owner, kind: asAgent ? "agent" : "contact", provenance, locked: provenance === "prior_employer", source: `import: ${file}`.slice(0, 160), createdAt: at, updatedAt: at, ...(importId ? { importId } : {}) };
       out.created++;
     }
     await store.put(contact);
