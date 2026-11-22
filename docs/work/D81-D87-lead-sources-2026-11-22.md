@@ -245,3 +245,12 @@ Rules:
   search ads need Special Ad Category and fair-housing audiences, the trigger-lead block added to the guard, and the
   closing-gift decision above.
 - The weekly report still counts leads from contacts; leave it and note the difference in the PATCHLOG.
+
+## Owner decision 5 (2026-11-22, after D82): dating imported leads
+
+"Count all, date right." Every imported contact with a Lead source counts as a lead (not only files marked as a
+lead vendor). Each backfilled lead event is dated by the file's own date — the application date, else the closed /
+funded date, else another date column the import mapped for that person — and only a vendor-marked file with no
+date uses the import date. Lead-source values that mean "Referral", "Past client" or "Sphere" (and similar) go to the
+"Past clients & sphere" row through the source-key helper, not to a vendor row. This replaces D82's interim rule
+(only files marked lead vendor count); D83 updates `lib/leads/mode.ts` and the backfill to match.
