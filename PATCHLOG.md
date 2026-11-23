@@ -7775,6 +7775,20 @@ args[]=HTML" (server HTML didn't match the client) and React redrew the whole pa
   path is patched the same way but wasn't seen failing.
 - **Next up:** owner review of D89.2, then "promote".
 
+## Promote — D89.2 to production (2026-11-23)
+
+Owner: "promote D89.2 when it's done".
+
+- Reviewed before promote: the fix is a build-time loader on Next's bundled `react-dom-client` only (React's upstream
+  hydration-replay lines, 5 lines), the build fails if it can't be placed, Vercel builds with webpack (`next build`, no
+  Turbopack) like `npm run verify`, and removal is one `next.config.ts` block plus one script.
+- Remote M8 red team against the 5497186 preview: 43 of 43.
+- Production deployment of the exact commit 5497186 (D89.2 plus the D87.4–D89.1 promote log), created from Git.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/sign-up` 200,
+  `/api/health` 200, `/chat` 307 (tester lock).
+- **Next up:** D90 (Tester access and Pilot buttons on the coming-soon page; no MLO login in the nav), then D91 (text
+  that runs together or spills past its box, site-wide). The owner asked for both to be promoted when done.
+
 ## D90 — Tester access and Pilot buttons on the coming-soon page; no "MLO login" in the nav (2026-11-23)
 
 The owner's ask: on the coming-soon page (what loanm8.com shows in stealth) replace the "TESTER ACCESS →" link and the
@@ -7823,4 +7837,4 @@ Built from the approved mockup (desktop and phone boards), with the real logos i
 - **Known issues:** the coming-soon page's large orb (an inline `<span class="orb">` with a width) doesn't render, before and
   after this patch (the approved mockup doesn't show it either); left as is. React adds an image preload for both logo
   copies (lime and green), as it already does on Command Center's bar; the hidden one is a small extra download.
-- **Next up:** promote (the owner already said to promote D90).
+- **Next up:** promote (the owner already said to promote D90), then D91 (text that runs together or spills past its box).
