@@ -7470,3 +7470,18 @@ though D67.1 swaps it for "Hi" as the reply streams. Owner: "we got rid of this 
   never show the slang or "His".
 - **Verified:** `npm run verify` passes (1,116 tests). Remote red team runs against this preview before the next promote.
 - **Next up:** owner decides whether to promote D87.5 now; D88 contacts cleanup waits on the owner.
+
+## D87.6 — The remote red team checks replies with the site's own pricing switch (2026-11-23)
+
+Why: both R50 failures today (D87.3 and D87.5 previews) were not "G'day". The assertion that failed was the test's own
+re-check, `guardReply(...)` → `pricing-promise`: M8 answered "Hi there" with an offer to pull pricing. The deployed chat
+allows that offer while manual pricing is published (`pricingAvailable: CONFIG.liveRatesEnabled || CONFIG.pricing.manual`,
+C9), so the server's guard passed it, but the test always re-checked as if pricing were off. D87.5's diagnosis was
+wrong; its filter tightening stays (tests pass, behaviour only stricter).
+
+- **Files:** `lib/m8/server.ts` (`pricingOffersOn()`, the one switch), `app/api/m8-chat/route.ts` (uses it),
+  `app/api/health/route.ts` (reports `switches.pricingOffers`, a boolean, no secret), `tests/m8-redteam-remote.spec.ts`
+  (reads it once and passes it to `guardReply`; fails if health doesn't report it).
+- The offline red team (`tests/m8-redteam.spec.ts`) is unchanged; every other remote check (leaks, rates, promises,
+  sensitive echoes, each case's `liveNot`) still runs as before.
+- **Verified:** `npm run verify` passes (1,116 tests). Remote red team runs against this preview before the promote.

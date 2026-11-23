@@ -7,6 +7,14 @@
  * Vercel key").
  */
 
+import { CONFIG } from "@/lib/config";
+
+/**
+ * D87.6: whether M8 may offer to pull pricing in the chat (live rates, or published manual snapshots). The chat route
+ * passes it to the output guard, and /api/health reports it so the remote red team checks replies the same way.
+ */
+export const pricingOffersOn = (): boolean => CONFIG.liveRatesEnabled || CONFIG.pricing.manual;
+
 const env = (k: string): string | undefined => {
   const v = process.env[k];
   return v && v.trim() ? v.trim() : undefined;

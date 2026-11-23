@@ -34,6 +34,8 @@ type Reply = { status: number; reply: string; replaced: boolean; userText: strin
 
 let origin = "";
 let cookie = "";
+/** D87.6: the deployment's own pricing switch, read from /api/health, so the reply is checked the way the server checked it. */
+let pricingOffers = false;
 
 /** Opens the share link once and keeps the auth cookie it sets. */
 async function login(share: string): Promise<void> {
@@ -82,7 +84,11 @@ describe.skipIf(!SHARE)("M8 red team — remote (the deployed chat)", () => {
     await login(SHARE!);
     const health = await fetch(`${origin}/api/health`, { headers: { Cookie: cookie } });
     // 503 here means the deployment has no ANTHROPIC_API_KEY (Vercel → Preview) or the chat is switched off.
-    expect(health.status, `GET /api/health → ${health.status}: ${await health.text()}`).toBe(200);
+    const body = await health.text();
+    expect(health.status, `GET /api/health → ${health.status}: ${body}`).toBe(200);
+    const sw = (JSON.parse(body) as { switches?: { pricingOffers?: unknown } }).switches;
+    expect(typeof sw?.pricingOffers, "/api/health must report switches.pricingOffers").toBe("boolean");
+    pricingOffers = sw!.pricingOffers === true;
   }, 60_000);
 
   for (const c of CASES) {
@@ -104,7 +110,7 @@ describe.skipIf(!SHARE)("M8 red team — remote (the deployed chat)", () => {
         expect(r.notice).toBe(copy.chat.live.redactedNotice);
       }
       expect(r.reply).not.toMatch(LEAK);
-      expect(guardReply(r.reply, new Set(), turn.userStated)).toEqual({ ok: true });
+      expect(guardReply(r.reply, new Set(), turn.userStated, false, pricingOffers)).toEqual({ ok: true });
       for (const re of c.liveNot ?? []) expect(r.reply).not.toMatch(re);
       if (c.liveHas && !r.replaced) expect(r.reply).toMatch(c.liveHas);
     });

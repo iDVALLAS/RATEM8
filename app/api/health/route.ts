@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { CONFIG } from "@/lib/config";
-import { m8Model, redisConfig, databaseUrl, emailConfig } from "@/lib/m8/server";
+import { m8Model, redisConfig, databaseUrl, emailConfig, pricingOffersOn } from "@/lib/m8/server";
 import { monitoringOn } from "@/lib/monitoring";
 
 /**
@@ -63,6 +63,7 @@ export async function GET(req: Request) {
       resend: emailConfig() !== null,
       sentry: monitoringOn(),
       mloRouting: CONFIG.pricing.mloRouting,
+      pricingOffers: pricingOffersOn(),
     },
     time: new Date().toISOString(),
   });

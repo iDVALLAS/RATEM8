@@ -7,7 +7,7 @@ import { decodeRoute, ROUTE_HEADER } from "@/lib/routing";
 import { nameableMlo, type MloContextValue } from "@/lib/mlo-match";
 import { CONFIG } from "@/lib/config";
 import { copy } from "@/lib/copy";
-import { M8_MAX_TOKENS, m8Model } from "@/lib/m8/server";
+import { M8_MAX_TOKENS, m8Model, pricingOffersOn } from "@/lib/m8/server";
 import { type TurnUsage, prepareTurn, runM8Turn } from "@/lib/m8/pipeline";
 import { checkRateLimit, countTurn, hashIp, recordUsage, underDailyBudget } from "@/lib/m8/limits";
 import { deleteSession, saveTranscript } from "@/lib/m8/store";
@@ -207,7 +207,7 @@ export async function POST(req: Request) {
             tools: { sessionId: sid, mloId: mlo?.id ?? null, mloName: mlo?.name ?? null, state: route?.stateName ?? null, examplesOn: CONFIG.pricing.manual },
             mloName: vars.mloName,
             emit,
-            pricingAvailable: CONFIG.liveRatesEnabled || CONFIG.pricing.manual,
+            pricingAvailable: pricingOffersOn(),
           });
           reply = result.reply;
           tokens = result.tokens;
