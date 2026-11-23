@@ -7774,3 +7774,53 @@ args[]=HTML" (server HTML didn't match the client) and React redrew the whole pa
 - **Known issues:** none found. `next dev` didn't reproduce it in 200 parallel loads (slower, different streaming), so the dev
   path is patched the same way but wasn't seen failing.
 - **Next up:** owner review of D89.2, then "promote".
+
+## D90 — Tester access and Pilot buttons on the coming-soon page; no "MLO login" in the nav (2026-11-23)
+
+The owner's ask: on the coming-soon page (what loanm8.com shows in stealth) replace the "TESTER ACCESS →" link and the
+"Loan officer login" button with two labeled buttons, and drop the separate "MLO login" button from the main site's nav.
+Built from the approved mockup (desktop and phone boards), with the real logos in place of the mockup's stand-ins.
+
+- **Coming-soon page** (`components/ComingSoonHomePage.tsx`): top right, two buttons, each a small mono label above a logo.
+  - **TESTER ACCESS** over the LoanM8 logo (`Wordmark`: the orb and "Loan**M8**" in a pill) goes to `/demo`, the tester
+    password page, as the old link did. Name: "Tester access: enter the tester password".
+  - **PILOT** over the MLO Command Center logo: the owner's artwork from Command Center's top bar (`CcLogo`, now exported by
+    `app/mlo/Brand.tsx`, which renders it exactly as before): the lime copy on Night and Dim, the original green on Paper, with
+    the same breathing glow (still under reduced motion). Name: "Pilot: MLO Command Center for loan officers".
+  - Phones (under 640px), as in the mockup: the labels read TESTER and PILOT, the LoanM8 pill shows the orb only, the Command
+    Center logo is 28px tall (24px under 360px), and the header gutter is 16px. Nothing wraps or overflows at 360 or 390.
+- **The Pilot pop-up** (`components/PilotMenu.tsx`): a real `<button>` with `aria-haspopup="dialog"` and `aria-expanded`,
+  the same behaviour as Command Center's InfoTip (D81): focus moves to the pop-up's heading and Tab stays inside; Esc, ×, the
+  button, a tap outside or the phone's backdrop close it and focus goes back to the button. Desktop: a 320px panel under the
+  button, right-aligned to it. Phones: a bottom sheet with a grip (slides up 200ms; still under reduced motion). Two choices:
+  **New here? Sign up** (`/sign-up`, "For licensed loan officers. We check your NMLS record.") and **Welcome back — Sign in**
+  (`/sign-in`, "We email you a 6-digit code."). Colors from tokens (`--color-m8-panel`, M8 Green, Forest, `--muted`); Paper
+  gets a white panel with a Pine edge.
+- **Main site nav** (`components/Nav.tsx`): the D60 "MLO login" button is gone on desktop and phones (the theme toggle's
+  spacing is back to its pre-D60 `ml-8`). Loan officers get in through Partner › Sign in (`/mlo`, which sends a signed-out
+  visitor to `/sign-in`) and the footer's "Loan officer login"; both unchanged.
+- **Removed:** `copy.nav.mloLogin`, `copy.comingSoonHome.mloLogin` and the old `tester` string; the `.nav-login` CSS. New
+  words in `copy.comingSoonHome.tester` / `.pilot`; styles in the "D90 coming-soon entry buttons" block at the end of
+  `app/globals.css`.
+- **Files:** `components/ComingSoonHomePage.tsx`, `components/PilotMenu.tsx` (new), `components/Nav.tsx`, `app/mlo/Brand.tsx`
+  (`CcLogo` split out, same output), `lib/copy.ts`, `app/globals.css`, `components/ComingSoonHomePage.test.tsx` (new, 5 tests),
+  `CLAUDE.md` (§1 note, §3.4 count).
+- **Verified:** `npm run verify` passes (1,169 tests: 5 new; lint, check:copy, check:identity, check:licensing, build,
+  check:bundle). Browser, production server with stealth on, Night at 360/390/1280 and Paper at 390/1280: both buttons
+  visible, labeled and inside the screen (targets 48×50 and 125×46 on phones, 126×65 and 181×65 on desktop), one Command
+  Center logo shown per theme and loaded; the pop-up opens by mouse and by Enter, focus lands on its heading, Tab stays in it,
+  Esc returns focus to PILOT, a tap outside and × close it, `aria-expanded` follows; panel under the button on desktop, bottom
+  sheet flush with the bottom on phones; every target ≥ 44px; contrast 5.19–17.42:1; Sign up → `/sign-up`, Sign in →
+  `/sign-in`, Tester access → `/demo`; no sideways scroll; no console errors (other than the Vercel Analytics script, which
+  only exists on Vercel); reduced motion: no glow pulse, no sheet slide. Stealth off: no "MLO login" and no `/sign-in` link
+  in the header at 390/1280, Partner › Sign in lands on `/sign-in` (with accounts on), the phone menu's Partner group still
+  shows Sign in; `node scripts/qa/overflow.mjs` 24 routes × 2 widths ok, one h1 each (its only JS error is the same
+  Analytics 404). Screenshots: coming-soon open/closed per theme and width, nav at 390/1280.
+- **Decisions:** (a) On phones the labels shorten to TESTER / PILOT and the LoanM8 pill shows the orb, as on the approved
+  phone board; the full names stay in each button's accessible name. (b) The whole Command Center logo stays on phones
+  (28px tall) rather than a cropped "MLO" piece, so the artwork is never cut. (c) The pop-up is its own small component
+  rather than InfoTip itself: InfoTip carries Command Center's palette (`cc-dsheet`), which the public page doesn't load.
+- **Known issues:** the coming-soon page's large orb (an inline `<span class="orb">` with a width) doesn't render, before and
+  after this patch (the approved mockup doesn't show it either); left as is. React adds an image preload for both logo
+  copies (lime and green), as it already does on Command Center's bar; the hidden one is a small extra download.
+- **Next up:** promote (the owner already said to promote D90).

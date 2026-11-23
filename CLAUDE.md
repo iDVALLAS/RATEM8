@@ -321,6 +321,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     D89.2: the rare React #418 was a React bug (bundled by Next 15.5): hydration that reached a streamed piece not yet
     arrived replayed a div/form from the wrong spot. `scripts/react-replay-fix.cjs` (a loader in `next.config.ts`) adds
     React's upstream fix to `react-dom-client`; `check:bundle` fails without it; `node scripts/qa/hydration.mjs` (same server).
+    D90 coming-soon page (`components/ComingSoonHomePage.tsx`): TESTER ACCESS over the LoanM8 logo (→ `/demo`) and PILOT over
+    the MLO Command Center logo (`CcLogo` from `app/mlo/Brand.tsx`); PILOT opens `components/PilotMenu.tsx` (panel / phone bottom
+    sheet: "New here? Sign up" → `/sign-up`, "Welcome back — Sign in" → `/sign-in`), copy `copy.comingSoonHome`. The main nav has
+    no "MLO login" button any more (Partner › Sign in and the footer's "Loan officer login" remain).
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -429,7 +433,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1164 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1169 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

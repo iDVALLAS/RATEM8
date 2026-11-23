@@ -15,7 +15,8 @@ import { copy } from "@/lib/copy";
  *   group 1 (brighter): Calculators, M8 Chat, Partner ▾
  *   group 2 (dimmer):   Principles, About, Privacy
  * then the theme toggle. Partner is a dropdown (MLOs, agents,
- * investors; see PartnerMenu). Mobile: a sheet with the same two groups
+ * investors; see PartnerMenu). D90: no separate "MLO login" button;
+ * loan officers use Partner › Sign in or the footer's "Loan officer login". Mobile: a sheet with the same two groups
  * split by a horizontal divider (Partner expands inline), then the
  * secondary set (Second Look, guides, For AI assistants).
  *
@@ -98,18 +99,12 @@ export function Nav() {
                 </Link>
               ))}
             </div>
-            <Link href={copy.nav.mloLogin.href} className="nav-login ml-6" aria-label={copy.nav.mloLogin.aria} prefetch={false}>
-              {copy.nav.mloLogin.label}
-            </Link>
-            <div className="ml-4">
+            <div className="ml-8">
               <ThemeToggle />
             </div>
           </nav>
 
           <div className="flex items-center gap-3 lg:hidden">
-            <Link href={copy.nav.mloLogin.href} className="nav-login nav-login--compact" aria-label={copy.nav.mloLogin.aria} prefetch={false}>
-              {copy.nav.mloLogin.label}
-            </Link>
             <ThemeToggle />
             <button
               type="button"

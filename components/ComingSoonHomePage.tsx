@@ -3,7 +3,10 @@ import { copy } from "@/lib/copy";
 import Footer from "@/components/Footer";
 import { LAUNCH_STATES_LONG } from "@/lib/states";
 import { COMING_SOON_SPONSOR } from "@/lib/config";
-import ArrowText from "@/components/ui/ArrowText";
+import Wordmark from "@/components/Wordmark";
+import PilotMenu from "@/components/PilotMenu";
+
+const t = copy.comingSoonHome.tester;
 
 /**
  * ComingSoonHomePage — the public-facing (unauthenticated) homepage.
@@ -15,32 +18,36 @@ import ArrowText from "@/components/ui/ArrowText";
  *
  * app/page.tsx picks between this and MarketingHomePage based on the
  * cookie — this file just owns the coming-soon markup.
+ *
+ * D90: top right, "TESTER ACCESS" over the LoanM8 logo (the tester password
+ * page) and "PILOT" over the MLO Command Center logo (PilotMenu: sign up or
+ * sign in). Styles: the "D90 coming-soon entry buttons" block in globals.css.
  */
 export default function ComingSoonHomePage() {
   return (
     <>
       <main className="relative grain min-h-screen flex flex-col">
-        <header className="px-6 py-6">
-          <div className="mx-auto max-w-7xl flex items-center justify-between">
+        <header className="px-4 sm:px-6 py-4 sm:py-6">
+          <div className="cs-head mx-auto max-w-7xl flex items-center justify-between">
             <span className="flex items-center gap-3">
               <span className="orb" style={{ width: 20, height: 20 }} />
               <span className="font-display font-medium tracking-tight text-lg">
                 Loan<span style={{ color: "var(--color-m8-green)" }}>M8</span>
               </span>
             </span>
-            <span className="flex items-center gap-5">
-              <Link
-                href="/demo"
-                className="font-mono text-[10px] tracking-[0.18em] uppercase transition-colors"
-                style={{ color: "var(--color-m8-green)" }}
-              >
-                <ArrowText text={copy.comingSoonHome.tester} />
+            {/* D90: two labeled buttons (they replace D60's "Loan officer login" and the old text link). */}
+            <div className="cs-entry">
+              <Link href={t.href} className="cs-entry__btn" aria-label={t.aria}>
+                <span className="cs-entry__label" aria-hidden="true">
+                  <span className="cs-entry__label-full">{t.label}</span>
+                  <span className="cs-entry__label-short">{t.short}</span>
+                </span>
+                <span className="cs-entry__pill">
+                  <Wordmark className="cs-wordmark" />
+                </span>
               </Link>
-              {/* D60: loan officers get to MLO Command Center from here while the site is in stealth. */}
-              <Link href={copy.nav.mloLogin.href} className="nav-login" aria-label={copy.nav.mloLogin.aria} prefetch={false}>
-                {copy.comingSoonHome.mloLogin}
-              </Link>
-            </span>
+              <PilotMenu />
+            </div>
           </div>
         </header>
 

@@ -71,8 +71,6 @@ export const copy = {
     ],
     menuLabel: "Menu",
     closeLabel: "Close",
-    /** D60: loan officers sign in to MLO Command Center (sign-in sends anyone already signed in straight in). */
-    mloLogin: { href: "/sign-in", label: "MLO login", aria: "Loan officer login to MLO Command Center" },
   },
 
   hero: {
@@ -1064,8 +1062,16 @@ export const copy = {
   comingSoonHome: {
     chat: "Chat with M8",
     chatNote: "An AI assistant · A licensed loan officer verifies every recommendation",
-    tester: "Tester access →",
-    mloLogin: "Loan officer login",
+    /** D90: two labeled buttons, top right. The label sits above each logo; the aria-label names the button. */
+    tester: { label: "Tester access", short: "Tester", href: "/demo", aria: "Tester access: enter the tester password" },
+    pilot: {
+      label: "Pilot",
+      aria: "Pilot: MLO Command Center for loan officers",
+      title: "MLO Command Center",
+      close: "Close",
+      signUp: { href: "/sign-up", title: "New here? Sign up", note: "For licensed loan officers. We check your NMLS record." },
+      signIn: { href: "/sign-in", title: "Welcome back — Sign in", note: "We email you a 6-digit code." },
+    },
   },
 
   comingSoon: {
