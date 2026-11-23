@@ -19,6 +19,8 @@ import { prefsStore } from "@/lib/profile/prefs";
 import { sendHeldAlerts } from "@/lib/leads/alert";
 import { syncLeadEvents } from "@/lib/leads/sync";
 import { makeMonthlyDrafts, monthlyStore } from "@/lib/leads/spend";
+import { planStore } from "@/lib/leads/plan-store";
+import { advancePlan } from "@/lib/leads/plan-service";
 
 /**
  * GET /api/cc/concierge/sweep — the morning run for every loan officer who
@@ -45,6 +47,9 @@ export async function GET(req: Request) {
       // D83: the lead-event log kept complete (imports since yesterday), and this month's drafts from monthly amounts per source.
       await syncLeadEvents(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-events" }));
       if (user.role !== "assistant") await makeMonthlyDrafts(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-monthly" }));
+      // D86: the lead plan's roadmap steps and the Business Manager's 30-day check-in, when due (before the team runs,
+      // so the check-in is this period's lead-source move).
+      if (user.role !== "assistant") await advancePlan(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-plan" }));
       await runDaily(user);
       // D54: the Concierge team plans the day (its sends go out in the midday run).
       if (teamOn()) await runTeam(user);
@@ -66,11 +71,14 @@ export async function GET(req: Request) {
     }
   }
   // D83: loan officers with a monthly amount per source but none of the above get only their drafts and their lead log.
-  for (const owner of (await monthlyStore().owners().catch(() => [])).filter((o) => !owners.includes(o)).slice(0, 200)) {
+  // D86: the same for loan officers with a saved lead plan (its roadmap steps and check-ins).
+  const leadOnly = [...new Set([...(await monthlyStore().owners().catch(() => [])), ...(await planStore().owners().catch(() => []))])];
+  for (const owner of leadOnly.filter((o) => !owners.includes(o)).slice(0, 200)) {
     const user = await accountStore().userById(owner);
     if (!user || user.status !== "active" || user.role === "assistant") continue;
     await syncLeadEvents(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-events" }));
     await makeMonthlyDrafts(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-monthly" }));
+    await advancePlan(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-plan" }));
   }
   // D51: campaign steps due now (East Coast mornings; the midday run covers the West).
   const campaigns = await runDue(new Date()).catch(async (e) => {

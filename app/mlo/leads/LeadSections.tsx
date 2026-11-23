@@ -2,7 +2,8 @@ import Link from "next/link";
 import KeyMaker from "../pipeline/KeyMaker";
 import PermissionTip from "./PermissionTip";
 import SourcePicker, { type PickerOption } from "../SourcePicker";
-import { dismissLeadMoveAction, removeMonthlyAction, saveMonthlyAction, saveTargetAction, scorePeriodAction } from "./actions";
+import { approveLeadMoveAction, dismissLeadMoveAction, removeMonthlyAction, saveMonthlyAction, saveTargetAction, scorePeriodAction } from "./actions";
+import type { PlanView } from "@/lib/leads/plan-service";
 import { EXAMPLES, exampleRow } from "@/lib/leads/examples";
 import { BADGE_RULES, DEFAULT_PERIOD, SCORE_PERIODS, scoreUsd, type LeadScorecard, type ScoreBadge, type ScorePeriod, type ScoreRow } from "@/lib/leads/scorecard";
 import { LEADS } from "@/lib/content/cc-pages";
@@ -166,13 +167,15 @@ export function RealScorecard({ card, move, review }: { card: LeadScorecard; mov
             <div className="cc-leadmove" id="lead-move-review" role="region" aria-label={move.title}>
               <p className="cc-leadmove__why">{move.why}</p>
               <div className="mlo-row-form cc-leadmove__acts">
-                <button type="button" className="mlo-btn" disabled aria-describedby="lead-move-off">{r.move.approve}</button>
+                <form action={approveLeadMoveAction.bind(null, period, move.id)}>
+                  <button type="submit" className="mlo-btn" aria-describedby="lead-move-note">{r.move.approve}</button>
+                </form>
                 <form action={dismissLeadMoveAction.bind(null, period, move.id)}>
                   <button type="submit" className="mlo-btn mlo-btn--ghost">{r.move.notNow}</button>
                 </form>
                 <Link className="cc-leadmove__all" href="/mlo/agents">{r.move.all}</Link>
               </div>
-              <p className="mlo-note" id="lead-move-off">{r.move.approveOff}</p>
+              <p className="mlo-note" id="lead-move-note">{r.move.approveNote}</p>
             </div>
           ) : null}
         </>
@@ -306,9 +309,35 @@ export function ExamplePlan({ afterLeads }: { afterLeads: boolean }) {
           </div>
           <p className="mlo-note">{[...p.split.map((x) => `${x.label} ${usd(x.dollars)}`), LEADS.plan.next(p.nextCheckIn)].join(" · ")}</p>
         </div>
-        <button type="button" className="mlo-btn mlo-btn--ghost" disabled aria-describedby="leads-plan-off">{LEADS.plan.open}</button>
+        <Link className="mlo-btn mlo-btn--ghost" href="/mlo/leads/plan" aria-describedby="leads-plan-note">{LEADS.plan.open}</Link>
       </div>
-      <p className="mlo-note" id="leads-plan-off">{LEADS.plan.off}</p>
+      <p className="mlo-note" id="leads-plan-note">{LEADS.plan.exampleNote}</p>
+    </section>
+  );
+}
+
+/**
+ * D86: the saved lead plan (never an example): the budget, day X of 90, the split bar (drawn for the eye; the line
+ * under it says the same split in words), the next check-in, and the planner.
+ */
+export function RealPlan({ view }: { view: PlanView }) {
+  const P = LEADS.plan;
+  const shown = view.lines.filter((l) => l.cents > 0);
+  return (
+    <section className="mlo-section cc-plan" id="plan" aria-labelledby="leads-plan" data-example="false">
+      <Head id="leads-plan" title={P.title} />
+      <div className="cc-plan__row">
+        <div className="cc-plan__main">
+          <p className="cc-plan__line">{view.done ? P.done(scoreUsd(view.budgetCents), view.of) : P.line(scoreUsd(view.budgetCents), view.day, view.of)}</p>
+          <div className="cc-plan__bar" aria-hidden="true">
+            {shown.map((x, i) => (
+              <span key={x.key} className={`cc-plan__seg cc-plan__seg--${(i % 6) + 1}`} style={{ width: `${view.budgetCents > 0 ? ((100 * x.cents) / view.budgetCents).toFixed(1) : 0}%` }} />
+            ))}
+          </div>
+          <p className="mlo-note">{[...shown.map((x) => `${x.label} ${scoreUsd(x.cents)}`), ...(view.next ? [P.next(view.next)] : [])].join(" · ")}</p>
+        </div>
+        <Link className="mlo-btn mlo-btn--ghost" href="/mlo/leads/plan">{P.open}</Link>
+      </div>
     </section>
   );
 }

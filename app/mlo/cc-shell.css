@@ -1189,3 +1189,69 @@
 /* Home: the steps added from Lead sources ("Lead plan steps"); Done is a real button, 44px. */
 .cc-app button.cc-row__done { min-height: 44px; font: inherit; font-size: 13px; cursor: pointer; }
 @media (max-width: 520px) { .cc-row > form { grid-column: 2; justify-self: start; } }
+
+/* ─── D86: the budget planner and 90-day roadmap (Option C), and the saved plan card ─── */
+/* More parts of a split than the three D82's example card has (the list beside the bar names each one in words). */
+.cc-plan__seg--4 { background: var(--data-1); }
+.cc-plan__seg--5 { background: var(--data-2); }
+.cc-plan__seg--6 { background: var(--data-5); }
+.cc-lplan-saved .cc-plan__line { margin-top: 8px; }
+.cc-lplan-saved > .mlo-note { margin: 8px 0 0; }
+.cc-lplan-hist { margin: 8px 0 0; padding-left: 20px; }
+.cc-lplan-hist li { margin: 6px 0 0; color: var(--fg); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+/* The presets: three real buttons in a named group, each its own bound action; the pressed one is filled. */
+.cc-lplan-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.cc-lplan-presets form { display: contents; }
+.cc-app .cc-lplan-preset { min-height: 44px; padding: 0 18px; border: 1px solid var(--rule-strong); border-radius: 999px; background: transparent; color: var(--fg); font: inherit; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; cursor: pointer; }
+.cc-app .cc-lplan-preset:hover { border-color: var(--accent); }
+.cc-app .cc-lplan-preset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cc-app .cc-lplan-preset[aria-pressed="true"] { border-color: var(--cc-nav-on); background: var(--cc-nav-on); color: var(--cc-nav-on-fg); font-weight: 600; }
+.cc-lplan-custom, .cc-lplan-target { margin-top: 14px; }
+.cc-lplan-custom .mlo-field, .cc-lplan-target .mlo-field { flex: 0 1 240px; }
+.cc-lplan-budget > .mlo-note { margin: 8px 0 0; }
+/* The split: the bar, then the same split as a list. */
+.cc-lplan-split .cc-plan__bar { margin-top: 14px; }
+.cc-lplan-lines { margin: 14px 0 0; padding: 0; list-style: none; }
+.cc-lplan-line { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.cc-lplan-line:last-child { border-bottom: 0; }
+.cc-app .cc-lplan-sw { flex: 0 0 auto; width: 12px; height: 12px; margin-top: 5px; border-radius: 3px; }
+.cc-lplan-line__main { min-width: 0; }
+.cc-lplan-line__main p { margin: 0; overflow-wrap: anywhere; }
+.cc-lplan-line__name { color: var(--fg); font-size: 15.5px; }
+.cc-lplan-line__name strong { font-weight: 600; }
+.cc-lplan-line__amt { font-variant-numeric: tabular-nums; }
+.cc-lplan-line__main .mlo-note { margin-top: 2px; }
+.cc-lplan-sub { margin: 16px 0 0; font-size: 15px; font-weight: 600; color: var(--fg); }
+.cc-lplan-out { margin: 6px 0 0; padding-left: 20px; }
+.cc-lplan-out li { margin: 4px 0 0; color: var(--fg-soft); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.cc-lplan-est { margin-top: 16px; padding: 12px 16px; border-radius: 14px; background: var(--bg-sunken); }
+.cc-lplan-est .cc-lplan-sub { margin: 0; }
+.cc-lplan-est__nums { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 8px 0 0; }
+.cc-lplan-est__nums dt { color: var(--fg-soft); font-size: 13px; }
+.cc-lplan-est__nums dd { margin: 0; color: var(--fg); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cc-lplan-est .mlo-note { margin: 8px 0 0; }
+.cc-lplan-split .mlo-details { margin-top: 12px; }
+.cc-lplan-rules { margin: 8px 0 0; padding-left: 22px; }
+.cc-lplan-rules li { margin: 4px 0 0; color: var(--fg-soft); font-size: 14px; line-height: 1.5; }
+/* The roadmap: three phases side by side on desktop, stacked on phones. */
+.cc-lplan-phases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0 0; padding: 0; list-style: none; }
+.cc-lplan-phase { padding: 14px 16px; border-radius: 16px; background: var(--bg-sunken); }
+.cc-lplan-phase__days { margin: 0; color: var(--fg-soft); font: 500 12px/1.4 var(--font-jetbrains), ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+.cc-lplan-phase__name { margin: 4px 0 0; font-size: 17px; font-weight: 600; color: var(--fg); }
+.cc-lplan-phase ul { margin: 8px 0 0; padding-left: 18px; }
+.cc-lplan-phase ul li { margin: 6px 0 0; color: var(--fg); font-size: 14px; line-height: 1.45; }
+@media (max-width: 719px) { .cc-lplan-phases { grid-template-columns: minmax(0, 1fr); } }
+/* The Business Finder's catalog: one fold per source type. */
+.cc-lplan-types { margin: 10px 0 0; padding: 0; list-style: none; }
+.cc-lplan-types > li + li { margin-top: 8px; }
+.cc-lplan-type summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.cc-lplan-type p, .cc-lplan-type ol { margin: 8px 0 0; color: var(--fg); font-size: 14.5px; line-height: 1.55; overflow-wrap: anywhere; }
+.cc-lplan-type ol { padding-left: 22px; }
+.cc-lplan-type .cc-lplan-sub { margin-top: 12px; font-size: 14px; }
+.cc-lplan-cost { font-weight: 600; }
+.cc-lplan-sug { display: inline-flex; align-items: center; min-height: 24px; padding: 1px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--fg); font: 500 11px/1.4 var(--font-jetbrains), ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+/* Save, what it never does, and the guardrails. */
+.cc-lplan-save > .mlo-note { margin: 10px 0 0; }
+.cc-lplan-save .mlo-actions form { display: contents; }
+.cc-lplan-guards { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.cc-lplan-guards .cc-chip { min-height: 32px; box-sizing: border-box; padding: 6px 12px; border-radius: 999px; color: var(--fg); }

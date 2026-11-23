@@ -277,6 +277,15 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     any call (`leadQuestionIssue`); table and "Show the math" from the pack; "Add the steps to Today" (bound) re-derives steps on the server as
     Business Manager `lead-step:` moves (`kind: "plan"`, no contact, `href`), listed on Home as "Lead plan steps" with Done (`app/mlo/step-actions.ts`);
     "Save as my 90-day plan" disabled until D86; assistants get no box. `LEAD_ADVICE` in `lib/concierge/guard.ts` is the one list `reviewLeadMove` uses.
+    D86 budget planner (`/mlo/leads/plan`, `lib/leads/{plan,catalog}.ts` pure, `plan-store.ts` `cc_lead_plans`, `plan-service.ts`, `app/mlo/leads/plan/*`,
+    copy `lib/content/lead-plan.ts`): presets $750/$1,500/$3,000 + own amount (bound actions, aria-pressed) and the shared target; `allocatePlan` = the
+    brief's 6 rules from the 90-day scorecard with every number in `PLAN_RULES` (sphere 10% → $150–$250, share 60%, test slot ≥ $2,000 at ≤ 20%, thin
+    sources capped as tests, Pause?/paused/no-spend left out, rest in reserve; whole dollars summing exactly; label-then-key ties); estimates are ranges
+    from the LO's own 30d/90d/year rows only (null without history); Save keeps the 90 days and puts the old version in `history` (after day 90 a new
+    plan, old open steps closed); `advancePlan` (page views + morning run) adds each phase's 3 steps once (`lead-step:roadmap:<start>:<id>`, Home's Lead
+    plan steps) and the Business Manager's day 30/60/90 check-in (`lead-source:checkin:…`, banner, `pending` split); Approve (`approveLeadMove`, bound,
+    `reviewMove`) only updates the plan (pause → left out 60 days; check-in → its split) and adds steps (no duplicate titles); Business Finder catalog
+    of six types, no prices ("Cost comes from your own spend once you test it."); plan card real once saved; pack + `lead-plan.csv`; assistants: none.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -385,7 +394,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 996 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1035 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

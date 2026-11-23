@@ -82,14 +82,17 @@ export type LeadPack = {
   monthly: { key: string; label: string; cents: number }[];
   monthlyTotalCents: number;
   connected: string[];
-  /** D86 saves plans; until then there is none. */
-  plan: null;
+  /** D86: the loan officer's saved 90-day plan (budget, day, next check-in, split), or null. */
+  plan: PackPlan | null;
   budgetCents: number | null;
   leftCents: number | null;
   overCents: number | null;
   undated: number;
   unattributed: number;
 };
+
+/** D86: the saved plan as the pack carries it (labels cleaned like every source name). */
+export type PackPlan = { budgetCents: number; day: number; of: number; done: boolean; next: string | null; lines: { label: string; kind: string; cents: number }[] };
 
 export type PackInput = {
   period: ScorePeriod;
@@ -99,6 +102,8 @@ export type PackInput = {
   monthly: readonly { sourceKey: string; sourceLabel: string; cents: number }[];
   connected: readonly string[];
   budgetCents: number | null;
+  /** D86: the saved plan, if any. */
+  plan?: PackPlan | null;
 };
 
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
@@ -134,7 +139,7 @@ export function buildLeadPack(input: PackInput): LeadPack {
     monthly,
     monthlyTotalCents,
     connected: [...new Set(input.connected.map(safeLabel))].slice(0, 20),
-    plan: null,
+    plan: input.plan ? { ...input.plan, lines: input.plan.lines.map((l) => ({ label: safeLabel(l.label), kind: l.kind, cents: l.cents })) } : null,
     budgetCents: budget,
     leftCents: budget !== null && monthlyTotalCents && budget >= monthlyTotalCents ? budget - monthlyTotalCents : null,
     overCents: budget !== null && monthlyTotalCents > budget ? monthlyTotalCents - budget : null,
@@ -226,7 +231,12 @@ export function packContext(pack: LeadPack, nonce: string): string {
   lines.push(pack.monthly.length ? `Monthly amounts: ${pack.monthly.map((m) => `${src(m.label)} ${usd(m.cents)}`).join(", ")}; total ${usd(pack.monthlyTotalCents)}.` : "Monthly amounts: none set.");
   if (pack.budgetCents !== null) lines.push(`Budget named in the question: ${usd(pack.budgetCents)} a month.${pack.leftCents !== null ? ` After the monthly amounts: ${usd(pack.leftCents)} left.` : pack.overCents !== null ? ` The monthly amounts are ${usd(pack.overCents)} over it.` : ""}`);
   lines.push(pack.connected.length ? `Connected sources: ${pack.connected.map(src).join(", ")}.` : "Connected sources: none.");
-  lines.push("Saved 90-day plan: none yet.");
+  const pl = pack.plan;
+  lines.push(
+    pl
+      ? `Saved 90-day plan: ${usd(pl.budgetCents)} a month, ${pl.done ? `all ${pl.of} days done` : `day ${pl.day} of ${pl.of}`}${pl.next ? `, next check-in ${pl.next}` : ""}. Split: ${pl.lines.map((l) => `${src(l.label)} ${usd(l.cents)}`).join(", ")}.`
+      : "Saved 90-day plan: none yet.",
+  );
   return lines.join("\n");
 }
 
@@ -365,7 +375,8 @@ export function templateAnswer(pack: LeadPack, intent: LeadIntent): string[] {
   if (intent === "plan") {
     const head = pack.budgetCents === null ? A.planNoBudget : pack.monthlyTotalCents ? A.planBudget(usd(pack.budgetCents), usd(pack.monthlyTotalCents), pack.leftCents !== null ? usd(pack.leftCents) : null, pack.overCents !== null ? usd(pack.overCents) : null) : A.planNoMonthly(usd(pack.budgetCents));
     const s = sphereRow(pack);
-    const lines = [head, ...(s ? [A.planSphere(usd(s.spendCents), s.closed)] : []), ...paid(pack).map((r) => planLine(r, target)).filter((x): x is string => !!x)];
+    const saved = pack.plan ? [A.planSaved(usd(pack.plan.budgetCents), pack.plan.day, pack.plan.of)] : [];
+    const lines = [head, ...saved, ...(s ? [A.planSphere(usd(s.spendCents), s.closed)] : []), ...paid(pack).map((r) => planLine(r, target)).filter((x): x is string => !!x)];
     return [...lines, A.planNext];
   }
   // compare
@@ -424,7 +435,7 @@ export function leadSteps(pack: LeadPack, intent: LeadIntent): LeadStep[] {
   const R = PACK_RULES;
   const target = usd(pack.targetCents);
   const sphere: LeadStep = { kind: "sphere", source: null, title: S.sphere, why: S.sphereWhy, href: "/mlo/campaigns" };
-  const checkIn: LeadStep = { kind: "check-in", source: null, title: S.checkIn(R.checkInDays), why: S.checkInWhy, href: "/mlo/leads#scorecard" };
+  const checkIn: LeadStep = { kind: "check-in", source: null, title: S.checkIn(R.checkInDays), why: S.checkInWhy, href: "/mlo/leads/plan" };
   if (pack.example) {
     return [
       { kind: "connect", source: null, title: S.connect, why: S.connectWhy, href: "/mlo/leads#add" },
@@ -443,7 +454,7 @@ export function leadSteps(pack: LeadPack, intent: LeadIntent): LeadStep[] {
     const s = sphereRow(pack);
     return [
       ...fixes,
-      { kind: "new-source", source: null, title: S.newSource(R.testDays), why: S.newSourceWhy, href: "/mlo/leads#add" },
+      { kind: "new-source", source: null, title: S.newSource(R.testDays), why: S.newSourceWhy, href: "/mlo/leads/plan#catalog" },
       { kind: "monthly", source: null, title: S.monthly, why: S.monthlyWhy, href: "/mlo/leads#monthly" },
       ...(s && !s.spendCents ? [sphere] : []),
     ].slice(0, MAX_STEPS);

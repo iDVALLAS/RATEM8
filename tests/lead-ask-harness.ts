@@ -14,6 +14,7 @@ import { MemoryPrefsStore, setPrefsStoreForTests } from "@/lib/profile/prefs";
 import { MemoryTeamStore, setTeamStoreForTests } from "@/lib/agents/store";
 import { MemoryLeadEventStore, leadEventStore, setLeadEventStoreForTests, type LeadEvent } from "@/lib/leads/events";
 import { MemoryMonthlyStore, monthlyStore, setMonthlyStoreForTests } from "@/lib/leads/spend";
+import { MemoryPlanStore, setPlanStoreForTests } from "@/lib/leads/plan-store";
 import type { LeadAskCall } from "@/lib/concierge/desk";
 
 export const NOW = new Date("2026-11-22T18:00:00Z");
@@ -27,7 +28,7 @@ export const assistant: User = { ...me, id: "as1", email: "as1@x.com", role: "as
 
 /** Fresh memory stores around each test. */
 export function useLeadStores() {
-  const setters = [setContactStoreForTests, setTouchStoreForTests, setAccountStoreForTests, setConciergeStoreForTests, setPipelineStoreForTests, setExpenseStoreForTests, setTeamStoreForTests, setCampaignStoreForTests, setPrefsStoreForTests, setLeadEventStoreForTests, setMonthlyStoreForTests] as const;
+  const setters = [setContactStoreForTests, setTouchStoreForTests, setAccountStoreForTests, setConciergeStoreForTests, setPipelineStoreForTests, setExpenseStoreForTests, setTeamStoreForTests, setCampaignStoreForTests, setPrefsStoreForTests, setLeadEventStoreForTests, setMonthlyStoreForTests, setPlanStoreForTests] as const;
   beforeEach(() => {
     setContactStoreForTests(new MemoryContactStore());
     setTouchStoreForTests(new MemoryTouchStore());
@@ -40,6 +41,7 @@ export function useLeadStores() {
     setPrefsStoreForTests(new MemoryPrefsStore());
     setLeadEventStoreForTests(new MemoryLeadEventStore());
     setMonthlyStoreForTests(new MemoryMonthlyStore());
+    setPlanStoreForTests(new MemoryPlanStore());
   });
   afterEach(() => {
     for (const f of setters) f(null);

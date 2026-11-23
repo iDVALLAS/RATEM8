@@ -776,7 +776,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.setViewportSize({ width: 1280, height: 900 });
   });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/inbox?tab=done', '/mlo/settings', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts?rmin=7.2&rmax=9&closed=1&asked=words', '/mlo/contacts?prog=fha,va&rtype=arm&cfrom=2023-01-01&cto=2025-12-31&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/inbox?tab=done', '/mlo/settings', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts?rmin=7.2&rmax=9&closed=1&asked=words', '/mlo/contacts?prog=fha,va&rtype=arm&cfrom=2023-01-01&cto=2025-12-31&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/leads/plan', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {
@@ -1069,8 +1069,9 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
       const rv = page.locator('#lead-move-review');
       if (!(await rv.isVisible())) problems.push('[d84] Review shows nothing');
       else {
-        if (!(await rv.getByRole('button', { name: 'Approve' }).isDisabled())) problems.push('[d84] Approve should wait for the planner');
-        if (!/comes with the budget planner/.test(await rv.innerText())) problems.push('[d84] approve line');
+        // D86: Approve is live (it only updates the saved plan and adds steps); the D86 step approves this move.
+        if (await rv.getByRole('button', { name: 'Approve' }).isDisabled()) problems.push('[d84] Approve is still disabled');
+        if (!/Approving only updates your saved lead plan and adds the steps to Today/.test(await rv.innerText())) problems.push('[d84] approve line');
         if (D84) await page.screenshot({ path: path.join(D84, 'qa-review-1280.png'), fullPage: true });
         await page.setViewportSize({ width: 390, height: 844 });
         await page.reload();
@@ -1082,10 +1083,9 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
         if (small.length) problems.push('[d84] controls under 44px at 390: ' + small.join(','));
         if (D84) await page.screenshot({ path: path.join(D84, 'qa-score-390.png'), fullPage: true });
         await page.setViewportSize({ width: 1280, height: 900 });
+        // D86: the move stays open for the D86 step to approve (Not now is checked there is a button; its action is unit-tested).
         await page.goto(B + '/mlo/leads?review=1#lead-move');
-        await page.locator('#lead-move-review').getByRole('button', { name: 'Not now' }).click(); await page.waitForURL(/f=/);
-        console.log('d84: not now:', await flash());
-        if (await page.locator('#scorecard .cc-leadbanner').count()) problems.push('[d84] the banner stayed after Not now');
+        if (!(await page.locator('#lead-move-review').getByRole('button', { name: 'Not now' }).count())) problems.push('[d84] no Not now');
       }
     }
     // The Business Manager's table on AI assistants reads the same scorecard.
@@ -1135,7 +1135,8 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     const math = await page.locator('#leads-math').innerText();
     if (!(await page.locator('#leads-math').isVisible()) || !/Cost per loan = spend ÷ loans closed\./.test(math) || !/Zillow: \$1,200 ÷/.test(math)) problems.push('[d85] the math: ' + math.slice(0, 200));
     if ((await answer.getByRole('button', { name: 'Hide the math' }).getAttribute('aria-expanded')) !== 'true') problems.push('[d85] math toggle aria-expanded');
-    if (!(await answer.getByRole('button', { name: 'Save as my 90-day plan' }).isDisabled())) problems.push('[d85] Save should wait for the planner');
+    // D86: Save as my 90-day plan opens the budget planner (a link; nothing is saved until Save there).
+    if (!/^\/mlo\/leads\/plan/.test((await answer.getByRole('link', { name: 'Save as my 90-day plan' }).getAttribute('href')) ?? '')) problems.push('[d85] Save should open the planner');
     if (D85) await page.screenshot({ path: path.join(D85, 'qa-add-1280.png'), fullPage: true });
     // 2. Plan $1,500 a month for 90 days.
     t = await askIt('Plan $1,500 a month for 90 days', 'plan');
@@ -1191,6 +1192,121 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     const small = await page.locator('#ask button:visible, #ask input:visible').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)).filter((h) => h < 44));
     if (small.length) problems.push('[d85] controls under 44px at 390: ' + small.join(','));
     if (D85) await page.screenshot({ path: path.join(D85, 'qa-plan-390.png'), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
+  });
+  // D86: the budget planner and 90-day roadmap. A preset and your own amount, the split (its list adds up to the
+  // budget; the bar is decorative), Save → the plan card on Lead sources shows day 1 of 90, the first steps on Home,
+  // Approve the Business Manager's move (it updates the plan and adds a step), then Save as my 90-day plan from the
+  // Concierge's answer opens the planner with $1,500 and saves it.
+  const D86 = process.env.QA_D86_SHOTS || '';
+  if (D86) fs.mkdirSync(D86, { recursive: true });
+  await step('d86: budget planner and roadmap', async () => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(B + '/mlo/leads');
+    if (!/^\/mlo\/leads\/plan/.test((await page.locator('#plan').getByRole('link', { name: 'Open budget planner' }).getAttribute('href')) ?? '')) problems.push('[d86] the example plan card does not open the planner');
+    await page.goto(B + '/mlo/leads/plan');
+    const pressed = async () => (await page.locator('.cc-lplan-preset[aria-pressed=true]').innerText()).trim();
+    const presets = await page.locator('.cc-lplan-preset').evaluateAll((els) => els.map((e) => ({ t: e.textContent.trim(), h: Math.round(e.getBoundingClientRect().height) })));
+    console.log('d86: presets:', presets.map((x) => `${x.t} (${x.h}px)`).join(' / '));
+    if (presets.map((x) => x.t).join('|') !== '$750 a month|$1,500 a month|$3,000 a month' || presets.some((x) => x.h < 44)) problems.push('[d86] presets: ' + JSON.stringify(presets));
+    if ((await page.locator('[role=group][aria-label="Monthly lead budget presets"]').count()) !== 1) problems.push('[d86] presets have no named group');
+    if ((await pressed()) !== '$1,500 a month') problems.push('[d86] default preset: ' + await pressed());
+    const splitOk = async (dollars) => {
+      await page.locator(`#split[data-budget="${dollars}"]`).waitFor();
+      const cents = await page.locator('#split .cc-lplan-line').evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-cents'))));
+      const sum = cents.reduce((n, c) => n + c, 0);
+      if (sum !== dollars * 100) problems.push(`[d86] the split adds up to ${sum / 100}, not ${dollars}`);
+      if ((await page.locator('#split .cc-plan__bar').getAttribute('aria-hidden')) !== 'true') problems.push('[d86] the bar is not aria-hidden');
+      return (await page.locator('#split .cc-lplan-line').allInnerTexts()).map((x) => x.replace(/\s+/g, ' '));
+    };
+    let lines = await splitOk(1500);
+    console.log('d86: split $1,500:', lines.join(' / ').slice(0, 400));
+    if (!/^Past clients & sphere · \$150/.test(lines[0] ?? '')) problems.push('[d86] the sphere does not come first with $150: ' + lines[0]);
+    const est = await page.locator('.cc-lplan-est').innerText();
+    console.log('d86: estimates:', est.replace(/\n/g, ' | ').slice(0, 200));
+    if (!/Estimates/.test(est)) problems.push('[d86] estimates not labeled');
+    const left = await page.locator('.cc-lplan-out').innerText().catch(() => '');
+    console.log('d86: left out:', left.replace(/\n/g, ' | '));
+    if (!/Zillow: Pause\?/.test(left)) problems.push('[d86] Zillow (Pause?) is not left out: ' + left);
+    if ((await page.locator('.cc-lplan-phase').count()) !== 3) problems.push('[d86] the roadmap does not have three phases');
+    if ((await page.locator('.cc-lplan-types > li').count()) !== 6) problems.push('[d86] the catalog does not have six types');
+    await page.evaluate(() => document.querySelectorAll('#catalog details').forEach((d) => { d.open = true; }));
+    const cat = await page.locator('#catalog').innerText();
+    if (/\$\s?\d/.test(cat)) problems.push('[d86] the catalog shows a price');
+    if (!/Cost comes from your own spend once you test it\./.test(cat)) problems.push('[d86] no cost line on marketplaces');
+    if (D86) await page.screenshot({ path: path.join(D86, 'qa-planner-1500-1280.png'), fullPage: true });
+    // A preset.
+    await page.getByRole('button', { name: '$3,000 a month' }).click(); await page.waitForURL(/budget=3000/);
+    if ((await pressed()) !== '$3,000 a month') problems.push('[d86] $3,000 not pressed');
+    lines = await splitOk(3000);
+    console.log('d86: split $3,000:', lines.join(' / ').slice(0, 400));
+    if (!lines.some((l) => /^One new source to test · \$600/.test(l))) problems.push('[d86] no $600 test slot at $3,000');
+    // Your own amount.
+    await page.locator('.cc-lplan-custom input[name=dollars]').fill('2000');
+    await page.getByRole('button', { name: 'Use this amount' }).click(); await page.waitForURL(/budget=2000/);
+    if (await page.locator('.cc-lplan-preset[aria-pressed=true]').count()) problems.push('[d86] a preset is pressed for a custom amount');
+    lines = await splitOk(2000);
+    if (!lines.some((l) => /^One new source to test · \$400/.test(l))) problems.push('[d86] no $400 test slot at exactly $2,000');
+    if (D86) await page.screenshot({ path: path.join(D86, 'qa-planner-2000-1280.png'), fullPage: true });
+    // Save → the plan card on Lead sources.
+    await page.getByRole('button', { name: 'Save as my 90-day plan' }).click(); await page.waitForURL(/\/mlo\/leads\?f=/);
+    console.log('d86: save:', await flash());
+    if (!/Saved\. Your lead plan starts today/.test(await flash())) problems.push('[d86] save flash: ' + await flash());
+    const card = page.locator('#plan');
+    const ct = await card.innerText();
+    console.log('d86: plan card:', ct.replace(/\n/g, ' | '));
+    if ((await card.getAttribute('data-example')) !== 'false' || (await card.locator('.cc-ex').count())) problems.push('[d86] the plan card is still an example');
+    if (!/\$2,000 a month · day 1 of 90/.test(ct) || !/Next check-in/.test(ct)) problems.push('[d86] plan card: ' + ct);
+    if (D86) await page.screenshot({ path: path.join(D86, 'qa-leads-plan-1280.png'), fullPage: true });
+    // The first 30 days' steps on Home.
+    await page.goto(B + '/mlo');
+    const home = await page.locator('#lead-steps').innerText().catch(() => '');
+    for (const t of ['Turn on past-client and sphere campaigns', 'Ask every vendor for consent wording that names you', 'Tag each lead dollar in Expenses with its source']) if (!home.includes(t)) problems.push('[d86] roadmap step missing on Home: ' + t);
+    if (/Move budget to the lowest cost per lead you can call/.test(home)) problems.push('[d86] a day-31 step showed on day 1');
+    // Approve the Business Manager's move (D84 left it open).
+    await page.goto(B + '/mlo/leads?review=1#lead-move');
+    const rv = page.locator('#lead-move-review');
+    if (!(await rv.count())) problems.push('[d86] no open move to approve');
+    else {
+      await rv.getByRole('button', { name: 'Approve' }).click(); await page.waitForURL(/f=/);
+      console.log('d86: approve:', await flash());
+      // The pause step may already be on Today from the D85 answer's steps; it's never added twice.
+      if (!/Approved\. Your lead plan is updated/.test(await flash())) problems.push('[d86] approve flash: ' + await flash());
+      if (await page.locator('#scorecard .cc-leadbanner').count()) problems.push('[d86] the banner stayed after Approve');
+      await page.goto(B + '/mlo');
+      const pz = (await page.locator('#lead-steps li').allInnerTexts()).filter((t) => /Pause Zillow for 60 days/.test(t)).length;
+      if (pz !== 1) problems.push(`[d86] "Pause Zillow for 60 days" shows ${pz} times on Home`);
+      await page.goto(B + '/mlo/leads/plan');
+      const saved = await page.locator('#saved').innerText();
+      if (!/Earlier versions \(1\)/.test(saved)) problems.push('[d86] the approval did not keep the old version: ' + saved.slice(0, 200));
+      const lo = await page.locator('.cc-lplan-out').innerText();
+      if (!/Zillow: you paused it until/.test(lo)) problems.push('[d86] Zillow not shown as paused: ' + lo);
+    }
+    // Save as my 90-day plan, from the Concierge's answer.
+    await page.goto(B + '/mlo/leads');
+    await page.locator('#ask').getByRole('button', { name: 'Plan $1,500 a month for 90 days' }).click();
+    await page.locator('#ask .cc-leadans[data-intent=plan]').waitFor();
+    const at = await page.locator('#ask .cc-leadans').innerText();
+    if (!/Your saved plan: \$2,000 a month, day 1 of 90\./.test(at)) problems.push('[d86] the answer does not mention the saved plan: ' + at.slice(0, 200));
+    await page.locator('#ask .cc-leadans').getByRole('link', { name: 'Save as my 90-day plan' }).click(); await page.waitForURL(/\/mlo\/leads\/plan\?budget=1500/);
+    if ((await pressed()) !== '$1,500 a month') problems.push('[d86] the planner did not open on $1,500');
+    await page.locator('#save').getByRole('button', { name: 'Save as my 90-day plan' }).click(); await page.waitForURL(/\/mlo\/leads\?f=/);
+    console.log('d86: save from answer:', await flash());
+    if (!/keeps its day count/.test(await flash())) problems.push('[d86] re-save flash: ' + await flash());
+    if (!/\$1,500 a month · day 1 of 90/.test(await page.locator('#plan').innerText())) problems.push('[d86] the plan card after re-saving');
+    await page.goto(B + '/mlo');
+    const steps = await page.locator('#lead-steps li').allInnerTexts();
+    if (steps.filter((t) => /Turn on past-client and sphere campaigns/.test(t)).length !== 1) problems.push('[d86] roadmap steps doubled after re-saving');
+    // On a phone.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(B + '/mlo/leads/plan');
+    await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+    if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push('[d86] sideways scroll at 390');
+    const small = await page.locator('main button:visible, main a.mlo-btn:visible, main input:visible').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)).filter((h) => h < 44));
+    if (small.length) problems.push('[d86] controls under 44px at 390: ' + small.join(','));
+    if (D86) await page.screenshot({ path: path.join(D86, 'qa-planner-390.png'), fullPage: true });
+    await page.goto(B + '/mlo/leads');
+    if (D86) await page.screenshot({ path: path.join(D86, 'qa-leads-plan-390.png'), fullPage: true });
     await page.setViewportSize({ width: 1280, height: 900 });
   });
   console.log('\nPROBLEMS:', problems.length ? '\n' + problems.join('\n') : 'none');

@@ -17,6 +17,11 @@ import { monthlyStore } from "./spend";
 import { leadScorecard, type LeadScorecard, type ScorePeriod } from "./scorecard";
 
 export async function scorecardFor(user: User, period: ScorePeriod, now = new Date(), opts: { events?: LeadEvent[]; contacts?: Contact[] } = {}): Promise<LeadScorecard> {
+  return (await scorecardsFor(user, [period], now, opts))[0];
+}
+
+/** D86: several periods from one read of the stores (the planner's estimates read 30 days, 90 days and this year). */
+export async function scorecardsFor(user: User, periods: readonly ScorePeriod[], now = new Date(), opts: { events?: LeadEvent[]; contacts?: Contact[] } = {}): Promise<LeadScorecard[]> {
   const [events, spend, loans, contacts, prefs, monthly] = await Promise.all([
     opts.events ?? leadEventStore().list(user.id).catch(() => []),
     expenseStore().list(user.id, null).catch(() => []),
@@ -25,14 +30,14 @@ export async function scorecardFor(user: User, period: ScorePeriod, now = new Da
     prefsFor(user),
     monthlyStore().list(user.id).catch(() => []),
   ]);
-  return leadScorecard({
-    period,
+  const base = {
     now,
-    events,
+    events: events.filter((e) => e.ownerUserId === user.id),
     spend: spend.filter((e) => e.ownerUserId === user.id),
     loans: loans.filter((l) => l.ownerUserId === user.id),
     contacts: contacts.filter((c) => c.ownerUserId === user.id),
     targetCents: prefs.leadTargetCents,
     labels: Object.fromEntries(monthly.map((m) => [m.sourceKey, m.sourceLabel])),
-  });
+  };
+  return periods.map((period) => leadScorecard({ ...base, period }));
 }

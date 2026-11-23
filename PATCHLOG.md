@@ -7030,3 +7030,129 @@ three suggested questions, not the mockup's four. D72 classes, tokens only, word
   Home lists up to 12 open steps.
 - **Next up:** D86 (budget planner and 90-day roadmap, Option C), after the owner's sign-off: it adds the plan store, wires Save as my 90-day
   plan and D84's Approve, and can point the steps at `/mlo/leads/plan`.
+
+## D86 — Budget planner and 90-day roadmap (Option C) (2026-11-23)
+
+Spec: "## D86" in `docs/work/D81-D87-lead-sources-2026-11-22.md` (the owner's brief, verbatim), with "Owner decisions (2026-11-22)" 1–4,
+the "Builder notes" and "Owner decision 5"; wires the pieces D82, D84 and D85 left for it (the plan card's switch, the Business Manager's
+Approve, "Save as my 90-day plan"). Built after Option C (planner and roadmap) and "The page once it's built" (the plan card): D72 classes,
+tokens only (the split bar uses the CC palette and `--data-*`, never raw hex), words in `lib/content/lead-plan.ts` and `cc-pages.ts`.
+
+- **Files:** new `lib/leads/plan.ts` (pure: `PLAN_RULES`, `cleanBudget`, `sphereDollars`, `testSlotDollars`, `rankSources`, `allocatePlan`,
+  `planEstimate`, `planDay`, `nextCheckIn`, `dueCheckIn`, `phasesBegun`, `ROADMAP`, `planChanges`, `linePct`), `lib/leads/catalog.ts` (pure: `CATALOG`,
+  `catalogWords`, `testCandidates`), `lib/leads/plan-store.ts` (Memory and Neon `cc_lead_plans`), `lib/leads/plan-service.ts` (`plannerFor`,
+  `savePlan`, `advancePlan`, `approveLeadMove`, `planView`, `roadmapStep`, `checkInWords`), `lib/content/lead-plan.ts` (`LEAD_PLAN`),
+  `app/mlo/leads/plan/{page,PlanParts,actions}.tsx`, tests `lib/leads/plan.test.ts` (24), `lib/leads/plan-service.test.ts` (13),
+  `app/mlo/leads/plan-card.test.ts` (2); changed `lib/leads/{ask,score-service}.ts` (`scorecardsFor`: several periods from one read),
+  `lib/concierge/desk.ts` (the pack's plan), `app/mlo/leads/{page,LeadSections,AskPanel,actions}.tsx` (`RealPlan`, `approveLeadMoveAction`),
+  `lib/content/{cc-pages,activity}.ts`, `lib/export/service.ts`, `app/api/cc/concierge/sweep/route.ts`, `app/mlo/cc-shell.css` (D86 block),
+  `lib/leads/ask.test.ts`, `app/mlo/leads/scorecard.test.ts`, `tests/lead-ask-harness.ts`, `scripts/qa/{command-center,buttons}.mjs`, `CLAUDE.md`.
+- **What the loan officer sees:** *Lead sources* — the plan card's "Open budget planner" is a real link (in example mode too; it saves nothing).
+  Once a plan is saved the card is theirs ("$2,000 a month · day 1 of 90", the split bar, "Past clients & sphere $200 · One new source to test $400 ·
+  Not assigned yet $1,400 · Next check-in Dec 22", Open budget planner), never an example. The Business Manager's banner Review now has a working
+  **Approve** ("Approving only updates your saved lead plan and adds the steps to Today. It never spends money, contacts a vendor or messages
+  anyone."); its check-ins show there too. *Budget planner* (`/mlo/leads/plan`, "← Lead sources", "Your lead budget plan") — the saved plan
+  (budget, day X of 90, bar, split in words, next check-in, "Earlier versions (n)"); **Monthly lead budget**: $750 / $1,500 / $3,000 a month
+  (44px buttons, `aria-pressed`, a group named "Monthly lead budget presets"), "Or your own amount a month ($)" + Use this amount, Target cost per
+  loan ($) + Save target (the scorecard's own setting); **How your Concierge splits $X**: the bar (aria-hidden), then each part as a list: name ·
+  amount (share of the budget) and why ("Your best paid source so far: $600 per loan. Capped at its share, 60% of the budget.", "Not enough data
+  yet (6 leads), so it's a test, capped for 60 days.", "For a source you don't run yet, capped for 60 days. Your Business Finder suggests: Meta
+  lead forms (Facebook and Instagram) or Google Business Profile and local search."), "Not in the split" (Pause?, paused until a date, no spend
+  logged, no room), **Estimates** (Leads a month / Loans a month as "7–20" or "About 20", "Estimates from your own last 30 days, last 90 days and
+  this year so far, at this split. Small numbers swing a lot…", or "No estimate yet: your own leads, spend and loans fill this in. Your Concierge
+  never uses someone else's numbers."), and a fold with the seven split rules in words; **Your 90-day roadmap** (Days 1–30 Free first, 31–60 One
+  paid test, 61–90 Scale or cut, three steps each); **Test a new source** (the six types as folds, "Suggested for your test slot" on the Business
+  Finder's picks); **Save as my 90-day plan**, Ask your Concierge to change it, "Saving only stores your plan and adds its steps to Today. It never
+  spends money, signs you up with a vendor or contacts anyone." and the chips No trigger leads · Nothing of value for referrals (RESPA) · You
+  approve every dollar. *Home* — the roadmap's steps in "Lead plan steps" ("Days 1–30 · Free first. …"). *Ask your Concierge* — "Save as my 90-day
+  plan" opens the planner with the answer's budget (`?budget=1500`); the plan answer says "Your saved plan: $2,000 a month, day 1 of 90."
+- **The split** (`allocatePlan`, pure, from the 90-day scorecard; every number in `PLAN_RULES`): (1) Past clients & sphere first, "a small
+  amount" = 10% of the budget rounded down to $50, at least $150 and at most $250 (all of a smaller budget); (4) from $2,000 a month one test slot
+  of 20% rounded down to $50 ($400 at exactly $2,000, none at $1,999), kept before the paid sources; (5) Pause? sources, sources paused through
+  an approved move (until the pause ends) and sources with no spend (can't be ranked on cost) are left out and listed; (2) paid sources with ≥ 2
+  closed loans ranked by cost per loan, then those with fewer by cost per lead you can call (none last), ties by closed loans, callable leads,
+  label, key; (3) each funded in rank order up to its share, 60% of the budget; (6) a Not enough data source only up to 20% (`kind: "test"`);
+  what's left is "Not assigned yet". Whole dollars; the lines add up to the budget exactly (a test walks 18 budgets × 5 source mixes); the same
+  inputs in any order give the same output. The mockup's $1,500 with the web form ($600/loan) and Zillow ($1,800/loan) is $150 / $900 / $450.
+- **Estimates:** each funded line's dollars × that source's leads (and closed loans) per dollar spent, summed, for each of the loan officer's own
+  30-day, 90-day and this-year scorecards that have spend for a funded source; the range is the lowest and highest (rounded down/up). The test slot
+  and the reserve are never counted (no history). No history → none. Labeled "Estimates"; never a benchmark.
+- **Saving** (`savePlan`, bound `savePlanAction.bind(null, dollars)`): stores `{ budget, target, lines, leftOut, startedAt, savedAt, why, paused,
+  pending, history }` for the loan officer (Neon `cc_lead_plans` jsonb, one row each, parameters bound; memory the same), then adds the first
+  phase's steps. **Re-saving within the 90 days keeps the start day and the steps** and puts the version before into `history` (newest first, 20
+  kept); after day 90 it starts a new 90 days and closes the last plan's open roadmap steps and check-in. Audit `lead.plan.save` (budget, counts).
+- **Roadmap and check-ins** (`advancePlan`, on the planner and Lead sources views and in the morning run; owners with only a plan join the
+  D83 lead-only loop; no new cron): each phase's three steps when its 30 days begin, each once (`lead-step:roadmap:<start day>:<step>`, Business
+  Manager, `kind: "plan"`, no contact, `href`, D85's shape on Home); at day 30, 60 and 90 the latest due check-in once
+  (`lead-source:checkin:<start>:<day>`): the split today's scorecard gives at the plan's budget, "Day 30 check-in: update your lead plan" with
+  "…moves Zillow from $0 to $300" or "…keep your lead plan as it is", the D84 tail; the proposed split waits in `plan.pending`. It counts as the
+  period's lead-source move (D84's 30-day rule then skips the generic one).
+- **Approve** (`approveLeadMoveAction.bind(null, period, id)` → `approveLeadMove`): own open `lead-source:` move only, `reviewMove` first ("held"
+  otherwise). Pause → the source is left out of the saved plan for 60 days, the budget re-split, steps "Pause X for 60 days" and "Set Y's monthly
+  amount to $Z" per change; check-in → its pending split (or today's if the plan changed since); permission fix → "Ask X for consent wording that
+  names you", no dollars. With no plan saved only steps are added. A step whose words are already an open lead plan step isn't added again. The
+  move closes as done. It never writes an expense, a monthly amount, a message or anything to a vendor (a test checks the stores). Audit
+  `lead.move.approve`.
+- **Business Finder catalog** (`lib/leads/catalog.ts`, words in `LEAD_PLAN.catalog.types`): your own web form with search ads; Meta lead forms;
+  Google Business Profile and local search; open houses with listing agents; past-client and sphere campaigns; vendor marketplaces (Zillow,
+  LendingTree, Bankrate, LowerMyBills). Each: what it is, three setup steps, Permission, Rules to follow. No prices anywhere; marketplaces carry only
+  "Cost comes from your own spend once you test it." Suggestions: up to two types the loan officer doesn't run yet (scorecard rows with leads or
+  spend, or a connection named after one), in catalog order, never the sphere.
+- **Concierge and exports:** the pack's `plan` (budget, day, of, next check-in, split with cleaned labels) and the context line "Saved 90-day plan:
+  $3,000 a month, day 2 of 90, next check-in Dec 22. Split: <source blocks>…" (figures there are allowed by the validator); D85's check-in step
+  points to `/mlo/leads/plan` and its new-source step to `/mlo/leads/plan#catalog`. Download everything adds `lead-plan.csv` (the plan, then each
+  earlier version, one row per part, `madeBy`) and a README line.
+- **Assistants:** no planner (the page shows "Lead plans use spend, which is private to each loan officer."), no plan card, no Approve; every
+  action refuses them (spend is private, D83).
+- **Tests** (39 new; 1,035 in all): every rule and edge (no sources, all Pause?, budget under the sphere amount, exactly $2,000 and $1,999, Not
+  enough data capped, ties in any order, sums exact for 90 combinations, determinism), estimates (no history, ranges, test slot and reserve never
+  counted), the 90 days, plan changes, the catalog (six types, no prices, open-house and housing-ad lines, suggestions), every planner line
+  through `reviewLeadMove` and `findRateMentions` plus banned words and promises; with the stores: own-book split and estimates, Save (assistant,
+  range, audit, nothing spent or sent), re-save (same start, history, no duplicate steps), phases and check-ins once each, a check-in approved,
+  a pause approved (plan and steps only; the stores of money and messages unchanged; back after 60 days), fix and no-plan approvals, a duplicate
+  step skipped, refusals (another loan officer's, an assistant, not a lead-source move, held wording), restart after day 90, the plan card's switch
+  and `planView`, the pack and the export, the Neon store's bound SQL; the page source (bound presets/target/Save, aria-pressed group, no
+  value-carrying buttons, assistants); the real and example plan cards rendered. D84/D85 tests updated for the live Approve and Save link.
+- **Verified:** `npm run verify` passes (1,035 tests; check:copy, check:identity, check:licensing, build, check:bundle). `node
+  scripts/qa/command-center.mjs` on a freshly started server: PROBLEMS none (D84 now checks Approve is live and leaves the move open; D85 checks Save
+  links to the planner; new step "d86": presets 44px in a named group, $1,500 pressed by default, the $1,500 split "Past clients & sphere · $150 …
+  Not assigned yet · $1,350" adding up exactly, Zillow left out as Pause?, estimates labeled, three phases, six catalog types with no price and the
+  cost line; $3,000 → a $600 test slot; own amount 2000 → $400 slot, no preset pressed; Save → "Saved. Your lead plan starts today…", the card
+  "$2,000 a month · day 1 of 90 … Next check-in Dec 22", not an example; Home shows the three Days 1–30 steps and no day-31 step; Approve on "Pause
+  Zillow for 60 days" → "Approved. Your lead plan is updated…", the banner gone, the step once on Home, Earlier versions (1), "Zillow: you paused it
+  until Jan 21"; the plan answer mentions the saved plan, its Save link opens `?budget=1500` with $1,500 pressed, Save → "…keeps its day count…",
+  the card at $1,500 day 1, no doubled step; at 390 no sideways scroll and every control ≥ 44px). `node scripts/qa/buttons.mjs` on a freshly
+  started server: 524 page views (adds `/mlo/leads/plan` and `?budget=3000`, folds open), PROBLEMS none. Scratch sweep (`d86shots.mjs`): the planner
+  at $1,500 (with a saved plan and history) and $3,000, Lead sources with the real card, and Home, at 390 and 1280 in Night, Dim and Paper: no
+  sideways scroll, no page errors, smallest text contrast in the sections 6.31:1 (Night), 6.18:1 (Dim), 5.65:1 (Paper); the only flag was Home's
+  setup checklist ✓ in Paper (2.66:1, `aria-hidden`, pre-existing, not touched here).
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d86/` (`planner-*`, `planner-3000-*`, `leads-*`,
+  `home-*` at `<390|1280>-<night|dim|paper>`; `qa-planner-1500-1280`, `qa-planner-2000-1280`, `qa-leads-plan-1280`, `qa-planner-390`,
+  `qa-leads-plan-390` from the QA step; `buttons/` has the audit's set).
+- **Decisions:** (a) **"Save as my 90-day plan" opens the planner prefilled** with the answer's budget, rather than saving directly: the loan
+  officer sees the split before anything is stored. (b) **Re-saving within the 90 days keeps the day count and the roadmap**; a new 90 days
+  starts only after day 90 (re-saving to change the budget on day 34 shouldn't restart the plan or double the steps). (c) **Roadmap steps arrive a
+  phase at a time** (when its 30 days begin), not all nine on day 1, so Today isn't filled with day-61 work. (d) "A small amount" = 10%, $150–$250
+  in $50 steps and "share" = 60% (the mockup's $150/$150/$250 sphere and $900-of-$1,500): both in `PLAN_RULES` for the owner to change. (e) The test
+  slot is taken before the paid sources (it's kept, rule 4), and a Not-enough-data source's cap is the same 20%. (f) Only paid sources (spend on the
+  scorecard) are funded; a free source with leads is listed "no spend logged … keeps working at no cost to the plan". (g) Approving a pause leaves
+  the source out of the plan for 60 days (the move's own length); the loan officer changes or removes its monthly amount themselves (the step says
+  so). (h) The check-in is the Business Manager's lead-source move for its period and doesn't need the team switched on (it runs from page views
+  and the morning run, like D85's steps). (i) The planner isn't in the menus: it's linked from the plan card, the Concierge's answer and the steps.
+  (j) The mockup's "Your Concierge answers new leads in minutes" became "Call new leads who named you the day they arrive" (no timing promise, and
+  only people who gave permission). (k) Estimates use the 30-day, 90-day and this-year scorecards as the range (own data only).
+- **For counsel:** the catalog's open-house type: "Nothing of value changes hands either way" and "you don't pay for the event, a spot or the
+  agent's costs, and the agent gets nothing from you for having you there. Any shared marketing needs a written fair-market-value agreement your
+  sponsor sets up." (`ATTORNEY_REVIEW_LIST.md` co-marketing). Meta: "choose the Special Ad Category for housing (mortgage ads count as housing
+  ads)", "Meta limits age, gender and location choices and turns off targeting by personal traits. Fair housing: never build an audience by who
+  people are." Search ads: "use the ad platform's housing-ad settings, which turn off targeting by age, gender, family status and ZIP code, and aim by
+  place and interest in homes only. Show your NMLS ID and Equal Housing Opportunity as your sponsor requires." Marketplaces: "Buy only leads from
+  forms the person filled in themselves, never lists built from credit checks" (the trigger-lead block in the guard, D85, stays). Sphere: "Closing
+  gifts and cards are fine on their own. Never tie one to someone sending you business." (owner decision 3). Google Business Profile: "Ask past
+  clients for an honest review; never offer anything for one." No prices anywhere. Every planner, roadmap, check-in and catalog line passes
+  `reviewLeadMove` (a test). The planner never spends money, signs up for a vendor or contacts anyone.
+- **Known gaps:** a check-in proposes but doesn't re-split by itself; if several are overdue only the latest is made. The planner reads every lead
+  event, expense and loan once per view (fine at pilot sizes). The roadmap's day-31 "Move budget…" step links to the planner, not to each monthly
+  amount. No live-model run here (no AI key); the pack's plan line is tested with the fake model's context. The weekly report still counts leads
+  from contacts (D83 note).
+- **Next up:** D87 (tests, red team and docs), after the owner's sign-off.

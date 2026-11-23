@@ -22,6 +22,8 @@ import { leadEventStore } from "@/lib/leads/events";
 import { connectedSourceLabels, hasRealLeads } from "@/lib/leads/mode";
 import { NOT_LEADS } from "@/lib/leads/sources";
 import { monthlyStore } from "@/lib/leads/spend";
+import { planStore } from "@/lib/leads/plan-store";
+import { planView } from "@/lib/leads/plan-service";
 import { scorecardFor } from "@/lib/leads/score-service";
 import { DEFAULT_PERIOD, isScorePeriod, type ScorePeriod } from "@/lib/leads/scorecard";
 import { allowedFigures, answerIssue, BUDGET_RANGE, budgetFrom, buildLeadPack, isLeadIntent, LEAD_ASK_SYSTEM, leadAskMessage, leadIntent, leadSteps, packContext, packMath, packTable, templateAnswer, validateFigures, type LeadIntent, type LeadPack, type LeadStep, type PackTable } from "@/lib/leads/ask";
@@ -162,12 +164,14 @@ function leadAskApi(meter: Meter): LeadAskCall {
  * (no real lead yet) reads no scorecard at all, so no example row can reach it.
  */
 export async function leadPackFor(actor: User, period: ScorePeriod, budgetCents: number | null, now = new Date()): Promise<LeadPack> {
-  const [events, contacts, prefs, monthly, keys] = await Promise.all([
+  const [events, contacts, prefs, monthly, keys, plan] = await Promise.all([
     leadEventStore().list(actor.id).catch(() => []),
     contactStore().list({ ownerUserId: actor.id, kind: "contact", limit: 2000 }).then((r) => r.contacts).catch(() => []),
     prefsFor(actor),
     monthlyStore().list(actor.id).catch(() => []),
     pipelineStore().keys(actor.id).catch(() => []),
+    // D86: the saved plan (the loan officer's own; never an example).
+    planStore().get(actor.id).catch(() => null),
   ]);
   const mine = events.filter((e) => e.ownerUserId === actor.id);
   const own = contacts.filter((c) => c.ownerUserId === actor.id);
@@ -181,6 +185,7 @@ export async function leadPackFor(actor: User, period: ScorePeriod, budgetCents:
     monthly: monthly.filter((m) => m.ownerUserId === actor.id),
     connected: connectedSourceLabels(keys.map((k) => k.label), NOT_LEADS),
     budgetCents,
+    plan: plan && plan.ownerUserId === actor.id ? planView(plan, now) : null,
   });
 }
 

@@ -8,7 +8,7 @@
  * campaigns, templates, call scripts, cards and expenses. Only their own
  * book. Nothing secret goes in (no connection tokens or loan-system keys).
  * D83: each expense's lead source, the lead-event log and the monthly
- * amounts per source.
+ * amounts per source. D86: the saved lead plan and its earlier versions.
  */
 import type { User } from "@/lib/accounts/store";
 import { CONFIG, mloById } from "@/lib/config";
@@ -24,6 +24,7 @@ import { videoStore } from "@/lib/videos/store";
 import { expenseStore } from "@/lib/expenses/store";
 import { leadEventStore } from "@/lib/leads/events";
 import { monthlyStore } from "@/lib/leads/spend";
+import { planStore } from "@/lib/leads/plan-store";
 import { signatureFor } from "@/lib/profile/signature";
 import { toCsv } from "./csv";
 import { zip, type ZipFile } from "./zip";
@@ -64,6 +65,13 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
     leadEventStore().list(owner).catch(() => []),
     monthlyStore().list(owner).catch(() => []),
   ]);
+  // D86: the saved lead plan, then its earlier versions (newest first), one row per part of the split.
+  const savedPlan = await planStore().get(owner).catch(() => null);
+  const planRows = savedPlan && savedPlan.ownerUserId === owner
+    ? [{ ...savedPlan, version: "current" }, ...savedPlan.history.map((h, i) => ({ ...h, version: `earlier ${i + 1}` }))].flatMap((v) =>
+        v.lines.map((l) => ({ version: v.version, savedAt: v.savedAt, startedAt: v.startedAt, budgetDollars: (v.budgetCents / 100).toFixed(0), targetDollars: (v.targetCents / 100).toFixed(0), part: l.label, sourceKey: l.key, kind: l.kind, dollars: (l.cents / 100).toFixed(0), madeBy: v.why })),
+      )
+    : [];
   const enrollments = (await Promise.all(campaigns.map((c) => campaignStore().enrollments(c.id)))).flat();
   const mine = templates.filter((t) => t.ownerUserId === owner);
 
@@ -91,6 +99,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
     expenses: add("expenses.csv", expenses.map((e) => ({ ...e, leadSource: e.leadSource ?? null })), { first: ["date", "kind", "amountCents", "miles", "vendor", "category", "leadSource", "purpose"] }),
     // D83: one row per lead delivered or imported (no personal data in the log; the name is looked up from the book).
     leadEvents: add("lead-events.csv", leadEvents.map((e) => ({ at: e.at, source: e.sourceLabel, sourceKey: e.sourceKey, contact: who(e.contactId), contactId: e.contactId, repeat: e.duplicate, formNamedYou: e.namesYou, vendorLeadId: e.externalId, from: e.origin, datedBy: e.datedBy })), { first: ["at", "source", "contact", "repeat", "formNamedYou"] }),
+    leadPlan: add("lead-plan.csv", planRows, { first: ["version", "savedAt", "budgetDollars", "part", "dollars"] }),
     monthlyAmounts: add("lead-monthly-amounts.csv", monthly.map((m) => ({ source: m.sourceLabel, sourceKey: m.sourceKey, dollarsAMonth: (m.cents / 100).toFixed(2), lastDraftMonth: m.lastMonth, updatedAt: m.updatedAt })), { first: ["source", "dollarsAMonth"] }),
   };
 
@@ -135,6 +144,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
       "expenses.csv and receipts/: your business expenses, income and mileage (leadSource: the lead source a line of spend was for).",
       "lead-events.csv: every lead delivered to you or imported with a lead source, by source (repeat: they were already in your book; formNamedYou: that lead's consent wording named you or your company).",
       "lead-monthly-amounts.csv: the monthly amount you set for each lead source.",
+      "lead-plan.csv: your saved 90-day lead plan, one row per part of its split, then each earlier version (madeBy: you saved it, or approved a Business Manager move or check-in).",
       "",
       "Not included, on purpose: passwords, connection keys and sign-in codes.",
     ].join("\r\n"),

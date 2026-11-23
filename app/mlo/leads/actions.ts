@@ -12,6 +12,8 @@ import { DEFAULT_PERIOD, isScorePeriod, scoreUsd } from "@/lib/leads/scorecard";
 import { setLeadTarget } from "@/lib/profile/prefs";
 import { closeMove } from "@/lib/agents/service";
 import { teamStore } from "@/lib/agents/store";
+import { approveLeadMove } from "@/lib/leads/plan-service";
+import { LEAD_PLAN } from "@/lib/content/lead-plan";
 
 const back = (ok: boolean, line: string): never => redirect(`/mlo/leads?f=${encodeFlash({ ok, lines: [line] })}#monthly`);
 
@@ -71,6 +73,19 @@ export async function dismissLeadMoveAction(period: string, id: string): Promise
   const ok = !!m && m.ownerUserId === u.id && m.key.startsWith("lead-source:") && (await closeMove(u, id, "dismissed"));
   revalidatePath("/mlo/leads");
   redirect(scoreUrl(period, ok ? { ok: true, line: LEADS.score.real.move.dismissed } : { ok: false, line: LEADS.score.real.move.gone }));
+}
+
+/**
+ * D86: Approve on the Business Manager's lead-source move (bound to its id). It only updates the saved lead plan and
+ * adds the steps to Today (lib/leads/plan-service.ts `approveLeadMove`, after Compliance's `reviewMove`); it never
+ * spends money, contacts a vendor or messages anyone.
+ */
+export async function approveLeadMoveAction(period: string, id: string): Promise<void> {
+  const u = await me();
+  const r = await approveLeadMove(u, id);
+  revalidatePath("/mlo/leads");
+  revalidatePath("/mlo");
+  redirect(scoreUrl(period, r.ok ? { ok: true, line: LEAD_PLAN.approved.done(r.steps, r.planUpdated) } : { ok: false, line: r.error === "held" ? LEAD_PLAN.approved.held : LEAD_PLAN.approved.gone }));
 }
 
 // ---- D85: Ask your Concierge ----

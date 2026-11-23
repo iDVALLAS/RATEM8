@@ -38,7 +38,7 @@ describe("the real scorecard on the page (D84)", () => {
     expect(h).not.toContain("cc-ex");
   });
 
-  it("the Business Manager's newest move is the banner, with Review; Approve waits for the planner", () => {
+  it("the Business Manager's newest move is the banner, with Review; Approve is a bound action (D86)", () => {
     const m = { id: "mv_1", title: "Move Bankrate’s budget to your web form for 60 days", why: "Bankrate: $1,500 spent." };
     const closed = html(m);
     expect(closed).toContain("Business Manager:");
@@ -47,8 +47,9 @@ describe("the real scorecard on the page (D84)", () => {
     expect(closed).not.toContain("lead-move-review");
     const open = html(m, true);
     expect(open).toContain('id="lead-move-review"');
-    expect(open).toMatch(/<button type="button" class="mlo-btn" disabled="" aria-describedby="lead-move-off">Approve<\/button>/);
-    expect(open).toContain(LEADS.score.real.move.approveOff.slice(0, 40));
+    expect(open).toMatch(/<form action="[^"]*"><button type="submit" class="mlo-btn" aria-describedby="lead-move-note">Approve<\/button><\/form>/);
+    expect(open).not.toMatch(/disabled=""[^>]*>Approve/);
+    expect(open).toContain(LEADS.score.real.move.approveNote.slice(0, 40));
     expect(open).toContain(">Not now</button>");
     expect(html()).not.toContain("Business Manager:");
   });
@@ -58,7 +59,7 @@ describe("the real scorecard on the page (D84)", () => {
     expect(text).toContain("20%");
     expect(findRateMentions(text)).toEqual([]);
     const r = LEADS.score.real;
-    const words = [r.sub("90 days"), r.unattributed(2), r.target.help("$1,000"), r.target.saved("$1,500"), r.sphereNote, r.move.approveOff, r.move.dismissed, LEAD_MOVES.tail, LEAD_MOVES.pauseWhy("Bankrate", "$1,500", 25), LEAD_MOVES.toWhy("Your web form", "$600"), LEADS.score.badgeNote, "You can call 18 · 20%", "Share you can call: 7%", "Share you can call: 45%"].join("\n");
+    const words = [r.sub("90 days"), r.unattributed(2), r.target.help("$1,000"), r.target.saved("$1,500"), r.sphereNote, r.move.approveNote, r.move.dismissed, LEAD_MOVES.tail, LEAD_MOVES.pauseWhy("Bankrate", "$1,500", 25), LEAD_MOVES.toWhy("Your web form", "$600"), LEADS.score.badgeNote, "You can call 18 · 20%", "Share you can call: 7%", "Share you can call: 45%"].join("\n");
     expect(findRateMentions(words)).toEqual([]);
     const banned = ["guaran" + "teed", "best " + "rates", "commis" + "sion", "referral " + "fee", "hur" + "ry"];
     for (const b of banned) expect(words.toLowerCase()).not.toContain(b);

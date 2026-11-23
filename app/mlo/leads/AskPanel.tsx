@@ -11,7 +11,7 @@ type Answer = Extract<LeadAnswer, { ok: true }>;
  * D85: "Ask your Concierge" at the top of Lead sources. The AI disclosure comes first; the three suggested questions
  * are real buttons. The answer card shows the answer, a table from the lead-source pack (never from the AI's words),
  * the steps "Add the steps to Today" creates (worked out again on the server), "Show the math", and "Save as my
- * 90-day plan", which waits for the budget planner.
+ * 90-day plan", which opens the budget planner (D86) with the answer's budget (nothing is saved until Save there).
  */
 export default function AskPanel({ period, example }: { period: string; example: boolean }) {
   const a = LEADS.ask;
@@ -146,7 +146,7 @@ function AnswerCard({ answer }: { answer: Answer }) {
       {refused ? null : (
         <>
           <div className="mlo-actions cc-leadans__acts">
-            <button type="button" className="mlo-btn mlo-btn--ghost" disabled aria-describedby="leads-save-off">{L.save}</button>
+            <a className="mlo-btn mlo-btn--ghost" href={`/mlo/leads/plan${answer.budgetCents ? `?budget=${Math.round(answer.budgetCents / 100)}` : ""}`} aria-describedby="leads-save-note">{L.save}</a>
             {answer.steps.length ? (
               <form action={() => startAdd(async () => setMsg(await add()))}>
                 <button type="submit" className="mlo-btn" disabled={adding}>{adding ? L.adding : L.addSteps}</button>
@@ -154,7 +154,7 @@ function AnswerCard({ answer }: { answer: Answer }) {
             ) : null}
             <button type="button" className="mlo-btn mlo-btn--ghost" aria-expanded={math} aria-controls="leads-math" onClick={() => setMath((m) => !m)}>{math ? L.hideMath : L.showMath}</button>
           </div>
-          <p className="mlo-note cc-leadans__off" id="leads-save-off">{L.saveOff}</p>
+          <p className="mlo-note cc-leadans__off" id="leads-save-note">{L.saveNote}</p>
           {msg ? <p className={`mlo-flash${msg.ok ? "" : " mlo-flash--err"} cc-leadans__msg`} role="status">{msg.line}{msg.ok ? <> <a href="/mlo#lead-steps">{L.today.see}</a></> : null}</p> : null}
           <div id="leads-math" className="cc-leadans__math" hidden={!math}>
             <h4 className="cc-leadans__sub">{L.mathTitle}</h4>

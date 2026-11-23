@@ -17,7 +17,9 @@ import { makeMonthlyDrafts, monthlyStore, pacificMonth } from "@/lib/leads/spend
 import { NOT_LEADS, sourceOptions } from "@/lib/leads/sources";
 import { FlashBox, MloNav } from "../MloChrome";
 import PageHead from "../PageHead";
-import { AddSource, ExamplePlan, ExampleRecent, ExampleScorecard, MonthlyAmounts, RealRecent, RealScorecard } from "./LeadSections";
+import { AddSource, ExamplePlan, ExampleRecent, ExampleScorecard, MonthlyAmounts, RealPlan, RealRecent, RealScorecard } from "./LeadSections";
+import { planStore } from "@/lib/leads/plan-store";
+import { advancePlan, planView } from "@/lib/leads/plan-service";
 import AskPanel from "./AskPanel";
 import { SUBS } from "@/lib/content/cc-pages";
 import "../mlo.css";
@@ -35,6 +37,8 @@ export const metadata: Metadata = { title: "Lead sources", robots: { index: fals
  * and the Business Manager's newest lead-source move above it (`?review=1` opens it).
  * D85: "Ask your Concierge" (AskPanel): answers from the lead-source pack (lib/leads/ask.ts, lib/concierge/desk.ts
  * `askLeadSources`), in general terms while the page shows examples; assistants don't get it (spend is private).
+ * D86: the plan card is the saved plan once there is one (lib/leads/plan-service.ts), with the budget planner at
+ * /mlo/leads/plan; Approve on the Business Manager's move updates that plan and adds steps to Today.
  */
 export default async function Leads({ searchParams }: { searchParams: Promise<{ f?: string; period?: string; review?: string }> }) {
   const { f, period: rawPeriod, review } = await searchParams;
@@ -53,8 +57,12 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
   const { events } = me ? await syncLeadEvents(me, { now, contacts: contacts.length < 2000 ? contacts : undefined }).catch(() => ({ events: [] })) : { events: [] };
   if (me && !assistant) await makeMonthlyDrafts(me, now).catch(() => 0);
   const monthly = me && !assistant ? await monthlyStore().list(me.id).catch(() => []) : [];
-  // D86 adds saved plans; until then there are none.
-  const mode = leadPageMode({ contacts, leadEvents: events.length, savedPlan: false, assistant });
+  // D86: the saved lead plan (own book; never for an assistant), its roadmap moved along first (steps and check-ins
+  // that are due), so the plan card is real from the first save and the banner can show a check-in.
+  if (me && !assistant) await advancePlan(me, now).catch(() => null);
+  const saved = me && !assistant ? await planStore().get(me.id).catch(() => null) : null;
+  const plan = saved && me && saved.ownerUserId === me.id ? planView(saved, now) : null;
+  const mode = leadPageMode({ contacts, leadEvents: events.length, savedPlan: !!plan, assistant });
   const month = pacificMonth(now);
   const byId = new Map(contacts.map((c) => [c.id, c]));
   const recent = recentEvents(events, 60).filter((e) => byId.has(e.contactId)).slice(0, 30);
@@ -68,7 +76,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
     add: () => (me ? <AddSource key="add" compact={mode.addCard === "compact"} endpoint={endpoint} owner={me.role === "owner"} connected={connectedSourceLabels(keys.map((k) => k.label), NOT_LEADS)} /> : null),
     ask: () => (mode.ask === "off" ? null : <AskPanel key="ask" period={period} example={mode.ask === "example"} />),
     scorecard: () => (mode.scorecard === "off" ? null : mode.scorecard === "example" ? <ExampleScorecard key="scorecard" /> : card ? <RealScorecard key="scorecard" card={card} move={move ? { id: move.id, title: move.title, why: move.why } : null} review={review === "1"} /> : null),
-    plan: () => (mode.plan === "off" ? null : <ExamplePlan key="plan" afterLeads={mode.hasRealLeads} />),
+    plan: () => (mode.plan === "off" ? null : mode.plan === "real" && plan ? <RealPlan key="plan" view={plan} /> : <ExamplePlan key="plan" afterLeads={mode.hasRealLeads} />),
     monthly: () =>
       mode.monthly === "off" ? null : (
         <MonthlyAmounts

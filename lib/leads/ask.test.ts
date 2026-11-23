@@ -286,11 +286,12 @@ describe("Add the steps to Today (D85)", () => {
 });
 
 describe("the answer card and Home (D85)", () => {
-  it("the question box is real: an AI disclosure first, three suggested questions as buttons, Save waits for the planner", () => {
+  it("the question box is real: an AI disclosure first, three suggested questions as buttons, Save opens the planner (D86)", () => {
     const panel = readFileSync("app/mlo/leads/AskPanel.tsx", "utf8");
     expect(panel.indexOf("LEAD_ASK.disclosure")).toBeLessThan(panel.indexOf("<form"));
     expect(panel).toMatch(/className="cc-leadask__q"/);
-    expect(panel).toMatch(/disabled aria-describedby="leads-save-off">\{L\.save\}/);
+    expect(panel).toMatch(/href=\{`\/mlo\/leads\/plan\$\{answer\.budgetCents \? `\?budget=\$\{Math\.round\(answer\.budgetCents \/ 100\)\}` : ""\}`\} aria-describedby="leads-save-note">\{L\.save\}/);
+    expect(panel).not.toMatch(/disabled aria-describedby="leads-save/);
     expect(panel).toMatch(/addLeadStepsAction\.bind\(null, answer\.period, answer\.intent, answer\.budgetCents \?\? 0\)/);
     expect(panel).toMatch(/aria-expanded=\{math\}/);
     expect(panel).not.toMatch(/<button[^>]*\bname=/);

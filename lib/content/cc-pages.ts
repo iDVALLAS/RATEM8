@@ -70,6 +70,8 @@ export const SUBS = {
   agents: "Who works for you, and whether each one is on.",
   team: "Who's on Command Center, their roles and whose book they work in.",
   leads: "New leads from your lead vendors and web forms, with where each came from.",
+  /** D86: the budget planner. */
+  leadPlan: "Pick a monthly budget. Your Concierge splits it across your sources by what each one has actually closed.",
 } as const;
 
 /** Home (D76). */
@@ -271,7 +273,8 @@ export const LEADS = {
       move: {
         review: "Review",
         approve: "Approve",
-        approveOff: "Approving comes with the budget planner: it will update your lead plan and add the steps to Today. Until then, make the change yourself, or clear it with Not now.",
+        /** D86: what Approve does. */
+        approveNote: "Approving only updates your saved lead plan and adds the steps to Today. It never spends money, contacts a vendor or messages anyone.",
         notNow: "Not now",
         dismissed: "Cleared. Your Business Manager suggests another move next month if the numbers call for one.",
         gone: "That suggestion isn’t waiting any more.",
@@ -281,13 +284,15 @@ export const LEADS = {
       undated: (n: number) => `${n === 1 ? "One imported lead has" : `${n} imported leads have`} no date of their own, so ${n === 1 ? "it isn’t" : "they aren’t"} counted in a period.`,
     },
   },
-  /** D82: the lead plan card (the planner comes with D86). */
+  /** D82: the lead plan card; D86 makes it real once a plan is saved. */
   plan: {
     title: "Your lead plan",
     line: (monthly: string, day: number, of: number) => `${monthly} a month · day ${day} of ${of}`,
+    done: (monthly: string, of: number) => `${monthly} a month · all ${of} days done`,
     next: (when: string) => `Next check-in ${when}`,
     open: "Open budget planner",
-    off: "The budget planner isn’t on yet.",
+    /** The example card's button opens the real planner (it saves nothing by itself). */
+    exampleNote: "The budget planner splits a budget across your own sources; nothing is saved until you press Save.",
   },
   /** D82: the add card (full on top until real leads arrive, then compact). */
   add: {
@@ -365,7 +370,8 @@ export const LEAD_ASK = {
   noLoans: "None yet",
   stepsTitle: "Steps it adds to Today",
   save: "Save as my 90-day plan",
-  saveOff: "Saving a plan comes with the budget planner. Until then, add the steps to Today.",
+  /** D86: "Save as my 90-day plan" opens the planner with the answer's budget. */
+  saveNote: "Opens the budget planner with this budget. Nothing is saved until you press Save there.",
   addSteps: "Add the steps to Today",
   adding: "Adding…",
   added: (n: number, already: number) => (n ? `Added ${n} ${n === 1 ? "step" : "steps"} to Today.` : "Nothing new to add.") + (already ? ` ${already} ${already === 1 ? "was" : "were"} already there.` : ""),
@@ -437,7 +443,9 @@ export const LEAD_ASK = {
     planFix: (src: string, canCall: number, leads: number) => `Ask ${src} for consent wording that names you before you renew: ${canCall} of ${leads} leads named you.`,
     planPause: (src: string, spend: string, leads: number) => `Pause ${src}: ${spend} spent, ${leads} ${leads === 1 ? "lead" : "leads"} and no loans closed or in progress.`,
     planThin: (src: string, leads: number) => `${src} has ${leads} ${leads === 1 ? "lead" : "leads"} so far, not enough to judge: treat it as a test.`,
-    planNext: "The budget planner splits the dollars and saves your 90-day plan; until it’s on, add these steps to Today.",
+    planNext: "Open the budget planner to split the dollars across your sources and save it as your 90-day plan.",
+    /** D86: the saved plan, when there is one. */
+    planSaved: (budget: string, day: number, of: number) => `Your saved plan: ${budget} a month, day ${day} of ${of}.`,
     // Which vendors don't give me permission?
     permNone: "Every vendor lead in this period came with wording that names you.",
     permNoLeads: "No vendor leads in this period yet, so there’s nothing to check.",
