@@ -7384,3 +7384,40 @@ the alphabet on.
   of queries per 500 people. (4) Neon wasn't run here (no database); its `getMany` and the `ORDER BY sort_name, id` change are covered by
   type checks and the same tests on the memory store.
 - **Next up:** owner review of D81–D87.2, then "promote".
+
+## D87.3 — Read every message past 5,000 (2026-11-23)
+
+The bug (D87.2 known issue 1): the Neon message store's `since(owner, since)` has always (since D27) run
+`… ORDER BY at DESC LIMIT 5000`, so it silently returned only the newest 5,000 messages; the memory store's `since()` had no
+cap, so unit tests and browser QA never showed the cut. Same kind of bug as D87.2's 500-contact page.
+
+- **Files:** `lib/messaging/store.ts` (`TOUCH_PAGE_MAX` 5,000 in both stores; `TOUCH_CAP` 50,000; `sincePage`; `allSince`;
+  `since()` is now one capped page, newest first, in both stores), `lib/export/service.ts`, `lib/report/weekly.ts`,
+  `lib/agents/runner.ts`, `lib/messaging/touch-paging.test.ts` (new, 7 tests), `CLAUDE.md` (§1 note, §3.4 test count).
+- **Both stores the same:** `since()` and `sincePage()` return at most 5,000 a call in Neon and in memory, newest first, ties on
+  `at` broken by id (`at DESC, id DESC`). The memory store used to return every row in insertion order.
+- **The helper:** `allSince(owner, since, { until, cap })` reads 5,000 at a time by keyset on (`at`, id) until the range
+  (`since <= at < until`) ends or the cap (50,000 at most) is reached, and returns `{ touches, capped }`, newest first. Neon's page
+  is `WHERE owner_user_id = $1 AND at >= $2 [AND at < $3] [AND (at, id) < ($n, $n+1)] ORDER BY at DESC, id DESC LIMIT $m`: every
+  value is a bound parameter, and every page is scoped to the one owner (own book only). The cursor's `at` is the stored value to
+  the microsecond (`to_char(… US)`), because a touch's `at` is rounded to the millisecond and could otherwise skip or repeat a row.
+  `capped` comes from a one-row check after the cap, so exactly `cap` messages is not reported as capped.
+- **Every caller fixed, and what a loan officer with more than 5,000 messages was missing:**
+  - `lib/export/service.ts` Download everything: messages.csv, promised as every text, email and call, held only the newest 5,000.
+    Now all of them (newest first). If 50,000 is ever reached the README says "messages.csv holds your newest N messages. Older
+    ones are not in this download."
+  - `lib/report/weekly.ts` weekly report: each week read `since(from)` and filtered to the week; the week before read both weeks,
+    so its counts were the first to be cut. Now each week reads exactly its own range (`until`).
+  - `lib/agents/runner.ts` the team's daily plan: the last-touch map over 400 days missed anyone whose last touch was older than the
+    newest 5,000, so a partner could look untouched and be proposed again.
+- **Verified:** `npm run verify` passes (1,109 tests: 7 new; lint warnings unchanged from the base, none in changed files; check:copy, check:identity, check:licensing, build, check:bundle). New tests (`lib/messaging/touch-paging.test.ts`): the memory store returns 5,000 a call, newest first, for limits 5,001 to 1,000,000 and says when a page is the last (12,345 messages); `allSince` returns all 12,345 once each, newest first, none of another book's, and pages of 7 by keyset neither repeat nor skip a row where two messages share a timestamp; a cap of 6,000 keeps the newest 6,000 and reports `capped`, exactly the cap is not capped, and it never reads past 50,000; a time window (`until`) spanning two pages; the Neon page's SQL text has only placeholders (an owner, time and id holding SQL are bound parameters, never in the text), orders by `at DESC, id DESC` and carries the microsecond cursor; Download everything has all 12,345 messages and no cap note, and at 50,001 holds 50,000 with the README note; the weekly report counts 6,000 texts this week and 5,500 the week before. Five of the seven fail on the base code. On freshly started servers: `node scripts/qa/command-center.mjs` PROBLEMS none (with dummy `GOOGLE_OAUTH_CLIENT_ID`/`SECRET` so the Gmail start redirects; without them its only problem is "did not go to Google"); `node scripts/qa/buttons.mjs` 524 page views, PROBLEMS none (its seed runs the team's daily plan); `node scripts/qa/leads-a11y.mjs` 42 page views, 1,593 controls named, 1,533 tap targets, lowest contrast 5.34:1, PROBLEMS none; `overflow.mjs`, `fonts.mjs` (0 findings), `footer.mjs` and `about.mjs` pass (overflow also logs one 404 resource per width, not checked against the base; no page or asset changed here).
+- **Decisions:** (a) 5,000 a query stays in Neon and is now in memory too. (b) Keyset (`at`, id), not OFFSET: pages are
+  sequential, but a message sent while a download is being built can't shift a page. (c) Cap 50,000 for whole-history readers,
+  twice D87.2's book cap; reported as `capped`, and Download everything says so. (d) No index added: `cc_touches_owner
+  (owner_user_id, at DESC)` already serves the pages; the id only breaks ties within one timestamp.
+- **Known issues:** (1) Neon wasn't run here (no database); the SQL text and its bound parameters are checked by a test with a fake
+  query function, and the paging behaviour by the same tests on the memory store. (2) A book near 50,000 messages may push Download
+  everything past Vercel's ~4.5 MB response (as D87.2 noted for contacts). (3) The team's daily plan doesn't act on `capped`; past
+  50,000 messages in 400 days the oldest touches are left out of the last-touch map. (4) No unit test drives `proposeAll` past 5,000
+  messages; the change there is the one-line switch to `allSince`.
+- **Next up:** owner review of D81–D87.3, then "promote".

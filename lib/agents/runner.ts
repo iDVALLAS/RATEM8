@@ -19,7 +19,7 @@
 import { randomBytes } from "node:crypto";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { listAll, type Contact } from "@/lib/contacts/store";
-import { touchStore } from "@/lib/messaging/store";
+import { allSince } from "@/lib/messaging/store";
 import { sendText, type SendOutcome } from "@/lib/messaging/service";
 import { sendEmail } from "@/lib/messaging/email";
 import { myValues } from "@/lib/templates/service";
@@ -201,7 +201,8 @@ function relocationPlan(ctx: Ctx): Proposal[] {
 export async function proposeAll(user: User, settings: TeamSettings, now: Date): Promise<Proposal[]> {
   const { contacts } = await listAll({ ownerUserId: user.id });
   const mine = contacts.filter((c) => c.ownerUserId === user.id);
-  const touches = await touchStore().since(user.id, iso(new Date(now.getTime() - 400 * DAY)));
+  // D87.3: every touch in 400 days, page by page (one read used to stop at the newest 5,000).
+  const { touches } = await allSince(user.id, iso(new Date(now.getTime() - 400 * DAY)));
   const lastTouch = new Map<string, string>();
   for (const t of touches) if ((lastTouch.get(t.contactId) ?? "") < t.at) lastTouch.set(t.contactId, t.at);
   const mv = myValues(user);

@@ -47,6 +47,25 @@ export interface OptOutStore {
 
 export const phoneHash = (p: string) => createHash("sha256").update(`lm8-optout:${p}`).digest("hex");
 
+/**
+ * D87.3: the most touches one `since`/`sincePage` call returns, in both stores. Neon has always stopped
+ * here (D27's `LIMIT 5000`); the memory store now does too, so tests and browser QA see what production does.
+ */
+export const TOUCH_PAGE_MAX = 5_000;
+/** D87.3: the most touches `allSince` reads for one caller unless it asks for fewer. */
+export const TOUCH_CAP = 50_000;
+
+/**
+ * D87.3: where a keyset page stopped: the last row's `at` and id. In Neon `at` is the stored value to the
+ * microsecond (a touch's own `at` is rounded to the millisecond), so a page never repeats or skips a row.
+ */
+export type TouchCursor = { at: string; id: string };
+export type TouchPage = { touches: Touch[]; next: TouchCursor | null };
+
+const pageLimit = (limit: number | undefined) => Math.max(1, Math.min(Math.floor(limit ?? TOUCH_PAGE_MAX), TOUCH_PAGE_MAX));
+/** Newest first, then id descending: the one order both stores page in. */
+const newestFirst = (a: Touch, b: Touch) => (a.at < b.at ? 1 : a.at > b.at ? -1 : a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
+
 export interface TouchStore extends OptOutStore {
   add(t: Touch): Promise<void>;
   setStatus(providerId: string, status: string): Promise<void>;
@@ -55,8 +74,17 @@ export interface TouchStore extends OptOutStore {
   threads(ownerUserId: string | undefined, limit?: number): Promise<Touch[]>;
   /** Marketing touches out to this contact since a time, by channel. */
   sentSince(contactId: string, since: string): Promise<Touch[]>;
-  /** D27: everything in or out for one loan officer's book since a time (for the weekly report). */
+  /**
+   * D27: one loan officer's touches since a time, newest first (`at`, then id). D87.3: at most
+   * TOUCH_PAGE_MAX in both stores. To read everything use `allSince` (below).
+   */
   since(ownerUserId: string, since: string): Promise<Touch[]>;
+  /**
+   * D87.3: one keyset page of one loan officer's touches with `since <= at < until`, newest first
+   * (`at` DESC, id DESC), strictly after `after` in that order. At most TOUCH_PAGE_MAX rows, whatever
+   * `limit` asks. `next` is the cursor for the following page, or null when this page was the last.
+   */
+  sincePage(ownerUserId: string, since: string, opts?: { until?: string; after?: TouchCursor | null; limit?: number }): Promise<TouchPage>;
   /** D6: loan officers who have texted this phone from this sender number. */
   ownersWhoTexted(phone: string, sender: string): Promise<string[]>;
   /** D77: a merge moves one record's messages onto the record kept (same book). Returns how many moved. */
@@ -97,7 +125,18 @@ export class MemoryTouchStore implements TouchStore {
     return this.rows.filter((r) => r.contactId === id && r.direction === "out" && r.purpose === "marketing" && r.status !== "blocked" && r.at >= since);
   }
   async since(owner: string, since: string) {
-    return this.rows.filter((r) => r.ownerUserId === owner && r.at >= since).map((r) => ({ ...r }));
+    return (await this.sincePage(owner, since)).touches;
+  }
+  async sincePage(owner: string, since: string, opts: { until?: string; after?: TouchCursor | null; limit?: number } = {}) {
+    const lim = pageLimit(opts.limit);
+    const a = opts.after ?? null;
+    const rows = this.rows
+      .filter((r) => r.ownerUserId === owner && r.at >= since && (opts.until === undefined || r.at < opts.until) && (!a || r.at < a.at || (r.at === a.at && r.id < a.id)))
+      .sort(newestFirst)
+      .slice(0, lim)
+      .map((r) => ({ ...r }));
+    const last = rows[rows.length - 1];
+    return { touches: rows, next: rows.length === lim && last ? { at: last.at, id: last.id } : null };
   }
   async moveContact(from: string, to: string) {
     let n = 0;
@@ -180,8 +219,29 @@ export class NeonTouchStore implements TouchStore {
     return (await this.q(`SELECT * FROM cc_touches WHERE contact_id = $1 AND direction = 'out' AND purpose = 'marketing' AND status <> 'blocked' AND at >= $2`, [id, since])).map(toTouch);
   }
   async since(owner: string, since: string) {
+    return (await this.sincePage(owner, since)).touches;
+  }
+  async sincePage(owner: string, since: string, opts: { until?: string; after?: TouchCursor | null; limit?: number } = {}) {
     await this.init();
-    return (await this.q(`SELECT * FROM cc_touches WHERE owner_user_id = $1 AND at >= $2 ORDER BY at DESC LIMIT 5000`, [owner, since])).map(toTouch);
+    const lim = pageLimit(opts.limit);
+    // Every value is a bound parameter; only the placeholder numbers are built here.
+    const p: unknown[] = [owner, since];
+    let w = `owner_user_id = $1 AND at >= $2::timestamptz`;
+    if (opts.until !== undefined) {
+      p.push(opts.until);
+      w += ` AND at < $${p.length}::timestamptz`;
+    }
+    if (opts.after) {
+      p.push(opts.after.at, opts.after.id);
+      w += ` AND (at, id) < ($${p.length - 1}::timestamptz, $${p.length}::text)`;
+    }
+    p.push(lim);
+    const rows = await this.q(
+      `SELECT *, to_char(at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS at_key FROM cc_touches WHERE ${w} ORDER BY at DESC, id DESC LIMIT $${p.length}`,
+      p,
+    );
+    const last = rows[rows.length - 1];
+    return { touches: rows.map(toTouch), next: rows.length === lim && last ? { at: last.at_key as string, id: last.id as string } : null };
   }
   async moveContact(from: string, to: string) {
     await this.init();
@@ -208,4 +268,35 @@ export function touchStore(): TouchStore {
     neonStore = new NeonTouchStore((text, params) => sql.query(text, params ?? []) as Promise<Row[]>);
   }
   return neonStore;
+}
+
+/** D87.3: what `allSince` read. `capped` means the cap stopped it while older touches were still there. */
+export type AllTouches = { touches: Touch[]; capped: boolean };
+
+/**
+ * D87.3: every touch in one loan officer's book with `since <= at < until`, newest first, read
+ * TOUCH_PAGE_MAX at a time by keyset (`at`, then id) until the range ends or `cap` is reached
+ * (TOUCH_CAP at most). Own book only: every page is scoped to `ownerUserId`. When the cap stops it,
+ * the newest `cap` are kept and `capped` is true (a one-row check, so exactly `cap` touches is not capped).
+ */
+export async function allSince(ownerUserId: string, since: string, opts: { until?: string; cap?: number; store?: TouchStore } = {}): Promise<AllTouches> {
+  const store = opts.store ?? touchStore();
+  const cap = Math.max(1, Math.min(Math.floor(opts.cap ?? TOUCH_CAP), TOUCH_CAP));
+  const out: Touch[] = [];
+  const seen = new Set<string>();
+  let after: TouchCursor | null = null;
+  for (;;) {
+    const page: TouchPage = await store.sincePage(ownerUserId, since, { until: opts.until, after, limit: Math.min(TOUCH_PAGE_MAX, cap - out.length) });
+    for (const t of page.touches) {
+      if (seen.has(t.id)) continue;
+      seen.add(t.id);
+      out.push(t);
+    }
+    if (!page.next || page.touches.length === 0) return { touches: out, capped: false };
+    after = page.next;
+    if (out.length >= cap) {
+      const more = await store.sincePage(ownerUserId, since, { until: opts.until, after, limit: 1 });
+      return { touches: out.slice(0, cap), capped: more.touches.length > 0 };
+    }
+  }
 }
