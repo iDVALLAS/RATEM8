@@ -14,7 +14,8 @@ import { FlashBox } from "../MloChrome";
 import { giftAction, moveDismissAction, moveDoneAction, runNowAction, sendDraftAction } from "./actions";
 import PageHead from "../PageHead";
 import { Icon } from "../icons";
-import { AGENTS_HUB, SUBS } from "@/lib/content/cc-pages";
+import { AGENTS_HUB, LEADS, SUBS } from "@/lib/content/cc-pages";
+import { scoreUsd } from "@/lib/leads/scorecard";
 import { conciergeStore } from "@/lib/concierge/store";
 import { autonomyOf } from "@/lib/loa/service";
 import { loaAutoOn } from "@/lib/loa/autonomy";
@@ -175,10 +176,13 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
               <p className="mlo-note" style={{ marginTop: 8 }}>From your <Link href="/mlo/expenses">Expenses</Link> (confirmed entries only{biz.drafts ? `; ${biz.drafts} drafts waiting` : ""}) and your loans. {Math.round(SET_ASIDE * 100)}% of profit is a common starting point for self-employed set-asides, not tax advice: your CPA sets the real number.</p>
               {biz.sources.length ? (
                 <div style={{ overflowX: "auto", marginTop: 8 }}>
+                  {/* D84: the Lead sources scorecard for the last 90 days (the same numbers as the page). */}
                   <table className="mlo-table">
-                    <thead><tr><th>Lead source</th><th>Leads</th><th>Became loans</th></tr></thead>
-                    <tbody>{biz.sources.map((x) => <tr key={x.source}><td>{x.source}</td><td>{x.leads}</td><td>{x.loans}{x.leads ? ` (${Math.round((x.loans / x.leads) * 100)}%)` : ""}</td></tr>)}</tbody>
+                    <caption className="sr-only">{AGENTS_HUB.sourcesCaption}</caption>
+                    <thead><tr><th scope="col">Lead source</th><th scope="col">Spent</th><th scope="col">Leads</th><th scope="col">You can call</th><th scope="col">Loans closed</th><th scope="col">Per loan</th><th scope="col">Concierge says</th></tr></thead>
+                    <tbody>{biz.sources.map((x) => <tr key={x.key}><th scope="row">{x.source}</th><td>{scoreUsd(x.spendCents)}</td><td>{x.leads}</td><td>{x.canCall}{x.sharePct === null ? "" : ` (${x.sharePct}%)`}</td><td>{x.loans}</td><td>{scoreUsd(x.perLoanCents)}</td><td>{x.badge ? LEADS.score.badges[x.badge] : ""}</td></tr>)}</tbody>
                   </table>
+                  <p className="mlo-note">{AGENTS_HUB.sourcesNote} <Link href="/mlo/leads">{AGENTS_HUB.sourcesLink}</Link></p>
                 </div>
               ) : null}
             </section>

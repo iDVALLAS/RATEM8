@@ -1136,3 +1136,19 @@
 .cc-monthly__form { margin-top: 14px; }
 .cc-monthly__form .mlo-field { flex: 1 1 180px; }
 .cc-monthly > .mlo-note:last-child { margin: 10px 0 0; }
+
+/* ─── D84: the real scorecard (period switch, the Business Manager's move, the target) ─── */
+/* Each period is its own form (a bound action); the forms step aside so the buttons sit in the pill. */
+.cc-period form { display: contents; }
+.cc-score .cc-score__sub { margin: 6px 0 0; }
+.cc-score__tbl--live { min-width: 860px; }
+.cc-score__each { display: block; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.cc-app .cc-num--warn .cc-score__each { color: var(--muted); }
+.cc-leadbanner > .mlo-btn { flex: 0 0 auto; }
+.cc-leadmove { margin-top: 10px; padding: 12px 16px; border: 1px solid var(--rule-strong); border-radius: 14px; }
+.cc-leadmove__why { margin: 0; color: var(--fg); font-size: 14.5px; line-height: 1.55; }
+.cc-leadmove__acts { margin-top: 12px; }
+.cc-app .cc-leadmove__all { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--accent); font-size: 14px; }
+.cc-leadmove > .mlo-note { margin: 8px 0 0; }
+.cc-score .cc-target { margin-top: 14px; }
+.cc-target .mlo-field { flex: 0 1 220px; }

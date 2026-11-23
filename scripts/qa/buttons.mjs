@@ -325,23 +325,44 @@ function audit() {
         const key = new URL((await lp.locator('#add code.mlo-code').first().innerText()).trim()).searchParams.get('key') ?? '';
         await lp.request.post(B + '/api/leads/inbound?source=Zillow', { headers: { 'X-CC-Key': key }, data: { first_name: 'Eve', last_name: 'Ng', phone: '(503) 555-2468' } });
       }
+      // D84: ten Bankrate leads whose form didn't name the loan officer, so the Business Manager proposes a move
+      // (the scorecard's banner and its Review panel are audited too).
+      await lp.goto(B + '/mlo/leads', { waitUntil: 'networkidle' });
+      if (!(await lp.locator('#scorecard tbody tr[data-source=bankrate]').count())) {
+        await lp.locator('#add input.mlo-input').fill('Bankrate');
+        await lp.locator('#add').getByRole('button', { name: 'Make my connection address' }).click();
+        const key = new URL((await lp.locator('#add code.mlo-code').first().innerText()).trim()).searchParams.get('key') ?? '';
+        for (let i = 0; i < 10; i++) await lp.request.post(B + '/api/leads/inbound?source=Bankrate', { headers: { 'X-CC-Key': key }, data: { first_name: `Bri${i}`, last_name: 'Quinn', phone: `(503) 555-30${10 + i}` } });
+        await lp.goto(B + '/mlo/leads', { waitUntil: 'networkidle' });
+      }
+      if (!(await lp.locator('#scorecard .cc-leadbanner').count())) {
+        await lp.goto(B + '/mlo/agents/setup', { waitUntil: 'networkidle' });
+        await lp.locator('input[name=enabled]').check();
+        await lp.getByRole('button', { name: 'Save', exact: true }).click(); await lp.waitForURL(/f=/);
+        await lp.goto(B + '/mlo/agents', { waitUntil: 'networkidle' });
+        await lp.getByRole('button', { name: 'Run now' }).click(); await lp.waitForURL(/f=/);
+        await lp.goto(B + '/mlo/agents/setup', { waitUntil: 'networkidle' });
+        await lp.locator('input[name=enabled]').uncheck();
+        await lp.getByRole('button', { name: 'Save', exact: true }).click(); await lp.waitForURL(/f=/);
+      }
     } catch (e) { problems.push(`[leads real seed] FAILED: ${e.message.split('\n')[0]}`); }
     await ctx.close();
-    for (const theme of ['night', 'paper']) for (const w of [390, 1280]) {
+    for (const [name, url] of [['leads real', '/mlo/leads'], ['leads review', '/mlo/leads?period=30d&review=1']]) for (const theme of ['night', 'paper']) for (const w of [390, 1280]) {
       const c = await b.newContext({ viewport: { width: w, height: 900 } });
       await c.addCookies(cookies);
       await c.addInitScript((t) => { try { localStorage.setItem('loanm8.theme', t); } catch {} }, theme);
       const page = await c.newPage();
-      const where = `leads real @${w} ${theme}`;
+      const where = `${name} @${w} ${theme}`;
       try {
-        await page.goto(B + '/mlo/leads', { waitUntil: 'networkidle' });
+        await page.goto(B + url, { waitUntil: 'networkidle' });
         await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
         await page.waitForTimeout(150);
         const res = await page.evaluate(audit);
         total++;
         for (const p of [...new Set(res.problems)]) problems.push(`[${where}] ${p}`);
         json[where] = { height: res.height, buttons: res.dump };
-        if (out) await page.screenshot({ path: path.join(out, `leads_real-${w}-${theme}.png`), fullPage: true });
+        if (url.includes('review') && !(await page.locator('#lead-move-review').count())) problems.push(`[${where}] no lead-source move to review`);
+        if (out) await page.screenshot({ path: path.join(out, `${name.replace(' ', '_')}-${w}-${theme}.png`), fullPage: true });
       } catch (e) { problems.push(`[${where}] FAILED: ${e.message.split('\n')[0]}`); }
       await c.close();
     }

@@ -15,6 +15,7 @@ import { mloById } from "@/lib/config";
 import { toE164 } from "@/lib/contacts/normalize";
 import { STATE_ZONES } from "@/lib/send-gate/rules";
 import { DEFAULT_ZONE, isZone, type TimeZone } from "@/lib/inbox/state";
+import { BADGE_RULES, cleanTarget } from "@/lib/leads/scorecard";
 
 export const LEAD_ALERTS = ["email", "text", "both", "off"] as const;
 export type LeadAlert = (typeof LEAD_ALERTS)[number];
@@ -31,6 +32,8 @@ export type Prefs = {
   alertPhone: string | null;
   /** Alerts waiting for the hours to open: who, and when the lead came in. */
   held: { contactId: string; at: string }[];
+  /** D84: the target cost per loan on Lead sources' scorecard, in cents (default $1,000). */
+  leadTargetCents: number;
   updatedAt: string | null;
 };
 
@@ -42,7 +45,7 @@ export function defaultZone(user: Pick<User, "mloId">): TimeZone {
 }
 
 export function defaultPrefs(user: Pick<User, "id" | "mloId">): Prefs {
-  return { userId: user.id, timeZone: defaultZone(user), leadAlert: "email", alertFrom: 8, alertTo: 21, alertPhone: toE164(mloById(user.mloId)?.phone), held: [], updatedAt: null };
+  return { userId: user.id, timeZone: defaultZone(user), leadAlert: "email", alertFrom: 8, alertTo: 21, alertPhone: toE164(mloById(user.mloId)?.phone), held: [], leadTargetCents: BADGE_RULES.defaultTargetCents, updatedAt: null };
 }
 
 /** A stored row read safely: anything odd falls back to the default. */
@@ -58,6 +61,7 @@ function cleanStored(user: Pick<User, "id" | "mloId">, raw: Partial<Prefs> | nul
     alertTo: hour(raw.alertTo, 1, 24, d.alertTo),
     alertPhone: raw.alertPhone === undefined ? d.alertPhone : typeof raw.alertPhone === "string" ? toE164(raw.alertPhone) : null,
     held: Array.isArray(raw.held) ? raw.held.filter((h) => h && typeof h.contactId === "string" && typeof h.at === "string").slice(-HELD_MAX) : [],
+    leadTargetCents: raw.leadTargetCents === undefined ? d.leadTargetCents : cleanTarget(raw.leadTargetCents),
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : null,
   };
 }
@@ -165,6 +169,19 @@ export async function savePrefs(user: Pick<User, "id" | "mloId">, input: PrefsIn
   const cur = await prefsFor(user);
   await prefsStore().put({ ...cur, ...r.values, updatedAt: now.toISOString() });
   return r;
+}
+
+/**
+ * D84: the target cost per loan for the scorecard, in whole dollars ($100 to $100,000). Only the loan officer's
+ * own; assistants have no scorecard.
+ */
+export async function setLeadTarget(user: Pick<User, "id" | "mloId" | "role">, dollars: number, now = new Date()): Promise<{ ok: true; cents: number } | { ok: false; error: "range" | "assistant" }> {
+  if (user.role === "assistant") return { ok: false, error: "assistant" };
+  const cents = Math.round(Number(dollars) * 100);
+  if (!Number.isFinite(cents) || cents < BADGE_RULES.minTargetCents || cents > BADGE_RULES.maxTargetCents) return { ok: false, error: "range" };
+  const cur = await prefsFor(user);
+  await prefsStore().put({ ...cur, leadTargetCents: cents, updatedAt: now.toISOString() });
+  return { ok: true, cents };
 }
 
 /** Adds an alert to the waiting list (newest kept). */

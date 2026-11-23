@@ -169,7 +169,7 @@ describe("Your settings (D79)", () => {
       calls.push({ text, params });
       return [];
     });
-    await s.put({ userId: "lo1", timeZone: "America/Denver", leadAlert: "off", alertFrom: 8, alertTo: 21, alertPhone: null, held: [{ contactId: "c_x", at: "2026-11-17T00:00:00Z" }], updatedAt: null });
+    await s.put({ userId: "lo1", timeZone: "America/Denver", leadAlert: "off", alertFrom: 8, alertTo: 21, alertPhone: null, held: [{ contactId: "c_x", at: "2026-11-17T00:00:00Z" }], leadTargetCents: 100_000, updatedAt: null });
     expect(calls.some((c) => /CREATE TABLE IF NOT EXISTS cc_user_prefs/.test(c.text))).toBe(true);
     const ins = calls.find((c) => /INSERT INTO cc_user_prefs/.test(c.text))!;
     expect(ins.params[0]).toBe("lo1");

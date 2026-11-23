@@ -7,6 +7,7 @@ import { INFO_TIP, LEADS } from "@/lib/content/cc-pages";
 import InfoTip from "../InfoTip";
 import PermissionTip from "./PermissionTip";
 import { ExampleScorecard, MonthlyAmounts, RealScorecard } from "./LeadSections";
+import { leadScorecard } from "@/lib/leads/scorecard";
 
 /** D81: Lead sources copy cleanup and the permission "i". */
 describe("Lead sources copy (D81)", () => {
@@ -97,7 +98,8 @@ describe("the monthly amounts section (D83)", () => {
     expect(html).toContain('<option value="other">Other…</option>');
     expect(html).toContain('name="dollars"');
     expect(html).not.toContain("cc-ex");
-    for (const el of [createElement(ExampleScorecard), createElement(RealScorecard, { rows: [], undated: 2 })]) expect(renderToStaticMarkup(el)).toContain('href="#monthly"');
-    expect(renderToStaticMarkup(createElement(RealScorecard, { rows: [], undated: 2 }))).toContain("2 imported leads have no date of their own");
+    const card = { ...leadScorecard({ period: "90d", now: new Date("2026-11-22T12:00:00Z"), events: [], spend: [], loans: [], contacts: [] }), undated: 2 };
+    for (const el of [createElement(ExampleScorecard), createElement(RealScorecard, { card, move: null })]) expect(renderToStaticMarkup(el)).toContain('href="#monthly"');
+    expect(renderToStaticMarkup(createElement(RealScorecard, { card, move: null }))).toContain("2 imported leads have no date of their own");
   });
 });

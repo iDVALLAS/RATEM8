@@ -6797,3 +6797,117 @@ every delivery is an event, and the Lead sources page reads counts from the even
   `leadSource`, at their business share). Pre-D83 repeats exist only where the audit log kept them, and webhook retries before D83 can't be told
   apart (no vendor id was stored). The Lead sources page reads up to 2,000 contacts itself; bigger books are synced with a full read.
 - **Next up:** D84 (scorecard, Option B), after the owner's sign-off.
+
+## D84 — Lead source scorecard (Option B) (2026-11-22)
+
+Spec: "## D84" in `docs/work/D81-D87-lead-sources-2026-11-22.md` (the owner's brief, verbatim), with "Owner decisions (2026-11-22)" 1–4,
+the "Builder notes" and "Owner decision 5". Built after Option B (table on desktop, stacked cards on phones) and "The page once it's built":
+D72 classes, tokens only, words in `lib/content/cc-pages.ts`. Example mode (D82) is unchanged: the example scorecard stays until the first
+real lead, and real and example rows never share the section.
+
+- **Files:** new `lib/leads/scorecard.ts` (pure: `leadScorecard`, `periodWindow`, `leadSpendCents`, `loanStart`, `firstSources`, `creditFor`,
+  `badgeRules`, `assignBadges`, `BADGE_RULES`, `BADGE_PRECEDENCE`, `leadSourceMove`, `cleanTarget`, `scoreUsd`), `lib/leads/score-service.ts`
+  (`scorecardFor`), `lib/leads/scorecard.test.ts` (14), `app/mlo/leads/scorecard.test.ts` (3); changed `app/mlo/leads/{page,LeadSections,actions}.tsx`,
+  `lib/agents/{business,compliance,runner}.ts`, `app/mlo/agents/page.tsx`, `lib/profile/prefs.ts` (`leadTargetCents`, `setLeadTarget`),
+  `lib/content/cc-pages.ts` (`LEADS.score.badges.thin`, `badgeNote`, `real.*`; new `LEAD_MOVES`; `AGENTS_HUB.sources*`), `app/mlo/cc-shell.css`
+  (D84 block), `lib/leads/{examples,d83}.test.ts`, `app/mlo/leads/leads.test.ts`, `lib/inbox/inbox.test.ts`, `scripts/qa/{command-center,buttons}.mjs`,
+  `CLAUDE.md`.
+- **What the loan officer sees:** *Lead sources* (after the first real lead) — **Scorecard** with 30 days / 90 days / This year (90 days first) and
+  "The last 90 days: spend from your lead-spend lines in Expenses, leads from your lead log, loans from your pipeline." On desktop a table: Source ·
+  Spent · Leads · Per lead · You can call ("18 · 20%", with "$150 each" under it, under 50% in the warning color) · In pipeline · Loans · Per loan
+  ("None yet" with no loans) · Repeats · Concierge says (the badge). "Past clients & sphere" is always the first row; the rest are ordered by cost
+  per loan. Under 720px each source is a card: name and badge, "$600 per loan" (or "No loans yet"), then Spent, Leads, Per lead, You can call, Per
+  lead you can call, In pipeline, Loans, Repeats (the sphere card says what its spend and leads are). Under it: "Spend comes from lead-spend lines in
+  Expenses. Log spend · Set a monthly amount per source", the **Target cost per loan ($)** box with Save target ("Target saved: $1,500 per loan."),
+  how many imported leads have no date and how many closed loans have no lead source (when any), and the "You can call", "Repeats" and badge notes.
+  When the Business Manager has an open lead-source move, it's the banner above the table ("Business Manager: Pause Zillow for 60 days" · Review);
+  Review opens the why, a disabled **Approve** ("Approving comes with the budget planner…"), **Not now** and "See it with your AI assistants".
+  *AI assistants* — the Business Manager's table is now this scorecard for the last 90 days (Spent, Leads, You can call, Loans closed, Per loan,
+  Concierge says) with "Open the scorecard".
+- **The math** (`leadScorecard`, pure, never imports the example fixture): leads are lead events dated in the period (every delivery; repeats are
+  the `duplicate` ones; "you can call" is the event's frozen `namesYou`, decision 1); an import with no date of its own counts in no period and is
+  counted in `undated` (decision 5). Spend is confirmed `expense` lines with a `leadSource`, dated in the period, at `amount × businessPct` (the
+  year-end report's tax-only rules — 50% meals and the $25 gift limit — don't change what a source cost). Loans: closed = `closed && !dead` with
+  `milestoneAt` in the period; in pipeline = open (not closed, not dead) and started in the period ("started" = `keyDates.application`, else the
+  first history entry). Per lead, per lead you can call and per loan are null (shown "—") with no spend or nothing to divide by; share is null
+  with no leads. Nothing is NaN or Infinity (a test walks every number).
+- **Which row a loan counts for (one only):** a new loan for someone whose earlier loan already closed (another closed loan, or the contact's
+  closed-on date, before this one started) is repeat business → Past clients & sphere; else the contact's first lead source (their earliest
+  event); else Past clients & sphere when the contact's relationship is past client or sphere (decision 3); else no row (counted as "no lead
+  source"). This keeps a Zillow lead's first loan on Zillow even though the loan sync makes them a past client when it closes.
+- **Past clients & sphere row:** spend = lines tagged with that source (cards, Thanks.io, closing gifts — decision 3); leads = events with the sphere
+  key (an import's "Referral" etc., decision 5) plus each past client or sphere contact who started a loan in the period (once each, and counted as
+  someone you can call: they came to you); loans as above. Never "Fix permission" (no vendor wording to fix).
+- **Badges** (`BADGE_RULES`, one object; `BADGE_PRECEDENCE` pause, thin, fix, best, scale, watch): **Pause?** ≥ $1,000 spent in the period, ≥ 60
+  days since the source's first lead or spend (any time), and no loans closed or in progress; **Not enough data** < 10 leads (overrides all but
+  Pause?); **Fix permission** ≥ 10 leads and < 50% you can call; **Best value** the lowest cost per loan among rows with ≥ 1 closed loan and spend
+  that no earlier badge took (one per scorecard); **Scale up** ≥ 2 loans and cost per loan ≤ the target; **Watch** spend and (fewer than 2 loans
+  or cost per loan over the target).
+- **Target:** `Prefs.leadTargetCents` in `cc_user_prefs` (Neon jsonb body or memory, same code), default $1,000, $100–$100,000; `setLeadTarget`
+  refuses assistants; the form is a bound action (`saveTargetAction.bind(null, period)`). The period switch is three real `<button>`s with
+  `aria-pressed`, each in its own bound-action form (`scorePeriodAction.bind(null, "30d")`), 44px, in a named group "Period"; the URL carries
+  `?period=30d|year` (90 days is the default and has none).
+- **Business Manager:** `snapshot.sources` is the 90-day scorecard (rows with nothing left out): key, source, spend, leads, can call, share, per
+  lead, per lead you can call, in pipeline, loans (closed), per loan, repeats, badge. `leadSourceMove` (pure, deterministic): a Pause? source
+  (most spend; never Past clients & sphere) → "Move Bankrate’s budget to your web form for 60 days" (to the Best value row, else the cheapest
+  Scale up) or "Pause Zillow for 60 days" when there's nowhere better; else the Fix permission source with the most leads → "Ask LendingTree for
+  consent wording that names you". At most one per 30 days (no `lead-source:` move created in the last 30 days, whatever its answer), key
+  `lead-source:<kind>:<source>:<YYYY-MM>`, `kind: "plan"`, `href: /mlo/leads`, `contactId: null`. Every move is checked by `reviewMove`, which now
+  judges `lead-source:` moves on their words with `reviewLeadMove` (in `businessIdeas` and again in `runTeam`; a failing one is never saved).
+- **Approve (decision for D86):** kept **disabled with honest text** ("Approving comes with the budget planner: it will update your lead plan and
+  add the steps to Today. Until then, make the change yourself, or clear it with Not now."). D86 adds the plan store and wires Approve to update the
+  saved plan and add the steps as Business Manager tasks (`contactId: null`, `href`), the same task shape this move already uses. Not now
+  (`dismissLeadMoveAction.bind(null, period, id)`) only closes the loan officer's own `lead-source:` move. Nothing here spends money, contacts a
+  vendor or messages anyone.
+- **Compliance wording** (`reviewLeadMove`): refuses a gift tied to referrals, spending described as "the cost of a referral", paying, rewarding or
+  splitting anything for referrals, referral payments, kickbacks and "exclusive" deals (RESPA §8), trigger leads and credit-inquiry data, contacting
+  leads without permission or ignoring opt-outs, and any rate (`findRateMentions`, "interest rate", "APR"). The move copy (`LEAD_MOVES`) ends with
+  "Nothing changes until you approve it. Approving only updates your lead plan and adds the steps to Today; it never spends money, contacts a vendor
+  or messages anyone."
+- **Assistants:** no scorecard at all (as D82: the section is off for them; spend is private and the badges are spend-based), no target, no moves.
+- **Tests** (`lib/leads/scorecard.test.ts` 14, `app/mlo/leads/scorecard.test.ts` 3): every figure for a source (spend at its share, drafts and
+  untagged lines left out, repeats, pipeline, closed, history); zero spend, zero leads and divide-by-zero give null and no NaN/Infinity; business
+  share (50%, clamped, NaN, mileage and drafts ignored, a gift uncapped); the three windows and undated imports in none; loan credit (first source,
+  repeat business, sphere and past client, none) and `loanStart`; the sphere row (tagged spend, past client and sphere starters once each, dead
+  loans as leads only, always present); the thresholds object; each rule's edges; precedence across seven sources at once; the target flipping
+  Watch/Scale up and `cleanTarget`; the move rules (pause to Best value, plain pause, fix, none, sphere never paused) and their exact wording; every
+  move passes `reviewMove` with no rate, and ten bad wordings fail; with the stores: own book only, confirmed spend only, `setLeadTarget` (range,
+  assistant, per person), `snapshot.sources` carries the scorecard, and `runTeam` saves one move, none after Not now within 30 days, at most one more
+  in the next period; the rendered table and cards, three pressed/unpressed period buttons, no value-carrying buttons, the target form, the banner
+  with Review, the disabled Approve and Not now; "share you can call" ("6 · 20%", "45%", the move's "(20%)") and the D84 words don't trip
+  `findRateMentions` or the banned words. D82/D83 tests updated for the new `RealScorecard` props and `snapshot.sources` shape.
+- **Verified:** `npm run verify` passes (929 tests; check:copy, check:identity, check:licensing, build, check:bundle). `node
+  scripts/qa/command-center.mjs` on a freshly started server: PROBLEMS none (D82/D83 steps read the new columns; new step "d84" at the end: ten
+  Bankrate leads with no wording naming the loan officer; columns Source…Concierge says; rows "Past clients & sphere $0 1 — 1 · 100% 1 0 None yet 0
+  Not enough data" (Bo, a past client, started a new loan), "Bankrate $0 10 — 0 · 0% … Fix permission", "LendingTree … Not enough data", "Zillow
+  $1,200 2 $600 … Pause?" (the past-client workbook's 2022 Zillow loans give it history); 90 days pressed, 30 days and This year switch the URL, the
+  sub line and the pressed button, each 44px; target 1500 saved and shown; no banner before the team runs; team on, Run now → "Business Manager:
+  Pause Zillow for 60 days", Review opens the panel with Approve disabled; at 390 no table, a card per source, no sideways scroll, every control
+  ≥ 44px; Not now clears the banner; the AI assistants table shows Bankrate and Fix permission; team switched back off). One earlier run logged a
+  React #418 hydration error on `/mlo/pricing` at 390 (not touched here) that didn't come back on the rerun, like D82's on `/mlo/calls`.
+  `node scripts/qa/buttons.mjs` on a freshly started server: 500 page views (adds "leads review": Lead sources at `?period=30d&review=1` with the
+  banner and the open move, after seeding ten Bankrate leads and one team run), PROBLEMS none. Scratch sweep (`d84shots.mjs`): the scorecard, the
+  open move and This year at 390 and 1280 in Night, Dim and Paper: no sideways scroll, no page errors, smallest text contrast 6.31:1 (Night),
+  6.18:1 (Dim), 5.65:1 (Paper).
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d84/` (`score-*`, `review-*`, `year-*` at
+  `<390|1280>-<night|dim|paper>`; `qa-score-1280`, `qa-review-1280`, `qa-score-390` from the QA step; `buttons/` has the audit's set incl.
+  `leads_review-*`).
+- **Decisions:** (a) Repeat business after a closing goes to Past clients & sphere, a lead's first loan to its first source (above): reading
+  "relationship is past client" alone would have moved every closed vendor loan to sphere, because the loan sync sets it at closing. (b) Sphere
+  starters count as people you can call. (c) "In pipeline" is open loans that started in the period (period-consistent; a long-running loan from
+  before the period isn't counted). (d) Pause? looks at loans closed **and** in progress (never suggest pausing a source with a loan underway); its
+  60 days of history count from the source's first lead or spend at any time. (e) Watch reads as "spend, and (fewer than 2 loans or over target)":
+  a free source with few loans gets no badge. (f) Best value goes to the cheapest row no earlier badge took, so it always lands on a source with
+  enough data. (g) "This year" is the calendar year in UTC, and the 30/90-day windows are rolling. (h) The Business Manager's period is 30 days and it
+  reads the 90-day scorecard; the move's key carries the month so its history is readable. (i) The target lives with each person's settings
+  (`cc_user_prefs`), so D85's pack and D86's planner read the same number. (j) Review is a link (`?review=1#lead-move`) that opens the panel under
+  the banner, so it works without JavaScript; Approve is disabled until D86. (k) The scorecard's monthly-amount labels name spend-only sources
+  ("Other…" vendors). (l) Zero spend shows "$0"; a figure that can't be worked out shows "—".
+- **For counsel:** the move wording guard above (no gift tied to a referral, no paying for referrals or exclusive deals, no trigger leads or
+  credit-inquiry data, no contacting without permission, no rates); closing gifts may be sphere spend (decision 3) but nothing calls them the cost of
+  a referral (a test). Badges and moves are suggestions; nothing is spent or sent.
+- **Known gaps:** Approve does nothing until D86 (by design). The weekly report still counts leads from contacts (D83 note). Lead sources reads up
+  to 2,000 contacts itself (bigger books are read again by `scorecardFor`, up to 5,000). The scorecard reads every lead event and expense the
+  loan officer has (no paging); fine at pilot sizes. The card label "Per lead you can call" wraps to two lines at 390.
+- **Next up:** D85 (Ask your Concierge on Lead sources, Option A), after the owner's sign-off. Its pack reads `scorecardFor()` rows, the target
+  (`prefsFor().leadTargetCents`) and `snapshot.sources`.

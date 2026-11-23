@@ -28,7 +28,7 @@ import { pipelineStore } from "@/lib/pipeline/store";
 import { marketingIdeas } from "./marketing";
 import { businessIdeas } from "./business";
 import type { TodayCard } from "@/lib/today/rank";
-import { reviewMessage } from "./compliance";
+import { reviewMessage, reviewMove } from "./compliance";
 import { fillPlaybook, playbookById, playbookVersion, type Playbook } from "./playbooks";
 import { teamStore, type Move, type MoveKind, type Source, type TeamSettings } from "./store";
 import type { AgentKey } from "./team";
@@ -229,6 +229,11 @@ export async function runTeam(user: User, now = new Date(), opts: { send?: boole
   for (const p of props) {
     const prev = await store.moveByKey(user.id, p.key);
     if (prev && (prev.status === "open" || now.getTime() - Date.parse(prev.updatedAt) < p.cooldownDays * DAY)) continue;
+    // D84: a lead-source move whose wording Compliance won't pass is never saved.
+    if (p.key.startsWith("lead-source:") && !reviewMove(p, p.to).ok) {
+      out.held++;
+      continue;
+    }
     let kind = p.kind;
     let note = "";
     // An LOA draft carries no message here: it's checked when it's sent from the LOA's queue.

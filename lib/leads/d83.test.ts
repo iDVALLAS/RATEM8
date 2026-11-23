@@ -344,7 +344,8 @@ describe("the lead-event log (D83)", () => {
     await ingestLead(me, readLead({ first_name: "Ann", phone: "2065551234" }, "zillow")!, NOW);
     await ingestLead(me, readLead({ first_name: "Bo", phone: "2065551235" }, "Zillow.com")!, NOW);
     await ingestLead(me, readLead({ first_name: "Cy", phone: "2065551236" }, "Lending Tree")!, NOW);
-    expect((await snapshot(me, NOW)).sources).toEqual([{ source: "Zillow", leads: 2, loans: 0 }, { source: "LendingTree", leads: 1, loans: 0 }]);
+    // D84: the Business Manager reads the Lead sources scorecard (last 90 days), one row per key.
+    expect((await snapshot(me, NOW)).sources.map(({ key, source, leads, loans }) => ({ key, source, leads, loans }))).toEqual([{ key: "zillow", source: "Zillow", leads: 2, loans: 0 }, { key: "lendingtree", source: "LendingTree", leads: 1, loans: 0 }]);
   });
 
   it("the Neon event store dedupes retries in the database and binds every value", async () => {

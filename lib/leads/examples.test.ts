@@ -16,6 +16,7 @@ import { LEADS } from "@/lib/content/cc-pages";
 import { EXAMPLES, exampleRow } from "./examples";
 import { connectedSourceLabels, eventCounts, hasRealLeads, isRealLead, leadNamedYou, leadPageMode, recentEvents, share, type EventLike, type LeadLike } from "./mode";
 import { AskBar, ExamplePlan, ExampleRecent, ExampleScorecard, RealRecent, RealScorecard } from "@/app/mlo/leads/LeadSections";
+import { leadScorecard } from "./scorecard";
 
 /** D82: example mode on Lead sources until real leads arrive. */
 
@@ -165,7 +166,9 @@ describe("example sections (D82)", () => {
   });
 
   it("real sections carry no example rows", () => {
-    const score = renderToStaticMarkup(createElement(RealScorecard, { rows: [{ key: "zillow", source: "Zillow", leads: 3, canCall: 1, repeats: 1 }], undated: 0 }));
+    const ev = (namesYou: boolean, duplicate = false) => ({ contactId: `c_${Math.random()}`, sourceKey: "zillow", sourceLabel: "Zillow", at: "2026-11-20T12:00:00.000Z", duplicate, namesYou, datedBy: "delivery" });
+    const card = leadScorecard({ period: "90d", now: NOW, events: [ev(true), ev(false), ev(false, true)], spend: [], loans: [], contacts: [] });
+    const score = renderToStaticMarkup(createElement(RealScorecard, { card, move: null }));
     const recent = renderToStaticMarkup(createElement(RealRecent, { rows: [{ id: "c_1", name: "Eve Ng", source: "Zillow", at: "Nov 22, 9:00 AM", ok: false, repeat: false }] }));
     for (const html of [score, recent]) {
       expect(html).toContain('data-example="false"');

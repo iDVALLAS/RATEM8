@@ -270,7 +270,8 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     if (!(await page.locator('#add.cc-addsrc--compact').count())) problems.push('[d82] the add card is not compact');
     const score = await page.locator('#scorecard').innerText();
     console.log('d82: real scorecard:', score.replace(/\n+/g, ' | ').slice(0, 200));
-    if (!/zillow\t1\t/i.test(score) || /LendingTree|Bankrate|\$3,600/.test(score)) problems.push('[d82] real scorecard rows: ' + score.slice(0, 200));
+    // D84: Source · Spent · Leads · … (the real scorecard's columns).
+    if (!/zillow\t\$0\t1\t/i.test(score) || /LendingTree|Bankrate|\$3,600/.test(score)) problems.push('[d82] real scorecard rows: ' + score.slice(0, 200));
     // The "Past clients" workbook imported earlier has a Lead Source column (Referral, Zillow): D83 counts them (decision 5),
     // dated by their closing dates, so they're not in the last 90 days, and "Referral" is never a row of its own.
     if (/Referral/.test(score)) problems.push('[d82] a past-client file\'s Lead Source column shows as Referral: ' + score.slice(0, 200));
@@ -330,8 +331,9 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.goto(B + '/mlo/leads');
     const score = await page.locator('#scorecard').innerText();
     console.log('d83: scorecard:', score.replace(/\n+/g, ' | ').slice(0, 260));
-    if (!/LendingTree\t2\t0 · 0%\t1/.test(score)) problems.push('[d83] LendingTree row should be 2 leads, 1 repeat: ' + score.slice(0, 260));
-    if (!/Zillow\t1\t0 · 0%\t0/.test(score)) problems.push('[d83] Zillow row: ' + score.slice(0, 260));
+    // D84 columns: Source · Spent · Leads · Per lead · You can call · In pipeline · Loans · Per loan · Repeats · Concierge says.
+    if (!/LendingTree\t\$0\t2\t—\t0 · 0%\t0\t0\tNone yet\t1/.test(score)) problems.push('[d83] LendingTree row should be 2 leads, 1 repeat: ' + score.slice(0, 260));
+    if (!/Zillow\t\$1,200\t1\t\$1,200\t0 · 0%\t0\t0\tNone yet\t0/.test(score)) problems.push('[d83] Zillow row: ' + score.slice(0, 260));
     if (!/Repeats/.test(score)) problems.push('[d83] no Repeats column');
     const ida = page.locator('#recent tr', { hasText: 'Ida Moss' });
     if ((await ida.count()) !== 1 || !/LendingTree · repeat/.test(await ida.innerText())) problems.push('[d83] Recent leads row for Ida: ' + (await ida.allInnerTexts()).join(' / '));
@@ -994,6 +996,96 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.locator('#practice textarea').fill("Hi Jordan, I saw your listing on Elm. Could I buy you a coffee and hear how you work with lenders?");
     await page.getByRole('button', { name: 'Say it' }).click(); await page.waitForFunction(() => document.querySelectorAll('#practice .mlo-msg').length >= 3);
     await page.getByRole('button', { name: 'Coach me' }).click(); await page.locator('#practice .cc-card').waitFor(); console.log('coach:', (await page.locator('#practice .cc-card').innerText()).slice(0, 90).replace(/\n/g, ' | '));
+  });
+  // D84: the real scorecard. The period switch, the target cost per loan, a badge on every row that earns one, the table at
+  // 1280 and cards at 390, and the Business Manager's lead-source move as the banner (Zillow's Pause? comes before
+  // Bankrate's Fix permission: "Pause Zillow for 60 days", with no Best value source to move the budget to).
+  const D84 = process.env.QA_D84_SHOTS || '';
+  if (D84) fs.mkdirSync(D84, { recursive: true });
+  await step('d84: scorecard', async () => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    for (let i = 0; i < 10; i++) await page.request.post(B + '/api/leads/inbound?source=Bankrate', { headers: { 'X-CC-Key': key }, data: { first_name: `Bri${i}`, last_name: 'Quinn', phone: `(503) 555-30${String(10 + i)}`, lead_id: `BR-${i}` } });
+    await page.goto(B + '/mlo/leads');
+    const sc = page.locator('#scorecard');
+    if (!(await sc.locator('table').isVisible())) problems.push('[d84] no table at 1280');
+    const heads = (await sc.locator('thead th').allTextContents()).join('|');
+    console.log('d84: columns:', heads);
+    for (const h of ['Spent', 'Leads', 'Per lead', 'You can call', 'In pipeline', 'Loans', 'Per loan', 'Repeats', 'Concierge says']) if (!heads.includes(h)) problems.push('[d84] column missing: ' + h);
+    const rows = (await sc.locator('tbody tr').allInnerTexts()).map((t) => t.replace(/\s+/g, ' '));
+    console.log('d84: rows:', rows.join(' / ').slice(0, 400));
+    if (!rows[0]?.startsWith('Past clients & sphere')) problems.push('[d84] the sphere row is not first: ' + rows[0]);
+    const bank = rows.find((r) => r.startsWith('Bankrate')) ?? '';
+    if (!/Fix permission/.test(bank) || !/\b10\b/.test(bank)) problems.push('[d84] Bankrate should show 10 leads and Fix permission: ' + bank);
+    // Zillow: $1,200 spent, history back to the past-client workbook's 2022 Zillow loans, no loans in 90 days → Pause?.
+    const zil = rows.find((r) => r.startsWith('Zillow')) ?? '';
+    if (!/\$1,200/.test(zil) || !/Pause\?/.test(zil)) problems.push('[d84] Zillow should show $1,200 and Pause?: ' + zil);
+    if (!/Past clients & sphere \$0 1 — 1 · 100% 1 0/.test(rows[0] ?? '')) problems.push('[d84] the sphere row should count Bo\'s new loan (a past client) as a lead in the pipeline: ' + rows[0]);
+    if (!(await sc.locator('.cc-reach', { hasText: 'Not enough data' }).count())) problems.push('[d84] no Not enough data badge');
+    // The period switch: real buttons, one pressed, each 44px tall.
+    const pressed = async () => (await sc.locator('.cc-period__b[aria-pressed=true]').innerText()).trim();
+    if ((await pressed()) !== '90 days') problems.push('[d84] default period: ' + await pressed());
+    const ph = await sc.locator('.cc-period__b').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+    if (ph.length !== 3 || ph.some((h) => h < 44)) problems.push('[d84] period buttons: ' + ph.join(','));
+    await sc.getByRole('button', { name: '30 days' }).click(); await page.waitForURL(/period=30d/);
+    if ((await pressed()) !== '30 days') problems.push('[d84] 30 days not pressed: ' + await pressed());
+    if (!/The last 30 days/.test(await page.locator('#scorecard .cc-score__sub').innerText())) problems.push('[d84] 30-day sub line');
+    await page.locator('#scorecard').getByRole('button', { name: 'This year' }).click(); await page.waitForURL(/period=year/);
+    if ((await pressed()) !== 'This year') problems.push('[d84] This year not pressed');
+    await page.locator('#scorecard').getByRole('button', { name: '90 days' }).click(); await page.waitForURL((u) => !/period=/.test(u.search));
+    // The target cost per loan.
+    await page.locator('#scorecard input[name=target]').fill('1500');
+    await page.locator('#scorecard').getByRole('button', { name: 'Save target' }).click(); await page.waitForURL(/f=/);
+    console.log('d84: target:', await flash());
+    if (!/Target saved: \$1,500 per loan\./.test(await flash())) problems.push('[d84] target: ' + await flash());
+    if ((await page.locator('#scorecard input[name=target]').inputValue()) !== '1500') problems.push('[d84] the target box does not show 1500');
+    if (!/now \$1,500/.test(await page.locator('#leads-target-help').innerText())) problems.push('[d84] target help line');
+    if (await page.locator('#scorecard .cc-leadbanner').count()) problems.push('[d84] a banner with no proposal');
+    if (D84) await page.screenshot({ path: path.join(D84, 'qa-score-1280.png'), fullPage: true });
+    // The Business Manager proposes one lead-source move; it shows as the banner, Review opens it, Approve waits.
+    await page.goto(B + '/mlo/agents/setup');
+    await page.locator('input[name=enabled]').check();
+    await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForURL(/f=/);
+    await page.goto(B + '/mlo/agents');
+    await page.getByRole('button', { name: 'Run now' }).click(); await page.waitForURL(/f=/);
+    console.log('d84: team run:', await flash());
+    await page.goto(B + '/mlo/leads');
+    const banner = page.locator('#scorecard .cc-leadbanner');
+    if (!(await banner.count())) problems.push('[d84] no banner after the team ran');
+    else {
+      const bt = await banner.innerText();
+      console.log('d84: banner:', bt.replace(/\n/g, ' | '));
+      if (!/Business Manager: Pause Zillow for 60 days/.test(bt)) problems.push('[d84] banner: ' + bt);
+      await banner.getByRole('link', { name: 'Review' }).click(); await page.waitForURL(/review=1/);
+      const rv = page.locator('#lead-move-review');
+      if (!(await rv.isVisible())) problems.push('[d84] Review shows nothing');
+      else {
+        if (!(await rv.getByRole('button', { name: 'Approve' }).isDisabled())) problems.push('[d84] Approve should wait for the planner');
+        if (!/comes with the budget planner/.test(await rv.innerText())) problems.push('[d84] approve line');
+        if (D84) await page.screenshot({ path: path.join(D84, 'qa-review-1280.png'), fullPage: true });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.reload();
+        if (await page.locator('#scorecard table').isVisible()) problems.push('[d84] the table shows on a phone');
+        const cards = await page.locator('#scorecard .cc-scard:visible').count();
+        if (cards < 4) problems.push('[d84] expected a card per source on a phone, got ' + cards);
+        if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push('[d84] sideways scroll at 390');
+        const small = await page.locator('#scorecard button:visible, #scorecard a.mlo-btn:visible, #scorecard input:visible').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)).filter((h) => h < 44));
+        if (small.length) problems.push('[d84] controls under 44px at 390: ' + small.join(','));
+        if (D84) await page.screenshot({ path: path.join(D84, 'qa-score-390.png'), fullPage: true });
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await page.goto(B + '/mlo/leads?review=1#lead-move');
+        await page.locator('#lead-move-review').getByRole('button', { name: 'Not now' }).click(); await page.waitForURL(/f=/);
+        console.log('d84: not now:', await flash());
+        if (await page.locator('#scorecard .cc-leadbanner').count()) problems.push('[d84] the banner stayed after Not now');
+      }
+    }
+    // The Business Manager's table on AI assistants reads the same scorecard.
+    await page.goto(B + '/mlo/agents');
+    const biz = await page.locator('section', { has: page.locator('#biz-h') }).innerText();
+    if (!/Bankrate/.test(biz) || !/Fix permission/.test(biz)) problems.push('[d84] the Business Manager table: ' + biz.slice(0, 300));
+    // Leave the team as the rest of the sweep found it.
+    await page.goto(B + '/mlo/agents/setup');
+    await page.locator('input[name=enabled]').uncheck();
+    await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForURL(/f=/);
   });
   console.log('\nPROBLEMS:', problems.length ? '\n' + problems.join('\n') : 'none');
   await b.close();

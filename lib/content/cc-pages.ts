@@ -166,6 +166,10 @@ export const AGENTS_HUB = {
   open: "Open",
   setUp: "Set up",
   teamHead: "Your Concierge team",
+  /** D84: the Business Manager's lead-source table (the Lead sources scorecard, last 90 days). */
+  sourcesCaption: "Lead sources, last 90 days",
+  sourcesNote: "Lead sources over the last 90 days: spend from your lead-spend lines, loans from your pipeline.",
+  sourcesLink: "Open the scorecard",
 };
 
 /** Pipeline (D76). */
@@ -233,7 +237,7 @@ export const LEADS = {
     perLoanUnit: "per loan",
     noLoans: "None yet",
     noLoansCard: "No loans yet",
-    badges: { best: "Best value", scale: "Scale up", watch: "Watch", fix: "Fix permission", pause: "Pause?" },
+    badges: { best: "Best value", scale: "Scale up", watch: "Watch", fix: "Fix permission", pause: "Pause?", thin: "Not enough data" },
     spendLine: "Spend comes from lead-spend lines in Expenses.",
     logSpend: "Log spend",
     /** D83: links to the monthly amounts on this page. */
@@ -241,11 +245,39 @@ export const LEADS = {
     /** D83: what the Repeats column means. */
     repeatsNote: "“Repeats” = leads a source sent you who were already in your book. Each one counts as a lead from that source; ask the vendor about credit for them.",
     canCallNote: "“You can call” = leads whose consent wording named you or your company.",
-    /** The real scorecard before spend and loans are tagged by source. */
+    /** D84: under the real scorecard (from the mockup). */
+    badgeNote: "Badges are suggestions from your Concierge; nothing changes until you approve it.",
+    /** D84: the real scorecard (Option B). */
     real: {
-      sub: "Your leads in the last 90 days, by where they came from.",
-      none: "No leads in the last 90 days.",
-      notYet: "Spend, cost per lead and loans per source aren’t counted here yet.",
+      /** The period switch's words, by period id. */
+      periodNames: { "30d": "30 days", "90d": "90 days", year: "This year" } as Record<string, string>,
+      sub: (period: string) => `${period === "This year" ? "This year so far" : `The last ${period}`}: spend from your lead-spend lines in Expenses, leads from your lead log, loans from your pipeline.`,
+      none: "No leads, spend or loans in this period yet.",
+      dash: "—",
+      cols: { canCall: "You can call", pipeline: "In pipeline", perCallable: "Per lead you can call" },
+      /** "18 · 20%" under You can call; the cost of each one under it. */
+      each: (amount: string) => `${amount} each`,
+      perLoanUnit: "per loan",
+      pipelineCard: (n: number) => `${n} in pipeline`,
+      sphereNote: "Cards, mail and gifts tagged with this source. Leads are past clients and sphere who started a new loan.",
+      unattributed: (n: number) => `${n === 1 ? "One loan" : `${n} loans`} closed in this period ${n === 1 ? "has" : "have"} no lead source, so ${n === 1 ? "it isn’t" : "they aren’t"} on a row.`,
+      target: {
+        label: "Target cost per loan ($)",
+        save: "Save target",
+        help: (amount: string) => `Scale up and Watch compare each source’s cost per loan with your target, now ${amount}. It starts at $1,000.`,
+        saved: (amount: string) => `Target saved: ${amount} per loan.`,
+        errors: { range: "Enter a target between $100 and $100,000.", assistant: "Spend is private to each loan officer." },
+      },
+      /** The Business Manager's newest lead-source move, above the table. */
+      move: {
+        review: "Review",
+        approve: "Approve",
+        approveOff: "Approving comes with the budget planner: it will update your lead plan and add the steps to Today. Until then, make the change yourself, or clear it with Not now.",
+        notNow: "Not now",
+        dismissed: "Cleared. Your Business Manager suggests another move next month if the numbers call for one.",
+        gone: "That suggestion isn’t waiting any more.",
+        all: "See it with your AI assistants",
+      },
       /** D83: a lead counted from an import with no date of its own isn't in any period. */
       undated: (n: number) => `${n === 1 ? "One imported lead has" : `${n} imported leads have`} no date of their own, so ${n === 1 ? "it isn’t" : "they aren’t"} counted in a period.`,
     },
@@ -292,6 +324,21 @@ export const LEADS = {
     /** D83: a delivery of someone already in the book. */
     repeat: "repeat",
   },
+};
+
+/**
+ * D84: the Business Manager's lead-source moves (lib/agents/business.ts). Compliance reviews every one
+ * (`reviewLeadMove`): never a gift tied to a referral, never paying for referrals or trigger leads, never contacting
+ * leads without permission, no rates.
+ */
+export const LEAD_MOVES = {
+  pauseTo: (from: string, to: string) => `Move ${from}’s budget to ${to} for 60 days`,
+  pause: (from: string) => `Pause ${from} for 60 days`,
+  fix: (source: string) => `Ask ${source} for consent wording that names you`,
+  pauseWhy: (from: string, spend: string, leads: number) => `${from}: ${spend} spent in the last 90 days, ${leads} lead${leads === 1 ? "" : "s"}, and no loans closed or in progress.`,
+  toWhy: (to: string, perLoan: string) => `${to}: ${perLoan} per closed loan.`,
+  fixWhy: (source: string, leads: number, canCall: number, share: number) => `${source}: ${leads} leads in the last 90 days, and ${canCall} of them (${share}%) came with consent wording that names you or your company. Use “Copy a note for your vendor” on Lead sources to ask for it.`,
+  tail: "Nothing changes until you approve it. Approving only updates your lead plan and adds the steps to Today; it never spends money, contacts a vendor or messages anyone.",
 };
 
 /** D83: the Lead source picker (Expenses, and the monthly amounts on Lead sources). */

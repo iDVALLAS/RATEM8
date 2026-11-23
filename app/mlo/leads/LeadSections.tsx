@@ -2,9 +2,9 @@ import Link from "next/link";
 import KeyMaker from "../pipeline/KeyMaker";
 import PermissionTip from "./PermissionTip";
 import SourcePicker, { type PickerOption } from "../SourcePicker";
-import { removeMonthlyAction, saveMonthlyAction } from "./actions";
-import { EXAMPLES, exampleRow, type ExampleBadge } from "@/lib/leads/examples";
-import { share, type SourceCount } from "@/lib/leads/mode";
+import { dismissLeadMoveAction, removeMonthlyAction, saveMonthlyAction, saveTargetAction, scorePeriodAction } from "./actions";
+import { EXAMPLES, exampleRow } from "@/lib/leads/examples";
+import { BADGE_RULES, DEFAULT_PERIOD, SCORE_PERIODS, scoreUsd, type LeadScorecard, type ScoreBadge, type ScorePeriod, type ScoreRow } from "@/lib/leads/scorecard";
 import { LEADS } from "@/lib/content/cc-pages";
 
 /**
@@ -15,7 +15,7 @@ import { LEADS } from "@/lib/content/cc-pages";
  */
 
 const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
-const TONE: Record<ExampleBadge, "ok" | "plain" | "warn" | "bad"> = { best: "ok", scale: "ok", watch: "plain", fix: "warn", pause: "bad" };
+const TONE: Record<ScoreBadge, "ok" | "plain" | "warn" | "bad"> = { best: "ok", scale: "ok", watch: "plain", fix: "warn", pause: "bad", thin: "plain" };
 /** Under this share of leads you can call, the number is shown in the warning color (as in the mockup). */
 const LOW_SHARE = 50;
 
@@ -53,7 +53,7 @@ export function AskBar() {
   );
 }
 
-function Badge({ badge }: { badge: ExampleBadge }) {
+function Badge({ badge }: { badge: ScoreBadge }) {
   return <span className={`cc-reach cc-reach--${TONE[badge]}`}>{LEADS.score.badges[badge]}</span>;
 }
 
@@ -139,47 +139,140 @@ export function ExampleScorecard() {
   );
 }
 
-/**
- * The scorecard from the loan officer's own lead events (D83: every delivery counts, repeats too), before D84 adds
- * spend, cost per lead and loans per source.
- */
-export function RealScorecard({ rows, undated }: { rows: SourceCount[]; undated: number }) {
+/** D84: the Business Manager's newest open lead-source move, shown above the scorecard. */
+export type LeadMoveView = { id: string; title: string; why: string };
+
+/** A cell's figure, or "—" when it can't be worked out. */
+const dash = (v: number | null, f: (n: number) => string = String) => (v === null ? LEADS.score.real.dash : f(v));
+const pct = (n: number) => `${n}%`;
+const lowShare = (r: ScoreRow) => r.sharePct !== null && r.sharePct < BADGE_RULES.fixShareBelowPct;
+
+/** The period switch: a real button per period, each its own bound action (no value-carrying buttons). */
+function PeriodSwitch({ period }: { period: ScorePeriod }) {
   const s = LEADS.score;
   return (
-    <section className="mlo-section cc-score" id="scorecard" aria-labelledby="leads-score" data-example="false">
-      <Head id="leads-score" title={s.title} />
-      <p className="mlo-note">{s.real.sub}</p>
-      {rows.length === 0 ? <p className="mlo-note">{s.real.none}</p> : (
-        <table className="mlo-table cc-score__tbl cc-score__tbl--real">
+    <div className="cc-period" role="group" aria-label={s.periodLabel}>
+      {SCORE_PERIODS.map((p) => (
+        <form key={p} action={scorePeriodAction.bind(null, p)}>
+          <button type="submit" className="cc-period__b" aria-pressed={p === period}>{s.real.periodNames[p]}</button>
+        </form>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * D84: the scorecard from the loan officer's own data (Option B): per source, spend at its business share, leads,
+ * leads you can call, cost per lead and per lead you can call, loans in the pipeline and closed, cost per loan,
+ * repeats, and the badge. A table on desktop, stacked cards on phones. Never example rows.
+ */
+export function RealScorecard({ card, move, review }: { card: LeadScorecard; move: LeadMoveView | null; review?: boolean }) {
+  const s = LEADS.score;
+  const r = s.real;
+  const period = card.period;
+  const name = r.periodNames[period];
+  const q = period === DEFAULT_PERIOD ? "" : `period=${period}&`;
+  return (
+    <section className="mlo-section cc-score" id="scorecard" aria-labelledby="leads-score" data-example="false" data-period={period}>
+      <Head id="leads-score" title={s.title} aside={<PeriodSwitch period={period} />} />
+      <p className="mlo-note cc-score__sub">{r.sub(name)}</p>
+      {move ? (
+        <>
+          <div className="cc-leadbanner" id="lead-move">
+            <p><strong>{s.bannerWho}</strong> {move.title}</p>
+            <Link className="mlo-btn" href={`/mlo/leads?${q}review=1#lead-move`} aria-expanded={!!review} aria-controls={review ? "lead-move-review" : undefined}>{r.move.review}</Link>
+          </div>
+          {review ? (
+            <div className="cc-leadmove" id="lead-move-review" role="region" aria-label={move.title}>
+              <p className="cc-leadmove__why">{move.why}</p>
+              <div className="mlo-row-form cc-leadmove__acts">
+                <button type="button" className="mlo-btn" disabled aria-describedby="lead-move-off">{r.move.approve}</button>
+                <form action={dismissLeadMoveAction.bind(null, period, move.id)}>
+                  <button type="submit" className="mlo-btn mlo-btn--ghost">{r.move.notNow}</button>
+                </form>
+                <Link className="cc-leadmove__all" href="/mlo/agents">{r.move.all}</Link>
+              </div>
+              <p className="mlo-note" id="lead-move-off">{r.move.approveOff}</p>
+            </div>
+          ) : null}
+        </>
+      ) : null}
+      <div className="mlo-scroll cc-score__wide">
+        <table className="mlo-table cc-score__tbl cc-score__tbl--live">
           <thead>
             <tr>
               <th scope="col">{s.cols.source}</th>
+              <th scope="col" className="cc-num">{s.cols.spent}</th>
               <th scope="col" className="cc-num">{s.cols.leads}</th>
-              <th scope="col" className="cc-num">{s.cols.canCall}</th>
+              <th scope="col" className="cc-num">{s.cols.perLead}</th>
+              <th scope="col" className="cc-num">{r.cols.canCall}</th>
+              <th scope="col" className="cc-num">{r.cols.pipeline}</th>
+              <th scope="col" className="cc-num">{s.cols.loans}</th>
+              <th scope="col" className="cc-num">{s.cols.perLoan}</th>
               <th scope="col" className="cc-num">{s.cols.repeats}</th>
+              <th scope="col">{s.cols.says}</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
-              const pct = share(r.canCall, r.leads);
-              return (
-                <tr key={r.key}>
-                  <th scope="row">{r.source}</th>
-                  <td className="cc-num">{r.leads}</td>
-                  <td className={`cc-num${pct < LOW_SHARE ? " cc-num--warn" : ""}`}>{r.canCall} · {pct}%</td>
-                  <td className="cc-num">{r.repeats}</td>
-                </tr>
-              );
-            })}
+            {card.rows.map((x) => (
+              <tr key={x.key} data-source={x.key}>
+                <th scope="row">{x.label}</th>
+                <td className="cc-num">{scoreUsd(x.spendCents)}</td>
+                <td className="cc-num">{x.leads}</td>
+                <td className="cc-num">{scoreUsd(x.perLeadCents)}</td>
+                <td className={`cc-num${lowShare(x) ? " cc-num--warn" : ""}`}>
+                  {x.canCall} · {dash(x.sharePct, pct)}
+                  {x.perCallableCents !== null ? <span className="cc-score__each">{r.each(scoreUsd(x.perCallableCents))}</span> : null}
+                </td>
+                <td className="cc-num">{x.inPipeline}</td>
+                <td className="cc-num">{x.closed}</td>
+                <td className="cc-num">{x.perLoanCents === null ? (x.closed ? r.dash : s.noLoans) : scoreUsd(x.perLoanCents)}</td>
+                <td className="cc-num">{x.repeats}</td>
+                <td>{x.badge ? <Badge badge={x.badge} /> : null}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
-      )}
-      {undated ? <p className="mlo-note cc-score__foot">{s.real.undated(undated)}</p> : null}
+      </div>
+      <ul className="cc-score__cards">
+        {card.rows.map((x) => (
+          <li key={x.key} className="cc-scard" data-source={x.key}>
+            <div className="cc-scard__top">
+              <h3 className="cc-scard__name">{x.label}</h3>
+              {x.badge ? <Badge badge={x.badge} /> : null}
+            </div>
+            <p className="cc-scard__big">{x.perLoanCents === null ? <strong>{x.closed ? r.dash : s.noLoansCard}</strong> : <><strong>{scoreUsd(x.perLoanCents)}</strong> {r.perLoanUnit}</>}</p>
+            <dl className="cc-scard__stats">
+              <div><dt>{s.cols.spent}</dt><dd>{scoreUsd(x.spendCents)}</dd></div>
+              <div><dt>{s.cols.leads}</dt><dd>{x.leads}</dd></div>
+              <div><dt>{s.cols.perLead}</dt><dd>{scoreUsd(x.perLeadCents)}</dd></div>
+              <div><dt>{r.cols.canCall}</dt><dd className={lowShare(x) ? "cc-num--warn" : undefined}>{x.canCall} · {dash(x.sharePct, pct)}</dd></div>
+              <div><dt>{r.cols.perCallable}</dt><dd>{scoreUsd(x.perCallableCents)}</dd></div>
+              <div><dt>{r.cols.pipeline}</dt><dd>{x.inPipeline}</dd></div>
+              <div><dt>{s.cols.loans}</dt><dd>{x.closed}</dd></div>
+              <div><dt>{s.cols.repeats}</dt><dd>{x.repeats}</dd></div>
+            </dl>
+            {x.sphere ? <p className="cc-scard__note">{r.sphereNote}</p> : null}
+          </li>
+        ))}
+      </ul>
+      {card.rows.every((x) => !x.leads && !x.spendCents && !x.closed && !x.inPipeline) ? <p className="mlo-note cc-score__foot">{r.none}</p> : null}
       <p className="mlo-note cc-score__foot">
-        {s.real.notYet} <Link href="/mlo/expenses">{s.logSpend}</Link> · <Link href="#monthly">{s.setMonthly}</Link>
+        {s.spendLine} <Link href="/mlo/expenses">{s.logSpend}</Link> · <Link href="#monthly">{s.setMonthly}</Link>
       </p>
+      <form action={saveTargetAction.bind(null, period)} className="mlo-row-form cc-target">
+        <label className="mlo-field">
+          <span>{r.target.label}</span>
+          <input name="target" type="number" min={BADGE_RULES.minTargetCents / 100} max={BADGE_RULES.maxTargetCents / 100} step="1" inputMode="numeric" className="mlo-input" defaultValue={Math.round(card.targetCents / 100)} required aria-describedby="leads-target-help" />
+        </label>
+        <button type="submit" className="mlo-btn mlo-btn--ghost">{r.target.save}</button>
+      </form>
+      <p className="mlo-note cc-score__foot" id="leads-target-help">{r.target.help(scoreUsd(card.targetCents))}</p>
+      {card.undated ? <p className="mlo-note cc-score__foot">{r.undated(card.undated)}</p> : null}
+      {card.unattributed ? <p className="mlo-note cc-score__foot">{r.unattributed(card.unattributed)}</p> : null}
       <p className="mlo-note cc-score__foot">{s.canCallNote}</p>
       <p className="mlo-note cc-score__foot">{s.repeatsNote}</p>
+      <p className="mlo-note cc-score__foot">{s.badgeNote}</p>
     </section>
   );
 }

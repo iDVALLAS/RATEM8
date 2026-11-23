@@ -261,6 +261,13 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     every imported contact with a Lead source dated by the file's Application date (new import field `appliedOn`) else closed date, vendor file =
     import day, else undated ("none", in no period); merge re-points, delete keeps, import undo removes; scorecard counts and Repeats come from
     events; `lead-events.csv` + `lead-monthly-amounts.csv` in Download everything; assistants see no spend.
+    D84 scorecard (`lib/leads/{scorecard,score-service}.ts`, `RealScorecard` in `app/mlo/leads/LeadSections.tsx`): pure `leadScorecard()` for 30d/90d/year
+    (events; confirmed lead-spend lines at their business share, no meals rule or gift cap; loans credited once: repeat business after a closing →
+    "Past clients & sphere", else the contact's first event source, else sphere for past_client/sphere, else none); null → "—"; badges from
+    `BADGE_RULES` (Pause? > Not enough data > Fix permission > Best value > Scale up > Watch); target cost per loan in `cc_user_prefs`
+    (`leadTargetCents`, default $1,000, `setLeadTarget`); period switch and target are bound actions; `snapshot.sources` = the 90-day rows; the
+    Business Manager proposes at most one `lead-source:` move per 30 days (`leadSourceMove`, `kind: "plan"`, `href: /mlo/leads`, `reviewLeadMove`),
+    shown as the scorecard's banner with Review; Approve is disabled until D86's plan store; assistants have no scorecard.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -369,7 +376,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 912 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 929 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

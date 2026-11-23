@@ -8,7 +8,10 @@ import { requireViewer } from "@/lib/mlo/page-auth";
 import { contactStore } from "@/lib/contacts/store";
 import { summarize } from "@/lib/contacts/service";
 import { pipelineStore } from "@/lib/pipeline/store";
-import { connectedSourceLabels, dated, eventCounts, leadPageMode, recentEvents, type SectionKey } from "@/lib/leads/mode";
+import { connectedSourceLabels, leadPageMode, recentEvents, type SectionKey } from "@/lib/leads/mode";
+import { DEFAULT_PERIOD, isScorePeriod } from "@/lib/leads/scorecard";
+import { scorecardFor } from "@/lib/leads/score-service";
+import { teamStore } from "@/lib/agents/store";
 import { syncLeadEvents } from "@/lib/leads/sync";
 import { makeMonthlyDrafts, monthlyStore, pacificMonth } from "@/lib/leads/spend";
 import { NOT_LEADS, sourceOptions } from "@/lib/leads/sources";
@@ -27,9 +30,12 @@ export const metadata: Metadata = { title: "Lead sources", robots: { index: fals
  * each example section labeled; each section switches to the loan officer's own data on its own (lib/leads/mode.ts).
  * D83: counts come from the lead-event log (every delivery, repeats too), brought up to date here first
  * (lib/leads/sync.ts); a monthly amount per source makes this month's draft expense (lib/leads/spend.ts).
+ * D84: the real scorecard (lib/leads/scorecard.ts) for `?period=` (30d, 90d, year), with the target cost per loan
+ * and the Business Manager's newest lead-source move above it (`?review=1` opens it).
  */
-export default async function Leads({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
-  const { f } = await searchParams;
+export default async function Leads({ searchParams }: { searchParams: Promise<{ f?: string; period?: string; review?: string }> }) {
+  const { f, period: rawPeriod, review } = await searchParams;
+  const period = isScorePeriod(rawPeriod) ? rawPeriod : DEFAULT_PERIOD;
   const v = await requireViewer();
   const tenant = listTenants()[0];
   const me = v.user;
@@ -50,11 +56,15 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
   const byId = new Map(contacts.map((c) => [c.id, c]));
   const recent = recentEvents(events, 60).filter((e) => byId.has(e.contactId)).slice(0, 30);
   const consents = recent.length ? await contactStore().consentsFor(recent.map((e) => e.contactId)) : [];
+  // D84: the scorecard from the loan officer's own data (never for an assistant: no spend), and the Business
+  // Manager's newest open lead-source move for the banner.
+  const card = me && mode.scorecard === "real" ? await scorecardFor(me, period, now, { events, contacts: contacts.length < 2000 ? contacts : undefined }).catch(() => null) : null;
+  const move = me && card ? (await teamStore().moves(me.id, { status: "open", limit: 500 }).catch(() => [])).filter((m) => m.key.startsWith("lead-source:")).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null : null;
 
   const sections: Record<SectionKey, () => React.ReactNode> = {
     add: () => (me ? <AddSource key="add" compact={mode.addCard === "compact"} endpoint={endpoint} owner={me.role === "owner"} connected={connectedSourceLabels(keys.map((k) => k.label), NOT_LEADS)} /> : null),
     ask: () => (mode.ask === "off" ? null : <AskBar key="ask" />),
-    scorecard: () => (mode.scorecard === "off" ? null : mode.scorecard === "example" ? <ExampleScorecard key="scorecard" /> : <RealScorecard key="scorecard" rows={eventCounts(events, now)} undated={events.filter((e) => !dated(e)).length} />),
+    scorecard: () => (mode.scorecard === "off" ? null : mode.scorecard === "example" ? <ExampleScorecard key="scorecard" /> : card ? <RealScorecard key="scorecard" card={card} move={move ? { id: move.id, title: move.title, why: move.why } : null} review={review === "1"} /> : null),
     plan: () => (mode.plan === "off" ? null : <ExamplePlan key="plan" afterLeads={mode.hasRealLeads} />),
     monthly: () =>
       mode.monthly === "off" ? null : (

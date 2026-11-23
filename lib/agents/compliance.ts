@@ -13,6 +13,7 @@
  *  - Money: a spend is always a request for the loan officer to approve.
  */
 import { checkTemplate } from "@/lib/templates/service";
+import { findRateMentions } from "@/lib/m8/guard";
 import type { Move } from "./store";
 
 const RESPA: [RegExp, string][] = [
@@ -37,8 +38,32 @@ export function reviewMessage(body: string, subject: string, to: "client" | "age
   return { ok: true };
 }
 
+/**
+ * D84: the Business Manager's lead-source moves (and D85–D86's plan wording). Never tie a gift to a referral or call
+ * it the cost of one, never suggest paying anyone for referrals (RESPA section 8) or buying trigger leads or
+ * credit-inquiry data, never suggest contacting leads without their permission, and no rates.
+ */
+const LEAD_MOVE: [RegExp, string][] = [
+  [/\bgifts?\b[^.\n]{0,80}\breferr|\breferr\w*[^.\n]{0,80}\bgifts?\b/i, "ties a gift to referrals"],
+  [/\b(cost|price)\s+(of|per)\s+(a\s+)?referrals?\b/i, "describes spending as the cost of a referral"],
+  [/\b(pay|paying|paid|buy|buying|reward\w*|compensat\w*|incentiv\w*|split\w*)\b[^.\n]{0,40}\breferr/i, "suggests paying for referrals (RESPA section 8)"],
+  [/\b(referral|finder'?s?)\s+(fee|bonus|reward|payment)s?\b|\bkickbacks?\b|\bexclusive\s+(deal|arrangement|partnership)s?\b/i, "suggests paying for referrals (RESPA section 8)"],
+  [/\btrigger(ed)?[\s-]*leads?\b|\bcredit[\s-]*(inquiry|pull)\s+(data|lists?|leads?|files?)\b|\binquiry\s+(data|lists?)\b/i, "suggests trigger leads or credit-inquiry data"],
+  [/\b(call|text|email|message|contact|reach|dial)\w*\b[^.\n]{0,60}\bwithout\s+(their\s+|the\s+)?(permission|consent)\b|\bignore\s+(the\s+|their\s+)?(consent|permission|opt[\s-]?outs?|do[\s-]not[\s-]call)\b/i, "suggests contacting leads without permission"],
+  [/\binterest\s+rates?\b|\bAPR\b|\brates?\s+(of|at|from)\s+\d/i, "mentions a rate"],
+];
+
+export function reviewLeadMove(text: string): Review {
+  if (!text.trim()) return { ok: false, reason: "is empty" };
+  for (const [re, why] of LEAD_MOVE) if (re.test(text)) return { ok: false, reason: why };
+  if (findRateMentions(text).length) return { ok: false, reason: "mentions a rate" };
+  return { ok: true };
+}
+
 /** A move is either fine as is, or held with Compliance's reason. */
-export function reviewMove(m: Pick<Move, "kind" | "body" | "subject" | "channel">, to: "client" | "agent"): Review {
+export function reviewMove(m: Pick<Move, "kind" | "body" | "subject" | "channel"> & Partial<Pick<Move, "key" | "title" | "why">>, to: "client" | "agent"): Review {
+  // D84: a lead-source move is judged on its own words (title and why); it never carries a message.
+  if (m.key?.startsWith("lead-source:")) return reviewLeadMove(`${m.title ?? ""}\n${m.why ?? ""}\n${m.body}`);
   if (m.kind === "send" || m.kind === "draft") return reviewMessage(m.body, m.subject, to);
   if (m.kind === "spend") return { ok: true };
   return { ok: true };
