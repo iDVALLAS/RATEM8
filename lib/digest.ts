@@ -25,14 +25,14 @@ export type Digest = { subject: string; text: string; people: number; drafts: nu
 
 export async function digestFor(user: User, now = new Date()): Promise<Digest> {
   const nowIso = now.toISOString();
-  const [today, drafts, tasks, notes, team, loa] = await Promise.all([todayFor(user, now, { ownOnly: true }), conciergeStore().proposals(user.id, "pending"), conciergeStore().tasks(user.id), conciergeStore().pendingMemory(user.id, nowIso), teamLine(user, now), loaLine(user, now)]);
+  const base = CONFIG.siteUrl.replace(/\/$/, "");
+  const [today, drafts, tasks, notes, team, loa, clean] = await Promise.all([todayFor(user, now, { ownOnly: true }), conciergeStore().proposals(user.id, "pending"), conciergeStore().tasks(user.id), conciergeStore().pendingMemory(user.id, nowIso), teamLine(user, now), loaLine(user, now), cleanLine(user, `${base}/mlo/contacts/cleanup`, now)]);
   const personal = tasks.filter((t) => t.lane === "personal");
   const firstOf = async (id: string) => (await contactStore().get(id))?.firstName || "someone";
   const loanCards = today.cards.filter((c) => LOAN_KINDS.has(c.kind));
   const people = today.cards.filter((c) => !LOAN_KINDS.has(c.kind));
   const first = (name: string) => name.split(/\s+/)[0] || "someone";
   const line = (name: string, kind: keyof typeof CARD_BRIEF) => `- ${first(name)}: ${CARD_BRIEF[kind]}`;
-  const base = CONFIG.siteUrl.replace(/\/$/, "");
   const parts = [
     `Good morning${user.name ? `, ${user.name.split(/\s+/)[0]}` : ""}. Here's your day.`,
     "",
@@ -43,6 +43,7 @@ export async function digestFor(user: User, now = new Date()): Promise<Digest> {
     notes.length ? `Notes to keep or forget: ${notes.length}` : "",
     team ? `${team} ${base}/mlo/agents` : "",
     loa ? `${loa} ${base}/mlo/loa#needs` : "",
+    clean,
     "",
     `Open Command Center: ${base}/mlo`,
     `Start a call session: ${base}/mlo/calls`,
@@ -89,6 +90,12 @@ async function resendSend(to: string, subject: string, text: string): Promise<bo
 async function loaLine(user: User, now: Date): Promise<string> {
   const { loaDigestLine } = await import("@/lib/loa/autopilot");
   return loaDigestLine(user, now).catch(() => "");
+}
+
+/** D88: "Clean up your contacts: N suggestions." with the link, from the last weekly scan (counts only). */
+async function cleanLine(user: User, url: string, now: Date): Promise<string> {
+  const { cleanupDigestLine } = await import("@/lib/contacts/cleanup-service");
+  return cleanupDigestLine(user, url, now).catch(() => "");
 }
 
 /** D54.1: the Concierge team in one line, counts only. */

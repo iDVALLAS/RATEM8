@@ -7487,3 +7487,96 @@ wrong; its filter tightening stays (tests pass, behaviour only stricter).
 - The offline red team (`tests/m8-redteam.spec.ts`) is unchanged; every other remote check (leaks, rates, promises,
   sensitive echoes, each case's `liveNot`) still runs as before.
 - **Verified:** `npm run verify` passes (1,116 tests). Remote red team runs against this preview before the promote.
+
+## D88 — Clean up my contacts, with a weekly card (2026-11-23)
+
+Owner brief: `docs/work/D88-contacts-cleanup-2026-11-23.md` ("the Concierge notices … labeling patterns and … proposes ways to
+clean up their database"). Owner's choice: check every week and put a "Clean up" card on Home, plus a Clean up button on Contacts.
+
+- **Files:** `lib/contacts/cleanup.ts` (new, pure: the 8 rules, `fixFor`, `undoChange`, fingerprints, `isoWeek`),
+  `lib/contacts/cleanup-service.ts` (new: `scanBook`/`scanFor`, `weeklyScan`, `homeCleanup`/`homeScan`, `dismissWeek`, `approve`,
+  `skip`, `keepSeparate`, `mergePair`, `undoRun`, `cleanupDigestLine`), `lib/contacts/cleanup-store.ts` (new: `cc_cleanup`,
+  `cc_cleanup_runs`, memory and Neon), `lib/contacts/cleanup-ai.ts` (new: M8 groups labels), `lib/content/contact-cleanup.ts` (new copy),
+  `app/mlo/contacts/cleanup/page.tsx` and `actions.ts` (new), `app/mlo/page.tsx` (Home card), `app/mlo/contacts/page.tsx` (Clean up
+  button), `app/mlo/nav.ts` (People → Clean up; Contacts' match leaves `/cleanup` out), `lib/digest.ts` (one line),
+  `app/api/cc/concierge/sweep/route.ts` (weekly scan), `app/mlo/cc-shell.css` (D88 block), `lib/contacts/cleanup.test.ts` (new, 21 tests),
+  `lib/contacts/cleanup-service.test.ts` (new, 11 tests), `scripts/qa/command-center.mjs` (D88 step; the page in the sweep),
+  `scripts/qa/buttons.mjs` (page added), `CLAUDE.md` (§1 note, §3.4 test count).
+- **The rules** (the whole book through `listAll`, both kinds unless said):
+  1. Tags: folded by capitals, accents, spacing, punctuation and a trailing plural "s" ("VIP", "vip", "V.I.P", "VIPs"), plus near spellings
+     (one letter apart, both folded keys 5+ letters, no digits, so "Past clients 2021"/"2022" and import date tags stay apart). Kept: the
+     most-used spelling; a tie goes to the one with more capitals. Never folded: `lead:` tags (rule 2) and tags that read as a protected
+     trait (`listRefusal`, so "Seniors"/"senior" is never a group).
+  2. Lead sources (clients): `leadSource` values with one `sourceKey()` written differently, kept as the named source's label ("Zillow") or
+     the most-used; `lead:` tags not written `lead:<key>`. Sphere words ("Referral", "Past client", "SOI") share the scorecard's row but
+     aren't the same words, so they only fold like tags.
+  3. Duplicates: same email, or a shared phone with the same first name (D75's `sameFirstName`), per kind; a "Possible duplicate" tag pairs
+     a shared phone even with a different first name. Left out: pairs marked Keep separate, two people one import created (that import kept
+     them apart on purpose), and a phone or email shared by more than 6 people (an office line). One group, up to 100 pairs.
+  4. Missing basics: no name → tag "Needs a name"; no state with a ZIP → the state filled from the ZIP; no state otherwise → "Needs a
+     state"; a lead with no source (not delivered, no `lead:` tag, not a vendor file) → "Needs a lead source". People already tagged drop out.
+  5. Phones or emails that won't work: a value kept "(as written)" in notes at import whose field is still empty, or a stored value the
+     checks reject → tag "Check phone or email". Dates, ZIPs and states written that way are left alone.
+  6. Leads with a closed date or a closed (not dead) loan in the pipeline → relationship Past client.
+  7. Clients whose tags, notes ("Company: …", "Title: …"), file name or brokerage say real estate agent, or who share an agent's email (or
+     phone and first name) → move to Agents (kind and relationship agent, a brokerage from their own "Company:" note). Never a past client
+     or anyone with a loan.
+  8. Vendor files (`lead_vendor`) with no lead source, one group per import with its file name; the loan officer types the source.
+- **How it's used:** `/mlo/contacts/cleanup` reads the whole book on every view (that is the on-demand check; "Check again now" says what
+  it found). Suggestions by rule, each with a count, what approving does, the other spellings with counts, up to 5 example names, and
+  Approve, Review and Skip (bound to the suggestion's id and fingerprint; `formAction` in one form). Review lists up to 300 people with
+  ticks (on by default); "Approve the ticked people" changes only ticked people who are in the group (an id outside it, or outside the
+  book, is ignored). Duplicates open a pair list: "See what a merge keeps" (D77's preview), a "These are the same person" box, Merge
+  keeping either record (D77's `mergeContacts` exactly) or Keep separate. Recent clean-ups with Undo (type UNDO, 30 days). "Ask M8 to
+  group similar labels" with the AI disclosure first. Approving re-reads the book and refuses when the fingerprint changed ("Those people
+  changed since you opened this…").
+- **Never touched:** no consent entry is written anywhere in D88 (tested: the log is byte-for-byte the same after approve and undo);
+  stops, do-not-call, line and reassigned-number checks, `locked` and provenance are never fields a fix writes. Phones and emails are never
+  changed here (a new phone or email resets permission, so that stays with the contact page's Edit).
+- **Undo:** each run keeps, per person, only the fields it changed (before and after) and the tags it added and took off. Undo puts a field
+  back only while it still holds the fix's value (a later edit wins); a move to Agents goes back whole or not at all; ended campaigns stay
+  ended (the page says so). Merges are recorded but can't be undone, and the pair list says so before any merge.
+- **Weekly card:** the morning run calls `weeklyScan` for each loan officer it runs, then for every other active non-assistant account (200
+  at most). The ISO week (Pacific calendar) is claimed first (`claimWeek`: UPDATE … WHERE week IS DISTINCT FROM $2 RETURNING), so there is
+  one scan per book per week even with two runs at once. Home shows "Clean up your contacts: N suggestions" with Review suggestions and Not
+  this week (hidden for that user for the ISO week) when N > 0. When no scan has run this week, or an import finished after the last scan,
+  Home runs one in `after()` (after the page is sent). The morning email gets one line with the count and the link.
+- **M8:** only clients' tag names and lead sources with counts, each in a nonce data block. Never names, phones, emails, notes, ids,
+  agents' tags (RETR), lead tags, import date tags or protected-trait words (tested). One strict tool; `checkGroups` keeps a group only
+  when every label was sent, of the same kind, 2–12 labels, the kept label among them and no label twice. Saved groups become suggestions
+  marked "Grouped by M8"; nothing changes until approved. No key or the allowance used → "M8 couldn't look (…)" and the rules stand
+  alone. Metered on the `import` route (the same contact-data tidying model).
+- **Own book:** the book is `tagBook(user)` (own; an assistant's officer's; none → "Clean up works in a loan officer's own book"). Every
+  read is `ownerUserId` = that book plus `canSee`; every write re-checks both. Assistants may approve everything (D88 deletes nothing; a
+  merge is D77's, which assistants already may do).
+- **Verified:** `npm run verify` passes (1,148 tests: 32 new; lint warnings unchanged from the base, none in changed files; check:copy,
+  check:identity, check:licensing, build, check:bundle). New tests: each of the 8 rules with positives and what it must leave alone;
+  fingerprints stable for unrelated edits and changed by a new spelling; a skipped group hidden until its records change; the weekly scan
+  once per ISO week with three runs at once, again next Monday; approve only for ticked people, a stale fingerprint refused, another
+  book's id ignored; undo restores, keeps a later edit, refuses without UNDO, after 30 days, twice and for another book, and leaves the
+  consent log unchanged; a move to Agents ends the campaign and is undone whole; a lead-source group needs a typed source; a duplicate pair
+  merged by D77 (the other record's stop stays, its history copied in), a pair not listed refused, Keep separate sticks; an assistant works
+  in their officer's book only; a 1,234-person book read whole (variants and a duplicate past the first 500); Home's count, hide for the
+  week, the email line with no names or tags; M8's message holds only labels and counts, its answer checked, no key → off; the Neon store
+  binds every value.
+- **QA** (each on a freshly started server): `node scripts/qa/command-center.mjs` PROBLEMS none. Its D88 step imported a messy file (VIP
+  in four spellings, Zillow in three, a ZIP with no state, a Realtor-tagged sphere contact, a bad phone); the Home card showed; Clean up
+  from Contacts listed every expected group; approved "Merge 4 tags into “VIP” (3 people)" (5 tagged VIP after); reviewed the Zillow group
+  and approved 1 of 2 (the other stayed in it); skipped the agents group (gone after Check again now, skipped note shown); undo refused
+  "nope", then put 3 people back ("vip" on Val Cruz again); Not this week hid the card. Clean up, a review and the Home card at 390 and
+  1280 in Night, Dim and Paper: no sideways scroll, no control under 44px, lowest text contrast 5.60:1. `node scripts/qa/buttons.mjs` 528 page views
+  (`/mlo/contacts/cleanup` added), PROBLEMS none. `node scripts/qa/leads-a11y.mjs` 42 page views, 1,589 controls named, 1,529 tap targets,
+  lowest contrast 5.34:1, PROBLEMS none. Screenshots in the session scratchpad (`d88/`).
+- **Decisions (where the brief was open):** (a) Fixes for "missing basics" and "won't work" add a findable tag rather than guess a value;
+  the one value filled in is a state read from the ZIP. (b) Phones and emails are never changed by a clean-up (permission follows them).
+  (c) Duplicates are one group reviewed pair by pair; there is no Approve all for merges. (d) Merges can't be undone (D77 has no unmerge:
+  messages, campaigns and appended consent move), and each merge says so first. (e) "Keep separate" is now remembered per pair, and two
+  people from one import count as kept apart. (f) A tag merge doesn't start "when I add this tag" campaigns (the same as D73's rename and
+  merge). (g) A move to Agents ends every active enrollment (campaigns have no client/agent field). (h) The page reads the whole book on
+  each view (the on-demand check); the weekly scan refreshes Home's and the email's count. (i) M8 runs only when asked, never in the
+  morning run. (j) Delivered leads (`lead:` source) never count as missing a lead source.
+- **Known issues:** (1) The page re-reads the whole book on every view and action: fine to the 25,000 cap but slow near it; past the cap
+  it says so. (2) The Home count is the last scan's; it updates on the next view of Clean up or the next weekly scan. (3) Someone moved to
+  Agents who matches an existing agent leaves two agent records; the next check offers them as a duplicate pair. (4) Neon wasn't run here
+  (no database); its SQL is covered by the bound-parameter test and the same tests on the memory store.
+- **Next up:** owner review of D88, then "promote".

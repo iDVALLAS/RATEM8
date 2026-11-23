@@ -776,7 +776,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.setViewportSize({ width: 1280, height: 900 });
   });
   // Every page, both widths. D72: body.scrollWidth too (html{overflow-x:clip} hides overflow from documentElement).
-  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/inbox?tab=done', '/mlo/settings', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts?rmin=7.2&rmax=9&closed=1&asked=words', '/mlo/contacts?prog=fha,va&rtype=arm&cfrom=2023-01-01&cto=2025-12-31&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/leads', '/mlo/leads/plan', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
+  const pages = ['/mlo', '/mlo/concierge', '/mlo/scripts', '/mlo/calls', '/mlo/automations', '/mlo/refi', '/mlo/report', '/mlo/inbox', '/mlo/inbox?tab=all', '/mlo/inbox?tab=done', '/mlo/settings', '/mlo/pipeline', '/mlo/contacts', '/mlo/contacts?kind=agent', '/mlo/contacts?tag=QA%20list&select=all', '/mlo/contacts?state=WA&rel=past_client&perm=relationship&contacted=q30&noreply=1&select=all', '/mlo/calls?list=d-past', '/mlo/contacts?rmin=7.2&rmax=9&closed=1&asked=words', '/mlo/contacts?prog=fha,va&rtype=arm&cfrom=2023-01-01&cto=2025-12-31&select=all', '/mlo/contacts/import', '/mlo/contacts/import/history', '/mlo/contacts/permission', '/mlo/contacts/cleanup', '/mlo/leads', '/mlo/leads/plan', '/mlo/rules', '/mlo/team', '/mlo/network', '/mlo/security', '/mlo/expenses', '/mlo/expenses/report', '/mlo/templates', '/mlo/templates?k=rebuttal', '/mlo/academy', '/mlo/academy/p5', '/mlo/academy/l2', '/mlo/messages', '/mlo/texting', '/mlo/launch', '/mlo/setup', '/mlo/pricing', '/mlo/voice', '/mlo/training', '/mlo/loa', '/mlo/agents', '/mlo/campaigns', '/mlo/campaigns?new=1', '/mlo/connections', '/mlo/connections?sys=arive', '/mlo/videos', '/mlo/voicemail', '/mlo/cards', '/mlo/email', '/mlo/welcome'];
   for (const w of [390, 1280]) {
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of pages) await step(`${p} @${w}`, async () => {
@@ -1308,6 +1308,123 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.goto(B + '/mlo/leads');
     if (D86) await page.screenshot({ path: path.join(D86, 'qa-leads-plan-390.png'), fullPage: true });
     await page.setViewportSize({ width: 1280, height: 900 });
+  });
+  // D88: clean up my contacts. Import a messy file, see the Home card, open Clean up from Contacts, approve a tag
+  // merge, review and approve part of a group, skip one, undo; then each view at 390 and 1280 in Night, Dim and Paper
+  // (no sideways scroll, 44px controls, text contrast of at least 4.5:1).
+  const D88 = process.env.QA_D88_SHOTS || '';
+  if (D88) fs.mkdirSync(D88, { recursive: true });
+  const shot88 = async (n) => { if (D88) await page.screenshot({ path: path.join(D88, `${n}.png`), fullPage: true }); };
+  // A press that redirects with a flash; waits for the new address (the old one may already carry a flash).
+  const press88 = async (loc) => { const before = page.url(); await loc.click(); await page.waitForURL((u) => u.toString() !== before && /f=/.test(u.toString())); };
+  await step('d88: clean up my contacts', async () => {
+    const f = path.join(path.dirname(CSV), 'd88-messy.csv');
+    fs.writeFileSync(f, 'First Name,Last Name,Mobile,Email,State,ZIP,Contact Type,Tags,Lead Source\nVal,Ames,(509) 555-3101,val.ames@example.com,WA,,Lead,VIP,Zillow\nVal,Bloom,(509) 555-3102,val.bloom@example.com,WA,,Lead,VIP,Zillow\nVal,Cruz,(509) 555-3103,val.cruz@example.com,WA,,Lead,vip,Zillow.com\nVal,Dunn,(509) 555-3104,val.dunn@example.com,WA,,Lead,V.I.P,zillow leads\nVal,Eng,(509) 555-3105,val.eng@example.com,,98101,Lead,VIPs,Zillow\nRae,Tor,(509) 555-3106,rae.tor@example.com,WA,,Sphere,Realtor,Open house\nPer,Ng,555-123-467,per.ng@example.com,WA,,Sphere,,\n');
+    await page.goto(B + '/mlo/contacts/import'); await page.locator('input[type=file]').waitFor();
+    await page.setInputFiles('input[type=file]', f); await importAll();
+    // Home: the card shows once the scan the import made due has run (it runs after Home is sent).
+    let card = '';
+    for (let i = 0; i < 8 && !/suggestion/.test(card); i++) { await page.goto(B + '/mlo'); card = await page.locator('#cleanup').innerText().catch(() => ''); if (!/suggestion/.test(card)) await page.waitForTimeout(1500); }
+    console.log('d88: home card:', card.replace(/\n/g, ' | '));
+    if (!/Clean up your contacts: \d+ suggestions?/.test(card)) problems.push('[d88] no Clean up card on Home');
+    await shot88('home-1280');
+    // The Contacts page's Clean up button checks the book now.
+    await page.goto(B + '/mlo/contacts');
+    await page.locator('main').getByRole('link', { name: 'Clean up', exact: true }).click(); await page.waitForURL(/\/mlo\/contacts\/cleanup$/);
+    const main = await page.locator('main').innerText();
+    for (const t of [/Merge 4 tags into “VIP” \(3 people\)/, /Write the lead source “Zillow” one way/, /Fill in the state from the ZIP for/, /look(s like a|s? like) real estate agents?/, /a phone or email that won't work/, /Never changed here: permission, stops/]) if (!t.test(main)) problems.push('[d88] cleanup page lacks ' + t);
+    await shot88('cleanup-1280');
+    // Approve the tag merge.
+    const tagCard = page.locator('.cc-clean__item', { hasText: /Merge 4 tags into “VIP”/ });
+    await press88(tagCard.getByRole('button', { name: /^Approve/ }));
+    console.log('d88: approve tags:', await flash());
+    if (!/Done: 3 people updated/.test(await flash())) problems.push('[d88] tag merge flash: ' + await flash());
+    await page.goto(B + '/mlo/contacts?tag=VIP');
+    const vip = await page.locator('.cc-people > li').count();
+    if (vip !== 5) problems.push(`[d88] ${vip} people tagged VIP after the merge (expected 5)`);
+    // Review part of a group: untick one person, approve the rest.
+    await page.goto(B + '/mlo/contacts/cleanup?g=' + encodeURIComponent('sources:zillow'));
+    const rows = page.locator('.cc-clean__person');
+    console.log('d88: review rows:', (await rows.allInnerTexts()).map((t) => t.replace(/\n/g, ' ')).join(' / '));
+    await shot88('review-1280');
+    await rows.filter({ hasText: 'Val Dunn' }).locator('input[type=checkbox]').uncheck();
+    await press88(page.getByRole('button', { name: 'Approve the ticked people' }));
+    console.log('d88: approve picked:', await flash());
+    if (!/Done: 1 person updated/.test(await flash())) problems.push('[d88] picked approve flash: ' + await flash());
+    const left = await page.locator('.cc-clean__item', { hasText: /Write the lead source “Zillow” one way/ }).innerText().catch(() => '');
+    if (!/\(1 person\)/.test(left) || !/zillow leads/.test(left)) problems.push('[d88] the unticked person left the group: ' + left.replace(/\n/g, ' | '));
+    // Skip one: it doesn't come back on the next check.
+    const ag = page.locator('#rule-agents .cc-clean__item').first();
+    await press88(ag.getByRole('button', { name: /^Skip/ }));
+    console.log('d88: skip:', await flash());
+    if (!/Skipped/.test(await flash())) problems.push('[d88] skip flash: ' + await flash());
+    await press88(page.getByRole('button', { name: 'Check again now' }));
+    console.log('d88: check again:', await flash());
+    if (await page.locator('#rule-agents').count()) problems.push('[d88] the skipped agents group came back');
+    if (!/skipped suggestion/.test(await page.locator('main').innerText())) problems.push('[d88] no skipped note');
+    // Undo the tag merge (type UNDO).
+    const run = page.locator('.cc-clean__run', { hasText: 'Merge 4 tags' }).first();
+    await run.locator('summary').click(); await run.locator('input[name=confirm]').fill('nope'); await press88(run.getByRole('button', { name: 'Undo' }));
+    if (!/Type UNDO/.test(await flash())) problems.push('[d88] undo without UNDO not refused: ' + await flash());
+    const run2 = page.locator('.cc-clean__run', { hasText: 'Merge 4 tags' }).first();
+    await run2.locator('summary').click(); await run2.locator('input[name=confirm]').fill('UNDO'); await press88(run2.getByRole('button', { name: 'Undo' }));
+    console.log('d88: undo:', await flash());
+    if (!/Undone: 3 people put back/.test(await flash())) problems.push('[d88] undo flash: ' + await flash());
+    await page.goto(B + '/mlo/contacts?tag=vip');
+    if ((await page.locator('.cc-people > li').count()) !== 1) problems.push('[d88] "vip" not back on Val Cruz after undo');
+    // The duplicates review, when there is one (earlier steps may leave a pair).
+    await page.goto(B + '/mlo/contacts/cleanup');
+    const hasDup = await page.locator('#rule-duplicates').count();
+    // Each view in every theme and width.
+    // Home: only the Clean up card is D88's.
+    const views = [['cleanup', '/mlo/contacts/cleanup', 'main'], ['review', '/mlo/contacts/cleanup?g=' + encodeURIComponent('tags:vip'), 'main'], ['home', '/mlo', '#cleanup'], ...(hasDup ? [['pairs', '/mlo/contacts/cleanup?g=duplicates', 'main']] : [])];
+    let low = Infinity;
+    for (const theme of ['night', 'dim', 'paper']) for (const w of [390, 1280]) for (const [name, url, scope] of views) {
+      await page.evaluate((t) => { try { localStorage.setItem('loanm8.theme', t); } catch {} }, theme).catch(() => {});
+      await page.setViewportSize({ width: w, height: w < 640 ? 844 : 900 });
+      await page.goto(B + url);
+      if ((await page.evaluate(() => document.documentElement.dataset.theme)) !== theme) problems.push(`[d88 ${name} ${theme}] theme did not apply`);
+      await page.evaluate(() => document.querySelectorAll('main details').forEach((d) => { d.open = true; }));
+      const r = await page.evaluate((scope) => {
+        const out = [];
+        const cv = document.createElement('canvas'); cv.width = cv.height = 1; const cx = cv.getContext('2d', { willReadFrequently: true });
+        const rgba = (css) => { cx.clearRect(0, 0, 1, 1); cx.fillStyle = '#000'; cx.fillStyle = css; cx.fillRect(0, 0, 1, 1); const d = cx.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2], d[3] / 255]; };
+        const over = (t, b) => [t[0] * t[3] + b[0] * (1 - t[3]), t[1] * t[3] + b[1] * (1 - t[3]), t[2] * t[3] + b[2] * (1 - t[3]), 1];
+        const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+        const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+        const back = (el) => { const ls = []; for (let p = el; p; p = p.parentElement) { const bg = rgba(getComputedStyle(p).backgroundColor); ls.push(bg); if (bg[3] >= 1) break; } return ls.reverse().reduce((b, l) => (l[3] > 0 ? over(l, b) : b), [255, 255, 255, 1]); };
+        const vis = (el) => { const b = el.getBoundingClientRect(); const s = getComputedStyle(el); return b.width > 0 && b.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+        let min = Infinity;
+        for (const el of document.querySelectorAll(`${scope} *`)) {
+          if (!vis(el) || el.closest('.sr-only, [aria-hidden=true], svg')) continue;
+          if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+          const s = getComputedStyle(el);
+          // Gradient headline text (background-clip: text) is drawn by its background, not its color.
+          if (s.color === 'rgba(0, 0, 0, 0)' || s.webkitTextFillColor === 'rgba(0, 0, 0, 0)') continue;
+          const fg = rgba(s.color); const b = back(el);
+          const c = ratio(over(fg, b), b); min = Math.min(min, c);
+          if (c < 4.5) out.push(`contrast ${c.toFixed(2)} "${el.textContent.trim().slice(0, 40)}"`);
+        }
+        for (const el of document.querySelectorAll(['button', 'a.mlo-btn', 'input:not([type=hidden]):not([type=checkbox])', 'summary', '.cc-tap'].map((x) => `${scope} ${x}`).join(', '))) {
+          if (!vis(el)) continue; const b = el.getBoundingClientRect();
+          if (b.height < 43.5) out.push(`small ${Math.round(b.height)}px "${(el.innerText || el.getAttribute('aria-label') || '').trim().slice(0, 40)}"`);
+        }
+        if (Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1) out.push('sideways scroll');
+        return { out: [...new Set(out)], min };
+      }, scope);
+      low = Math.min(low, r.min);
+      for (const x of r.out) problems.push(`[d88 ${name} @${w} ${theme}] ${x}`);
+      await shot88(`${name}-${w}-${theme}`);
+    }
+    console.log(`d88: ${3 * 2 * views.length} views audited, lowest text contrast ${low.toFixed(2)}:1`);
+    await page.evaluate(() => { try { localStorage.setItem('loanm8.theme', 'night'); } catch {} });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    // "Not this week" hides the Home card.
+    await page.goto(B + '/mlo');
+    if (await page.locator('#cleanup').count()) {
+      await press88(page.locator('#cleanup').getByRole('button', { name: 'Not this week' }));
+      if (await page.locator('#cleanup').count()) problems.push('[d88] the Home card stayed after Not this week');
+    }
   });
   console.log('\nPROBLEMS:', problems.length ? '\n' + problems.join('\n') : 'none');
   await b.close();

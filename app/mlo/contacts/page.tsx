@@ -33,6 +33,7 @@ import { contactListsCopy as lc } from "@/lib/content/contact-lists";
 import { deleteListAction, freezeListAction, renameListAction, saveListAction } from "./actions";
 import "../mlo.css";
 import PageHead from "@/app/mlo/PageHead";
+import { contactCleanupCopy } from "@/lib/content/contact-cleanup";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Contacts", robots: { index: false, follow: false } };
@@ -157,6 +158,8 @@ export default async function Contacts({ searchParams }: { searchParams: Promise
               <input name="q" defaultValue={rule.q ?? ""} placeholder="Search name, phone, email, city, tag" className="mlo-input" aria-label="Search" style={{ flex: "1 1 240px" }} />
               <button type="submit" className="mlo-btn mlo-btn--ghost">Search</button>
               <Link href={`/mlo/contacts/import${kind === "agent" ? "?kind=agents" : ""}`} className="mlo-btn">Import contacts</Link>
+              {/* D88: the Concierge's suggestions for tidying the book, checked now. */}
+              <Link href="/mlo/contacts/cleanup" className="mlo-btn mlo-btn--ghost">{contactCleanupCopy.button}</Link>
             </form>
             <details className="mlo-details cc-filters" id="filters">
               <summary>{lc.filtersOn(chips.filter((c) => c.key !== "q").length)}</summary>

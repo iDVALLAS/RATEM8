@@ -21,6 +21,7 @@ import { syncLeadEvents } from "@/lib/leads/sync";
 import { makeMonthlyDrafts, monthlyStore } from "@/lib/leads/spend";
 import { planStore } from "@/lib/leads/plan-store";
 import { advancePlan } from "@/lib/leads/plan-service";
+import { weeklyScan } from "@/lib/contacts/cleanup-service";
 
 /**
  * GET /api/cc/concierge/sweep — the morning run for every loan officer who
@@ -50,6 +51,8 @@ export async function GET(req: Request) {
       // D86: the lead plan's roadmap steps and the Business Manager's 30-day check-in, when due (before the team runs,
       // so the check-in is this period's lead-source move).
       if (user.role !== "assistant") await advancePlan(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-plan" }));
+      // D88: "Clean up my contacts", once per ISO week (before the email, which carries its count).
+      await weeklyScan(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "cleanup" }));
       await runDaily(user);
       // D54: the Concierge team plans the day (its sends go out in the midday run).
       if (teamOn()) await runTeam(user);
@@ -80,6 +83,10 @@ export async function GET(req: Request) {
     await makeMonthlyDrafts(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-monthly" }));
     await advancePlan(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "lead-plan" }));
   }
+  // D88: every other active loan officer's book gets its weekly clean-up scan too (once per ISO week, claimed first).
+  const scanned = new Set(owners);
+  const everyone = (await accountStore().listUsers().catch(() => [])).filter((u) => u.status === "active" && u.role !== "assistant" && !scanned.has(u.id));
+  for (const user of everyone.slice(0, 200)) await weeklyScan(user).catch((e) => report("error", e, { route: "concierge-sweep", stage: "cleanup" }));
   // D51: campaign steps due now (East Coast mornings; the midday run covers the West).
   const campaigns = await runDue(new Date()).catch(async (e) => {
     await report("error", e, { route: "concierge-sweep", stage: "campaigns" });

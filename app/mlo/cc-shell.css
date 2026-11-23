@@ -1263,3 +1263,23 @@
 /* ─── D87: a link standing on its own (not inside a sentence) gets a 44px tap target; the negative margin keeps the
    line its own height, so nothing moves. ─── */
 .cc-app .cc-tap { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; margin-block: -12px; margin-block: calc((1lh - 44px) / 2); }
+
+/* ─── D88: Clean up your contacts. Suggestions in cards, a review list of people with tick boxes, and the Home card. ─── */
+.cc-clean__never { margin: 12px 0 0; }
+.cc-clean__list { display: grid; gap: 12px; margin: 10px 0 0; padding: 0; list-style: none; }
+.cc-clean__item .mlo-note, .cc-clean__pair .mlo-note, .cc-clean__run .mlo-note { margin: 4px 0 0; overflow-wrap: anywhere; }
+.cc-clean__item .cc-card__title, .cc-clean__pair .cc-card__title, .cc-clean__run .cc-card__title { overflow-wrap: anywhere; }
+.cc-clean__mark { display: inline-flex; align-items: center; min-height: 24px; margin-left: 8px; padding: 1px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--fg); font: 500 11px/1.4 var(--font-jetbrains), ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: middle; }
+.cc-clean__form .mlo-actions { margin-top: 12px; }
+.cc-clean__src { margin-top: 12px; max-width: 420px; }
+.cc-clean__people { margin: 12px 0 0; padding: 0; list-style: none; }
+.cc-clean__person { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; border-bottom: 1px solid var(--rule); }
+.cc-clean__person .mlo-check { flex: 1 1 260px; min-width: 0; min-height: 44px; box-sizing: border-box; align-items: center; }
+.cc-clean__person .mlo-check input { margin-top: 0; flex: none; }
+.cc-clean__person .mlo-check > span { min-width: 0; overflow-wrap: anywhere; }
+.cc-clean__name { font-weight: 500; color: var(--fg); }
+.cc-clean__pair form { margin-top: 8px; }
+.cc-clean__pair .mlo-actions { margin-top: 8px; }
+.cc-clean-card { margin-top: 20px; }
+.cc-clean-card h2 { margin: 0; overflow-wrap: anywhere; }
+.cc-clean-card > .mlo-note { margin: 6px 0 0; }

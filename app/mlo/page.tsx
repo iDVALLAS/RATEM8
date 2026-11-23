@@ -29,6 +29,10 @@ import { textingReadyFor } from "@/lib/texting/ready";
 import { teamStore } from "@/lib/agents/store";
 import { leadStepDoneAction } from "./step-actions";
 import { CALL_FIX, HOME, LEAD_ASK } from "@/lib/content/cc-pages";
+import { after } from "next/server";
+import { homeCleanup, homeScan } from "@/lib/contacts/cleanup-service";
+import { contactCleanupCopy as CLEAN } from "@/lib/content/contact-cleanup";
+import { dismissCleanupAction } from "./contacts/cleanup/actions";
 import "./mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +65,9 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
   const [queue, replies, texting] = me && today ? await Promise.all([callQueue(me, new Date(), today.cards).catch(() => null), repliesWaiting(me).catch(() => 0), textingReadyFor(me).catch(() => false)]) : [null, 0, false];
   // D85: the steps the loan officer added from "Ask your Concierge" on Lead sources (Business Manager steps, no contact).
   const leadSteps = me ? (await teamStore().moves(me.id, { status: "open", limit: 500 }).catch(() => [])).filter((m) => m.key.startsWith("lead-step:")).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || b.score - a.score).slice(0, 12) : [];
+  // D88: the weekly "Clean up your contacts" card (saved counts); a scan that's due runs after the page is sent.
+  const clean = me ? await homeCleanup(me).catch(() => null) : null;
+  if (me && clean?.due) after(() => homeScan(me, clean.due).catch(() => undefined));
   const blocker = queue && !queue.ready.length ? topBlocker(queue.blocked.map((x) => x.reason)) : null;
   const call = !queue ? { href: "/mlo/calls", label: HOME.callNone } : queue.ready.length ? { href: "/mlo/calls", label: HOME.callReady(queue.ready.length) } : queue.blocked.length ? { href: "/mlo/calls#blocked", label: HOME.callBlocked(queue.blocked.length) } : { href: "/mlo/calls", label: HOME.callNone };
   const deadlines = today?.cards.filter((c) => c.kind === "journey").length ?? 0;
@@ -205,6 +212,17 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
                 </li>
               ))}
             </ol>
+          </section>
+        ) : null}
+
+        {clean && clean.count > 0 ? (
+          <section id="cleanup" aria-labelledby="cleanup-h" className="cc-panel cc-clean-card">
+            <div className="cc-sechead"><h2 id="cleanup-h">{CLEAN.home.title(clean.count)}</h2></div>
+            <p className="mlo-note">{CLEAN.home.note(clean.people)}</p>
+            <form action={dismissCleanupAction} className="mlo-actions">
+              <Link className="mlo-btn" href="/mlo/contacts/cleanup">{CLEAN.home.open}</Link>
+              <button type="submit" className="mlo-btn mlo-btn--ghost">{CLEAN.home.hide}</button>
+            </form>
           </section>
         ) : null}
 
