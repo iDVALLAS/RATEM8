@@ -7580,3 +7580,17 @@ clean up their database"). Owner's choice: check every week and put a "Clean up"
   Agents who matches an existing agent leaves two agent records; the next check offers them as a duplicate pair. (4) Neon wasn't run here
   (no database); its SQL is covered by the bound-parameter test and the same tests on the memory store.
 - **Next up:** owner review of D88, then "promote".
+
+## Promote — D87.5 and D87.6 to production (2026-11-23)
+
+Owner: "promote D87.5".
+
+- Remote M8 red team: the D87.5 preview (2b01ca1) failed R50 again, and the assertion showed the cause was the test's
+  own re-check (`pricing-promise` on a greeting that offered to pull pricing, allowed while manual pricing is published),
+  not "G'day". D87.6 made the runner use the site's own switch; its first preview (94ae7d4) stopped at the health check
+  (the switch was only in the token-only block), fixed in 390e800. Against the 390e800 preview: 43 of 43.
+- Production deployment of the exact commit 390e800 (D87.5 filter tightening + D87.6 test and health field), created
+  from Git, not a promote of the preview. D88 (65546b9, committed after it) is not in production.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/api/health` 200 (now
+  reports `pricingOffers: true`), `/chat` 307 (tester lock).
+- **Next up:** owner review of D88, then "promote".
