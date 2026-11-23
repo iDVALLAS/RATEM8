@@ -7434,3 +7434,21 @@ wording, decision (e) of D83), so imported leads never showed under "You can cal
   seen in QA; a second re-read mark would fix any such row. (2) Neon wasn't run here (no database); its update is covered by the
   fake-query test and the same tests on the memory store.
 - **Next up:** promote D81–D87.3 (the owner has asked for it).
+
+## Promote — D81 through D87.3 to production (2026-11-23)
+
+Owner: "Promote D81–D87 loanm8.com … run the M8 safety tests against the preview, put that exact version live, check
+the site and log it", then "promote now".
+
+- Remote M8 red team against the D87.3 preview (dd5194b): first run 42 of 43 — R50 "greeting: no G'day" failed once
+  (the live model answered "Hi there" with "G'day"). No M8 chat code changed since the last promote (23f2bef), so this
+  is the model occasionally ignoring the prompt rule, the same chat that was already live. R50 alone passed 3 of 3
+  reruns, then the full suite passed 43 of 43. The owner chose to promote now and add a code filter after.
+- Production deployment of the exact commit dd5194b (D81–D87.3: lead sources rebuild, D87.1 wording, D87.2 whole book
+  past 500 contacts, D87.3 imported leads you can call), created from Git, not a promote of the preview.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/api/health` 200,
+  `/chat` 307 (tester lock).
+- Not included: the 5,000-message fix on `claude/stoic-dijkstra-6gbqds` (a separate session; its commit is labelled
+  "D87.3" and will be renumbered D87.4 when brought in) and D88 contacts cleanup (waiting on the owner).
+- **Next up:** D87.5, a code filter that removes "G'day" (and similar regional greetings) from every M8 reply before it
+  is shown, with a test; then D88 when the owner answers.
