@@ -246,7 +246,8 @@ export const LEADS = {
     setMonthly: "Set a monthly amount per source",
     /** D83: what the Repeats column means. */
     repeatsNote: "“Repeats” = leads a source sent you who were already in your book. Each one counts as a lead from that source; ask the vendor about credit for them.",
-    canCallNote: "“You can call” = leads whose consent wording named you or your company.",
+    /** D87.3 (owner decision 6): imported leads count when the import recorded their yes to texts or calls. */
+    canCallNote: "“You can call” = leads whose consent wording named you or your company, and imported leads whose permission to text or call you confirmed when you imported them.",
     /** D84: under the real scorecard (from the mockup). */
     badgeNote: "Badges are suggestions from your Concierge; nothing changes until you approve it.",
     /** D84: the real scorecard (Option B). */

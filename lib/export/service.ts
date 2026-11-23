@@ -145,7 +145,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
       "campaigns.csv, campaign-people.csv, templates.csv, call-scripts.csv, cards-by-mail.csv: what you built and sent.",
       "videos.csv, video-sends.csv: your video messages (with a link to each file and what it says) and who watched.",
       "expenses.csv and receipts/: your business expenses, income and mileage (leadSource: the lead source a line of spend was for).",
-      "lead-events.csv: every lead delivered to you or imported with a lead source, by source (repeat: they were already in your book; formNamedYou: that lead's consent wording named you or your company).",
+      "lead-events.csv: every lead delivered to you or imported with a lead source, by source (repeat: they were already in your book; formNamedYou: that lead's consent wording named you or your company, or, for an imported lead, you confirmed their permission to text or call when you imported them).",
       "lead-monthly-amounts.csv: the monthly amount you set for each lead source.",
       "lead-plan.csv: your saved 90-day lead plan, one row per part of its split, then each earlier version (madeBy: you saved it, or approved a Business Manager move or check-in).",
       "",

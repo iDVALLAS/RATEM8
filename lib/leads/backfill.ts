@@ -14,8 +14,10 @@
  *    from a lead vendor. Dated by the file's own dates: its Application date
  *    column, else its closed or funded date; only a lead-vendor file with no
  *    date uses the day of the import. Anyone else with no date counts as a lead
- *    but in no period ("none"). `namesYou` only when the import itself wrote
- *    a granted text or call entry whose wording names the loan officer.
+ *    but in no period ("none"). `namesYou` (D87.3, owner decision 6): the
+ *    import that made them recorded a granted text or call permission
+ *    (marketing) for them, and no stop or take-back on that channel since;
+ *    see `importedLeadCallable`.
  *  - "Referral", "Past client", "Sphere" and the like go to "Past clients &
  *    sphere" through `sourceKey`.
  */
@@ -31,10 +33,12 @@ export type BackfillContact = {
   leadSource?: string | null;
   createdAt: string;
   importId?: string | null;
+  /** D75: an undo kept this person; the import they came from. */
+  keptFrom?: string | null;
   mergedFrom?: { id: string }[];
   loan?: { closedOn?: string | null; appliedOn?: string | null } | null;
 };
-export type BackfillEntry = { contactId: string; channel: string; granted: boolean; actor: string; proof: string; importId?: string | null; mergedFrom?: string | null };
+export type BackfillEntry = { contactId: string; channel: string; purpose: string; granted: boolean; evidence: string; at: string; actor: string; proof: string; importId?: string | null; mergedFrom?: string | null };
 export type BackfillAudit = { at: string; actor: string; detail: Record<string, unknown> };
 
 export type BackfillInput = {
@@ -43,8 +47,6 @@ export type BackfillInput = {
   entries: readonly BackfillEntry[];
   /** `lead.inbound` audit rows for this owner (rows written since D83 carry `event` and are skipped). */
   audit: readonly BackfillAudit[];
-  /** Whether consent wording names the loan officer or their company (`consentNamesUs`). */
-  namesUs: (text: string) => boolean;
   /** Include the one-time history part (audit rows and `lead:` contacts). */
   history: boolean;
   now: Date;
@@ -76,10 +78,36 @@ export function importDate(c: BackfillContact, now: Date): { at: string; datedBy
   return { at: c.createdAt, datedBy: "none" };
 }
 
-const phoneYes = (e: BackfillEntry) => e.granted && !e.mergedFrom && (e.channel === "text" || e.channel === "call");
+/** The proof an import writes on an opt-in column's "yes" (`importBatch`); used only for people imported before D75 gave entries an `importId`. */
+const IMPORT_PROOF = /^opt-in column in /;
+
+/**
+ * D87.3 (owner decision 6, 2026-11-23): an imported lead is one "you can call"
+ * when the loan officer confirmed at import that the person gave them
+ * permission: the import that made this person wrote a granted text or call
+ * entry for marketing (the yes the contact page shows, evidence "attested"),
+ * and nothing on that channel has stopped it since — no stop (a revocation,
+ * any time: an import's yes never overrides one, D69), and no undone import
+ * yes or reset after a new phone at or after it. A yes from anywhere else (a
+ * later delivery, a recorded form, a later import, a merged record's copy)
+ * isn't the import's and doesn't count. Pure.
+ */
+export function importedLeadCallable(c: BackfillContact, entries: readonly BackfillEntry[]): boolean {
+  const own = entries.filter((e) => e.contactId === c.id && !e.mergedFrom);
+  const ofThisImport = (e: BackfillEntry) => (c.importId ? e.importId === c.importId : c.keptFrom ? e.importId === c.keptFrom : !e.importId && IMPORT_PROOF.test(e.proof));
+  return own.some(
+    (y) =>
+      y.granted &&
+      y.evidence === "attested" &&
+      y.purpose === "marketing" &&
+      (y.channel === "text" || y.channel === "call") &&
+      ofThisImport(y) &&
+      !own.some((e) => e.channel === y.channel && !e.granted && (e.evidence === "revoked" || e.at >= y.at)),
+  );
+}
 
 export function planLeadEvents(input: BackfillInput): LeadEvent[] {
-  const { owner, contacts, entries, audit, namesUs, now } = input;
+  const { owner, contacts, entries, audit, now } = input;
   const out = new Map<string, LeadEvent>();
   const put = (e: LeadEvent) => {
     if (!out.has(e.id)) out.set(e.id, e);
@@ -114,10 +142,8 @@ export function planLeadEvents(input: BackfillInput): LeadEvent[] {
     const label = c.leadSource?.trim() || "";
     const key = sourceKey(label) || VENDOR_FILE_KEY;
     const when = importDate(c, now);
-    // Only what the import itself recorded, and only wording that names the loan officer (decision 4). An opt-in
-    // column's attestation carries no wording (its proof is "opt-in column in <file>"; a file named after the company
-    // isn't consent wording), so today an imported lead's yes never names the loan officer.
-    const named = (entriesOf.get(c.id) ?? []).some((e) => phoneYes(e) && (e.actor.startsWith("lead:") || (!!c.importId && e.importId === c.importId && namesUs(e.proof.replace(/^opt-in column in [\s\S]*$/, "")))));
+    // D87.3 (decision 6): callable when the import itself recorded the person's yes to texts or calls, with no stop since.
+    const named = importedLeadCallable(c, entriesOf.get(c.id) ?? []);
     put({ id: eventId(owner, c.id, "import"), ownerUserId: owner, sourceKey: key, sourceLabel: sourceLabel(key, label), contactId: c.id, at: when.at, duplicate: false, namesYou: named, externalId: null, origin: "import", datedBy: when.datedBy });
   }
   return [...out.values()];

@@ -279,13 +279,13 @@ describe("the lead-event log (D83)", () => {
     expect(row("Ann")).toEqual([SPHERE_KEY, "2021-06-15", "closed", false, "import"]);
     expect(row("Bo")).toEqual(["zillow", "2022-01-10", "application", false, "import"]);
     expect(row("Cy")).toEqual([SPHERE_KEY, NOW.toISOString().slice(0, 10), "none", false, "import"]);
-    // Not a lead-vendor file and no date of its own: a lead, in no period.
-    expect(row("Ed")).toEqual(["lendingtree", NOW.toISOString().slice(0, 10), "none", false, "import"]);
+    // Not a lead-vendor file and no date of its own: a lead, in no period. D87.3: the file's yes to texts and calls makes Ed one you can call.
+    expect(row("Ed")).toEqual(["lendingtree", NOW.toISOString().slice(0, 10), "none", true, "import"]);
     // A lead-vendor file with no date uses the import day; no Lead source column = "Lead vendor file".
     expect(row("Fay")).toEqual([VENDOR_FILE_KEY, NOW.toISOString().slice(0, 10), "import", false, "import"]);
     expect(row("Gus")).toEqual(["bankrate", "2026-10-30", "closed", false, "import"]);
-    // An opt-in column's attestation isn't wording that names you, even in a file named after the company (decision 4).
-    expect(row("Hal")).toEqual(["google-ads", NOW.toISOString().slice(0, 10), "import", false, "import"]);
+    // D87.3 (decision 6): the loan officer confirmed Hal's yes to texts at import, so Hal is one you can call.
+    expect(row("Hal")).toEqual(["google-ads", NOW.toISOString().slice(0, 10), "import", true, "import"]);
     expect(by.get("Fay")!.sourceLabel).toBe("Lead vendor file");
     // Idempotent: twice, and a later sync finds nothing new.
     expect((await syncLeadEvents(me, { now: later(1) })).added).toBe(0);
@@ -305,7 +305,7 @@ describe("the lead-event log (D83)", () => {
     expect(importDate({ ...c, loan: { closedOn: "not a date" } }, NOW)).toEqual({ at: NOW.toISOString(), datedBy: "none" });
     expect(importDate({ ...c, provenance: "lead_vendor" }, NOW)).toEqual({ at: NOW.toISOString(), datedBy: "import" });
     // History only runs when asked.
-    expect(planLeadEvents({ owner: "lo1", contacts: [{ ...c, source: "lead: Zillow" }], entries: [], audit: [], namesUs: () => true, history: false, now: NOW })).toEqual([]);
+    expect(planLeadEvents({ owner: "lo1", contacts: [{ ...c, source: "lead: Zillow" }], entries: [], audit: [], history: false, now: NOW })).toEqual([]);
   });
 
   it("a merge points the other record's events at the kept one", async () => {

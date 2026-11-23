@@ -5,7 +5,9 @@
  * one source key (`sourceKey()`, D83):
  *  - lead events: every delivery is a lead, repeats are a subset, and "you
  *    can call" is the delivery's own `namesYou`, frozen when it arrived
- *    (owner decision 1). An imported lead with no date of its own counts as
+ *    (owner decision 1); for an imported lead, whether the import recorded
+ *    the person's yes to texts or calls (D87.3, owner decision 6). An
+ *    imported lead with no date of its own counts as
  *    a lead but in no period (decision 5); the scorecard says how many;
  *  - confirmed lead-spend lines from Expenses, at their business-use share
  *    (the same share the year-end report uses, without its tax-only rules:
