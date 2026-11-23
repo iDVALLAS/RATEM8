@@ -7295,3 +7295,21 @@ D81–D86 (one bug fixed, the guard widened where the red team got through, the 
 - **Known gaps:** no live-model run (no AI key here; answers are tested with a fake model, and the guard on what it says). The weekly report's
   lead counts (above).
 - **Next up:** the owner's review of the Lead sources set and the counsel items above.
+
+## D87.1 — Owner's wording for the "answer new leads" roadmap step (2026-11-23)
+
+Owner: "Call new leads who named you the day they arrive — don't name it that, say 'Concierge-queued leads to you in minutes.'"
+
+- **Files:** `lib/content/lead-plan.ts` (`roadmap.steps.answer.title`), `lib/concierge/guard.ts` (`leadPromiseIssue` sets
+  aside exactly that phrase), `tests/lead-d87-redteam.spec.ts` (3 new cases), `CLAUDE.md` (test count).
+- **Why the guard changed:** roadmap steps are only created if they pass `reviewLeadMove` (`lib/leads/plan-service.ts`),
+  and D87's timing-promise rule read "leads … in minutes" as a promise, so the owner's step would have silently never
+  appeared on Home. The line describes how fast Command Center queues a delivered lead to the loan officer (intake puts
+  it on Today on arrival), not a result promised to anyone. Only the exact phrase "Concierge-queued (new) leads to you in
+  minutes" is removed before the rules run; "Your web form brings in leads within minutes", "Leads to you in minutes from
+  Zillow" and the same phrase followed by another timing claim are still caught (tests).
+- **Accuracy note:** the lead lands on Today the moment it's delivered; the new-lead alert (D79) waits outside the loan
+  officer's notification hours, so "in minutes" is about the queue, not the alert. The step's second line is unchanged
+  ("Leads without wording that names you need their own yes first.").
+- **Verified:** `npm run verify` passes (1,095 tests).
+- **Next up:** owner review of D81–D87.1, then "promote".

@@ -107,7 +107,7 @@ export const LEAD_PLAN = {
       tag: { title: "Tag each lead dollar in Expenses with its source", why: "So your scorecard counts what each source really costs." },
       move: { title: "Move budget to the lowest cost per lead you can call", why: "Set each source’s monthly amount to match your plan on Lead sources." },
       cap: { title: "Cap the test, so it can’t overspend", why: "Set the new source’s monthly amount to its planned cap, and judge it after 60 days." },
-      answer: { title: "Call new leads who named you the day they arrive", why: "Leads without wording that names you need their own yes first." },
+      answer: { title: "Concierge-queued leads to you in minutes", why: "Leads without wording that names you need their own yes first." },
       keep: { title: (target: string) => `Keep sources at or under your ${target} target cost per loan`, why: "Your scorecard shows each source’s cost per loan." },
       pause: { title: "Pause any source with no loans after 60 days", why: "Change or remove its monthly amount on Lead sources; nothing changes with the vendor for you." },
       rerun: { title: "Re-run this plan on real numbers", why: "Open the budget planner and save the next 90 days." },

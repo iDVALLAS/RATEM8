@@ -268,6 +268,7 @@ const ANSWERS: [string, string][] = [
   ["promise", "Expect to earn $50,000 more this year."],
   ["promise", "This split is guaranteed to double your closings."],
   ["promise", "Your web form brings in leads within minutes."],
+  ["promise", "Concierge-queued leads to you in minutes, and loans within a week."],
 ];
 
 describe("D87 red team: new questions are refused before any model call", () => {
@@ -309,5 +310,18 @@ describe("D87 red team: a model that says it anyway is held", () => {
     expect(leadPromiseIssue("You'll get 40 leads within a week.")).not.toBeNull();
     expect(leadAudienceIssue("Ads only to people under 35.")).toMatch(/fair housing/);
     expect(protectedTopic("Target young families with kids")).not.toBeNull();
+  });
+});
+
+describe("D87.1: the owner's roadmap step about how fast leads are queued", () => {
+  const step = LEAD_PLAN.roadmap.steps.answer;
+  it("reads as the owner wrote it and passes the Business Manager's review, so the step is created", () => {
+    expect(step.title).toBe("Concierge-queued leads to you in minutes");
+    expect(leadPromiseIssue(`${step.title}\n${step.why}`)).toBeNull();
+    expect(reviewLeadMove(`${step.title}\n${step.why}`).ok).toBe(true);
+  });
+  it("only that phrase is set aside: other timing promises are still caught", () => {
+    expect(leadPromiseIssue("Leads to you in minutes from Zillow.")).not.toBeNull();
+    expect(leadPromiseIssue("Concierge-queued leads to you in minutes. Loans within a week.")).not.toBeNull();
   });
 });

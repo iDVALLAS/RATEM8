@@ -177,9 +177,18 @@ export const LEAD_PROMISE: [RegExp, string][] = [
   [/\bguarant(?:ee|eed|ees)\b|\b(earn|earning|make|making|bring in|add)\s+(an extra\s+|another\s+)?\$\s?\d[\d,.]*k?\b[^.?\n]{0,30}\b(more|extra|a year|a month|per year|per month|income|profit)\b|\b(more|extra)\s+(income|money|profit)\b|\bsix[- ]figure/i, "makes an earnings claim"],
 ];
 
+/**
+ * D87.1 (owner, 2026-11-23): the roadmap step "Concierge-queued leads to you in minutes" describes how fast Command
+ * Center puts a delivered lead in front of the loan officer (intake lands it on Today on arrival), not a promise of
+ * results, so exactly that phrase is set aside before the rules run. "Your web form brings in leads within minutes"
+ * and every other timing claim are still caught.
+ */
+const QUEUE_SPEED = /\bconcierge[- ]queued\s+(?:new\s+)?leads?\s+to\s+you\s+in\s+minutes\b/gi;
+
 /** The first promise rule a text breaks, or null. */
 export function leadPromiseIssue(text: string): string | null {
-  for (const [re, why] of LEAD_PROMISE) if (re.test(text)) return why;
+  const t = text.replace(QUEUE_SPEED, "");
+  for (const [re, why] of LEAD_PROMISE) if (re.test(t)) return why;
   return null;
 }
 
