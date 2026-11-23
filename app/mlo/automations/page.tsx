@@ -45,7 +45,7 @@ export default async function Automations({ searchParams }: { searchParams: Prom
   return (
     <PageShell>
       <div className="mlo-wrap">
-        <PageHead k="automations" title="Automations" sub={SUBS.automations} how={<p className="mlo-note">{AUTOMATIONS.how} Drafts land on your <Link href="/mlo/concierge#drafts">Concierge desk</Link>, and each text still goes through your contact rules.</p>} />
+        <PageHead k="automations" title="Automations" sub={SUBS.automations} how={<p className="mlo-note">{AUTOMATIONS.how} Drafts land on your <Link href="/mlo/concierge">Concierge desk</Link>, and each text still goes through your contact rules.</p>} />
         <MloNav current="automations" tenantId={tenant.id} admin={v.admin} signedIn={!!me} />
         <FlashBox flash={decodeFlash(f)} />
         {!me || !settings ? (

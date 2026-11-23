@@ -13,7 +13,7 @@
 import type { User } from "@/lib/accounts/store";
 import { CONFIG, mloById } from "@/lib/config";
 import { contactStore, listAll, type Contact } from "@/lib/contacts/store";
-import { touchStore } from "@/lib/messaging/store";
+import { allSince } from "@/lib/messaging/store";
 import { conciergeStore } from "@/lib/concierge/store";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { campaignStore } from "@/lib/campaigns/store";
@@ -49,8 +49,9 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
 
   const consents = [];
   for (let i = 0; i < all.length; i += 500) consents.push(...(await contactStore().consentsFor(all.slice(i, i + 500).map((c) => c.id))));
-  const [touches, notes, tasks, drafts, loans, campaigns, templates, scripts, cards, expenses, receipts, sig, videos, videoSends, leadEvents, monthly] = await Promise.all([
-    touchStore().since(owner, "1970-01-01T00:00:00.000Z"),
+  const [messages, notes, tasks, drafts, loans, campaigns, templates, scripts, cards, expenses, receipts, sig, videos, videoSends, leadEvents, monthly] = await Promise.all([
+    // D87.4: every message, page by page (one read used to stop at the newest 5,000).
+    allSince(owner, "1970-01-01T00:00:00.000Z"),
     conciergeStore().allMemory(owner, nowIso),
     conciergeStore().tasks(owner, false),
     conciergeStore().proposals(owner),
@@ -86,7 +87,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
     contacts: add("contacts.csv", all.filter((c) => c.kind === "contact").map(contactRow), { first: ["name", "firstName", "lastName", "email", "phone", "street", "city", "state", "zip", "relationship"] }),
     agents: add("agents.csv", all.filter((c) => c.kind === "agent").map(contactRow), { first: ["name", "firstName", "lastName", "email", "phone"] }),
     permissions: add("permission-records.csv", consents.map((e) => ({ contact: who(e.contactId), ...e })), { first: ["contact", "channel", "purpose", "granted", "evidence", "proof", "at"] }),
-    messages: add("messages.csv", touches.map((t) => ({ contact: who(t.contactId), ...t })), { first: ["at", "contact", "channel", "direction", "purpose", "status", "body"] }),
+    messages: add("messages.csv", messages.touches.map((t) => ({ contact: who(t.contactId), ...t })), { first: ["at", "contact", "channel", "direction", "purpose", "status", "body"] }),
     notes: add("notes.csv", notes.map((n) => ({ contact: who(n.contactId), ...n })), { first: ["createdAt", "contact", "kind", "fact", "quote", "source"] }),
     reminders: add("reminders.csv", tasks.map((t) => ({ contact: who(t.contactId), ...t })), { first: ["due", "contact", "title", "why", "done"] }),
     drafts: add("concierge-drafts.csv", drafts.map((p) => ({ contact: who(p.contactId), ...p })), { first: ["createdAt", "contact", "status"] }),
@@ -134,12 +135,13 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
       "",
       ...Object.entries(counts).map(([k, n]) => `${k}: ${n}`),
       ...(book.capped ? ["", `This download holds the first ${book.contacts.length.toLocaleString("en-US")} of the ${book.total.toLocaleString("en-US")} people in your book (by last name).`] : []),
+      ...(messages.capped ? ["", `messages.csv holds your newest ${messages.touches.length.toLocaleString("en-US")} messages. Older ones are not in this download.`] : []),
       ...(left ? ["", `${left} receipt file${left === 1 ? " is" : "s are"} too large to fit in this download. Download them one by one from Expenses.`] : []),
       "",
       "What each file holds:",
       "contacts.csv, agents.csv: everyone in your book, with addresses, tags, notes, loan details and do-not-call checks.",
       "permission-records.csv: every permission and opt-out on file, with its proof. Keep this: it's your record of consent.",
-      "messages.csv: every text, email and call logged in Command Center.",
+      "messages.csv: every text, email and call logged in Command Center, newest first.",
       "notes.csv, reminders.csv, concierge-drafts.csv: your Concierge's notes, reminders and drafts.",
       "loans.csv: loans synced from your loan system.",
       "campaigns.csv, campaign-people.csv, templates.csv, call-scripts.csv, cards-by-mail.csv: what you built and sent.",

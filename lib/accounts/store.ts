@@ -51,6 +51,8 @@ export interface AccountStore {
   sessionUser(hash: string, now: string): Promise<string | null>;
   deleteSession(hash: string): Promise<void>;
   deleteSessionsFor(userId: string): Promise<void>;
+  /** D89: forgets this person's remembered computers (rows whose hash starts "dev:"); their sign-ins stay. Returns how many. */
+  deleteDevicesFor(userId: string): Promise<number>;
   audit(e: AuditEntry): Promise<void>;
   recentAudit(limit: number): Promise<AuditEntry[]>;
   /** D83: one action's rows for one loan officer (`detail.owner`), oldest first. */
@@ -112,6 +114,11 @@ export class MemoryAccountStore implements AccountStore {
   }
   async deleteSessionsFor(userId: string) {
     for (const [k, s] of this.sessions) if (s.userId === userId) this.sessions.delete(k);
+  }
+  async deleteDevicesFor(userId: string) {
+    let n = 0;
+    for (const [k, s] of this.sessions) if (s.userId === userId && k.startsWith("dev:")) n += this.sessions.delete(k) ? 1 : 0;
+    return n;
   }
   async audit(e: AuditEntry) {
     this.log.push(e);
@@ -235,6 +242,11 @@ export class NeonAccountStore implements AccountStore {
   async deleteSessionsFor(userId: string) {
     await this.init();
     await this.q(`DELETE FROM cc_sessions WHERE user_id = $1`, [userId]);
+  }
+  async deleteDevicesFor(userId: string) {
+    await this.init();
+    const r = await this.q(`WITH d AS (DELETE FROM cc_sessions WHERE user_id = $1 AND token_hash LIKE 'dev:%' RETURNING 1) SELECT count(*)::int AS n FROM d`, [userId]);
+    return Number(r[0]?.n ?? 0);
   }
   async audit(e: AuditEntry) {
     await this.init();

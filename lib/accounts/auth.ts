@@ -3,8 +3,10 @@
  * SERVER-ONLY.
  *
  * Sign-in is an emailed one-time link (no passwords): 15 minutes, single
- * use. It opens a session: a random token in an httpOnly cookie, 14 days,
- * stored only as a hash. Rate limited per IP and per email. The sign-in
+ * use. It opens a session: a random token in an httpOnly cookie, stored
+ * only as a hash. D89: 12 hours, or 30 days when "Remember this computer for
+ * 30 days" is ticked; a remembered computer also skips the authenticator
+ * step (D34) for 30 days from the sign-in that passed it. Rate limited per IP and per email. The sign-in
  * form always says the same thing whether or not the email has an account.
  *
  * The owner's account is created on first use from MLO_OWNER_EMAIL. The
@@ -36,7 +38,20 @@ export const LINK_TTL_MS = 15 * 60 * 1000;
 export const PENDING_COOKIE = "lm8_cc_pending";
 export const CODE_TRIES = 5;
 const codeHash = (pending: string, code: string) => sha256(`code:${pending}:${code}`);
-export const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+/** D89: a sign-in lasts 12 hours unless "Remember this computer for 30 days" is ticked. */
+export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+export const REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const sessionTtl = (remember: boolean) => (remember ? REMEMBER_TTL_MS : SESSION_TTL_MS);
+/**
+ * D89: a remembered computer (httpOnly, path /sign-in, 30 days). Set only after the authenticator step is
+ * passed with Remember ticked; it lets that computer skip the step until it expires. The email step is
+ * never skipped. Stored only as a hash beside the sessions ("dev:" prefix), so signing someone out
+ * everywhere (disable, an authenticator reset) forgets it too; plain sign-out keeps it.
+ */
+export const DEVICE_COOKIE = "lm8_cc_device";
+/** D89: carries the Remember tick from the email step to the authenticator step (path /sign-in, 5 minutes). */
+export const REMEMBER_COOKIE = "lm8_cc_remember";
+const deviceHash = (t: string) => `dev:${sha256(`device:${t}`)}`;
 
 export const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 const token = () => randomBytes(32).toString("base64url");
@@ -148,39 +163,68 @@ export async function requestSignIn(emailRaw: string, origin: string, ipHash: st
   return { ok: true, pending };
 }
 
+/** D89: how the browser finishing sign-in asked: Remember ticked, and its remembered-computer cookie if any. */
+export type SignInOpts = { remember?: boolean; device?: string | null };
+
 /** The emailed link. Returns a new session token for the cookie, or null. */
-export async function verifySignIn(t: string, now = Date.now()): Promise<{ session: string; user: User } | { mfa: string; user: User } | null> {
+export async function verifySignIn(t: string, now = Date.now(), opts: SignInOpts = {}): Promise<{ session: string; user: User } | { mfa: string; user: User } | null> {
   if (!t || t.length > 100) return null;
   const userId = await accountStore().consumeLoginToken(sha256(t), iso(now));
-  return userId ? finishSignIn(userId, now) : null;
+  return userId ? finishSignIn(userId, now, opts) : null;
+}
+
+/** D89: whether this browser's remembered-computer token is live and belongs to this person. */
+export async function deviceTrusted(userId: string, device: string | null | undefined, now = Date.now()): Promise<boolean> {
+  if (!device || device.length > 100) return false;
+  return (await accountStore().sessionUser(deviceHash(device), iso(now))) === userId;
+}
+
+/** D89: remembers this computer for 30 days after it passed the authenticator step. Returns the cookie value. */
+export async function rememberDevice(user: User, now = Date.now()): Promise<string> {
+  const store = accountStore();
+  const t = token();
+  await store.putSession(deviceHash(t), user.id, iso(now + REMEMBER_TTL_MS));
+  await store.audit({ at: iso(now), actor: user.email, action: "signin.device_remembered", detail: {} });
+  return t;
+}
+
+/** D89: forgets every computer this person ticked Remember on (their current sign-ins stay). */
+export async function forgetDevices(user: User, now = Date.now()): Promise<number> {
+  const n = await accountStore().deleteDevicesFor(user.id);
+  await accountStore().audit({ at: iso(now), actor: user.email, action: "signin.devices_forgotten", detail: { n } });
+  return n;
 }
 
 /** The next step once the email step is passed: the phone code (D34), or a session. */
-async function finishSignIn(userId: string, now: number): Promise<{ session: string; user: User } | { mfa: string; user: User } | null> {
+async function finishSignIn(userId: string, now: number, opts: SignInOpts = {}): Promise<{ session: string; user: User } | { mfa: string; user: User } | null> {
   const user = await accountStore().userById(userId);
   if (!user || user.status !== "active") return null;
-  // D34: with an authenticator app on, the email step opens the code step instead of a session.
-  if (await mfaOn(user.id)) return { mfa: await openCodeStep(user.id, now), user };
-  return { session: await openSession(user, now), user };
+  // D34: with an authenticator app on, the email step opens the code step instead of a session,
+  // unless (D89) this is a computer remembered after passing that step.
+  if (await mfaOn(user.id)) {
+    if (!(await deviceTrusted(user.id, opts.device, now))) return { mfa: await openCodeStep(user.id, now), user };
+    return { session: await openSession(user, now, !!opts.remember, { device: true }), user };
+  }
+  return { session: await openSession(user, now, !!opts.remember), user };
 }
 
 /** D47: the 6-digit code from the email, typed in the browser that asked (its pending cookie). */
-export async function verifySignInCode(pending: string | undefined, rawCode: string, now = Date.now()): Promise<{ session: string; user: User } | { mfa: string; user: User } | { error: string; spent?: boolean }> {
+export async function verifySignInCode(pending: string | undefined, rawCode: string, now = Date.now(), opts: SignInOpts = {}): Promise<{ session: string; user: User } | { mfa: string; user: User } | { error: string; spent?: boolean }> {
   if (!pending || pending.length > 100) return { error: "That code has expired. Ask for a new one.", spent: true };
   const code = String(rawCode ?? "").replace(/\D/g, "");
   if (code.length !== 6) return { error: "Enter the 6-digit code from the email." };
   if ((await incr(`cc:signin:code:${sha256(pending).slice(0, 24)}`, 1000)) > CODE_TRIES) return { error: "Too many tries. Ask for a new code.", spent: true };
   const userId = await accountStore().consumeLoginToken(codeHash(pending, code), iso(now));
-  const done = userId ? await finishSignIn(userId, now) : null;
+  const done = userId ? await finishSignIn(userId, now, opts) : null;
   return done ?? { error: "That code doesn't match, or it has expired. Check the newest email, or ask for a new code." };
 }
 
-/** A new session for a user who has passed every sign-in step. */
-export async function openSession(user: User, now = Date.now()): Promise<string> {
+/** A new session for a user who has passed every sign-in step: 12 hours, or 30 days when remembered (D89). */
+export async function openSession(user: User, now = Date.now(), remember = false, note: { device?: boolean } = {}): Promise<string> {
   const store = accountStore();
   const session = token();
-  await store.putSession(sha256(session), user.id, iso(now + SESSION_TTL_MS));
-  await store.audit({ at: iso(now), actor: user.email, action: "signin.ok", detail: {} });
+  await store.putSession(sha256(session), user.id, iso(now + sessionTtl(remember)));
+  await store.audit({ at: iso(now), actor: user.email, action: "signin.ok", detail: { remember, ...(note.device ? { rememberedComputer: true } : {}) } });
   return session;
 }
 

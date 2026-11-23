@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import CcAuthShell from "@/app/mlo/CcAuthShell";
-import { currentUser, LINK_TTL_MS, PENDING_COOKIE, requestSignIn, verifySignInCode } from "@/lib/accounts/auth";
+import { currentUser, DEVICE_COOKIE, LINK_TTL_MS, PENDING_COOKIE, requestSignIn, verifySignInCode } from "@/lib/accounts/auth";
 import { hashIp } from "@/lib/m8/limits";
-import { land } from "./land";
+import { land, rememberTicked } from "./land";
+import RememberBox from "./RememberBox";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: { absolute: "Sign in — MLO Command Center" }, robots: { index: false, follow: false } };
@@ -29,7 +30,8 @@ async function send(fd: FormData) {
 async function enterCode(fd: FormData) {
   "use server";
   const jar = await cookies();
-  const r = await verifySignInCode(jar.get(PENDING_COOKIE)?.value, String(fd.get("code") ?? ""));
+  const remember = rememberTicked(fd);
+  const r = await verifySignInCode(jar.get(PENDING_COOKIE)?.value, String(fd.get("code") ?? ""), Date.now(), { remember, device: jar.get(DEVICE_COOKIE)?.value });
   if ("error" in r) {
     if (r.spent) {
       jar.delete({ name: PENDING_COOKIE, path: "/sign-in" });
@@ -37,7 +39,7 @@ async function enterCode(fd: FormData) {
     }
     redirect(`/sign-in?e=sent&err=${encodeURIComponent(r.error)}`);
   }
-  await land(r);
+  await land(r, remember);
 }
 
 function EmailForm({ again = false }: { again?: boolean }) {
@@ -69,6 +71,7 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
               <span>Sign-in code</span>
               <input name="code" required autoFocus inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,7}" maxLength={7} className="mlo-input cc-auth__code" />
             </label>
+            <RememberBox />
             <button type="submit" className="mlo-btn">Sign in</button>
           </form>
           <p className="mlo-note" style={{ marginTop: 12 }}>The code works for 15 minutes. Nothing yet? Check Junk or Quarantine; work email can hold new senders for a few minutes.</p>

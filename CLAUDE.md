@@ -306,6 +306,18 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     later edit wins, merges can't be undone); never consent, stops, DNC, phone checks, hold or provenance; a move to Agents ends campaigns.
     Weekly scan in the morning run (claimed per ISO week), Home card (hide for the week; a due scan runs in `after()`), email line;
     "Ask M8 to group similar labels" sends clients' labels + counts only (nonce blocks, zod-checked, `import` meter route).
+    D87.4 every message: the touch store's `since()`/`sincePage()` return at most 5,000 newest first (`TOUCH_PAGE_MAX`, Neon and memory);
+    anything that needs every message uses `allSince(owner, since, { until, cap })` (`lib/messaging/store.ts`: keyset pages by
+    (`at`, id) with bound parameters, own book only, `TOUCH_CAP` 50,000, returns `capped`). Download everything, the weekly report
+    and the team's daily plan use it; the README says so if messages.csv stops at the cap.
+    D89 sign-in length: a session is 12 hours (`SESSION_TTL_MS`), or 30 days (`REMEMBER_TTL_MS`) with "Remember this computer for 30
+    days" (`app/sign-in/RememberBox.tsx`, unticked by default) on the email-code form, the link page and the D34 phone-code page (the
+    tick rides there in `lm8_cc_remember`, path /sign-in, 5 minutes). Ticked at the phone-code step, the computer is remembered
+    (`lm8_cc_device`, httpOnly, path /sign-in; stored hashed as a `dev:` row in `cc_sessions`, 30 days from that sign-in) and skips
+    the phone code (never the email step) until it expires. Forgotten by "Forget my remembered computers" (`/mlo/security#remembered`),
+    an owner's authenticator reset or disable (`deleteSessionsFor`), and turning the phone code off or on; plain sign-out keeps it.
+    D89.1: Home's "Open Concierge" opens `/mlo/concierge` at the top (only "Review drafts" jumps to `#drafts`);
+    `node scripts/qa/pages.mjs` follows every same-site link signed in as the owner at 390/1280.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -414,7 +426,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1148 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1160 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -946,6 +958,7 @@ node scripts/qa/about.mjs       # nav "About" lands on #about clear of the stick
 node scripts/qa/command-center.mjs  # D28: every /mlo page at 390/1280 plus each screen's main flow (start the server with CC_DEV_LOGIN=1 CC_LINK_SECRET=qa-secret MLO_OWNER_EMAIL=owner@example.com)
 node scripts/qa/buttons.mjs     # D72: button and form alignment, overflow and cut-off controls on every /mlo page (same server)
 node scripts/qa/leads-a11y.mjs  # D87: names, 44px targets, 4.5:1 contrast and a keyboard-only walk on Lead sources, the planner and Expenses (same server)
+node scripts/qa/pages.mjs       # D88.1: every same-site link as the owner at 390/1280: loads, errors, one h1, overflow, #anchors, "Open …" links open at the top (same server, after command-center.mjs)
 ```
 
 The QA scripts need Playwright available to Node (`npm i -D playwright`

@@ -8,6 +8,8 @@ const EXACT: Record<string, string> = {
   "user.update": "Changed someone's role or details",
   "signin.link_sent": "Asked for a sign-in link",
   "signin.ok": "Signed in",
+  "signin.device_remembered": "Remembered a computer for 30 days",
+  "signin.devices_forgotten": "Forgot their remembered computers",
   "mfa.on": "Turned on the sign-in code",
   "mfa.off": "Turned off the sign-in code",
   "mfa.reset": "Reset someone's sign-in code",

@@ -1283,3 +1283,9 @@
 .cc-clean-card { margin-top: 20px; }
 .cc-clean-card h2 { margin: 0; overflow-wrap: anywhere; }
 .cc-clean-card > .mlo-note { margin: 6px 0 0; }
+
+/* D89: Remember this computer for 30 days (a 44px row, the note under it). */
+.cc-auth__remember { display: grid; gap: 2px; }
+.cc-auth__remember .mlo-check { min-height: 44px; align-items: center; padding: 0; cursor: pointer; }
+.cc-auth__remember .mlo-check input { margin-top: 0; flex: none; }
+.cc-auth__remember .mlo-note { margin: 0; }

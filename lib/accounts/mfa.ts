@@ -95,6 +95,8 @@ export async function confirmEnroll(user: User, code: string, now = Date.now()):
   if (step === null) return { ok: false, error: "That code didn't match. Check the phone's clock is set automatically, and enter the newest code." };
   const recovery = Array.from({ length: RECOVERY_COUNT }, newRecovery);
   await store.putMfa({ ...r, enabledAt: new Date(now).toISOString(), lastStep: step, recoveryHashes: recovery.map((c) => sha256(normRecovery(c))) });
+  // D89: computers remembered under an earlier phone don't skip the new one.
+  await store.deleteDevicesFor(user.id);
   await store.audit({ at: new Date(now).toISOString(), actor: user.email, action: "mfa.on", detail: {} });
   return { ok: true, recovery };
 }
@@ -105,6 +107,7 @@ export async function disableOwn(user: User, code: string, now = Date.now()): Pr
   const v = await checkCode(user.id, code, now);
   if (!v) return { ok: false, error: "That code didn't match." };
   await accountStore().deleteMfa(user.id);
+  await accountStore().deleteDevicesFor(user.id);
   await accountStore().audit({ at: new Date(now).toISOString(), actor: user.email, action: "mfa.off", detail: {} });
   return { ok: true };
 }
