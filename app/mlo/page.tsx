@@ -159,7 +159,8 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
             <div className="cc-insight">
               <div className="cc-insight__top"><span className="cc-insight__icon"><Icon name="spark" size={22} /></span><h2>Your Concierge</h2></div>
               <p>{drafts ? `${drafts} ${drafts === 1 ? "text is" : "texts are"} drafted and waiting for your OK. Each one is re-checked against your contact rules when you approve it.` : today && today.cards.length ? "Nothing waiting for approval. Press Run now and it'll draft check-ins for the people on today's list." : "Import your contacts and it will start drafting check-ins and reminders each morning."}</p>
-              <Link className="cc-btn-dark" href="/mlo/concierge#drafts">{drafts ? "Review drafts" : "Open Concierge"}</Link>
+              {/* D88.1: only "Review drafts" jumps to the drafts; "Open Concierge" opens the top of the page (the jump landed at the bottom). */}
+              <Link className="cc-btn-dark" href={drafts ? "/mlo/concierge#drafts" : "/mlo/concierge"}>{drafts ? "Review drafts" : "Open Concierge"}</Link>
             </div>
           </div>
         )}

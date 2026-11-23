@@ -47,7 +47,7 @@ export default async function Messages() {
         <section className="mlo-section">
           <h2>Every message Command Center can draft</h2>
           <p className="mlo-note">
-            Exactly as a client would get it (with “Ann” standing in for their name). Offers and check-ins, and the first text to anyone, end with your sign-off: “{sig}”. Every one waits for your approval, passes the same checks as the Concierge&apos;s drafts, and goes through your contact rules when you send it. AI-written drafts and your Tell-your-Concierge requests are checked the same way; see them on your <Link href="/mlo/concierge#drafts">desk</Link>.
+            Exactly as a client would get it (with “Ann” standing in for their name). Offers and check-ins, and the first text to anyone, end with your sign-off: “{sig}”. Every one waits for your approval, passes the same checks as the Concierge&apos;s drafts, and goes through your contact rules when you send it. AI-written drafts and your Tell-your-Concierge requests are checked the same way; see them on your <Link href="/mlo/concierge">desk</Link>.
           </p>
           {!portal ? <p className="mlo-note">Your secure portal link isn&apos;t set, so messages that would carry it say you&apos;ll send it, and document requests can&apos;t be drafted yet.</p> : null}
         </section>

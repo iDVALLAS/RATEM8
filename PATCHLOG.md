@@ -7471,3 +7471,70 @@ cap, so unit tests and browser QA never showed the cut. Same kind of bug as D87.
   50,000 messages in 400 days the oldest touches are left out of the last-touch map. (4) No unit test drives `proposeAll` past 5,000
   messages; the change there is the one-line switch to `allSince`.
 - **Next up:** owner review of D81–D87.4, then "promote".
+
+## D88 — Remember this computer for 30 days; 12 hours otherwise (2026-11-23)
+
+Owner request (2026-11-23): a "remember me for 30 days" box on sign-in, and the authenticator as an option. The authenticator
+already existed (D34, `/mlo/security`, the second step after the emailed code or link; `CC_REQUIRE_MFA` requires it for everyone);
+it stays the second step, never a replacement for the email step, because one factor alone wouldn't meet the FTC Safeguards
+Rule's multi-factor requirement. Owner's choice for an unticked box: 12 hours. Before this every sign-in lasted 14 days.
+
+- **Files:** `lib/accounts/auth.ts` (`SESSION_TTL_MS` 12 hours, `REMEMBER_TTL_MS` 30 days, `sessionTtl`, `SignInOpts`,
+  `deviceTrusted`, `rememberDevice`, `forgetDevices`, `DEVICE_COOKIE`, `REMEMBER_COOKIE`; `openSession(user, now, remember)`;
+  `verifySignIn`/`verifySignInCode` take `{ remember, device }`), `lib/accounts/store.ts` (`deleteDevicesFor` in both stores),
+  `lib/accounts/mfa.ts` (turning the code on or off forgets remembered computers), `app/sign-in/RememberBox.tsx` (new),
+  `app/sign-in/{land.ts,page.tsx,link/page.tsx,code/page.tsx}`, `app/mlo/security/{page.tsx,actions.ts}` (Remembered computers,
+  `forgetDevicesAction`), `app/mlo/cc-shell.css` (`.cc-auth__remember`, a 44px row), `lib/content/activity.ts` (words for the two
+  new audit codes), `app/api/cc/dev-login/route.ts` (local QA sessions last 30 days), `lib/accounts/remember.test.ts` (new, 5 tests),
+  `CLAUDE.md`.
+- **How it works:** "Remember this computer for 30 days" (unticked by default, with "Leave it unticked on a shared or public
+  computer") sits on each form that can finish signing in: the email-code form, the emailed link's page and the phone-code page.
+  Unticked, the sign-in cookie and its stored session last 12 hours; ticked, 30 days. With the phone code on, the tick rides from the
+  email step to the phone-code page (`lm8_cc_remember`, path /sign-in, 5 minutes) and shows there already ticked. Passing the phone
+  code with it ticked remembers the computer: a random token in `lm8_cc_device` (httpOnly, path /sign-in, 30 days), stored only as a
+  hash in `cc_sessions` with a `dev:` prefix (no new table). On that computer the next sign-ins still need the emailed code or link,
+  then skip the phone code until 30 days after it was remembered. The token is checked against the person signing in, so it never
+  skips anyone else's code, and it can't act as a sign-in (or a sign-in as it).
+- **Forgetting:** "Forget my remembered computers" on `/mlo/security#remembered`; an owner's reset of someone's authenticator and
+  disabling an account (both `deleteSessionsFor`); turning the phone code off, or on again with a new phone. Plain sign-out ends that
+  browser's sign-in and keeps the remembered computer.
+- **Audit:** `signin.ok` now records `{ remember }` (and `rememberedComputer` when the phone code was skipped);
+  `signin.device_remembered` and `signin.devices_forgotten` (with a count). No token or address is logged.
+- **Verified:** `npm run verify` passes (1,125 tests: 5 new; lint warnings unchanged, none in changed files; check:copy, check:identity, check:licensing, build, check:bundle). New tests (`lib/accounts/remember.test.ts`): unticked sign-ins end after 12 hours and ticked ones after 30 days, with the choice in the audit log; with the phone code on, a computer remembered after passing it skips the code on the next sign-in (the email step still runs), but not with no cookie, a made-up cookie, another person's code, or after 30 days; tokens are stored only as hashes and a remembered-computer token is not a sign-in (nor the reverse); Forget, turning the code off or on again, and an owner's reset each forget it, plain sign-out keeps it, and Forget leaves sign-ins on other computers alone; with the code off, Remember remembers no computer. The existing D1, D34 and D47 account tests pass unchanged. In a browser: the box is a 44px row, unticked, on the link page at 390px (Night) and 1280px (Paper). QA on freshly started servers: `command-center.mjs` PROBLEMS none (with dummy `GOOGLE_OAUTH_CLIENT_ID`/`SECRET`); `buttons.mjs` 524 page views, PROBLEMS none; `leads-a11y.mjs` 42 page views, lowest contrast 5.34:1, PROBLEMS none; `overflow.mjs`, `fonts.mjs` (0 findings), `footer.mjs`, `about.mjs` pass.
+- **Decisions:** (a) Unticked = 12 hours (owner). (b) The box is on the step that finishes sign-in, so the browser that asked is the
+  one remembered; it is never on the first email form. (c) Only a computer that passed the phone code is remembered; with the code
+  off, Remember only lengthens the sign-in. (d) Plain sign-out keeps the remembered computer (that's what makes it useful); Forget is
+  one click on Security. (e) Remembered computers live in `cc_sessions`, so every existing "sign out everywhere" path forgets them.
+- **Known issues:** (1) Sessions already open keep their old 14-day expiry until they end. (2) A 30-day remembered computer is a
+  security-policy choice; worth confirming with counsel or whoever owns the sponsoring brokerage's information security program.
+  (3) Neon wasn't run here; `deleteDevicesFor` is one bound `DELETE … WHERE user_id = $1 AND token_hash LIKE 'dev:%'`, covered by
+  type checks and the memory-store tests.
+- **Next up:** D88.1.
+
+## D88.1 — "Open Concierge" opens at the top; a whole-site page scan (2026-11-23)
+
+The bug (owner): Home's "Open Concierge" loaded the Concierge "at the bottom of the page". It always linked to `#drafts`; with the
+Concierge off, its settings form is open above Drafts, so the jump skipped the title and the form and ended at the bottom (at 1280px
+the page scrolled 729 of 752px).
+
+- **Files:** `app/mlo/page.tsx` (only "Review drafts" jumps to `#drafts`; "Open Concierge" opens `/mlo/concierge`),
+  `app/mlo/automations/page.tsx` and `app/mlo/messages/page.tsx` ("Concierge desk" / "desk" open the page, not `#drafts`),
+  `scripts/qa/pages.mjs` (new), `CLAUDE.md` (§1 note, §7).
+- **The scan (`node scripts/qa/pages.mjs`):** signed in as the owner, it follows every same-site link from `/`, `/mlo` and the
+  sign-in pages (never `/api`, sign-out, downloads, `mailto:`/`tel:`/`sms:`, `/my/`, `/v/` or other sites), each route with up to
+  three different queries, at 390px and 1280px. Each page must load (status under 400, no error page), with no page or console
+  errors and no failed same-site file, exactly one h1, nothing wider than the screen, and open at the top when the link has no
+  `#anchor`. Each `#anchor` must exist; a link whose words start "Open" must open another page at the top (the D88.1 bug); other
+  anchor jumps that end at the bottom of a page are listed as notes to read. Vercel Analytics' script (only on Vercel) is ignored.
+- **What the scan found before the rules were tightened** (400 pages, 1,746 loads): 1,426 console 404s, all Vercel Analytics'
+  `/_vercel/insights/script.js` (not served locally); 6 "no h1" on `/ai.md`, `/principles.md` and `/calculators/methodology.md`
+  (plain-text pages for AI agents, now skipped); 292 anchor jumps that end at the bottom of a page, all intended (Text → the text
+  box, Note → the note box, Manage on Connections → keys, Your LOA → forms); and one React hydration error (#418) on one contact
+  page, twice in 1,746 loads, which didn't happen again in 24 reloads of that page or in the later full scans.
+- **Verified:** `npm run verify` passes (1,125 tests: 5 new; lint warnings unchanged, none in changed files; check:copy, check:identity, check:licensing, build, check:bundle). New tests (`lib/accounts/remember.test.ts`): unticked sign-ins end after 12 hours and ticked ones after 30 days, with the choice in the audit log; with the phone code on, a computer remembered after passing it skips the code on the next sign-in (the email step still runs), but not with no cookie, a made-up cookie, another person's code, or after 30 days; tokens are stored only as hashes and a remembered-computer token is not a sign-in (nor the reverse); Forget, turning the code off or on again, and an owner's reset each forget it, plain sign-out keeps it, and Forget leaves sign-ins on other computers alone; with the code off, Remember remembers no computer. The existing D1, D34 and D47 account tests pass unchanged. In a browser: the box is a 44px row, unticked, on the link page at 390px (Night) and 1280px (Paper). QA on freshly started servers: `command-center.mjs` PROBLEMS none (with dummy `GOOGLE_OAUTH_CLIENT_ID`/`SECRET`); `buttons.mjs` 524 page views, PROBLEMS none; `leads-a11y.mjs` 42 page views, lowest contrast 5.34:1, PROBLEMS none; `overflow.mjs`, `fonts.mjs` (0 findings), `footer.mjs`, `about.mjs` pass.1
+- **Decisions:** (a) A link labeled "Open …" opens its page at the top; a link to a section says what it opens. (b) The scan is a
+  QA script like the others, not part of `npm run verify` (it needs a running server).
+- **Known issues:** (1) The hydration error above (#418, "server HTML didn't match the client") was seen 3 times in about 3,900 loads, on a
+  contact page and Home, only on servers holding seeded data, and not reproduced in 114 targeted reloads, so it isn't fixed; the page
+  still renders (React re-renders on the client). (2) The scan reads Command Center as the owner only; other roles' pages are covered by `command-center.mjs`.
+- **Next up:** owner review of D87.4–D88.1, then "promote".
