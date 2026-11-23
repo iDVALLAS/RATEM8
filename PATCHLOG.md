@@ -7706,6 +7706,22 @@ the page scrolled 729 of 752px).
   still renders (React re-renders on the client). (2) The scan reads Command Center as the owner only; other roles' pages are covered by `command-center.mjs`.
 - **Next up:** owner review of D87.4–D89.1, then "promote".
 
+## Promote — D87.4, D88, D89 and D89.1 to production (2026-11-23)
+
+Owner: "promote and fix D89.2", then "Promote … yes".
+
+- Remote M8 red team against the merged preview (6585c55): 43 of 43.
+- Production deployment of the exact commit 6585c55 (the consolidation merge: D87.4 every message past 5,000, D88 clean
+  up my contacts, D89 remember this computer for 30 days / 12 hours otherwise, D89.1 Open Concierge opens at the top),
+  created from Git, not a promote of the preview. D89.2 (the rare #418) is still being built and is not included.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/api/health` 200
+  (`pricingOffers: true`), `/chat` 307 (tester lock).
+- Production env confirmed by the owner's screenshots: `RESEND_API_KEY`, `CC_LINK_SECRET`, `MLO_OWNER_EMAIL`, `CC_PILOT`.
+- Owner decision: the 5,763 contacts that live in the preview's database are re-imported on loanm8.com by the owner
+  (production's database has no contacts yet), not copied row by row.
+- For counsel: D89's 30-day "Remember this computer" option.
+- **Next up:** D89.2.
+
 ## D89.2 — The rare React #418 on Command Center pages: a React hydration bug, fixed at build time (2026-11-23)
 
 The bug (logged since D32): about once in a few hundred loads a Command Center page threw "Minified React error #418 …
@@ -7757,4 +7773,4 @@ args[]=HTML" (server HTML didn't match the client) and React redrew the whole pa
   test's "adds the upstream lines" case will fail, prompting the removal.
 - **Known issues:** none found. `next dev` didn't reproduce it in 200 parallel loads (slower, different streaming), so the dev
   path is patched the same way but wasn't seen failing.
-- **Next up:** owner review of D87.4–D89.2, then "promote".
+- **Next up:** owner review of D89.2, then "promote".
