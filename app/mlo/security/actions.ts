@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { currentUser } from "@/lib/accounts/auth";
+import { currentUser, forgetDevices } from "@/lib/accounts/auth";
 import { confirmEnroll, disableOwn, startEnroll } from "@/lib/accounts/mfa";
 import { encodeFlash } from "@/lib/mlo/flash";
 
@@ -24,6 +24,14 @@ export async function confirmAction(_prev: ConfirmState, fd: FormData): Promise<
   if (!u) redirect("/sign-in");
   const r = await confirmEnroll(u, String(fd.get("code") ?? ""));
   return r.ok ? { ok: true, recovery: r.recovery } : { ok: false, error: r.error };
+}
+
+/** D88: forget every computer this person ticked "Remember this computer for 30 days" on. */
+export async function forgetDevicesAction(): Promise<void> {
+  const u = await currentUser();
+  if (!u) redirect("/sign-in");
+  const n = await forgetDevices(u);
+  back(true, n ? `Forgot ${n} remembered ${n === 1 ? "computer" : "computers"}. Each one asks for your phone code next time.` : "No computers were remembered.");
 }
 
 export async function disableAction(fd: FormData): Promise<void> {

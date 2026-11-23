@@ -1263,3 +1263,8 @@
 /* ─── D87: a link standing on its own (not inside a sentence) gets a 44px tap target; the negative margin keeps the
    line its own height, so nothing moves. ─── */
 .cc-app .cc-tap { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; margin-block: -12px; margin-block: calc((1lh - 44px) / 2); }
+/* D88: Remember this computer for 30 days (a 44px row, the note under it). */
+.cc-auth__remember { display: grid; gap: 2px; }
+.cc-auth__remember .mlo-check { min-height: 44px; align-items: center; padding: 0; cursor: pointer; }
+.cc-auth__remember .mlo-check input { margin-top: 0; flex: none; }
+.cc-auth__remember .mlo-note { margin: 0; }

@@ -9,7 +9,7 @@ import { mfaRequired, pendingEnroll } from "@/lib/accounts/mfa";
 import { FlashBox, MloNav } from "../MloChrome";
 import Confirm from "./Confirm";
 import QRCode from "qrcode";
-import { disableAction, startAction } from "./actions";
+import { disableAction, forgetDevicesAction, startAction } from "./actions";
 import "../mlo.css";
 import PageHead from "@/app/mlo/PageHead";
 
@@ -73,6 +73,13 @@ export default async function Security({ searchParams }: { searchParams: Promise
                 )}
               </section>
             )}
+            <section className="mlo-section" id="remembered">
+              <h2>Remembered computers</h2>
+              <p className="mlo-note">When you tick &ldquo;Remember this computer for 30 days&rdquo; as you sign in, that computer stays signed in for 30 days{on ? " and skips the phone code for 30 days" : ""}. Unticked, a sign-in lasts 12 hours. Lost a laptop, or ticked it on a shared computer? Forget them all here; {on ? "each one asks for your phone code again next time" : "this matters once the phone code is on"}.</p>
+              <form action={forgetDevicesAction} className="mlo-actions">
+                <button type="submit" className="mlo-btn mlo-btn--ghost">Forget my remembered computers</button>
+              </form>
+            </section>
           </>
         )}
       </div>
