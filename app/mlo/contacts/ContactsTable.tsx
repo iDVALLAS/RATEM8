@@ -128,7 +128,7 @@ export default function ContactsTable({ rows, total, rule, knownTags, selectAll,
             <span className="cc-initials" aria-hidden="true">{r.initials}</span>
             <div className="cc-person__main">
               <Link className="cc-person__name" href={`/mlo/contacts/${r.id}`}>{r.name}</Link>
-              {r.line ? <p className="cc-person__line">{r.line}</p> : null}
+              {r.line ? <p className="cc-person__line">{r.line.split(" · ").map((part, i) => <span key={i}>{i ? " · " : ""}<span className="cc-nowrap">{part}</span></span>)}</p> : null}
               {r.loan ? <p className="cc-person__loan">{r.loan}</p> : null}
               <div className="cc-person__meta">
                 <span className={`cc-reach cc-reach--${r.tone}`}>{r.badge}</span>

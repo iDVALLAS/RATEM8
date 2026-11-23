@@ -7838,3 +7838,73 @@ Built from the approved mockup (desktop and phone boards), with the real logos i
   after this patch (the approved mockup doesn't show it either); left as is. React adds an image preload for both logo
   copies (lime and green), as it already does on Command Center's bar; the hidden one is a small extra download.
 - **Next up:** promote (the owner already said to promote D90), then D91 (text that runs together or spills past its box).
+
+## D91 — Text that ran together or spilled past its box, site-wide (2026-11-23)
+
+The owner's report: on loanm8.com/sign-up, in "A whole team working your business" (the Concierge team tiles, D64), the five
+step labels under the Loan Officer Assistant's progress bar ran together ("ContractDisclosuresTitleApprovalClose") and spilled
+past the card, and long single words ("relationships", "Marketing", "Compliance") overflowed the small tiles. "Fix all of these
+type errors" and "scan the site for any errors like this."
+
+- **The showcase** (`app/mlo/CcAuthShell.tsx`, `app/mlo/cc-shell.css`, new `app/mlo/auth-steps.ts`), on `/sign-in`, `/sign-up`
+  and their sub-pages:
+  - The tiles follow the team card's own width (container query `ccteam`), not the screen's: one column under 236px, two
+    across (the LOA tile full width) from 236px, and the D64 layout B (four across, the LOA tile 2×2, first) from 520px, where
+    every tile has room for its longest word. Before, a 1280px screen gave the card ~310px for four columns, so each small tile
+    was ~70px.
+  - The step labels keep an 8px gap and never wrap inside a word; the current step ("Approval") is a little stronger. When the
+    LOA tile is under 250px wide (container `ccloa`) only the first, the current and the last show ("Contract · Approval ·
+    Close"); under 150px only the current one. `stepLabelClass()` marks them; `NOW_STEP` is the one place the current step is set.
+  - Sign-up's pitch column keeps at least 18rem beside the form (`.cc-auth__grid--wide`): just over 900px it was squeezed to
+    ~147px.
+  - Titles never break mid-letter: no `overflow-wrap`/`hyphens` anywhere in the showcase; words fit by layout only.
+- **Found by the scan, fixed at the cause:**
+  - Command Center top bar (every `/mlo` page, 1024–1280): a menu near the right end opened past the screen edge; it now
+    measures itself on open and opens leftward (`.cc-menu__panel--flip`, `app/mlo/CcTopBar.tsx`).
+  - `/mlo/team` Recent activity on phones (the stacked label-and-status table, also `/mlo/launch`): "concierge" ran under
+    "Other: contacts cleanup weekly"; the first cell keeps its longest word and the second wraps (`.mlo-table--stack tr`).
+  - Contact page action bar (`/mlo/contacts/<id>`): "Campaign" was cut by 3px at 360px and "Add to campai…" ended in an
+    ellipsis at 768px; each button gets at least its longest word and a long label wraps onto a second line (`.cc-contact-actions`,
+    `.cc-act > span`).
+  - Contacts list (`/mlo/contacts`, 360/390): the "phone · state · relationship" line was cut to "(206) 555-…"; it now wraps
+    between its parts, each part kept whole (`ContactsTable.tsx`, `.cc-nowrap`).
+  - Templates (`/mlo/templates`): a long template's preview was cut at eight lines with nothing to say so; the last two lines
+    fade (a mask from 9.4em, so a short message never fades) and the whole message stays under "Use it" (`data-textfit-full`).
+  - Second Look (`/second-look`, 768px): the "$2,528" figure was cut by 3px; the figure sizes to its own tile
+    (`min(1.5rem, 30cqi)`, `components/second-look/second-look.css`).
+  - Calculators and next-step cards (`/calculators/*`, `NextStepActions`): "Or prep it with M8 first→" ran the arrow into the
+    last word; an inline-block drops its own leading space, so the trailing arrow's gap is a margin (`.cta-arrow--trail`,
+    `components/ui/ArrowText.tsx`).
+  - No copy was changed.
+- **The scan** (`scripts/qa/text-fit.mjs`, new; Playwright, same server as `command-center.mjs`): Lead sources and the planner in
+  example mode first, then it seeds a small book (import, loan, leads, a reply, a campaign) and crawls every same-site link from
+  the public site, `/sign-in`, `/sign-up` and sub-pages, `/chat`, a client's own page, and every Command Center page as the owner
+  (ids counted as one route, at most 3 per route), plus the contact tabs, the import's four steps, every `<details>` opened, the
+  phone More sheet, the desktop menus, the public phone menu, the Lead sources permission "i", and the coming-soon page with
+  its Pilot menu (a `SITE_LOCK=true` server on 3101). Each at 360/390/768/1024/1280 in Night and Paper with reduced motion,
+  and `/sign-in` and `/sign-up` swept every 8px (`QA_SWEEP_STEP`) from 320 to 1440 in Night, Dim and Paper. It flags text past
+  its box or the screen, neighbours under 2px apart with no space or punctuation, overlapping text, and text cut by
+  overflow/ellipsis/clamp with no title, aria-label or `data-textfit-full`. Scroll boxes, screen-reader-only text, svg art,
+  closed dialogs and inert sheets are ignored. Exits 1 with page, widths, themes, selector and text for each.
+- **Files:** `app/mlo/CcAuthShell.tsx`, `app/mlo/auth-steps.ts` (new), `app/mlo/auth-fit.test.ts` (new, 5 tests),
+  `app/mlo/cc-shell.css`, `app/mlo/CcTopBar.tsx`, `app/mlo/contacts/ContactsTable.tsx`, `app/mlo/templates/page.tsx`,
+  `app/mlo/templates/templates.css`, `components/second-look/second-look.css`, `components/ui/ArrowText.tsx`,
+  `app/globals.css`, `scripts/qa/text-fit.mjs` (new), `CLAUDE.md` (§1 note, §3.4 count, §7 command).
+- **Verified:** `npm run verify` passes (1,174 tests: 5 new in `app/mlo/auth-fit.test.ts`; lint, check:copy, check:identity,
+  check:licensing, build, check:bundle). On freshly started production servers (dummy `GOOGLE_OAUTH_CLIENT_ID`/`SECRET`):
+  `text-fit.mjs` 151 pages + opened states, 3,096 views at 360/390/768/1024/1280 in Night and Paper, plus the showcase
+  sweep (846 views), FINDINGS none and no notes (example mode, the import steps and the coming-soon page with the Pilot menu all
+  audited); the showcase alone swept every 1px from 320 to 1440 in Night, Dim and Paper (6,726 views), FINDINGS none.
+  `command-center.mjs` PROBLEMS none; `pages.mjs` (after command-center.mjs) 141 pages, 482 loads, PROBLEMS none;
+  `leads-a11y.mjs` 42 page views, lowest contrast 5.34:1, PROBLEMS none; `buttons.mjs` 528 page views, PROBLEMS none on its own
+  fresh server (after command-center.mjs it reports "no lead-source move to review" ×4, the same ordering effect D89.2 logged);
+  `overflow.mjs` all routes ok at both widths, one h1 each (its only JS error is the Analytics 404 that exists only off
+  Vercel); `hydration.mjs` 240 + 240 loads, 0 #418. Screenshots of the showcase at 390, 600, 904 and 1280 in Night and Paper:
+  two across with the LOA tile full width at 390, 904 and 1280, the D64 four across with the 2×2 LOA tile at 600; every
+  label whole.
+- **Decisions:** (a) The D64 four-across layout now depends on the card's width, not the screen's; at 1280 the card is too
+  narrow for four tiles of whole words, so it shows two across with the LOA tile on top (still first, outlined, with its
+  bar). (b) On a narrow LOA tile the middle step names hide rather than shrink below 10.5px; the bar still shows all five steps.
+  (c) `text-fit.mjs` seeds the book, so run it on a fresh server before the other audits, as `command-center.mjs` also expects.
+- **Known issues:** none found by the scan.
+- **Next up:** promote (the owner already asked for it).

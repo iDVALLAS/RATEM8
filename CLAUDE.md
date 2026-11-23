@@ -325,6 +325,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     the MLO Command Center logo (`CcLogo` from `app/mlo/Brand.tsx`); PILOT opens `components/PilotMenu.tsx` (panel / phone bottom
     sheet: "New here? Sign up" → `/sign-up`, "Welcome back — Sign in" → `/sign-in`), copy `copy.comingSoonHome`. The main nav has
     no "MLO login" button any more (Partner › Sign in and the footer's "Loan officer login" remain).
+    D91 text fit (`scripts/qa/text-fit.mjs`): every page, signed out and as the owner, at 360/390/768/1024/1280 in Night and Paper
+    (sign-in/sign-up swept every 8px 320–1440 in all three themes) fails on text past its box, words run together, overlaps, or a
+    cut with no full text. Concierge team tiles follow the card's width (container queries: 1, 2, or the D64 4-across with the LOA
+    2×2 from 520px); step labels keep a gap and a narrow tile shows first/current/last (`app/mlo/auth-steps.ts`).
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -433,7 +437,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1169 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1174 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -967,6 +971,7 @@ node scripts/qa/buttons.mjs     # D72: button and form alignment, overflow and c
 node scripts/qa/leads-a11y.mjs  # D87: names, 44px targets, 4.5:1 contrast and a keyboard-only walk on Lead sources, the planner and Expenses (same server)
 node scripts/qa/pages.mjs       # D88.1: every same-site link as the owner at 390/1280: loads, errors, one h1, overflow, #anchors, "Open …" links open at the top (same server, after command-center.mjs)
 node scripts/qa/hydration.mjs   # D89.2: Command Center pages streamed in pieces and under parallel load; fails on any React #418 (same server; QA_LOADS per mode, default 240)
+node scripts/qa/text-fit.mjs    # D91: text past its box, run together, overlapping or cut off, every page at 360/390/768/1024/1280 in Night and Paper plus the sign-in/sign-up sweep (same server, fresh, before the others seed it; a SITE_LOCK=true server on 3101 for the coming-soon page)
 ```
 
 The QA scripts need Playwright available to Node (`npm i -D playwright`

@@ -4,6 +4,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { Icon } from "./icons";
 import Brand from "./Brand";
 import type { IconName } from "./nav";
+import { NOW_STEP, stepLabelClass } from "./auth-steps";
 import "./cc-shell.css";
 import "./mlo.css";
 
@@ -45,8 +46,8 @@ export default function CcAuthShell({ children, wide = false }: { children: Reac
                         <span>{CC_LOA_TILE.line}</span>
                       </div>
                       <div aria-hidden="true">
-                        <div className="cc-auth__steps">{CC_LOA_TILE.steps.map((x, i) => <i key={x} className={i < 3 ? "on" : i === 3 ? "now" : ""} />)}</div>
-                        <div className="cc-auth__steplabels">{CC_LOA_TILE.steps.map((x) => <b key={x}>{x}</b>)}</div>
+                        <div className="cc-auth__steps">{CC_LOA_TILE.steps.map((x, i) => <i key={x} className={i < NOW_STEP ? "on" : i === NOW_STEP ? "now" : ""} />)}</div>
+                        <div className="cc-auth__steplabels">{CC_LOA_TILE.steps.map((x, i) => <b key={x} className={stepLabelClass(i, CC_LOA_TILE.steps.length)}>{x}</b>)}</div>
                       </div>
                     </li>
                   ) : (

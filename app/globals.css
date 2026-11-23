@@ -2455,6 +2455,7 @@ button.beacon-pill { cursor: pointer; }
 a:hover .cta-arrow, button:hover .cta-arrow, a:focus-visible .cta-arrow, button:focus-visible .cta-arrow,
 a:hover .cta__arrow, button:hover .cta__arrow, a:focus-visible .cta__arrow { transform: translateX(4px); }
 .cta-arrow--lead { margin-right: 2px; }
+.cta-arrow--trail { margin-left: 0.3em; }
 a:hover .cta-arrow--lead, button:hover .cta-arrow--lead { transform: translateX(3px); }
 
 /* Reveal (cards/grids that start below the fold): spring entrance, stagger. */

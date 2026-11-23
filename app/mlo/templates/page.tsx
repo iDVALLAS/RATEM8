@@ -54,7 +54,7 @@ export default async function Templates({ searchParams }: { searchParams: Promis
                   <li key={t.id} className="cc-card">
                     <p className="cc-card__title">{t.title} · {CHANNEL_LABELS[t.channel]}{"mine" in t && t.mine ? " · yours" : "shared" in t && t.shared ? " · shared by your team" : ""}</p>
                     {t.objection ? <p className="tp-objection">“{t.objection}”</p> : null}
-                    <p className="tp-body">{t.body}</p>
+                    <p className="tp-body" data-textfit-full="Use it">{t.body}</p>
                     {t.why ? <p className="mlo-note">Why it works: {t.why}</p> : null}
                     {t.rules?.length ? <ul className="tp-rules">{t.rules.map((r, i) => <li key={i}>{r}</li>)}</ul> : null}
                     <UseTemplate t={t} mine={mine} />

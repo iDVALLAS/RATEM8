@@ -1,6 +1,8 @@
 /* D38: templates. */
 .tp-list, .tp-replies { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.tp-body { white-space: pre-wrap; color: var(--fg-soft); line-height: 1.55; max-height: 12.5em; overflow: hidden; }
+/* A long template shows its first eight lines; D91: the last two fade so the cut reads as "more below" (the whole
+   message is under "Use it"). The fade's stops are lengths from the top, so a shorter message never fades. */
+.tp-body { white-space: pre-wrap; color: var(--fg-soft); line-height: 1.55; max-height: 12.5em; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, black 9.4em, transparent 12.5em); mask-image: linear-gradient(to bottom, black 9.4em, transparent 12.5em); }
 .tp-objection { font-style: italic; color: var(--fg); }
 .tp-rules { margin: 6px 0 0; padding-left: 1.1rem; color: var(--muted); font-size: 14px; display: grid; gap: 4px; }
 .tp-fields { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }

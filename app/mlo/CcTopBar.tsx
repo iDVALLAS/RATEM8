@@ -45,6 +45,14 @@ function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLE
 function Menu({ label, icon, items, current, tenantId, badges }: { label: string; icon: Dest["icon"]; items: Dest[]; current: string | null; tenantId: string; badges: Record<string, number> }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  // D91: a menu near the right end of the bar opens leftward, so its panel never runs past the screen edge.
+  const [end, setEnd] = useState(false);
+  useLayoutEffect(() => {
+    if (!open) { setEnd(false); return; }
+    const r = panel.current?.getBoundingClientRect();
+    if (r && r.right > document.documentElement.clientWidth - 12) setEnd(true);
+  }, [open]);
   useDismiss(open, () => setOpen(false), ref);
   const active = items.some((d) => d.key === current);
   const count = items.reduce((n, d) => n + (badges[d.key] ?? 0), 0);
@@ -57,7 +65,7 @@ function Menu({ label, icon, items, current, tenantId, badges }: { label: string
         <svg className="cc-chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75 5 6.5l3-2.75" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
       </button>
       {open ? (
-        <div className="cc-menu__panel" role="menu">
+        <div className={`cc-menu__panel ${end ? "cc-menu__panel--flip" : ""}`} role="menu" ref={panel}>
           {items.map((d) => (
             <Link key={d.key} role="menuitem" href={hrefOf(d, tenantId)} className={`cc-menu__item ${d.key === current ? "is-active" : ""}`} aria-current={d.key === current ? "page" : undefined} onClick={() => setOpen(false)}>
               <span className="cc-menu__icon"><Icon name={d.icon} size={18} /></span>
