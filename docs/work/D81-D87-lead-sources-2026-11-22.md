@@ -254,3 +254,11 @@ funded date, else another date column the import mapped for that person — and 
 date uses the import date. Lead-source values that mean "Referral", "Past client" or "Sphere" (and similar) go to the
 "Past clients & sphere" row through the source-key helper, not to a vendor row. This replaces D82's interim rule
 (only files marked lead vendor count); D83 updates `lib/leads/mode.ts` and the backfill to match.
+
+## Owner decision 6 (2026-11-23): imported leads you can call
+
+"Yes, they should be looked at as 'leads you can call' when imported." An imported lead's event counts as `namesYou`
+(callable for that source on the scorecard) when the loan officer confirmed at import that the person gave them
+permission — i.e. the import recorded a granted text or call permission for that person (the same yes the contact
+page shows). An import with no granted permission, or a stop, stays not callable. Applies to the backfill and to every
+future import; existing imported-lead events are re-read once. Built as D87.3, after D87.2.
