@@ -7385,7 +7385,57 @@ the alphabet on.
   type checks and the same tests on the memory store.
 - **Next up:** owner review of D81–D87.2, then "promote".
 
-## D87.3 — Read every message past 5,000 (2026-11-23)
+## D87.3 — Imported leads with permission count as leads you can call (2026-11-23)
+
+Owner decision 6 (end of `docs/work/D81-D87-lead-sources-2026-11-22.md`): "Yes, they should be looked at as 'leads you can
+call' when imported." D83 had frozen every imported lead's `namesYou` as false (an opt-in column carries no consent
+wording, decision (e) of D83), so imported leads never showed under "You can call" on the scorecard.
+
+- **Files:** `lib/leads/backfill.ts` (`importedLeadCallable`, pure; `BackfillEntry` gains `purpose`, `evidence`, `at`;
+  `BackfillContact` gains `keptFrom`; the unused `namesUs` input is gone), `lib/leads/events.ts` (`setImportedNamesYou` on
+  both stores), `lib/leads/sync.ts` (`CALLABLE_MARK` = `imports-callable-v1`, the one-time re-read, `reread` in the result),
+  `lib/leads/scorecard.ts` (comment), `lib/content/cc-pages.ts` (`LEADS.score.canCallNote`), `lib/export/service.ts` (README
+  line for `formNamedYou`), `lib/leads/d87-3.test.ts` (new, 11 tests), `lib/leads/d83.test.ts` (Ed and Hal now callable),
+  `lib/leads/d87.test.ts` (no `namesUs`), `CLAUDE.md` (§1 note, §3.4 test count).
+- **The rule:** an imported lead's event counts as one you can call when the import that made the person (`Contact.importId`;
+  after an undo kept them, `keptFrom`; people imported before D75 by the opt-in column's own proof "opt-in column in …") wrote a
+  granted text or call entry for marketing with evidence `attested` (the same yes the contact page shows), and that channel has
+  no stop (a revocation at any time: D69, an import's yes never overrides one) and no undone import yes or reset at or after it.
+  A yes from anywhere else (a later delivery, a recorded form, a later import of the same person, a merged record's copy) is
+  not the import's and doesn't count. An email-only yes or an AI-call yes doesn't count. The value is frozen when the event is
+  written, as before (the next sync after the import).
+- **Delivered leads:** unchanged (decision 1, the delivery's own wording, frozen). The store's update touches only events with
+  origin `import` (Neon: `… AND origin = 'import' AND id = ANY($2::text[])`), and the history backfill is untouched.
+- **The re-read:** once per loan officer, on the first sync after this patch (Lead sources view or the morning run): every
+  imported lead whose own import event is in the log and still points at them is read again with the rule, changed events are
+  updated, then `imports-callable-v1` is marked. Events of merged-away or deleted people are left as they were. Two runs at once
+  compute the same values from the same records, so they agree; a later stop doesn't re-open a frozen event.
+- **Copy:** the scorecard's note now reads "“You can call” = leads whose consent wording named you or your company, and imported
+  leads whose permission to text or call you confirmed when you imported them." The export README says the same of
+  `formNamedYou` (column name unchanged). Vendor-facing lines ("A lead counts as permission only when the vendor’s consent wording
+  names you…") are about delivered leads and stay.
+- **Tests** (`lib/leads/d87-3.test.ts`, 11): import with a text yes → callable; call yes → callable; no permission and email
+  only → not; a stop in the file and a stop after the yes → not; a later written yes, and a later import's yes for the same
+  person → not; an undone import yes (person kept) → not; a delivered lead's event unchanged by the store call and the re-read;
+  the re-read flips only import events with an import yes, leaves delivered events and other books alone, marks once, is
+  idempotent (a second run changes nothing, a later stop doesn't re-read), and three runs at once agree; the pure rule (purpose,
+  channel, another import, recorded form, merged copy, another person, stop before/after, undone yes, reset, a stop on another
+  channel, people imported before D75); the Neon update's bound parameters and `origin = 'import'`; the note's wording.
+- **Verified:** `npm run verify` passes (1,113 tests: 11 new; lint warnings unchanged from the base, none in changed files;
+  check:copy, check:identity, check:licensing, build, check:bundle). On freshly started servers: `node
+  scripts/qa/command-center.mjs` PROBLEMS none; `node scripts/qa/buttons.mjs` 524 page views, PROBLEMS none; `node
+  scripts/qa/leads-a11y.mjs` 42 page views, 1,587 controls named, 1,527 tap targets, lowest contrast 5.34:1, PROBLEMS none.
+- **Decisions:** (a) "The import's own yes" is the import that created the person; a later import that matches them and adds a
+  yes doesn't make their (already frozen) lead callable, the same as any later yes. (b) Marketing purpose only, text or call
+  only (the decision's words); an AI-call or email yes doesn't count. (c) Any recorded stop on the channel blocks it, before or
+  after the yes (conservative, D69).
+- **Known issues:** (1) An import writes its consent rows right after each person; a sync that ran in the moment between saving
+  a person and writing their yes (another tab opening Lead sources mid-import) would freeze that one lead as not callable. Not
+  seen in QA; a second re-read mark would fix any such row. (2) Neon wasn't run here (no database); its update is covered by the
+  fake-query test and the same tests on the memory store.
+- **Next up:** promote D81–D87.3 (the owner has asked for it).
+
+## D87.4 — Read every message past 5,000 (2026-11-23)
 
 The bug (D87.2 known issue 1): the Neon message store's `since(owner, since)` has always (since D27) run
 `… ORDER BY at DESC LIMIT 5000`, so it silently returned only the newest 5,000 messages; the memory store's `since()` had no
@@ -7420,4 +7470,4 @@ cap, so unit tests and browser QA never showed the cut. Same kind of bug as D87.
   everything past Vercel's ~4.5 MB response (as D87.2 noted for contacts). (3) The team's daily plan doesn't act on `capped`; past
   50,000 messages in 400 days the oldest touches are left out of the last-touch map. (4) No unit test drives `proposeAll` past 5,000
   messages; the change there is the one-line switch to `allSince`.
-- **Next up:** owner review of D81–D87.3, then "promote".
+- **Next up:** owner review of D81–D87.4, then "promote".

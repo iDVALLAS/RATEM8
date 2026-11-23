@@ -50,7 +50,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
   const consents = [];
   for (let i = 0; i < all.length; i += 500) consents.push(...(await contactStore().consentsFor(all.slice(i, i + 500).map((c) => c.id))));
   const [messages, notes, tasks, drafts, loans, campaigns, templates, scripts, cards, expenses, receipts, sig, videos, videoSends, leadEvents, monthly] = await Promise.all([
-    // D87.3: every message, page by page (one read used to stop at the newest 5,000).
+    // D87.4: every message, page by page (one read used to stop at the newest 5,000).
     allSince(owner, "1970-01-01T00:00:00.000Z"),
     conciergeStore().allMemory(owner, nowIso),
     conciergeStore().tasks(owner, false),
@@ -147,7 +147,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
       "campaigns.csv, campaign-people.csv, templates.csv, call-scripts.csv, cards-by-mail.csv: what you built and sent.",
       "videos.csv, video-sends.csv: your video messages (with a link to each file and what it says) and who watched.",
       "expenses.csv and receipts/: your business expenses, income and mileage (leadSource: the lead source a line of spend was for).",
-      "lead-events.csv: every lead delivered to you or imported with a lead source, by source (repeat: they were already in your book; formNamedYou: that lead's consent wording named you or your company).",
+      "lead-events.csv: every lead delivered to you or imported with a lead source, by source (repeat: they were already in your book; formNamedYou: that lead's consent wording named you or your company, or, for an imported lead, you confirmed their permission to text or call when you imported them).",
       "lead-monthly-amounts.csv: the monthly amount you set for each lead source.",
       "lead-plan.csv: your saved 90-day lead plan, one row per part of its split, then each earlier version (madeBy: you saved it, or approved a Business Manager move or check-in).",
       "",

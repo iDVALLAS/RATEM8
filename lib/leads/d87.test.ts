@@ -275,7 +275,7 @@ describe("D87: the lead-event backfill is idempotent", () => {
     { at: "2026-10-05T10:00:00.000Z", actor: "lead:LendingTree", detail: { owner: "lo1", contactId: "a", created: false, permission: "not_naming_us" } },
     { at: "2026-10-06T10:00:00.000Z", actor: "lead:Zillow", detail: { owner: "lo2", contactId: "z", created: true, permission: "recorded" } },
   ];
-  const input = { owner: "lo1", contacts, entries: [], audit, namesUs: () => false, history: true, now: NOW };
+  const input = { owner: "lo1", contacts, entries: [], audit, history: true, now: NOW };
 
   it("the same events whatever order the contacts and audit rows come in, and planning twice gives the same ids", () => {
     const once = planLeadEvents(input);

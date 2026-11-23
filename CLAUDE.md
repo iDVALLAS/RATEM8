@@ -295,7 +295,10 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     D87.2 whole book: one `list()` returns at most 500 (`LIST_PAGE_MAX`, Neon and now memory too); anything that needs the whole book
     uses `listAll(filter, { cap })` (`lib/contacts/store.ts`: pages of 500 with the caller's own filter, `BOOK_CAP` 25,000, returns
     `total`/`capped`), pickers cap at `PICKER_CAP` 5,000 and say so; `getMany(ids)`; Recent leads reads by id (`lib/leads/recent.ts`).
-    D87.3 every message: the touch store's `since()`/`sincePage()` return at most 5,000 newest first (`TOUCH_PAGE_MAX`, Neon and memory);
+    D87.3 (owner decision 6): an imported lead's event is "you can call" (`namesYou`) when the import that made the person wrote a
+    granted text or call yes (marketing, `attested`, its `importId`) with no stop on that channel (`importedLeadCallable`,
+    `lib/leads/backfill.ts`); delivered leads keep their delivery's wording; old import events re-read once (`CALLABLE_MARK`).
+    D87.4 every message: the touch store's `since()`/`sincePage()` return at most 5,000 newest first (`TOUCH_PAGE_MAX`, Neon and memory);
     anything that needs every message uses `allSince(owner, since, { until, cap })` (`lib/messaging/store.ts`: keyset pages by
     (`at`, id) with bound parameters, own book only, `TOUCH_CAP` 50,000, returns `capped`). Download everything, the weekly report
     and the team's daily plan use it; the README says so if messages.csv stops at the cap.
@@ -407,7 +410,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1109 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1113 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

@@ -48,15 +48,15 @@ export interface OptOutStore {
 export const phoneHash = (p: string) => createHash("sha256").update(`lm8-optout:${p}`).digest("hex");
 
 /**
- * D87.3: the most touches one `since`/`sincePage` call returns, in both stores. Neon has always stopped
+ * D87.4: the most touches one `since`/`sincePage` call returns, in both stores. Neon has always stopped
  * here (D27's `LIMIT 5000`); the memory store now does too, so tests and browser QA see what production does.
  */
 export const TOUCH_PAGE_MAX = 5_000;
-/** D87.3: the most touches `allSince` reads for one caller unless it asks for fewer. */
+/** D87.4: the most touches `allSince` reads for one caller unless it asks for fewer. */
 export const TOUCH_CAP = 50_000;
 
 /**
- * D87.3: where a keyset page stopped: the last row's `at` and id. In Neon `at` is the stored value to the
+ * D87.4: where a keyset page stopped: the last row's `at` and id. In Neon `at` is the stored value to the
  * microsecond (a touch's own `at` is rounded to the millisecond), so a page never repeats or skips a row.
  */
 export type TouchCursor = { at: string; id: string };
@@ -75,12 +75,12 @@ export interface TouchStore extends OptOutStore {
   /** Marketing touches out to this contact since a time, by channel. */
   sentSince(contactId: string, since: string): Promise<Touch[]>;
   /**
-   * D27: one loan officer's touches since a time, newest first (`at`, then id). D87.3: at most
+   * D27: one loan officer's touches since a time, newest first (`at`, then id). D87.4: at most
    * TOUCH_PAGE_MAX in both stores. To read everything use `allSince` (below).
    */
   since(ownerUserId: string, since: string): Promise<Touch[]>;
   /**
-   * D87.3: one keyset page of one loan officer's touches with `since <= at < until`, newest first
+   * D87.4: one keyset page of one loan officer's touches with `since <= at < until`, newest first
    * (`at` DESC, id DESC), strictly after `after` in that order. At most TOUCH_PAGE_MAX rows, whatever
    * `limit` asks. `next` is the cursor for the following page, or null when this page was the last.
    */
@@ -270,11 +270,11 @@ export function touchStore(): TouchStore {
   return neonStore;
 }
 
-/** D87.3: what `allSince` read. `capped` means the cap stopped it while older touches were still there. */
+/** D87.4: what `allSince` read. `capped` means the cap stopped it while older touches were still there. */
 export type AllTouches = { touches: Touch[]; capped: boolean };
 
 /**
- * D87.3: every touch in one loan officer's book with `since <= at < until`, newest first, read
+ * D87.4: every touch in one loan officer's book with `since <= at < until`, newest first, read
  * TOUCH_PAGE_MAX at a time by keyset (`at`, then id) until the range ends or `cap` is reached
  * (TOUCH_CAP at most). Own book only: every page is scoped to `ownerUserId`. When the cap stops it,
  * the newest `cap` are kept and `capped` is true (a one-row check, so exactly `cap` touches is not capped).

@@ -41,7 +41,10 @@ export type LeadEvent = {
   at: string;
   /** The person was already in the book (merged into them). */
   duplicate: boolean;
-  /** That delivery's consent wording named the loan officer or their company (frozen at delivery, decision 1). */
+  /**
+   * "You can call": that delivery's consent wording named the loan officer or their company (frozen at delivery,
+   * decision 1); for an imported lead, the import recorded the person's yes to texts or calls (D87.3, decision 6).
+   */
   namesYou: boolean;
   /** The vendor's own lead id, when it sends one: a webhook retry with the same id is not a new event. */
   externalId: string | null;
@@ -63,6 +66,11 @@ export interface LeadEventStore {
   repoint(owner: string, fromContactId: string, toContactId: string): Promise<number>;
   /** D75 undo: an import's own events for a person it removed. */
   removeImported(owner: string, contactId: string): Promise<number>;
+  /**
+   * D87.3: the one-time re-read of imported leads' `namesYou` (owner decision 6). Only events of this owner
+   * with origin "import" change; a delivered lead's `namesYou` stays frozen. Returns how many changed.
+   */
+  setImportedNamesYou(owner: string, changes: readonly { id: string; namesYou: boolean }[]): Promise<number>;
   /** The one-time backfill of the log before D83 (per owner). */
   marked(owner: string, mark: string): Promise<boolean>;
   mark(owner: string, mark: string, at: string): Promise<void>;
@@ -100,6 +108,16 @@ export class MemoryLeadEventStore implements LeadEventStore {
     let n = 0;
     for (const [id, x] of this.e) if (x.ownerUserId === owner && x.contactId === contactId && x.origin === "import") {
       this.e.delete(id);
+      n++;
+    }
+    return n;
+  }
+  async setImportedNamesYou(owner: string, changes: readonly { id: string; namesYou: boolean }[]) {
+    let n = 0;
+    for (const c of changes) {
+      const x = this.e.get(c.id);
+      if (!x || x.ownerUserId !== owner || x.origin !== "import" || x.namesYou === c.namesYou) continue;
+      x.namesYou = c.namesYou;
       n++;
     }
     return n;
@@ -174,6 +192,18 @@ export class NeonLeadEventStore implements LeadEventStore {
   async removeImported(owner: string, contactId: string) {
     await this.init();
     return (await this.q(`DELETE FROM cc_lead_events WHERE owner_user_id = $1 AND contact_id = $2 AND origin = 'import' RETURNING id`, [owner, contactId])).length;
+  }
+  async setImportedNamesYou(owner: string, changes: readonly { id: string; namesYou: boolean }[]) {
+    if (!changes.length) return 0;
+    await this.init();
+    let n = 0;
+    for (const value of [true, false]) {
+      const ids = changes.filter((c) => c.namesYou === value).map((c) => c.id);
+      for (let i = 0; i < ids.length; i += 500) {
+        n += (await this.q(`UPDATE cc_lead_events SET names_you = $3 WHERE owner_user_id = $1 AND origin = 'import' AND id = ANY($2::text[]) AND names_you <> $3 RETURNING id`, [owner, ids.slice(i, i + 500), value])).length;
+      }
+    }
+    return n;
   }
   async marked(owner: string, mark: string) {
     await this.init();

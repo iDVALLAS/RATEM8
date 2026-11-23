@@ -12,7 +12,7 @@ import { MemoryMonthlyStore, setMonthlyStoreForTests } from "@/lib/leads/spend";
 import { buildExport } from "@/lib/export/service";
 import { weeklyFor } from "@/lib/report/weekly";
 
-/** D87.3: a book with more than one page (5,000) of messages is read whole, everywhere everything is promised. */
+/** D87.4: a book with more than one page (5,000) of messages is read whole, everywhere everything is promised. */
 
 const NOW = new Date("2026-11-23T16:00:00Z");
 const me: User = { id: "lo1", email: "lo1@x.com", name: "Pat", role: "lo", mloId: "mlo-001", status: "active", createdAt: "", createdBy: "" };
@@ -59,7 +59,7 @@ function unzip(buf: Buffer): Map<string, string> {
 
 const isNewestFirst = (ts: Touch[]) => ts.every((t, i) => i === 0 || ts[i - 1].at > t.at || (ts[i - 1].at === t.at && ts[i - 1].id > t.id));
 
-describe("reading every message past 5,000 (D87.3)", () => {
+describe("reading every message past 5,000 (D87.4)", () => {
   let touches: MemoryTouchStore;
   beforeEach(() => {
     touches = new MemoryTouchStore();

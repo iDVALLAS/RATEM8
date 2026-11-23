@@ -49,7 +49,7 @@ async function numbers(user: User, from: Date, to: Date): Promise<WeekNumbers> {
   const f = from.toISOString();
   const t = to.toISOString();
   const inRange = (iso: string | null | undefined) => !!iso && iso >= f && iso < t;
-  // D87.3: every touch in the week, page by page (one read used to stop at the newest 5,000 since `from`).
+  // D87.4: every touch in the week, page by page (one read used to stop at the newest 5,000 since `from`).
   const { touches } = await allSince(user.id, f, { until: t });
   const { contacts } = await listAll({ ownerUserId: user.id });
   const loans = await pipelineStore().list(user.id);
