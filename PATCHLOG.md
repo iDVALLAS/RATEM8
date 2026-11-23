@@ -7452,3 +7452,21 @@ the site and log it", then "promote now".
   "D87.3" and will be renumbered D87.4 when brought in) and D88 contacts cleanup (waiting on the owner).
 - **Next up:** D87.5, a code filter that removes "G'day" (and similar regional greetings) from every M8 reply before it
   is shown, with a test; then D88 when the owner answers.
+
+## D87.5 — Close the gaps in M8's "G'day" filter (2026-11-23)
+
+Why: the D87.3 promote's first remote red team failed R50 once (the live model greeted "Hi there" with "G'day") even
+though D67.1 swaps it for "Hi" as the reply streams. Owner: "we got rid of this greeting"; promote first, then fix.
+
+- **Files:** `lib/m8/guard.ts` (`GDAY`, `GDAY_PARTIAL`, `greetingFilter`), `lib/m8/greeting.test.ts` (3 new tests),
+  `CLAUDE.md` (test count). Number D87.4 is kept for the 5,000-message fix on the other branch.
+- **Gaps closed:** the old pattern needed a `\b` word break before the G, so markdown `_G'day_` (underscore counts as a
+  word character) went through; only ' and ’ were covered (now also ‘ ʼ `); "G'days" went through; and a streamed piece
+  ending in the whole word was swapped to "Hi" before the next piece arrived, so "G'day" + "s" could show as "His". Edges
+  are now letters (`(?<![a-z])` / `(?![a-z])`), the plural is included, and the stream holds a trailing whole word until
+  the next piece. The exact failing reply wasn't logged (the chat logs counts only), so these are the plausible paths.
+- **Tests:** markdown bold/italic, every apostrophe mark, the plural and lowercase are swapped; Today, Monday, birthday,
+  Good day, Thanksgiving day, Big day, dog days and "Gdaynia" are left alone; five texts streamed in every 3-piece split
+  never show the slang or "His".
+- **Verified:** `npm run verify` passes (1,116 tests). Remote red team runs against this preview before the next promote.
+- **Next up:** owner decides whether to promote D87.5 now; D88 contacts cleanup waits on the owner.

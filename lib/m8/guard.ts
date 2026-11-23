@@ -164,9 +164,13 @@ export function guardReply(text: string, pricedRates: Set<string>, userStated: S
 // The owner's prompt says "without regional slang (never \"G'day\")", and the
 // model still opens with it now and then (the name M8 reads as "mate"). This
 // swaps it for "Hi" as the reply streams, so the borrower never sees it.
-const GDAY = /\bG['’]?day\b/gi;
-/** Text ending in what could still become "G'day" once the next piece arrives. */
-const GDAY_PARTIAL = /\bG(?:['’]?(?:d(?:a(?:y)?)?)?)?$/i;
+// D87.5: the edges are letters, not `\b`, so markdown "_G'day_" (underscore is a word character) is caught; any
+// apostrophe mark (' ’ ‘ ʼ `) or none; and "G'days". A piece that ends in the whole word is held too, because the
+// next piece may add letters ("G'day" + "s").
+const APOS = "['’‘ʼ`]";
+const GDAY = new RegExp(`(?<![a-z])g${APOS}?days?(?![a-z])`, "gi");
+/** Text ending in what could still become "G'day(s)" once the next piece arrives. */
+const GDAY_PARTIAL = new RegExp(`(?<![a-z])g(?:${APOS}?(?:d(?:a(?:y(?:s)?)?)?)?)?$`, "i");
 
 export const fixGreeting = (s: string): string => s.replace(GDAY, (m) => (m[0] === "g" ? "hi" : "Hi"));
 
@@ -175,10 +179,10 @@ export function greetingFilter(): { push(t: string): string; flush(): string } {
   let pending = "";
   return {
     push(t) {
-      const fixed = fixGreeting(pending + t);
-      const hold = fixed.match(GDAY_PARTIAL)?.[0] ?? "";
+      const all = pending + t;
+      const hold = all.match(GDAY_PARTIAL)?.[0] ?? "";
       pending = hold;
-      return fixed.slice(0, fixed.length - hold.length);
+      return fixGreeting(all.slice(0, all.length - hold.length));
     },
     flush() {
       const out = fixGreeting(pending);
