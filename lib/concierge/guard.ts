@@ -14,7 +14,7 @@
  * model writes is checked, not only drafts; drafts may carry only the loan
  * officer's own links and numbers, and no dollar figures or calendar dates.
  */
-import { guardReply } from "@/lib/m8/guard";
+import { findRateMentions, guardReply } from "@/lib/m8/guard";
 import { redactChatInput } from "@/lib/m8/redact";
 import { ccAllMlos, CONFIG } from "@/lib/config";
 import { SPONSOR } from "@/config/licensing";
@@ -123,6 +123,58 @@ export function checkNote(raw: string, ctx: ScanContext = {}): DraftCheck {
   const fc = foreignContact(String(raw ?? ""));
   if (fc) return { ok: false, reason: `carries ${fc}` };
   return { ok: true, text };
+}
+
+/**
+ * D84–D85: lead-source advice (the Business Manager's moves, the planner's wording and the Concierge's answers on
+ * Lead sources). Never tie a gift to a referral or call it the cost of one (owner decision 3: closing gifts are
+ * allowed, never tied to referrals), never suggest paying anyone for referrals or an "exclusive" deal that works as a
+ * referral payment (RESPA section 8), never trigger leads or credit-inquiry data, never contacting leads without their
+ * permission, and no rates. Detectors, not copy: banned words are spelled in pieces so check:copy passes.
+ */
+/** "referral", "referred", "refers", "refer". */
+const REFERR = "refer(?:r|s\\b|\\b)";
+export const LEAD_ADVICE: [RegExp, string][] = [
+  [new RegExp(`\\bgifts?\\b[^.\\n]{0,80}\\b${REFERR}|\\b${REFERR}\\w*[^.\\n]{0,80}\\bgifts?\\b`, "i"), "ties a gift to referrals"],
+  [/\b(gifts?|lunch(es)?|dinners?|tickets?|gift\s*cards?|bonus(es)?|perks?|swag)\b[^.\n]{0,60}\b(for|in exchange for|in return for|when(ever)? they|every time they|if they|each time they)\b[^.\n]{0,30}\b(send|sends|sent|bring|brings|hand|hands|steer|steers|refer\w*)\b/i, "ties a gift to referrals"],
+  [/\b(cost|price)\s+(of|per)\s+(a\s+)?referrals?\b/i, "describes spending as the cost of a referral"],
+  [new RegExp(`\\b(pay|paying|paid|buy|buying|reward\\w*|compensat\\w*|incentiv\\w*|split\\w*)\\b[^.\\n]{0,40}\\b${REFERR}`, "i"), "suggests paying for referrals (RESPA section 8)"],
+  [new RegExp(`\\b(refer{2}al|finder'?s?)\\s+(fee|bonus|reward|payment)s?\\b|\\bkick-?backs?\\b|\\bexclusive\\s+(deal|arrangement|partnership|agreement)s?\\b`, "i"), "suggests paying for referrals (RESPA section 8)"],
+  [/\b(pay|paying|paid|give|giving|send|sending|offer|offering)\b[^.\n]{0,30}\b(real estate agents?|agents?|realtors?|brokers?|builders?|title (reps?|officers?)|escrow officers?)\b[^.\n]{0,40}\b(for|per|each)\b[^.\n]{0,20}\b(lead|leads|client|clients|deal|deals|buyer|buyers|loan|loans|closing|closings)\b/i, "suggests paying for referrals (RESPA section 8)"],
+  [/\bexclusive\b[^.\n]{0,60}\b(real estate agents?|agents?|realtors?|brokers?|builders?)\b|\b(real estate agents?|agents?|realtors?|brokers?|builders?)\b[^.\n]{0,60}\bexclusive\b/i, "suggests an exclusive deal that works as a referral payment (RESPA section 8)"],
+  [/\btrigger(ed)?[\s-]*leads?\b|\bcredit[\s-]*(inquiry|inquiries|pull|pulls|bureau)\s+(data|lists?|leads?|files?|alerts?)\b|\binquiry\s+(data|lists?|leads?|alerts?)\b|\b(buy|buying|purchase|purchasing)\b[^.\n]{0,30}\bcredit\s+(data|lists?|inquir\w*)\b/i, "suggests trigger leads or credit-inquiry data"],
+  [/\b(call|text|email|message|contact|reach|dial|blast|robocall)\w*\b[^.\n]{0,60}\b(without|no)\s+(their\s+|the\s+|any\s+)?(permission|consent|opt[\s-]?ins?)\b|\bignor\w*\s+(the\s+|their\s+)?(consent|permission|opt[\s-]?outs?|do[\s-]not[\s-]call|dnc|stops?)\b|\b(call|text|email|message|contact|dial)\w*\b[^.\n]{0,60}\b(don'?t|do not|didn'?t|did not|never)\s+(give|gave|have|had|say|said)\s+(me\s+|you\s+)?(permission|consent|yes)\b|\b(call|text|dial)\w*\b[^.\n]{0,40}\b(who|that)\s+(said|texted|replied)\s+stop\b|\b(get around|bypass|skip|work around)\b[^.\n]{0,30}\b(consent|permission|opt[\s-]?outs?|do[\s-]not[\s-]call|dnc)\b/i, "suggests contacting leads without permission"],
+  [/\binterest\s+rates?\b|\bAPR\b|\brates?\s+(of|at|from)\s+\d|\bmortgage\s+rates?\b|\brate\s+(quotes?|sheets?|locks?)\b|\bquot\w*\b[^.\n]{0,30}\brates?\b/i, "mentions a rate"],
+];
+
+/** The first lead-advice rule a text breaks, or null. Rates are also caught by `findRateMentions` where this runs. */
+export function leadAdviceIssue(text: string): string | null {
+  for (const [re, why] of LEAD_ADVICE) if (re.test(text)) return why;
+  return null;
+}
+
+export type LeadQuestionIssue = { code: "trigger" | "referral" | "gift" | "contact" | "rate" | "protected"; reason: string };
+
+/**
+ * D85: a question on Lead sources the Concierge won't take to the model at all: one that asks how to do something
+ * the guard would never let an answer recommend, a rate, or a protected trait (fair housing: ads and audiences are
+ * never aimed by who people are).
+ */
+export function leadQuestionIssue(q: string): LeadQuestionIssue | null {
+  const why = leadAdviceIssue(q);
+  if (why) {
+    const code: LeadQuestionIssue["code"] = /trigger/.test(why) ? "trigger" : /gift/.test(why) ? "gift" : /without permission/.test(why) ? "contact" : /rate/.test(why) && !/RESPA/.test(why) ? "rate" : "referral";
+    return { code, reason: why };
+  }
+  // A question about rates (not "conversion rate" or "close rate").
+  if (findRateMentions(q).length) return { code: "rate", reason: "mentions a rate" };
+  if (/\b(what|which|best|lowest|good|today'?s|current|par|note)\s+(interest\s+)?rates?\b|\brates?\s+(should|to)\s+(i\s+)?(quote|offer|give)\b|\bwhat\s+rate\b/i.test(q) && !/\b(conversion|close|closing|response|contact|answer|pull[- ]?through|success)\s+rates?\b/i.test(q)) return { code: "rate", reason: "mentions a rate" };
+  // A trigger-shaped question that names the bureaus' data without the words above.
+  if (/\b(credit\s+bureau|equifax|experian|transunion)\b[^.?\n]{0,40}\b(leads?|lists?|data|alerts?)\b/i.test(q)) return { code: "trigger", reason: "suggests trigger leads or credit-inquiry data" };
+  if (/\b(pay|paying|reward|compensat\w*|kick\w*)\b[^.?\n]{0,30}\b(real estate agents?|realtors?|agents?)\b/i.test(q)) return { code: "referral", reason: "suggests paying for referrals (RESPA section 8)" };
+  const topic = protectedTopic(q);
+  if (topic) return { code: "protected", reason: `touches ${topic}` };
+  return null;
 }
 
 /** A fact the client stated, to remember. The quote must be in their own message. */

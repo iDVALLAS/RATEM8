@@ -14,6 +14,7 @@
  */
 import { checkTemplate } from "@/lib/templates/service";
 import { findRateMentions } from "@/lib/m8/guard";
+import { leadAdviceIssue } from "@/lib/concierge/guard";
 import type { Move } from "./store";
 
 const RESPA: [RegExp, string][] = [
@@ -39,23 +40,16 @@ export function reviewMessage(body: string, subject: string, to: "client" | "age
 }
 
 /**
- * D84: the Business Manager's lead-source moves (and D85–D86's plan wording). Never tie a gift to a referral or call
- * it the cost of one, never suggest paying anyone for referrals (RESPA section 8) or buying trigger leads or
- * credit-inquiry data, never suggest contacting leads without their permission, and no rates.
+ * D84: the Business Manager's lead-source moves (and D85–D86's plan wording). The rules live with the Concierge's
+ * guard (`LEAD_ADVICE` in lib/concierge/guard.ts) so the moves, the planner and the Concierge's answers on Lead
+ * sources share one list: never tie a gift to a referral or call it the cost of one, never suggest paying anyone for
+ * referrals (RESPA section 8) or buying trigger leads or credit-inquiry data, never suggest contacting leads without
+ * their permission, and no rates.
  */
-const LEAD_MOVE: [RegExp, string][] = [
-  [/\bgifts?\b[^.\n]{0,80}\breferr|\breferr\w*[^.\n]{0,80}\bgifts?\b/i, "ties a gift to referrals"],
-  [/\b(cost|price)\s+(of|per)\s+(a\s+)?referrals?\b/i, "describes spending as the cost of a referral"],
-  [/\b(pay|paying|paid|buy|buying|reward\w*|compensat\w*|incentiv\w*|split\w*)\b[^.\n]{0,40}\breferr/i, "suggests paying for referrals (RESPA section 8)"],
-  [/\b(referral|finder'?s?)\s+(fee|bonus|reward|payment)s?\b|\bkickbacks?\b|\bexclusive\s+(deal|arrangement|partnership)s?\b/i, "suggests paying for referrals (RESPA section 8)"],
-  [/\btrigger(ed)?[\s-]*leads?\b|\bcredit[\s-]*(inquiry|pull)\s+(data|lists?|leads?|files?)\b|\binquiry\s+(data|lists?)\b/i, "suggests trigger leads or credit-inquiry data"],
-  [/\b(call|text|email|message|contact|reach|dial)\w*\b[^.\n]{0,60}\bwithout\s+(their\s+|the\s+)?(permission|consent)\b|\bignore\s+(the\s+|their\s+)?(consent|permission|opt[\s-]?outs?|do[\s-]not[\s-]call)\b/i, "suggests contacting leads without permission"],
-  [/\binterest\s+rates?\b|\bAPR\b|\brates?\s+(of|at|from)\s+\d/i, "mentions a rate"],
-];
-
 export function reviewLeadMove(text: string): Review {
   if (!text.trim()) return { ok: false, reason: "is empty" };
-  for (const [re, why] of LEAD_MOVE) if (re.test(text)) return { ok: false, reason: why };
+  const why = leadAdviceIssue(text);
+  if (why) return { ok: false, reason: why };
   if (findRateMentions(text).length) return { ok: false, reason: "mentions a rate" };
   return { ok: true };
 }

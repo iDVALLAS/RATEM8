@@ -268,6 +268,15 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     (`leadTargetCents`, default $1,000, `setLeadTarget`); period switch and target are bound actions; `snapshot.sources` = the 90-day rows; the
     Business Manager proposes at most one `lead-source:` move per 30 days (`leadSourceMove`, `kind: "plan"`, `href: /mlo/leads`, `reviewLeadMove`),
     shown as the scorecard's banner with Review; Approve is disabled until D86's plan store; assistants have no scorecard.
+    D85 Ask your Concierge (`lib/leads/ask.ts` pure pack/validator/templates/steps, `askLeadSources`/`addLeadSteps`/`leadPackFor` in
+    `lib/concierge/desk.ts`, `app/mlo/leads/AskPanel.tsx`, copy `LEAD_ASK`): AI disclosure, box and three suggested questions as buttons; the pack
+    (scorecard rows, target, monthly amounts, connections, budget from the question; no names/phones/emails/rates; no rows in example mode) goes to
+    the model with source names and the question in nonce blocks; `answerIssue` (guard, rates, `LEAD_ADVICE`, `checkNote`) holds a whole answer,
+    `validateFigures` drops a sentence whose figure isn't in the pack or the question ("see the scorecard"); no key / allowance used → template;
+    questions on trigger leads, paying for referrals, gifts for referrals, contacting without permission, rates or protected traits refused before
+    any call (`leadQuestionIssue`); table and "Show the math" from the pack; "Add the steps to Today" (bound) re-derives steps on the server as
+    Business Manager `lead-step:` moves (`kind: "plan"`, no contact, `href`), listed on Home as "Lead plan steps" with Done (`app/mlo/step-actions.ts`);
+    "Save as my 90-day plan" disabled until D86; assistants get no box. `LEAD_ADVICE` in `lib/concierge/guard.ts` is the one list `reviewLeadMove` uses.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -376,7 +385,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 929 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 996 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

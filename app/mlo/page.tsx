@@ -26,7 +26,9 @@ import { callQueue } from "@/lib/calls/session";
 import { topBlocker } from "@/lib/calls/blockers";
 import { repliesWaiting } from "@/lib/messaging/replies";
 import { textingReadyFor } from "@/lib/texting/ready";
-import { CALL_FIX, HOME } from "@/lib/content/cc-pages";
+import { teamStore } from "@/lib/agents/store";
+import { leadStepDoneAction } from "./step-actions";
+import { CALL_FIX, HOME, LEAD_ASK } from "@/lib/content/cc-pages";
 import "./mlo.css";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +59,8 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
     : [0, 0, 0, 0, 0, null];
   // D76: the call button says what's true: people ready to call, or how many need one fix first.
   const [queue, replies, texting] = me && today ? await Promise.all([callQueue(me, new Date(), today.cards).catch(() => null), repliesWaiting(me).catch(() => 0), textingReadyFor(me).catch(() => false)]) : [null, 0, false];
+  // D85: the steps the loan officer added from "Ask your Concierge" on Lead sources (Business Manager steps, no contact).
+  const leadSteps = me ? (await teamStore().moves(me.id, { status: "open", limit: 500 }).catch(() => [])).filter((m) => m.key.startsWith("lead-step:")).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || b.score - a.score).slice(0, 12) : [];
   const blocker = queue && !queue.ready.length ? topBlocker(queue.blocked.map((x) => x.reason)) : null;
   const call = !queue ? { href: "/mlo/calls", label: HOME.callNone } : queue.ready.length ? { href: "/mlo/calls", label: HOME.callReady(queue.ready.length) } : queue.blocked.length ? { href: "/mlo/calls#blocked", label: HOME.callBlocked(queue.blocked.length) } : { href: "/mlo/calls", label: HOME.callNone };
   const deadlines = today?.cards.filter((c) => c.kind === "journey").length ?? 0;
@@ -181,6 +185,26 @@ export default async function CommandCenterHome({ searchParams }: { searchParams
               </>
             )}
             {today.ref ? <p className="mlo-note" style={{ marginTop: 8 }}>Refinance comparisons use today&apos;s priced example ({today.ref.rate}%, {today.ref.label}), for your eyes only.</p> : null}
+          </section>
+        ) : null}
+
+        {leadSteps.length ? (
+          <section id="lead-steps" aria-labelledby="lead-steps-h">
+            <div className="cc-sechead"><h2 id="lead-steps-h">{LEAD_ASK.today.title(leadSteps.length)}</h2><Link href="/mlo/leads">{LEAD_ASK.today.from}</Link></div>
+            <ol className="cc-list">
+              {leadSteps.map((m) => (
+                <li key={m.id} className="cc-row" data-step={m.key}>
+                  <span className="cc-row__icon"><Icon name="lead" size={20} /></span>
+                  <span style={{ minWidth: 0 }}>
+                    <Link href={m.href ?? "/mlo/leads"} className="cc-row__title" style={{ color: "inherit", textDecoration: "none" }}>{m.title}</Link>
+                    <div className="cc-row__why">{m.why}</div>
+                  </span>
+                  <form action={leadStepDoneAction.bind(null, m.id)}>
+                    <button type="submit" className="cc-row__go cc-row__done" aria-label={LEAD_ASK.today.doneLabel(m.title)}>{LEAD_ASK.today.done}</button>
+                  </form>
+                </li>
+              ))}
+            </ol>
           </section>
         ) : null}
 

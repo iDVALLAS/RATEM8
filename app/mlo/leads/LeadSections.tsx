@@ -33,26 +33,6 @@ function Head({ id, title, example, line, aside }: { id: string; title: string; 
   );
 }
 
-/** The question box (D85 wires it; until then it says so and does nothing). */
-export function AskBar() {
-  const a = LEADS.ask;
-  return (
-    <section className="mlo-section cc-leadask" id="ask" aria-labelledby="leads-ask">
-      <h2 id="leads-ask" className="sr-only">{a.label}</h2>
-      <div className="mlo-row-form cc-leadask__form">
-        <input className="mlo-input" type="text" placeholder={a.placeholder} aria-label={a.label} aria-describedby="leads-ask-off" disabled />
-        <button type="button" className="mlo-btn" disabled aria-describedby="leads-ask-off">{a.button}</button>
-      </div>
-      <ul className="cc-leadask__try" aria-label={a.tryLabel}>
-        {a.suggestions.map((s) => (
-          <li key={s}>{s}</li>
-        ))}
-      </ul>
-      <p className="mlo-note cc-leadask__off" id="leads-ask-off">{a.off}</p>
-    </section>
-  );
-}
-
 function Badge({ badge }: { badge: ScoreBadge }) {
   return <span className={`cc-reach cc-reach--${TONE[badge]}`}>{LEADS.score.badges[badge]}</span>;
 }

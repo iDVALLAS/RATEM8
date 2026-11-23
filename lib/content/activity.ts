@@ -55,6 +55,8 @@ const EXACT: Record<string, string> = {
   "concierge.tell": "Asked the Concierge to prepare something",
   "concierge.debrief": "Saved a call debrief",
   "concierge.memory.keep": "Kept a client note",
+  "concierge.lead_ask": "Asked the Concierge about lead sources",
+  "concierge.lead_steps": "Added lead plan steps to Today",
   "automations.settings": "Changed automations",
   "automations.daily": "Ran the morning automations",
   "automations.stage": "Drafted a loan update",

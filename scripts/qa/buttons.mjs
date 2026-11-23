@@ -363,6 +363,26 @@ function audit() {
         json[where] = { height: res.height, buttons: res.dump };
         if (url.includes('review') && !(await page.locator('#lead-move-review').count())) problems.push(`[${where}] no lead-source move to review`);
         if (out) await page.screenshot({ path: path.join(out, `${name.replace(' ', '_')}-${w}-${theme}.png`), fullPage: true });
+        // D85: the answer card (a suggested question, the table or phone cards, Show the math, Add the steps to Today),
+        // then Home with the lead plan steps.
+        if (name === 'leads real') {
+          await page.locator('#ask').getByRole('button', { name: 'Plan $1,500 a month for 90 days' }).click();
+          await page.locator('#ask .cc-leadans[data-intent=plan]').waitFor();
+          await page.locator('#ask .cc-leadans').getByRole('button', { name: 'Show the math' }).click();
+          await page.locator('#ask .cc-leadans').getByRole('button', { name: 'Add the steps to Today' }).click();
+          await page.locator('#ask .cc-leadans__msg').waitFor();
+          await page.waitForTimeout(120);
+          const ans = await page.evaluate(audit);
+          total++;
+          for (const p of [...new Set(ans.problems)]) problems.push(`[${where} answer open] ${p}`);
+          if (out) await page.screenshot({ path: path.join(out, `leads_answer-${w}-${theme}.png`), fullPage: true });
+          await page.goto(B + '/mlo', { waitUntil: 'networkidle' });
+          if (!(await page.locator('#lead-steps li').count())) problems.push(`[${where}] no lead plan steps on Home`);
+          const home = await page.evaluate(audit);
+          total++;
+          for (const p of [...new Set(home.problems)]) problems.push(`[home lead steps @${w} ${theme}] ${p}`);
+          if (out) await page.screenshot({ path: path.join(out, `home_steps-${w}-${theme}.png`), fullPage: true });
+        }
       } catch (e) { problems.push(`[${where}] FAILED: ${e.message.split('\n')[0]}`); }
       await c.close();
     }

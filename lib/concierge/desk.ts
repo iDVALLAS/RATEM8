@@ -4,8 +4,9 @@
  * edit it, dismiss it, close a reminder, delete a memory, change settings,
  * and ask the Concierge a question about their book. SERVER-ONLY.
  */
+import { randomBytes } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
-import { aiMeter, aiOffReason } from "@/lib/ai/meter";
+import { aiCall, aiMeter, aiOffReason, type Meter } from "@/lib/ai/meter";
 import type { User } from "@/lib/accounts/store";
 import { accountStore } from "@/lib/accounts/store";
 import { sendText } from "@/lib/messaging/service";
@@ -13,7 +14,20 @@ import { sendEmail } from "@/lib/messaging/email";
 import { todayFor } from "@/lib/today/facts";
 import { guardReply } from "@/lib/m8/guard";
 import { contactStore } from "@/lib/contacts/store";
-import { checkDraft, checkNote, foreignContact, GUARD_VERSION, protectedTopic } from "./guard";
+import { redactChatInput } from "@/lib/m8/redact";
+import { pipelineStore } from "@/lib/pipeline/store";
+import { prefsFor } from "@/lib/profile/prefs";
+import { LEAD_ASK } from "@/lib/content/cc-pages";
+import { leadEventStore } from "@/lib/leads/events";
+import { connectedSourceLabels, hasRealLeads } from "@/lib/leads/mode";
+import { NOT_LEADS } from "@/lib/leads/sources";
+import { monthlyStore } from "@/lib/leads/spend";
+import { scorecardFor } from "@/lib/leads/score-service";
+import { DEFAULT_PERIOD, isScorePeriod, type ScorePeriod } from "@/lib/leads/scorecard";
+import { allowedFigures, answerIssue, BUDGET_RANGE, budgetFrom, buildLeadPack, isLeadIntent, LEAD_ASK_SYSTEM, leadAskMessage, leadIntent, leadSteps, packContext, packMath, packTable, templateAnswer, validateFigures, type LeadIntent, type LeadPack, type LeadStep, type PackTable } from "@/lib/leads/ask";
+import { reviewLeadMove } from "@/lib/agents/compliance";
+import { teamStore } from "@/lib/agents/store";
+import { checkDraft, checkNote, foreignContact, GUARD_VERSION, leadQuestionIssue, protectedTopic } from "./guard";
 import { CARD_BRIEF, scanCtx } from "./agent";
 import { dataBlock, dataRule, newNonce } from "./data";
 import { conciergeStore, type ConciergeSettings } from "./store";
@@ -102,4 +116,186 @@ export async function ask(actor: User, question: string, now = new Date()): Prom
   // D8.1: the same checks as everything else the Concierge writes, line by line.
   const bad = text.split(/\n+/).map((l) => checkNote(l, { names })).find((x) => !x.ok && x.reason !== "empty");
   return bad && !bad.ok ? `I held that answer back (it ${bad.reason}). Ask me about people and next steps instead.` : text || "I don't have anything on that.";
+}
+
+// ---- D85: "Ask your Concierge" on Lead sources ----
+
+/** What the answer card shows. Everything but `paragraphs` is built in code from the lead-source pack. */
+export type LeadAnswer =
+  | {
+      ok: true;
+      /** ai: the AI's answer (figures checked); template: from the scorecard (no AI, or none needed); held: the AI's answer failed the guard; refused: not taken to the AI. */
+      by: "ai" | "template" | "held" | "refused";
+      question: string;
+      intent: LeadIntent;
+      period: ScorePeriod;
+      budgetCents: number | null;
+      example: boolean;
+      paragraphs: string[];
+      note: string | null;
+      table: PackTable | null;
+      steps: Pick<LeadStep, "title" | "why">[];
+      math: string[];
+    }
+  | { ok: false; error: string };
+
+/** The model call: a system prompt and one user turn in, plain text out. Tests pass a fake. */
+export type LeadAskCall = (p: { system: string; user: string }) => Promise<{ text: string; stop: string | null }>;
+
+function leadAskApi(meter: Meter): LeadAskCall {
+  const client = new Anthropic({ apiKey: meter.apiKey });
+  return async ({ system, user }) => {
+    const r = await client.messages.create({
+      model: meter.model,
+      max_tokens: 900,
+      output_config: { effort: "low" },
+      system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content: user }],
+    } as unknown as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    await meter.record(r.usage);
+    return { text: r.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim(), stop: r.stop_reason ?? null };
+  };
+}
+
+/**
+ * The lead-source pack for the loan officer's own book (never an assistant's: spend is private). Example mode
+ * (no real lead yet) reads no scorecard at all, so no example row can reach it.
+ */
+export async function leadPackFor(actor: User, period: ScorePeriod, budgetCents: number | null, now = new Date()): Promise<LeadPack> {
+  const [events, contacts, prefs, monthly, keys] = await Promise.all([
+    leadEventStore().list(actor.id).catch(() => []),
+    contactStore().list({ ownerUserId: actor.id, kind: "contact", limit: 2000 }).then((r) => r.contacts).catch(() => []),
+    prefsFor(actor),
+    monthlyStore().list(actor.id).catch(() => []),
+    pipelineStore().keys(actor.id).catch(() => []),
+  ]);
+  const mine = events.filter((e) => e.ownerUserId === actor.id);
+  const own = contacts.filter((c) => c.ownerUserId === actor.id);
+  const example = !hasRealLeads({ contacts: own, leadEvents: mine.length });
+  const card = example ? null : await scorecardFor(actor, period, now, { events: mine, contacts: own.length < 2000 ? own : undefined }).catch(() => null);
+  return buildLeadPack({
+    period,
+    example,
+    card,
+    targetCents: card?.targetCents ?? prefs.leadTargetCents,
+    monthly: monthly.filter((m) => m.ownerUserId === actor.id),
+    connected: connectedSourceLabels(keys.map((k) => k.label), NOT_LEADS),
+    budgetCents,
+  });
+}
+
+const cleanQuestion = (q: string) => redactChatInput(String(q ?? "")).text.replace(/\s+/g, " ").trim().slice(0, 300);
+
+/**
+ * D85: a question on Lead sources. Refused before any model call when it asks for trigger leads, paying for
+ * referrals, gifts for referrals, contacting without permission, a rate or a protected trait. Otherwise the answer
+ * is built from the lead-source pack: by the AI when it's on and the allowance allows (its figures checked against
+ * the pack, the guard on every answer, a failure holding the whole answer), else from the template.
+ */
+export async function askLeadSources(actor: User, question: string, opts: { period?: string; now?: Date; call?: LeadAskCall | null; nonce?: string } = {}): Promise<LeadAnswer> {
+  const now = opts.now ?? new Date();
+  const q = cleanQuestion(question);
+  if (!q) return { ok: false, error: LEAD_ASK.errors.empty };
+  if (actor.role === "assistant") return { ok: false, error: LEAD_ASK.errors.assistant };
+  const period = isScorePeriod(opts.period) ? opts.period : DEFAULT_PERIOD;
+  const intent = leadIntent(q);
+  const budgetCents = budgetFrom(q);
+  const base = { ok: true as const, question: q, intent, period, budgetCents };
+  const audit = (by: string, extra: Record<string, unknown> = {}) => accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "concierge.lead_ask", detail: { by, intent, period, ...extra } }).catch(() => undefined);
+
+  const refused = leadQuestionIssue(q);
+  if (refused) {
+    await audit("refused", { code: refused.code });
+    return { ...base, by: "refused", example: false, paragraphs: [LEAD_ASK.refuse[refused.code]], note: null, table: null, steps: [], math: [] };
+  }
+
+  const pack = await leadPackFor(actor, period, budgetCents, now);
+  const template = templateAnswer(pack, intent);
+  const built = { ...base, example: pack.example, table: packTable(pack, intent), steps: leadSteps(pack, intent).map(({ title, why }) => ({ title, why })), math: packMath(pack) };
+
+  const call = opts.call !== undefined ? opts.call : await aiCall(actor, "ask", leadAskApi, now);
+  if (!call) {
+    await audit("template", { example: pack.example });
+    return { ...built, by: "template", paragraphs: template, note: LEAD_ASK.noAi(await aiOffReason(actor, now)) };
+  }
+  const nonce = opts.nonce ?? newNonce();
+  let text = "";
+  try {
+    const r = await call({ system: LEAD_ASK_SYSTEM, user: leadAskMessage(pack, q, nonce) });
+    if (r.stop === "refusal") text = "";
+    else text = r.text.trim().slice(0, 1600);
+  } catch {
+    await audit("template", { example: pack.example, failed: true });
+    return { ...built, by: "template", paragraphs: template, note: LEAD_ASK.noAi(LEAD_ASK.unavailable) };
+  }
+  // The guard on the whole answer first: a failure holds all of it.
+  const issue = answerIssue(text);
+  if (issue) {
+    await audit("held", { example: pack.example });
+    return { ...built, by: "held", paragraphs: template, note: LEAD_ASK.held(issue) };
+  }
+  // Then the figures: a sentence with a number the pack (or the question) doesn't have is dropped.
+  const v = validateFigures(text, allowedFigures(packContext(pack, nonce), q));
+  const paragraphs = v.text.split(/\n+/).map((p) => p.replace(/^\s*[-*•]\s+/, "").replace(/\*\*/g, "").trim()).filter(Boolean);
+  if (!paragraphs.length || (v.dropped && paragraphs.length === 1)) {
+    await audit("template", { example: pack.example, dropped: v.dropped });
+    return { ...built, by: "template", paragraphs: template, note: null };
+  }
+  await audit("ai", { example: pack.example, dropped: v.dropped });
+  return { ...built, by: "ai", paragraphs: pack.example ? [LEAD_ASK.exampleNote, ...paragraphs] : paragraphs, note: LEAD_ASK.byAi };
+}
+
+/** A step's move key: the kind, its source and the month, so the same step isn't added twice while it's open. */
+const stepKey = (s: LeadStep, now: Date) => `lead-step:${s.kind}:${s.source ?? "all"}:${now.toISOString().slice(0, 7)}`;
+
+/**
+ * D85: "Add the steps to Today". The steps are worked out again here from the loan officer's own pack (the page only
+ * says which answer: period, question kind and budget), never from the AI's words, each passes Compliance's
+ * lead-advice review, and each becomes a Business Manager step (`kind: "plan"`, no contact, `href`), the same shape
+ * as D84's lead-source moves. Nothing is spent or sent; Home shows them under "Lead plan steps".
+ */
+export async function addLeadSteps(actor: User, period: string, intent: string, budgetCents: number, now = new Date()): Promise<{ ok: true; added: number; already: number } | { ok: false; error: string }> {
+  if (actor.role === "assistant") return { ok: false, error: LEAD_ASK.errors.assistant };
+  if (!isScorePeriod(period) || !isLeadIntent(intent)) return { ok: false, error: LEAD_ASK.errors.steps };
+  const budget = Number.isFinite(budgetCents) && budgetCents >= BUDGET_RANGE.min * 100 && budgetCents <= BUDGET_RANGE.max * 100 ? Math.round(budgetCents) : null;
+  const pack = await leadPackFor(actor, period, budget, now);
+  const store = teamStore();
+  let added = 0;
+  let already = 0;
+  for (const s of leadSteps(pack, intent)) {
+    if (!reviewLeadMove(`${s.title}\n${s.why}`).ok) continue;
+    const key = stepKey(s, now);
+    const prev = await store.moveByKey(actor.id, key).catch(() => null);
+    if (prev && prev.status === "open") {
+      already++;
+      continue;
+    }
+    await store.putMove({
+      id: `mv_${randomBytes(9).toString("base64url")}`,
+      key,
+      ownerUserId: actor.id,
+      agent: "business",
+      kind: "plan",
+      title: s.title,
+      why: s.why,
+      contactId: null,
+      loanId: null,
+      playbookId: null,
+      channel: null,
+      subject: "",
+      body: "",
+      amountCents: null,
+      href: s.href,
+      gift: null,
+      score: 44,
+      status: "open",
+      note: LEAD_ASK.today.from,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      until: null,
+    });
+    added++;
+  }
+  await accountStore().audit({ at: now.toISOString(), actor: actor.email, action: "concierge.lead_steps", detail: { intent, period, added, already } }).catch(() => undefined);
+  return { ok: true, added, already };
 }

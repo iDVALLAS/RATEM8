@@ -217,14 +217,13 @@ export const LEADS = {
     /** The plan card once real leads exist: it stays an example until a plan is saved. */
     planLine: "These are example numbers. Yours appear here after you save your first plan.",
   },
-  /** D82: the question box at the top (answers come with D85). */
+  /** D82: the question box at the top; D85 answers it (LEAD_ASK has the answer card's words). */
   ask: {
     label: "Ask your Concierge about lead sources",
     placeholder: "Ask your Concierge about lead sources, budget or cost per lead",
     button: "Ask",
     tryLabel: "Questions to try",
     suggestions: ["Which source should I add next?", "Plan $1,500 a month for 90 days", "Which vendors don’t give me permission?"],
-    off: "Not on yet. Your Concierge answers questions about lead sources here once it can read your scorecard.",
   },
   /** D82: the scorecard (Option B: a table on desktop, cards on phones). */
   score: {
@@ -339,6 +338,152 @@ export const LEAD_MOVES = {
   toWhy: (to: string, perLoan: string) => `${to}: ${perLoan} per closed loan.`,
   fixWhy: (source: string, leads: number, canCall: number, share: number) => `${source}: ${leads} leads in the last 90 days, and ${canCall} of them (${share}%) came with consent wording that names you or your company. Use “Copy a note for your vendor” on Lead sources to ask for it.`,
   tail: "Nothing changes until you approve it. Approving only updates your lead plan and adds the steps to Today; it never spends money, contacts a vendor or messages anyone.",
+};
+
+/**
+ * D85: "Ask your Concierge" on Lead sources. Every figure in these lines comes from the lead-source pack
+ * (lib/leads/ask.ts), worked out in code; the AI only explains them. Every line here passes the Concierge's guard and
+ * the lead-advice rules (a test): no gift tied to a referral, no paying anyone for referrals, no trigger leads or
+ * credit-inquiry data, no contacting anyone before they say yes, no rates.
+ */
+export const LEAD_ASK = {
+  /** The AI disclosure, before the box (shown before any answer). */
+  disclosure: "Your Concierge is AI. It answers from your own scorecard and never sees names, phone numbers or emails. You approve every step.",
+  disclosureExample: "Your Concierge is AI. Until your first lead arrives it answers in general terms: the numbers on this page are examples, not yours.",
+  working: "Thinking…",
+  heading: "Your Concierge",
+  you: "You asked:",
+  byAi: "Answered by your Concierge (AI) from your scorecard.",
+  noAi: (why: string) => `Answered from your scorecard without the AI, because ${why}.`,
+  held: (why: string) => `Your Concierge’s AI answer was held back (it ${why}), so this answer comes straight from your scorecard.`,
+  unavailable: "the AI isn’t available right now",
+  seeScorecard: "For the other figures, see the scorecard.",
+  exampleNote: "Your page shows example numbers until your first lead arrives, so this answer is general. None of the example numbers are yours.",
+  tableCaption: (period: string) => `${period === "This year" ? "This year so far" : `The last ${period}`}, from your scorecard`,
+  cols: { source: "Source", spent: "Spent", monthly: "Monthly amount", leads: "Leads", perLead: "Per lead", canCall: "You can call", share: "Share you can call", perCallable: "Per lead you can call", loans: "Loans", perLoan: "Per loan", says: "Concierge says" },
+  noMonthly: "—",
+  noLoans: "None yet",
+  stepsTitle: "Steps it adds to Today",
+  save: "Save as my 90-day plan",
+  saveOff: "Saving a plan comes with the budget planner. Until then, add the steps to Today.",
+  addSteps: "Add the steps to Today",
+  adding: "Adding…",
+  added: (n: number, already: number) => (n ? `Added ${n} ${n === 1 ? "step" : "steps"} to Today.` : "Nothing new to add.") + (already ? ` ${already} ${already === 1 ? "was" : "were"} already there.` : ""),
+  showMath: "Show the math",
+  hideMath: "Hide the math",
+  mathTitle: "The math",
+  errors: {
+    empty: "Type a question first, or pick one of the questions to try.",
+    assistant: "Lead sources answers use spend, which is private to each loan officer.",
+    signIn: "Sign in again.",
+    steps: "Those steps couldn’t be added. Ask again and try once more.",
+  },
+  /** Questions the Concierge won't take to the AI. */
+  refuse: {
+    trigger: "Your Concierge doesn’t suggest trigger leads or buying credit-inquiry data. Ask about the sources you run, your own web form or your past clients and sphere.",
+    referral: "Your Concierge won’t suggest paying real estate agents or anyone else for referrals, or an “exclusive” deal that works like one (RESPA section 8). Ask about lead sources you pay for openly, at a set price.",
+    gift: "Gifts are never tied to referrals. Closing gifts are fine on their own; your Concierge won’t plan them around who sends you business.",
+    contact: "Your Concierge only helps you reach people who’ve said yes. Leads that show No permission yet need their own yes first.",
+    rate: "Your Concierge doesn’t talk about rates on Lead sources. Ask about cost per lead, cost per loan or permission.",
+    protected: "Lead sources and ads are never aimed by who people are (age, family, religion, origin, health or the like). Ask about sources, spend or permission instead.",
+  },
+  /** Step titles and why-lines (each becomes a Business Manager step on Today). */
+  steps: {
+    pause: (src: string, days: number) => `Pause ${src} for ${days} days`,
+    pauseWhy: (spend: string, leads: number) => `${spend} spent, ${leads} ${leads === 1 ? "lead" : "leads"}, and no loans closed or in progress.`,
+    fix: (src: string) => `Ask ${src} for consent wording that names you`,
+    fixWhy: (canCall: number, leads: number, share: number) => `${canCall} of ${leads} leads (${share}%) named you. Use “Copy a note for your vendor” on Lead sources.`,
+    keep: (src: string) => `Keep ${src} funded`,
+    keepWhy: (perLoan: string, target: string) => `${perLoan} per loan, at or under your ${target} target.`,
+    best: (src: string) => `Keep ${src} going: your best value`,
+    bestWhy: (perLoan: string) => `${perLoan} per loan, the lowest on your scorecard.`,
+    watch: (src: string, days: number) => `Check ${src} again in ${days} days`,
+    watchWhy: (closed: number, perLoan: string | null, target: string) => (perLoan ? `${perLoan} per loan, over your ${target} target.` : `${closed} ${closed === 1 ? "loan" : "loans"} closed so far.`),
+    test: (src: string) => `Treat ${src} as a test`,
+    testWhy: (leads: number, days: number) => `${leads} ${leads === 1 ? "lead" : "leads"} so far. Judge it after ${days} days on cost per loan.`,
+    sphere: "Keep in touch with past clients and sphere",
+    sphereWhy: "Cards and campaigns to people who already know you. Every one of them can say yes to you directly.",
+    newSource: (days: number) => `Pick one new source to test for ${days} days`,
+    newSourceWhy: "Start it with a small monthly amount, and ask the vendor for consent wording that names you before you sign up.",
+    monthly: "Set its monthly amount on Lead sources",
+    monthlyWhy: "So its spend is counted on your scorecard.",
+    checkIn: (days: number) => `Look at your scorecard again in ${days} days`,
+    checkInWhy: "See which sources closed loans, and adjust.",
+    connect: "Connect your first lead source",
+    connectWhy: "Make a connection address on Lead sources and paste it into your vendor’s delivery settings.",
+    askWording: "Ask your vendors for consent wording that names you",
+    askWordingWhy: "A lead counts as permission only when the wording names you or your company.",
+    logSpend: "Log what each source costs in Expenses",
+    logSpendWhy: "Tag each line with its lead source so the scorecard can count it.",
+  },
+  /** The answers built from the scorecard (and the AI's fallback). */
+  answer: {
+    // Which source should I add next?
+    addBest: (src: string, perLoan: string, target: string) => `${src} is your best value so far: ${perLoan} per loan, against your target of ${target}. Before you add a source, make sure it keeps its budget.`,
+    addNoBest: "No source has closed enough loans to compare cost per loan yet.",
+    addFix: (src: string, canCall: number, leads: number, share: number) => `Fix ${src} first: ${canCall} of its ${leads} leads (${share}%) came with wording that names you.`,
+    addHow: (days: number, target: string) => `Then add one new source at a time as a ${days}-day test with a small monthly amount, and judge it on cost per loan against your ${target} target.`,
+    addOwn: "Your own web form and your past clients and sphere are the sources where every lead already knows you or named you.",
+    addWording: "Ask any new vendor for consent wording that names you or your company before you sign up.",
+    // Plan $X a month for 90 days
+    planBudget: (budget: string, monthly: string, left: string | null, over: string | null) =>
+      `Your budget: ${budget} a month for 90 days. Your monthly amounts add up to ${monthly}${left ? `, which leaves ${left}` : over ? `, which is ${over} over` : ""}.`,
+    planNoMonthly: (budget: string) => `Your budget: ${budget} a month for 90 days. You haven’t set monthly amounts for your sources yet.`,
+    planNoBudget: "Tell me a monthly budget (for example, “Plan $1,500 a month for 90 days”) and I’ll set it against your sources.",
+    planSphere: (spend: string, closed: number) => `Keep past clients and sphere going first: ${spend} spent and ${closed} ${closed === 1 ? "loan" : "loans"} closed.`,
+    planScale: (src: string, perLoan: string, target: string) => `Scale up ${src}: ${perLoan} per loan, at or under your ${target} target.`,
+    planBest: (src: string, perLoan: string) => `${src} is your best value: ${perLoan} per loan.`,
+    planWatch: (src: string, perLoan: string | null, closed: number, target: string) => (perLoan ? `Watch ${src}: ${perLoan} per loan, over your ${target} target.` : `Watch ${src}: ${closed} ${closed === 1 ? "loan" : "loans"} closed so far.`),
+    planFix: (src: string, canCall: number, leads: number) => `Ask ${src} for consent wording that names you before you renew: ${canCall} of ${leads} leads named you.`,
+    planPause: (src: string, spend: string, leads: number) => `Pause ${src}: ${spend} spent, ${leads} ${leads === 1 ? "lead" : "leads"} and no loans closed or in progress.`,
+    planThin: (src: string, leads: number) => `${src} has ${leads} ${leads === 1 ? "lead" : "leads"} so far, not enough to judge: treat it as a test.`,
+    planNext: "The budget planner splits the dollars and saves your 90-day plan; until it’s on, add these steps to Today.",
+    // Which vendors don't give me permission?
+    permNone: "Every vendor lead in this period came with wording that names you.",
+    permNoLeads: "No vendor leads in this period yet, so there’s nothing to check.",
+    permRow: (src: string, canCall: number, leads: number, share: number) => `${src}: ${canCall} of ${leads} leads (${share}%) named you.`,
+    permIntro: (n: number) => `${n === 1 ? "One vendor sends" : `${n} vendors send`} leads whose wording doesn’t always name you:`,
+    permWhy: "A lead counts as permission only when the vendor’s consent wording names you or your company. Many forms name only “partners.”",
+    permAsk: "Use “Copy a note for your vendor” on Lead sources to ask for wording that names you. The others need their own yes before you reach out.",
+    // Anything else: compare the sources.
+    compareTotals: (period: string, n: number, leads: number, spend: string, closed: number) => `${period === "This year" ? "This year so far" : `In the last ${period}`}: ${n} ${n === 1 ? "source" : "sources"}, ${leads} ${leads === 1 ? "lead" : "leads"}, ${spend} spent and ${closed} ${closed === 1 ? "loan" : "loans"} closed.`,
+    compareLead: (src: string, perLead: string) => `Lowest cost per lead: ${src} at ${perLead}.`,
+    compareLoan: (src: string, perLoan: string) => `Lowest cost per loan: ${src} at ${perLoan}.`,
+    compareMost: (src: string, leads: number) => `Most leads: ${src} with ${leads}.`,
+    compareNone: "Nothing to compare yet: log spend in Expenses and your leads and loans fill in the rest.",
+    // Example mode: general terms, never the example numbers.
+    exAdd: (days: number) => `In general, start with the people who already know you (past clients and sphere), then your own web form, where every lead names you. Add one paid source at a time as a ${days}-day test, and ask the vendor for consent wording that names you or your company before you sign up.`,
+    exPlan: (budget: string | null, days: number) => `${budget ? `With ${budget} a month and no leads of your own yet, ` : "With no leads of your own yet, "}a plan can’t use your numbers. In general: fund past clients and sphere first, keep most of the budget on one source you can measure, and test one new source at a time for ${days} days.`,
+    exPermission: "No leads have arrived yet, so there’s nothing to check. A lead counts as permission only when the vendor’s consent wording names you or your company; ask your vendor to send it with every lead.",
+    exCompare: "Your scorecard fills in after your first lead arrives. Log what each source costs in Expenses, tagged with its lead source, so cost per lead and cost per loan can be worked out.",
+    exAfter: "Once your own leads arrive, ask again and I’ll use your scorecard.",
+  },
+  /** "Show the math": the formulas, then each row's own figures. */
+  math: {
+    spend: "Spend = each confirmed lead-spend line in Expenses, at its business-use share.",
+    perLead: "Cost per lead = spend ÷ leads.",
+    perCallable: "Cost per lead you can call = spend ÷ leads you can call.",
+    perLoan: "Cost per loan = spend ÷ loans closed.",
+    share: "Share you can call = leads you can call ÷ leads.",
+    row: (src: string, parts: string[]) => `${src}: ${parts.join("; ")}.`,
+    rowNothing: (src: string) => `${src}: nothing to divide yet.`,
+    partPerLead: (spend: string, leads: number, v: string) => `${spend} ÷ ${leads} leads = ${v} per lead`,
+    partPerCallable: (spend: string, n: number, v: string) => `${spend} ÷ ${n} you can call = ${v} each`,
+    partPerLoan: (spend: string, n: number, v: string) => `${spend} ÷ ${n} ${n === 1 ? "loan" : "loans"} = ${v} per loan`,
+    partShare: (canCall: number, leads: number, v: number) => `${canCall} ÷ ${leads} = ${v}% you can call`,
+    budget: (budget: string, monthly: string, result: string, over: boolean) => `Budget ${budget} − monthly amounts ${monthly} = ${result} ${over ? "over" : "left"}.`,
+    rules: (enough: number, fixPct: number, pause: string, pauseDays: number, scale: number, target: string) =>
+      `Badges: Not enough data under ${enough} leads; Fix permission at ${enough} or more leads and under ${fixPct}% you can call; Pause? at ${pause} or more spent, ${pauseDays} days of history and no loans; Scale up at ${scale} or more loans at or under your ${target} target.`,
+  },
+  /** Home: the steps added from Lead sources. */
+  today: {
+    title: (n: number) => `Lead plan steps (${n})`,
+    open: "Open",
+    done: "Done",
+    doneLabel: (title: string) => `Mark done: ${title}`,
+    from: "Lead sources",
+    see: "See them on Today",
+  },
 };
 
 /** D83: the Lead source picker (Expenses, and the monthly amounts on Lead sources). */

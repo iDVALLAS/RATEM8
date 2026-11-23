@@ -1074,8 +1074,6 @@
 .cc-app .cc-leadask__form .mlo-input:disabled { opacity: 1; color: var(--fg-soft); cursor: not-allowed; }
 .cc-app .cc-leadask__form .mlo-input::placeholder { color: var(--muted); opacity: 1; }
 .cc-leadask__try { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
-.cc-leadask__try li { display: inline-flex; align-items: center; min-height: 32px; padding: 4px 12px; border: 1px solid var(--rule-strong); border-radius: 999px; color: var(--fg-soft); font-size: 13.5px; }
-.cc-leadask .cc-leadask__off { margin: 10px 0 0; }
 /* The scorecard: a period switch, the Business Manager's line, a table on desktop and cards on phones. */
 .cc-period { display: inline-flex; gap: 2px; border-radius: 999px; background: var(--cc-card-2); }
 .cc-app .cc-period__b { min-height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--fg-soft); font: inherit; font-size: 13.5px; }
@@ -1152,3 +1150,42 @@
 .cc-leadmove > .mlo-note { margin: 8px 0 0; }
 .cc-score .cc-target { margin-top: 14px; }
 .cc-target .mlo-field { flex: 0 1 220px; }
+
+/* ─── D85: Ask your Concierge on Lead sources (the question box and the answer card) ─── */
+.cc-leadask .cc-leadask__ai { margin: 0 0 10px; }
+.cc-leadask__try li { display: flex; }
+.cc-app .cc-leadask__q { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 14px; border: 1px solid var(--rule-strong); border-radius: 999px; background: transparent; color: var(--fg); font: inherit; font-size: 14px; line-height: 1.3; text-align: left; cursor: pointer; }
+.cc-app .cc-leadask__q:hover:not(:disabled) { border-color: var(--accent); }
+.cc-app .cc-leadask__q:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cc-app .cc-leadask__q:disabled { color: var(--fg-soft); cursor: progress; }
+.cc-leadans { margin-top: 16px; padding: 16px; border: 1px solid var(--rule-strong); border-radius: 16px; }
+.cc-leadans__h { margin: 0; font-size: 17px; font-weight: 600; color: var(--fg); }
+.cc-leadans__h:focus { outline: none; }
+.cc-leadans__h:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cc-leadans__q { margin: 6px 0 0; color: var(--fg); font-size: 14.5px; overflow-wrap: anywhere; }
+.cc-leadans__body p { margin: 10px 0 0; color: var(--fg); font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
+.cc-leadans .cc-leadans__note { margin: 10px 0 0; }
+.cc-leadans__wide { margin-top: 14px; }
+.cc-leadans__tbl { font-variant-numeric: tabular-nums; }
+.cc-leadans__tbl caption { caption-side: top; padding: 0 0 6px; text-align: left; color: var(--fg-soft); font-size: 13px; }
+.cc-leadans__tbl .cc-num { text-align: right; white-space: nowrap; }
+.cc-leadans__tbl tbody td { font-size: 14px; color: var(--fg-soft); }
+.cc-leadans__cards { display: none; margin: 14px 0 0; padding: 0; list-style: none; gap: 10px; }
+.cc-leadans__cards .cc-scard { background: var(--bg-sunken); }
+.cc-leadans__sub { margin: 16px 0 0; font-size: 15px; font-weight: 600; color: var(--fg); }
+.cc-leadans__steps { margin: 8px 0 0; padding-left: 22px; }
+.cc-leadans__steps li { margin: 6px 0 0; color: var(--fg); font-size: 14.5px; line-height: 1.5; }
+.cc-leadans__steps li .mlo-note { display: block; margin: 2px 0 0; }
+.cc-leadans__acts form { display: contents; }
+.cc-leadans .cc-leadans__off { margin: 8px 0 0; }
+.cc-leadans .cc-leadans__msg { margin: 10px 0 0; }
+.cc-leadans__math ul { margin: 8px 0 0; padding-left: 20px; }
+.cc-leadans__math li { margin: 4px 0 0; color: var(--fg-soft); font-size: 14px; line-height: 1.5; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 719px) {
+  .cc-leadans__wide { display: none; }
+  .cc-leadans__cards { display: grid; }
+  .cc-leadans { padding: 14px 12px; }
+}
+/* Home: the steps added from Lead sources ("Lead plan steps"); Done is a real button, 44px. */
+.cc-app button.cc-row__done { min-height: 44px; font: inherit; font-size: 13px; cursor: pointer; }
+@media (max-width: 520px) { .cc-row > form { grid-column: 2; justify-self: start; } }

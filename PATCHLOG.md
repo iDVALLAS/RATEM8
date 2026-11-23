@@ -6911,3 +6911,122 @@ real lead, and real and example rows never share the section.
   loan officer has (no paging); fine at pilot sizes. The card label "Per lead you can call" wraps to two lines at 390.
 - **Next up:** D85 (Ask your Concierge on Lead sources, Option A), after the owner's sign-off. Its pack reads `scorecardFor()` rows, the target
   (`prefsFor().leadTargetCents`) and `snapshot.sources`.
+
+## D85 — Ask your Concierge on Lead sources (Option A) (2026-11-23)
+
+Spec: "## D85" in `docs/work/D81-D87-lead-sources-2026-11-22.md` (the owner's brief, verbatim), with "Owner decisions (2026-11-22)" 1–4,
+the "Builder notes" (the Concierge, red-team and nonce notes) and "Owner decision 5". Built after Option A and "The page once it's built"
+(the question box on top once real leads exist; in example mode it stays second, under Add a lead source, as D82 placed it); the brief's
+three suggested questions, not the mockup's four. D72 classes, tokens only, words in `lib/content/cc-pages.ts` (`LEAD_ASK`).
+
+- **Files:** new `lib/leads/ask.ts` (pure: `PACK_RULES`, `buildLeadPack`, `safeLabel`, `leadIntent`, `budgetFrom`, `LEAD_ASK_SYSTEM`,
+  `packContext`, `leadAskMessage`, `figuresIn`, `allowedFigures`, `figuresOk`, `validateFigures`, `answerIssue`, `templateAnswer`, `leadSteps`,
+  `packTable`, `packMath`), `app/mlo/leads/AskPanel.tsx` (client: the box and the answer card), `app/mlo/step-actions.ts` (`leadStepDoneAction`),
+  `lib/leads/ask.test.ts` (20), `tests/lead-ask-redteam.spec.ts` (47), `tests/lead-ask-harness.ts`; changed `lib/concierge/desk.ts`
+  (`askLeadSources`, `leadPackFor`, `addLeadSteps`, `LeadAnswer`, `LeadAskCall`), `lib/concierge/guard.ts` (`LEAD_ADVICE`, `leadAdviceIssue`,
+  `leadQuestionIssue`), `lib/agents/compliance.ts` (`reviewLeadMove` reads `LEAD_ADVICE`), `app/mlo/leads/{page,LeadSections,actions}.tsx`
+  (`AskBar` removed; `askLeadAction`, `addLeadStepsAction`), `app/mlo/page.tsx` (Lead plan steps), `lib/content/cc-pages.ts` (`LEADS.ask.off`
+  removed; new `LEAD_ASK`), `lib/content/activity.ts` (two audit codes), `app/mlo/cc-shell.css` (D85 block), `lib/leads/examples.test.ts`,
+  `scripts/qa/{command-center,buttons}.mjs`, `CLAUDE.md`.
+- **What the loan officer sees:** *Lead sources* — first the line "Your Concierge is AI. It answers from your own scorecard and never sees names,
+  phone numbers or emails. You approve every step." (in example mode: "…Until your first lead arrives it answers in general terms: the numbers on
+  this page are examples, not yours."), the box with Ask, and the three questions as real 44px buttons ("Which source should I add next?", "Plan
+  $1,500 a month for 90 days", "Which vendors don’t give me permission?"). The answer card: "Your Concierge", "You asked: …", the answer, a line
+  saying how it was made ("Answered by your Concierge (AI) from your scorecard.", "Answered from your scorecard without the AI, because …", or "…AI
+  answer was held back (it …), so this answer comes straight from your scorecard."), a table from the pack ("The last 90 days, from your
+  scorecard"; stacked cards under 720px), "Steps it adds to Today", then **Save as my 90-day plan** (disabled: "Saving a plan comes with the budget
+  planner. Until then, add the steps to Today."), **Add the steps to Today** ("Added 5 steps to Today. See them on Today") and **Show the math**
+  (aria-expanded; the formulas, each row's own division, the budget line and the badge rules). *Home* — "Lead plan steps (N)" after Who to reach:
+  each step's title (a link to where it's done), its why and a 44px **Done**.
+- **The pack** (`leadPackFor` → `buildLeadPack`, own book only): the scorecard rows for the page's period (spend, leads, you can call and share,
+  per lead, per lead you can call, in pipeline, closed, per loan, repeats, badge, the row's monthly amount), totals, the target cost per loan,
+  monthly amounts and their total, connected sources (connection labels minus loan systems and the dialer), the saved plan (null until D86), a
+  budget named in the question ($100–$100,000 a month) with what's left after the monthly amounts, undated imports and unattributed loans. Never a
+  contact's name, phone, email, loan amount or rate: the scorecard carries none, and source labels go through `safeLabel` (emails, links and
+  phone-like digits removed, 40 characters). **Example mode** (no real lead: `hasRealLeads`) reads no scorecard at all, so the pack has no rows;
+  `lib/leads/ask.ts` and `desk.ts` never import the fixture (a test).
+- **What the model sees** (`packContext`, route `ask`, the D41 allowance): the rules line, the period and target, one line per source with the
+  source's name only inside a nonce data block (`<data-… kind="source">`), totals, monthly amounts, the budget, connected sources (also in
+  blocks), "Saved 90-day plan: none yet", then the question in its own `kind="question"` block (closing tags defused). In example mode: "The loan
+  officer has no leads of their own yet … say the numbers on the page are examples and answer in general terms", their target and the rules, no
+  rows. The system prompt: every number exactly as in the context or question, no new figures, short, the never-list below.
+- **Checks on every AI answer:** (1) `answerIssue` — `guardReply` (rates, promises, prompt leaks, sensitive echoes), `findRateMentions`,
+  `leadAdviceIssue` and `checkNote` line by line (protected topics, foreign links and numbers); any failure **holds the whole answer** and shows
+  the template with the reason. A model refusal or empty answer falls back too. (2) `validateFigures` — each sentence's dollar figures, percents
+  and counts must be in the pack as the model read it, or in the question ("$1,500", "90 days"); a sentence with any other figure is dropped and
+  "For the other figures, see the scorecard." is added once; if nothing but that line is left, the template is shown. List markers aren't numbers.
+- **Without the AI** (no key, the allowance used up, or an error): `templateAnswer` per question kind (`leadIntent`: add / plan / permission /
+  compare), every figure from the pack. *Add next*: the best-value source (or "No source has closed enough loans…"), the biggest Fix permission
+  source, "add one new source at a time as a 60-day test… against your $X target", your web form and sphere, consent wording before signing up.
+  *Plan*: the budget against the monthly amounts, then a line per source by its badge (sphere first, Pause, Fix, Best value, Scale up, Watch,
+  Not enough data), and "The budget planner splits the dollars… until it’s on, add these steps to Today." *Permission*: each vendor under 100%
+  ("Bankrate: 0 of 10 leads (0%) named you."), what counts and the vendor note. *Compare*: totals, lowest cost per lead and per loan, most leads.
+  *Example mode*: "Your page shows example numbers until your first lead arrives, so this answer is general…", a general answer per kind, "Once
+  your own leads arrive, ask again…"; no table.
+- **Refused before any model call** (`leadQuestionIssue`, the same `LEAD_ADVICE` list plus question shapes): trigger leads and credit-inquiry or
+  bureau lists; paying real estate agents or anyone for referrals, referral payments, kickbacks and "exclusive" deals with agents (RESPA §8);
+  gifts tied to referrals (decision 3: closing gifts alone are fine and not refused); contacting leads without permission, around do-not-call or
+  after a stop; rates (`findRateMentions`, "what rate", "mortgage rates", APR; "conversion rate" and "close rate" pass); and protected traits
+  (`protectedTopic`: sources and ads are never aimed by who people are). Each has its own plain refusal; no table, steps or math.
+- **Add the steps to Today** (`addLeadStepsAction.bind(null, period, intent, budgetCents)`): the server rebuilds the pack and `leadSteps`
+  (never the AI's words), checks each with `reviewLeadMove`, and saves each as a Business Manager move: `key lead-step:<kind>:<source>:<YYYY-MM>`,
+  `agent: "business"`, `kind: "plan"`, `contactId: null`, `href` (Lead sources sections, Campaigns or Expenses), no body or amount; an open step with
+  the same key isn't added again ("…were already there."). Steps per answer (at most five): plan = sphere, then Pause/Fix/Best/Keep/Watch/Test by
+  badge, then "Look at your scorecard again in 30 days"; add = the Fix permission sources, "Pick one new source to test for 60 days", "Set its
+  monthly amount", sphere when it has no spend; permission = "Ask <vendor> for consent wording that names you" per vendor; example mode =
+  connect, ask for wording, log spend, sphere. They show on Home and, with the team on, on AI assistants. Nothing is spent, sent or contacted.
+- **One list for lead advice:** `LEAD_ADVICE` moved from `lib/agents/compliance.ts` into `lib/concierge/guard.ts` and widened ("refers", gifts or
+  lunches "when they send", paying agents per client or closing, "exclusive" near an agent or builder, bureau lists, "don't give me permission",
+  "said stop", getting around do-not-call, rate quotes); `reviewLeadMove` (the Business Manager's moves, D84) and the Concierge's answers use it.
+  D84's move wordings still pass (its tests unchanged).
+- **Tests** (`lib/leads/ask.test.ts` 20, `tests/lead-ask-redteam.spec.ts` 47): the three suggested questions' kinds and the budget reader; the
+  pack's rows, target, monthly amounts and budget, and none of a contact's name, email, phone, loan amount or rate in the pack or the model's
+  context; own book (another loan officer's lead, an assistant refused for answers and steps); `safeLabel`; example mode has no rows and none
+  of the example fixture's figures, and neither file imports the fixture; source names and the question only inside nonce blocks, a closing tag
+  defused; the validator (dollars, percents, counts, list markers, `$1.5k`; an invented figure's sentence dropped with "see the scorecard"; pack
+  and question figures kept); each suggested question from the template with table, steps and math (exact budget line, the Pause line, a row's
+  math, the permission rows sorted by share with the low one flagged); the used-up allowance (a real `aiMeter` with a key and an over-budget
+  month) answers from the template; an AI answer shown with an invented figure dropped; a guard failure, a refusal, an empty or all-invented
+  answer fall back; example-mode answers general, the model's invented "$3,600" dropped; every template line, step, table and math line passes
+  the guard, states only pack figures and has no rate-like percent ("share you can call" included); steps saved once as Business Manager moves
+  with no contact and an `href`, nothing doubled, bad input refused; the panel's source checks (disclosure first, real question buttons, bound
+  Add, disabled Save, no value-carrying buttons) and Home's bound Done. Red team (banned words spelled out, so in `tests/`): 26 questions
+  refused with no model call (trigger leads ×4, paying for referrals / referral fees / commission / kickback / exclusive deal ×7, gifts for
+  referrals ×3, contacting without permission ×5, rates ×4, protected traits ×3) and the right refusal; legitimate questions not refused; 18
+  bad things a fake model says to an innocent question all held, none shown; the same wordings fail `reviewLeadMove`; a clean answer gets through.
+- **Verified:** `npm run verify` passes (996 tests; check:copy, check:identity, check:licensing, build, check:bundle). `node
+  scripts/qa/command-center.mjs` on a freshly started server: PROBLEMS none (the D82 example step now checks the question box answers in general
+  terms with no table or example figures and the AI line comes first; new step "d85": three 44px suggested questions; "Which source should I add
+  next?" answered from the template ("Fix Bankrate first: 0 of its 10 leads (0%)…"), its table with the scorecard's rows, Show the math
+  (aria-expanded, "Zillow: $1,200 ÷ …"), Save disabled; "Plan $1,500 a month for 90 days" → "…Your monthly amounts add up to $450, which leaves
+  $1,050." and Pause Zillow, the Monthly amount column, Add the steps to Today → "Added 5 steps to Today."; the permission answer and its Share
+  column; "Should I buy trigger leads?" refused with no table or buttons; Home shows the 5 steps, Done is 44px and closes one; at 390 cards, no
+  table, no sideways scroll, every control ≥ 44px). `node scripts/qa/buttons.mjs` on a freshly started server: 508 page views (adds the answer
+  card open with the math and the steps added, and Home with Lead plan steps, at 390/1280 in Night and Paper), PROBLEMS none. Scratch sweep
+  (`d85shots.mjs`): the example answer on a fresh book, then the plan answer with the math, the permission answer and Home's steps after two
+  leads, at 390 and 1280 in Night, Dim and Paper: no sideways scroll, no page errors, smallest text contrast 5.78:1 (Night), 5.62:1 (Dim),
+  5.60:1 (Paper).
+- **Screenshots:** `/tmp/claude-0/-home-user/b68cecef-0a78-5e4b-b60b-61f6f6025b5e/scratchpad/d85/` (`example-add-*`, `plan-*`, `permission-*`,
+  `home-*` at `<390|1280>-<night|dim|paper>`; `qa-add-1280`, `qa-plan-1280`, `qa-home-1280`, `qa-plan-390` from the QA step; `buttons/` has the
+  audit's set incl. `leads_answer-*` and `home_steps-*`).
+- **Decisions:** (a) **Save as my 90-day plan is disabled with honest text until D86** (like D84's Approve), not a link to `/mlo/leads/plan`, which
+  doesn't exist yet. (b) **Steps are Business Manager moves** (`contactId: null`, `href`), the shape D84 chose for D86, shown on Home in their own
+  "Lead plan steps" list rather than as Today cards: `todayFor` cards feed the Concierge sweep, the call queue and scripts, which all expect a
+  person. (c) **The plan answer doesn't split the dollars.** Splitting a budget across sources is D86's allocation (with its own rules); D85's plan
+  answer sets the budget against the monthly amounts and says what to do with each source by its badge, and says the planner splits it. (d)
+  **Assistants get no question box** (D82's mode already turned it off; answers use spend, which is private); the actions refuse them too. (e) The
+  answer card keeps the page's period; the period switch reloads the page and clears the card. (f) A question names one budget; one outside
+  $100–$100,000 is ignored. (g) The AI's answer is shown sentence by sentence; spelled-out numbers ("forty leads") aren't checked by the
+  validator (the prompt and the guard still apply). (h) Audit rows record the kind of question, how it was answered, the period and how many
+  sentences were dropped, never the question or the answer. (i) The steps list in the card previews exactly what Add creates (worked out the same
+  way again on the server).
+- **For counsel:** the never-list now enforced on the Concierge's lead-source answers and the Business Manager's moves from one list
+  (`LEAD_ADVICE`): trigger leads and credit-inquiry/bureau data; paying agents or anyone for referrals, referral payments, kickbacks and
+  "exclusive" agent or builder deals (RESPA §8); gifts tied to referrals (closing gifts on their own stay allowed, decision 3, and a refusal
+  says so without suggesting them for referrals); contacting leads without their permission; rates; and fair-housing targeting by protected
+  traits. The answers only suggest; every step is the loan officer's to approve, and nothing spends money or contacts anyone.
+- **Known gaps:** no live-model run here (no AI key in this environment): the AI path is tested with a fake model; the 37 live red-team cases
+  remain the chat's. The steps' `href`s point at Lead sources sections until D86's `/mlo/leads/plan`. The answer isn't kept: a reload clears it.
+  Home lists up to 12 open steps.
+- **Next up:** D86 (budget planner and 90-day roadmap, Option C), after the owner's sign-off: it adds the plan store, wires Save as my 90-day
+  plan and D84's Approve, and can point the steps at `/mlo/leads/plan`.

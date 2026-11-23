@@ -17,7 +17,8 @@ import { makeMonthlyDrafts, monthlyStore, pacificMonth } from "@/lib/leads/spend
 import { NOT_LEADS, sourceOptions } from "@/lib/leads/sources";
 import { FlashBox, MloNav } from "../MloChrome";
 import PageHead from "../PageHead";
-import { AddSource, AskBar, ExamplePlan, ExampleRecent, ExampleScorecard, MonthlyAmounts, RealRecent, RealScorecard } from "./LeadSections";
+import { AddSource, ExamplePlan, ExampleRecent, ExampleScorecard, MonthlyAmounts, RealRecent, RealScorecard } from "./LeadSections";
+import AskPanel from "./AskPanel";
 import { SUBS } from "@/lib/content/cc-pages";
 import "../mlo.css";
 
@@ -32,6 +33,8 @@ export const metadata: Metadata = { title: "Lead sources", robots: { index: fals
  * (lib/leads/sync.ts); a monthly amount per source makes this month's draft expense (lib/leads/spend.ts).
  * D84: the real scorecard (lib/leads/scorecard.ts) for `?period=` (30d, 90d, year), with the target cost per loan
  * and the Business Manager's newest lead-source move above it (`?review=1` opens it).
+ * D85: "Ask your Concierge" (AskPanel): answers from the lead-source pack (lib/leads/ask.ts, lib/concierge/desk.ts
+ * `askLeadSources`), in general terms while the page shows examples; assistants don't get it (spend is private).
  */
 export default async function Leads({ searchParams }: { searchParams: Promise<{ f?: string; period?: string; review?: string }> }) {
   const { f, period: rawPeriod, review } = await searchParams;
@@ -63,7 +66,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
 
   const sections: Record<SectionKey, () => React.ReactNode> = {
     add: () => (me ? <AddSource key="add" compact={mode.addCard === "compact"} endpoint={endpoint} owner={me.role === "owner"} connected={connectedSourceLabels(keys.map((k) => k.label), NOT_LEADS)} /> : null),
-    ask: () => (mode.ask === "off" ? null : <AskBar key="ask" />),
+    ask: () => (mode.ask === "off" ? null : <AskPanel key="ask" period={period} example={mode.ask === "example"} />),
     scorecard: () => (mode.scorecard === "off" ? null : mode.scorecard === "example" ? <ExampleScorecard key="scorecard" /> : card ? <RealScorecard key="scorecard" card={card} move={move ? { id: move.id, title: move.title, why: move.why } : null} review={review === "1"} /> : null),
     plan: () => (mode.plan === "off" ? null : <ExamplePlan key="plan" afterLeads={mode.hasRealLeads} />),
     monthly: () =>

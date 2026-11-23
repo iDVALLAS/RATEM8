@@ -60,8 +60,18 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     if (await page.locator('#add .cc-ex').count()) problems.push('[d82] the add card is labeled an example');
     if (await page.locator('#recent a[href^="/mlo/contacts/"]').count()) problems.push('[d82] example rows link into contacts');
     for (const n of ['Maria Lopez', 'Dana Nguyen', 'Sam Patel']) if (!(await page.locator('#recent', { hasText: n }).count())) problems.push('[d82] example lead missing: ' + n);
-    const live = await page.locator('#ask button:not([disabled]), #scorecard button:not([disabled]), #plan button:not([disabled])').count();
+    const live = await page.locator('#scorecard button:not([disabled]), #plan button:not([disabled])').count();
     if (live) problems.push(`[d82] ${live} example buttons can be pressed`);
+    // D85: the question box works in example mode too, and answers in general terms (no table, no example figures).
+    await page.locator('#ask').getByRole('button', { name: 'Which source should I add next?' }).click();
+    const exAns = page.locator('#ask .cc-leadans');
+    await exAns.waitFor();
+    const exText = await exAns.innerText();
+    console.log('d85: example answer:', exText.slice(0, 160).replace(/\n/g, ' | '));
+    if ((await exAns.getAttribute('data-example')) !== 'true' || !/Your page shows example numbers until your first lead arrives/.test(exText)) problems.push('[d85] the example answer does not say the numbers are examples');
+    if (await exAns.locator('table').count()) problems.push('[d85] the example answer has a table');
+    if (/\$3,600|\$2,700|\$1,800/.test(exText)) problems.push('[d85] the example answer uses example figures');
+    if (!/Your Concierge is AI/.test(await page.locator('#ask .cc-leadask__ai').innerText())) problems.push('[d85] no AI disclosure before the box');
     if (!(await page.locator('#scorecard table').isVisible())) problems.push('[d82] no scorecard table at 1280');
     if (D82) await page.screenshot({ path: path.join(D82, 'qa-example-1280.png'), fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1086,6 +1096,102 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.goto(B + '/mlo/agents/setup');
     await page.locator('input[name=enabled]').uncheck();
     await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForURL(/f=/);
+  });
+  // D85: Ask your Concierge on Lead sources. No AI key here, so every answer comes from the template built on the
+  // scorecard: each suggested question, the table from the pack, Show the math, Add the steps to Today (and they show on
+  // Home, with Done), a trigger-lead question refused, and the card on a phone.
+  const D85 = process.env.QA_D85_SHOTS || '';
+  if (D85) fs.mkdirSync(D85, { recursive: true });
+  await step('d85: ask your Concierge', async () => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(B + '/mlo/leads');
+    const ask = page.locator('#ask');
+    if (!/Your Concierge is AI/.test(await ask.locator('.cc-leadask__ai').innerText())) problems.push('[d85] no AI disclosure');
+    const qs = await ask.locator('.cc-leadask__q').evaluateAll((els) => els.map((e) => ({ t: e.textContent.trim(), h: Math.round(e.getBoundingClientRect().height) })));
+    console.log('d85: suggested:', qs.map((q) => `${q.t} (${q.h}px)`).join(' / '));
+    if (qs.length !== 3 || qs.some((q) => q.h < 44)) problems.push('[d85] suggested questions: ' + JSON.stringify(qs));
+    const answer = ask.locator('.cc-leadans');
+    const askIt = async (q, intent) => {
+      await ask.getByRole('button', { name: q }).click();
+      await page.locator(`#ask .cc-leadans[data-intent=${intent}]`).waitFor();
+      return answer.innerText();
+    };
+    // 1. Which source should I add next?
+    let t = await askIt('Which source should I add next?', 'add');
+    console.log('d85: add:', t.slice(0, 300).replace(/\n/g, ' | '));
+    if ((await answer.getAttribute('data-by')) !== 'template') problems.push('[d85] add answer by ' + await answer.getAttribute('data-by'));
+    if (!/without the AI/.test(t)) problems.push('[d85] the template answer does not say the AI is off');
+    if (!/Fix Bankrate first: 0 of its 10 leads \(0%\)/.test(t)) problems.push('[d85] add answer: ' + t.slice(0, 200));
+    const tblRows = (await answer.locator('tbody tr').allInnerTexts()).map((x) => x.replace(/\s+/g, ' '));
+    const scoreRows = (await page.locator('#scorecard tbody tr').allInnerTexts()).map((x) => x.replace(/\s+/g, ' '));
+    console.log('d85: table:', tblRows.join(' / ').slice(0, 300));
+    if (tblRows.length !== scoreRows.length) problems.push(`[d85] the table has ${tblRows.length} rows, the scorecard ${scoreRows.length}`);
+    const bank = tblRows.find((r) => r.startsWith('Bankrate')) ?? '';
+    if (!/\b10\b/.test(bank) || !/Fix permission/.test(bank)) problems.push('[d85] Bankrate row in the answer table: ' + bank);
+    // Show the math.
+    const mathBtn = answer.getByRole('button', { name: 'Show the math' });
+    if ((await mathBtn.getAttribute('aria-expanded')) !== 'false') problems.push('[d85] math starts open');
+    await mathBtn.click();
+    const math = await page.locator('#leads-math').innerText();
+    if (!(await page.locator('#leads-math').isVisible()) || !/Cost per loan = spend ÷ loans closed\./.test(math) || !/Zillow: \$1,200 ÷/.test(math)) problems.push('[d85] the math: ' + math.slice(0, 200));
+    if ((await answer.getByRole('button', { name: 'Hide the math' }).getAttribute('aria-expanded')) !== 'true') problems.push('[d85] math toggle aria-expanded');
+    if (!(await answer.getByRole('button', { name: 'Save as my 90-day plan' }).isDisabled())) problems.push('[d85] Save should wait for the planner');
+    if (D85) await page.screenshot({ path: path.join(D85, 'qa-add-1280.png'), fullPage: true });
+    // 2. Plan $1,500 a month for 90 days.
+    t = await askIt('Plan $1,500 a month for 90 days', 'plan');
+    console.log('d85: plan:', t.slice(0, 300).replace(/\n/g, ' | '));
+    if (!/Your budget: \$1,500 a month for 90 days\. Your monthly amounts add up to \$450, which leaves \$1,050\./.test(t)) problems.push('[d85] plan budget line: ' + t.slice(0, 200));
+    if (!/Pause Zillow/.test(t)) problems.push('[d85] the plan does not pause Zillow');
+    if (!(await answer.locator('thead th', { hasText: 'Monthly amount' }).count())) problems.push('[d85] the plan table has no Monthly amount column');
+    // Add the steps to Today.
+    const steps = await answer.locator('.cc-leadans__steps li strong').allInnerTexts();
+    console.log('d85: steps:', steps.join(' / '));
+    await answer.getByRole('button', { name: 'Add the steps to Today' }).click();
+    await answer.locator('.cc-leadans__msg').waitFor();
+    const added = await answer.locator('.cc-leadans__msg').innerText();
+    console.log('d85: add steps:', added);
+    if (!new RegExp(`Added ${steps.length} steps? to Today`).test(added)) problems.push('[d85] add steps: ' + added);
+    if (D85) await page.screenshot({ path: path.join(D85, 'qa-plan-1280.png'), fullPage: true });
+    // 3. Which vendors don't give me permission?
+    t = await askIt('Which vendors don’t give me permission?', 'permission');
+    console.log('d85: permission:', t.slice(0, 300).replace(/\n/g, ' | '));
+    if (!/Bankrate: 0 of 10 leads \(0%\) named you\./.test(t)) problems.push('[d85] permission answer: ' + t.slice(0, 200));
+    const permHeads = (await answer.locator('thead th').allTextContents()).join('|');
+    if (!/Share you can call/.test(permHeads)) problems.push('[d85] permission table columns: ' + permHeads);
+    // A trigger-lead question is refused before any model call.
+    await ask.locator('input[name=question]').fill('Should I buy trigger leads?');
+    await ask.getByRole('button', { name: 'Ask', exact: true }).click();
+    await page.locator('#ask .cc-leadans[data-by=refused]').waitFor();
+    t = await answer.innerText();
+    console.log('d85: trigger:', t.replace(/\n/g, ' | ').slice(0, 200));
+    if (!/doesn’t suggest trigger leads/.test(t) || (await answer.locator('table, .cc-leadans__acts').count())) problems.push('[d85] trigger refusal: ' + t.slice(0, 200));
+    // Today (Home) shows the steps; Done closes one.
+    await page.goto(B + '/mlo');
+    const home = page.locator('#lead-steps');
+    const before = await home.locator('li').count();
+    console.log('d85: home:', (await home.innerText()).replace(/\n/g, ' | ').slice(0, 300));
+    if (before !== steps.length) problems.push(`[d85] Home shows ${before} lead plan steps, expected ${steps.length}`);
+    for (const st of steps) if (!(await home.locator('li', { hasText: st }).count())) problems.push('[d85] step missing on Home: ' + st);
+    const doneH = await home.locator('button.cc-row__done').first().evaluate((e) => Math.round(e.getBoundingClientRect().height));
+    if (doneH < 44) problems.push('[d85] Done is ' + doneH + 'px');
+    if (D85) await page.screenshot({ path: path.join(D85, 'qa-home-1280.png'), fullPage: true });
+    await home.locator('button.cc-row__done').first().click();
+    await page.waitForFunction((n) => document.querySelectorAll('#lead-steps li').length === n - 1, before, { timeout: 15000 }).catch(() => {});
+    const after = await page.locator('#lead-steps li').count();
+    if (after !== before - 1) problems.push(`[d85] Done left ${after} of ${before}`);
+    // On a phone: cards instead of the table, nothing sideways, controls 44px.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(B + '/mlo/leads');
+    await page.locator('#ask').getByRole('button', { name: 'Plan $1,500 a month for 90 days' }).click();
+    await page.locator('#ask .cc-leadans[data-intent=plan]').waitFor();
+    if (await page.locator('#ask .cc-leadans table').isVisible()) problems.push('[d85] the answer table shows on a phone');
+    const pc = await page.locator('#ask .cc-leadans__cards .cc-scard:visible').count();
+    if (pc < 3) problems.push('[d85] answer cards on a phone: ' + pc);
+    if (await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > window.innerWidth + 1)) problems.push('[d85] sideways scroll at 390');
+    const small = await page.locator('#ask button:visible, #ask input:visible').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)).filter((h) => h < 44));
+    if (small.length) problems.push('[d85] controls under 44px at 390: ' + small.join(','));
+    if (D85) await page.screenshot({ path: path.join(D85, 'qa-plan-390.png'), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
   });
   console.log('\nPROBLEMS:', problems.length ? '\n' + problems.join('\n') : 'none');
   await b.close();

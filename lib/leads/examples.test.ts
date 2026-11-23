@@ -15,7 +15,7 @@ import { buildExport } from "@/lib/export/service";
 import { LEADS } from "@/lib/content/cc-pages";
 import { EXAMPLES, exampleRow } from "./examples";
 import { connectedSourceLabels, eventCounts, hasRealLeads, isRealLead, leadNamedYou, leadPageMode, recentEvents, share, type EventLike, type LeadLike } from "./mode";
-import { AskBar, ExamplePlan, ExampleRecent, ExampleScorecard, RealRecent, RealScorecard } from "@/app/mlo/leads/LeadSections";
+import { ExamplePlan, ExampleRecent, ExampleScorecard, RealRecent, RealScorecard } from "@/app/mlo/leads/LeadSections";
 import { leadScorecard } from "./scorecard";
 
 /** D82: example mode on Lead sources until real leads arrive. */
@@ -145,7 +145,7 @@ describe("example sections (D82)", () => {
   });
 
   it("example rows never link into contacts, and every button is disabled (no pretend actions)", () => {
-    for (const el of [createElement(ExampleScorecard), createElement(ExamplePlan, { afterLeads: false }), createElement(ExampleRecent), createElement(AskBar)]) {
+    for (const el of [createElement(ExampleScorecard), createElement(ExamplePlan, { afterLeads: false }), createElement(ExampleRecent)]) {
       const html = renderToStaticMarkup(el);
       expect(html).not.toContain("/mlo/contacts");
       expect(html).not.toMatch(/<form/);

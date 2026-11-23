@@ -6,7 +6,8 @@ import { currentUser } from "@/lib/accounts/auth";
 import { encodeFlash } from "@/lib/mlo/flash";
 import { removeMonthly, setMonthly } from "@/lib/leads/spend";
 import { sourceOptionsFor } from "@/lib/leads/sources";
-import { LEADS } from "@/lib/content/cc-pages";
+import { LEAD_ASK, LEADS } from "@/lib/content/cc-pages";
+import { addLeadSteps, askLeadSources, type LeadAnswer } from "@/lib/concierge/desk";
 import { DEFAULT_PERIOD, isScorePeriod, scoreUsd } from "@/lib/leads/scorecard";
 import { setLeadTarget } from "@/lib/profile/prefs";
 import { closeMove } from "@/lib/agents/service";
@@ -70,4 +71,25 @@ export async function dismissLeadMoveAction(period: string, id: string): Promise
   const ok = !!m && m.ownerUserId === u.id && m.key.startsWith("lead-source:") && (await closeMove(u, id, "dismissed"));
   revalidatePath("/mlo/leads");
   redirect(scoreUrl(period, ok ? { ok: true, line: LEADS.score.real.move.dismissed } : { ok: false, line: LEADS.score.real.move.gone }));
+}
+
+// ---- D85: Ask your Concierge ----
+
+/** D85: a question on Lead sources (the question box or a suggested question). Returns the answer card. */
+export async function askLeadAction(question: string, period: string): Promise<LeadAnswer> {
+  const u = await currentUser();
+  if (!u) return { ok: false, error: LEAD_ASK.errors.signIn };
+  return askLeadSources(u, String(question ?? ""), { period: String(period ?? "") });
+}
+
+/**
+ * D85: "Add the steps to Today", bound to the answer it belongs to (period, kind of question, budget). The server
+ * works the steps out again from the loan officer's own numbers; nothing the page or the AI wrote is saved.
+ */
+export async function addLeadStepsAction(period: string, intent: string, budgetCents: number): Promise<{ ok: boolean; line: string }> {
+  const u = await currentUser();
+  if (!u) return { ok: false, line: LEAD_ASK.errors.signIn };
+  const r = await addLeadSteps(u, period, intent, Number(budgetCents) || 0);
+  revalidatePath("/mlo");
+  return r.ok ? { ok: true, line: LEAD_ASK.added(r.added, r.already) } : { ok: false, line: r.error };
 }
