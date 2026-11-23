@@ -7838,3 +7838,14 @@ Built from the approved mockup (desktop and phone boards), with the real logos i
   after this patch (the approved mockup doesn't show it either); left as is. React adds an image preload for both logo
   copies (lime and green), as it already does on Command Center's bar; the hidden one is a small extra download.
 - **Next up:** promote (the owner already said to promote D90), then D91 (text that runs together or spills past its box).
+
+## Promote — D90 to production (2026-11-23)
+
+Owner: "promote D90 and D91 when they're done".
+
+- Remote M8 red team against the 299be4c preview: 43 of 43.
+- Production deployment of the exact commit 299be4c (D90 plus the D89.2 promote log), created from Git.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200 with "Tester access" and "Pilot" on the
+  coming-soon page, `/sign-in` 200, `/sign-up` 200, `/api/health` 200, `/chat` 307 (tester lock).
+- **Next up:** D91 (text that runs together or spills past its box, site-wide), then its promote, which the owner already
+  asked for.
