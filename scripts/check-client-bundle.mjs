@@ -38,10 +38,18 @@ const files = [];
 const hits = [];
 for (const f of files) {
   const s = readFileSync(f, "utf8");
-  for (const word of FORBIDDEN) if (s.includes(word)) hits.push(`${f.slice(ROOT.length)}: ${word}`);
+  for (const word of FORBIDDEN) if (s.includes(word)) hits.push(`${f.slice(ROOT.length)}: server-only text "${word}"`);
+}
+// D89.2: the browser's React must carry the hydration replay fix that
+// next.config.ts adds (scripts/react-replay-fix.cjs). Minified, it reads
+// `5===r.tag&&null!=r.stateNode&&(rN=r.stateNode)`; if no file has it, the
+// loader didn't run and the rare React #418 is back.
+const REPLAY_FIX = /5===([\w$]+)\.tag&&null!=\1\.stateNode&&\([\w$]+=\1\.stateNode\)/;
+if (!files.some((f) => f.endsWith(".js") && REPLAY_FIX.test(readFileSync(f, "utf8")))) {
+  hits.push("no browser file has React's hydration replay fix (scripts/react-replay-fix.cjs did not run)");
 }
 if (hits.length) {
-  console.error("check:bundle failed — server-only data found in browser files:\n" + hits.join("\n"));
+  console.error("check:bundle failed:\n" + hits.join("\n"));
   process.exit(1);
 }
-console.log(`check:bundle passed — ${files.length} browser files scanned, no lender names, admin secrets or M8 prompt text.`);
+console.log(`check:bundle passed — ${files.length} browser files scanned, no lender names, admin secrets or M8 prompt text; React carries the hydration replay fix.`);

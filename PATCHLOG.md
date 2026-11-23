@@ -7705,3 +7705,56 @@ the page scrolled 729 of 752px).
   contact page and Home, only on servers holding seeded data, and not reproduced in 114 targeted reloads, so it isn't fixed; the page
   still renders (React re-renders on the client). (2) The scan reads Command Center as the owner only; other roles' pages are covered by `command-center.mjs`.
 - **Next up:** owner review of D87.4–D89.1, then "promote".
+
+## D89.2 — The rare React #418 on Command Center pages: a React hydration bug, fixed at build time (2026-11-23)
+
+The bug (logged since D32): about once in a few hundred loads a Command Center page threw "Minified React error #418 …
+args[]=HTML" (server HTML didn't match the client) and React redrew the whole page on the client. Seen on the D73 tags step,
+`/mlo/pricing`, `/mlo/calls?list=d-past`, Home, a contact page and `/mlo/leads/plan`; never on demand.
+
+- **Cause:** not our pages. Next.js starts hydrating as soon as its scripts run, before the rest of a streamed page has arrived,
+  and the React it bundles (19.2 canary, in every Next 15.5 release up to 15.5.29) streams large pages in pieces: past about
+  3 KB of a row, elements are sent later as separate pieces ("lazy" children). When hydration reached an element (a `div` or
+  `form`) whose children included a piece still on its way, React paused on that element and, once the piece arrived, replayed
+  it; but the replay claimed the next DOM node again from where React had already moved, inside the element, so it found the
+  element's first child (the skip link inside `.cc-app`, the first tile inside `.cc-tiles`, the hidden `$ACTION_ID` input inside
+  Pricing's import form) and threw #418. It only happened when the HTML arrived in pieces with gaps: a busy server (QA scripts,
+  `after()` work, parallel loads) or a slow network. The server's HTML for a failing load was byte-for-byte the same as a good
+  load's, and no time, locale or random value was involved. React fixed it upstream (later releases put React's place back on
+  the element before the replay: `replaySuspendedUnitOfWork`, `case 5`); Next 15.5 doesn't carry the fix yet.
+- **Fix:** `scripts/react-replay-fix.cjs`, a webpack loader that `next.config.ts` runs on Next's bundled
+  `react-dom-client.{production,development}.js` only, adds React's upstream lines word for word (5 lines in the replay step;
+  nothing else changes). It fails the build if that step no longer has the old shape (unless the fix is already there), so a
+  Next upgrade can't silently drop it. `scripts/check-client-bundle.mjs` (`check:bundle`) now also fails if no browser file
+  carries the fix (checked: it fails on a build without the loader). No app code, copy, CSS or dependency changed.
+- **Files:** `scripts/react-replay-fix.cjs` (new), `next.config.ts` (the loader rule), `scripts/check-client-bundle.mjs`,
+  `lib/react-replay-fix.test.ts` (new, 4 tests), `scripts/qa/hydration.mjs` (new), `CLAUDE.md` (§1 note, §3.4 count, §7).
+- **How it was reproduced:** a production build loaded by 6 browsers at once threw #418 on 17 of 400 loads (one browser: 0 of
+  300; one browser with 6× CPU throttling: 0 of 150; one browser while `curl` loaded the server: 7 of 200, so it's the server's
+  pace, not the browser's). To see the mismatch in a minified build, a scratch copy of the built React logged the fiber and the
+  DOM node it met: always a `div`/`form` meeting its own first child. A scratch proxy that sends each page's HTML in pieces
+  (up to the second flight-data script, then one script every 15–100 ms) made it happen on most Home loads and often on Pricing
+  and Call scripts (6–15 of 40 loads per setting). Holding back JS files alone did not (0 of 20).
+- **Regression checks:** `lib/react-replay-fix.test.ts`: the fix goes into Next's bundled React (both builds) exactly once,
+  matches the upstream lines, changes nothing else, still parses, a second pass leaves it alone; a changed replay step (missing,
+  or twice) fails; the `next.config.ts` rule matches only `react-dom-client`. `node scripts/qa/hydration.mjs` (needs the server,
+  like the other QA scripts; seeded data helps): signed in as the owner, 12 Command Center pages (Home, Pricing, Calls with and
+  without `?list=d-past`, Lead sources, the planner, Call scripts, Contacts, Import, Inbox, Team, a contact page) at 390/1280,
+  `QA_LOADS` loads streamed in pieces through a built-in proxy plus `QA_LOADS` loads from 6 browsers at once; any page error,
+  console error or missing h1 fails. On a build without the loader it found 13 #418s in 240 loads.
+- **Verified:** `npm run verify` passes (1,164 tests: 4 new; lint warnings unchanged, none in changed files; check:copy,
+  check:identity, check:licensing, build, check:bundle). On a freshly started production server: `command-center.mjs` PROBLEMS
+  none; `leads-a11y.mjs` 42 page views, lowest contrast 5.34:1, PROBLEMS none; `pages.mjs` (after command-center.mjs) 141 pages,
+  482 loads, PROBLEMS none; `buttons.mjs` 528 page views, PROBLEMS none on its own fresh server (run after command-center.mjs it
+  reports "no lead-source move to review" ×4, an ordering effect of the shared in-memory book; no page or seed changed
+  here). No #418 in any of them. Stress with the reproducing conditions on the fixed build: 1,980 loads,
+  0 #418 (`hydration.mjs` with `QA_LOADS=600`: 600 piece-by-piece + 600 parallel; plus 600 parallel loads from 6 browsers and
+  180 piece-by-piece loads at 15/40/100 ms).
+- **Decisions:** (a) Fix React's replay step rather than mask the error: `suppressHydrationWarning` can't help (the mismatch is
+  in element structure, not text), and no page change can avoid lazy children (React decides them by size). (b) A build-time
+  loader instead of editing `node_modules` (Vercel installs fresh) or upgrading Next (the latest 15.5 still lacks the fix). (c)
+  Remove the loader once Next bundles a React with the upstream fix: the loader then passes the file through unchanged, and the
+  test's "adds the upstream lines" case will fail, prompting the removal.
+- **Known issues:** none found. `next dev` didn't reproduce it in 200 parallel loads (slower, different streaming), so the dev
+  path is patched the same way but wasn't seen failing.
+- **Next up:** owner review of D87.4–D89.2, then "promote".

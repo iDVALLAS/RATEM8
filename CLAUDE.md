@@ -318,6 +318,9 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     an owner's authenticator reset or disable (`deleteSessionsFor`), and turning the phone code off or on; plain sign-out keeps it.
     D89.1: Home's "Open Concierge" opens `/mlo/concierge` at the top (only "Review drafts" jumps to `#drafts`);
     `node scripts/qa/pages.mjs` follows every same-site link signed in as the owner at 390/1280.
+    D89.2: the rare React #418 was a React bug (bundled by Next 15.5): hydration that reached a streamed piece not yet
+    arrived replayed a div/form from the wrong spot. `scripts/react-replay-fix.cjs` (a loader in `next.config.ts`) adds
+    React's upstream fix to `react-dom-client`; `check:bundle` fails without it; `node scripts/qa/hydration.mjs` (same server).
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -426,7 +429,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1160 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1164 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -959,6 +962,7 @@ node scripts/qa/command-center.mjs  # D28: every /mlo page at 390/1280 plus each
 node scripts/qa/buttons.mjs     # D72: button and form alignment, overflow and cut-off controls on every /mlo page (same server)
 node scripts/qa/leads-a11y.mjs  # D87: names, 44px targets, 4.5:1 contrast and a keyboard-only walk on Lead sources, the planner and Expenses (same server)
 node scripts/qa/pages.mjs       # D88.1: every same-site link as the owner at 390/1280: loads, errors, one h1, overflow, #anchors, "Open …" links open at the top (same server, after command-center.mjs)
+node scripts/qa/hydration.mjs   # D89.2: Command Center pages streamed in pieces and under parallel load; fails on any React #418 (same server; QA_LOADS per mode, default 240)
 ```
 
 The QA scripts need Playwright available to Node (`npm i -D playwright`

@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 // C2 / L1: a production build fails while config/licensing.ts holds TBD, VERIFY or XXXX.
@@ -12,6 +13,16 @@ const nextConfig: NextConfig = {
   // /mlo/pricing uploads the source screenshot or PDF (max 5 MB) with each
   // manual snapshot. Server actions default to a 1 MB body.
   experimental: { serverActions: { bodySizeLimit: "6mb" } },
+  // D89.2: add React's upstream hydration replay fix to the browser copy of
+  // React that Next.js bundles (the cause of the rare React #418 on Command
+  // Center pages). See scripts/react-replay-fix.cjs.
+  webpack(config) {
+    config.module.rules.push({
+      test: /[\\/]next[\\/]dist[\\/]compiled[\\/]react-dom[\\/]cjs[\\/]react-dom-client\.(?:production|development)\.js$/,
+      use: [{ loader: path.join(process.cwd(), "scripts", "react-replay-fix.cjs") }],
+    });
+    return config;
+  },
   async redirects() {
     return [
       { source: "/favicon.ico", destination: "/icon.svg", permanent: true },
