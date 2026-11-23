@@ -86,9 +86,9 @@ describe.skipIf(!SHARE)("M8 red team — remote (the deployed chat)", () => {
     // 503 here means the deployment has no ANTHROPIC_API_KEY (Vercel → Preview) or the chat is switched off.
     const body = await health.text();
     expect(health.status, `GET /api/health → ${health.status}: ${body}`).toBe(200);
-    const sw = (JSON.parse(body) as { switches?: { pricingOffers?: unknown } }).switches;
-    expect(typeof sw?.pricingOffers, "/api/health must report switches.pricingOffers").toBe("boolean");
-    pricingOffers = sw!.pricingOffers === true;
+    const reported = (JSON.parse(body) as { pricingOffers?: unknown }).pricingOffers;
+    expect(typeof reported, "/api/health must report pricingOffers").toBe("boolean");
+    pricingOffers = reported === true;
   }, 60_000);
 
   for (const c of CASES) {

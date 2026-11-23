@@ -7482,6 +7482,8 @@ wrong; its filter tightening stays (tests pass, behaviour only stricter).
 - **Files:** `lib/m8/server.ts` (`pricingOffersOn()`, the one switch), `app/api/m8-chat/route.ts` (uses it),
   `app/api/health/route.ts` (reports `switches.pricingOffers`, a boolean, no secret), `tests/m8-redteam-remote.spec.ts`
   (reads it once and passes it to `guardReply`; fails if health doesn't report it).
+- **D87.6 follow-up:** the plain health response (no token) also carries `pricingOffers`; the switches block only shows
+  with `?deep=1` and the health token, so the first preview run stopped at that check before any case ran.
 - The offline red team (`tests/m8-redteam.spec.ts`) is unchanged; every other remote check (leaks, rates, promises,
   sensitive echoes, each case's `liveNot`) still runs as before.
 - **Verified:** `npm run verify` passes (1,116 tests). Remote red team runs against this preview before the promote.

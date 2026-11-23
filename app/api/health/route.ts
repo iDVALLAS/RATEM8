@@ -39,7 +39,8 @@ export async function GET(req: Request) {
   const deep = new URL(req.url).searchParams.get("deep") === "1";
 
   if (!deep || !authorized(req)) {
-    return json(ok ? 200 : 503, { ok, chat: chatOn ? (apiKey ? "on" : "no-key") : "off", time: new Date().toISOString() });
+    // D87.6: whether the chat may offer pricing is a plain yes/no (no secret), so the remote red team can read it.
+    return json(ok ? 200 : 503, { ok, chat: chatOn ? (apiKey ? "on" : "no-key") : "off", pricingOffers: pricingOffersOn(), time: new Date().toISOString() });
   }
 
   let model: "ok" | "failed" | "skipped" = "skipped";
