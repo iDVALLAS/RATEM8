@@ -5,10 +5,11 @@ import PageShell from "@/app/mlo/CcShell";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
-import { contactStore } from "@/lib/contacts/store";
+import { contactStore, listAll } from "@/lib/contacts/store";
 import { summarize } from "@/lib/contacts/service";
 import { pipelineStore } from "@/lib/pipeline/store";
-import { connectedSourceLabels, leadPageMode, recentEvents, type SectionKey } from "@/lib/leads/mode";
+import { connectedSourceLabels, leadPageMode, type SectionKey } from "@/lib/leads/mode";
+import { recentLeads } from "@/lib/leads/recent";
 import { DEFAULT_PERIOD, isScorePeriod } from "@/lib/leads/scorecard";
 import { scorecardFor } from "@/lib/leads/score-service";
 import { teamStore } from "@/lib/agents/store";
@@ -48,13 +49,15 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
   const me = v.user;
   const h = await headers();
   const endpoint = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}/api/leads/inbound`;
+  // D87.2: the whole book, read 500 at a time (one read used to stop at 500 people, and a bigger book was
+  // handed on as if it were complete).
   const [{ contacts }, keys] = me
-    ? await Promise.all([contactStore().list({ ownerUserId: me.id, kind: "contact", limit: 2000 }), pipelineStore().keys(me.id).catch(() => [])])
+    ? await Promise.all([listAll({ ownerUserId: me.id, kind: "contact" }), pipelineStore().keys(me.id).catch(() => [])])
     : [{ contacts: [] }, []];
   const assistant = me?.role === "assistant";
   const now = new Date();
-  // D83: the lead-event log, brought up to date (the first time, the leads that came before it). A big book reads its own list.
-  const { events } = me ? await syncLeadEvents(me, { now, contacts: contacts.length < 2000 ? contacts : undefined }).catch(() => ({ events: [] })) : { events: [] };
+  // D83: the lead-event log, brought up to date (the first time, the leads that came before it).
+  const { events } = me ? await syncLeadEvents(me, { now, contacts }).catch(() => ({ events: [] })) : { events: [] };
   if (me && !assistant) await makeMonthlyDrafts(me, now).catch(() => 0);
   const monthly = me && !assistant ? await monthlyStore().list(me.id).catch(() => []) : [];
   // D86: the saved lead plan (own book; never for an assistant), its roadmap moved along first (steps and check-ins
@@ -64,12 +67,13 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
   const plan = saved && me && saved.ownerUserId === me.id ? planView(saved, now) : null;
   const mode = leadPageMode({ contacts, leadEvents: events.length, savedPlan: !!plan, assistant });
   const month = pacificMonth(now);
-  const byId = new Map(contacts.map((c) => [c.id, c]));
-  const recent = recentEvents(events, 60).filter((e) => byId.has(e.contactId)).slice(0, 30);
-  const consents = recent.length ? await contactStore().consentsFor(recent.map((e) => e.contactId)) : [];
+  // D87.2: Recent leads looks up only the people behind the newest events, by id (own book), so it never
+  // depends on how much of the book was read.
+  const recent = me ? await recentLeads(me.id, events).catch(() => []) : [];
+  const consents = recent.length ? await contactStore().consentsFor(recent.map((r) => r.contact.id)) : [];
   // D84: the scorecard from the loan officer's own data (never for an assistant: no spend), and the Business
   // Manager's newest open lead-source move for the banner.
-  const card = me && mode.scorecard === "real" ? await scorecardFor(me, period, now, { events, contacts: contacts.length < 2000 ? contacts : undefined }).catch(() => null) : null;
+  const card = me && mode.scorecard === "real" ? await scorecardFor(me, period, now, { events, contacts }).catch(() => null) : null;
   const move = me && card ? (await teamStore().moves(me.id, { status: "open", limit: 500 }).catch(() => [])).filter((m) => m.key.startsWith("lead-source:")).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null : null;
 
   const sections: Record<SectionKey, () => React.ReactNode> = {
@@ -92,8 +96,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
       ) : (
         <RealRecent
           key="recent"
-          rows={recent.map((e) => {
-            const c = byId.get(e.contactId)!;
+          rows={recent.map(({ event: e, contact: c }) => {
             // Decision 1: Recent leads shows whether they can be contacted today (the current answer), not the delivery's wording.
             const s = summarize(consents.filter((x) => x.contactId === c.id));
             return {

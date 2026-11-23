@@ -23,7 +23,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { aiCall, aiOffReason, type Meter } from "@/lib/ai/meter";
 import { z } from "zod";
 import { accountStore, type User } from "@/lib/accounts/store";
-import { contactStore, type Contact } from "@/lib/contacts/store";
+import { listAll, type Contact } from "@/lib/contacts/store";
 import { gateFor } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
 import { laneFor, scanCtx, TASK_ACTIONS } from "./agent";
@@ -150,7 +150,7 @@ export type TellResult = { answer: string; drafts: number; reminders: number; sk
 
 /** Finds people in the loan officer's own book. Returns only safe fields, as data. */
 async function find(user: User, f: z.infer<typeof FindIn>, now: Date): Promise<Contact[]> {
-  const { contacts } = await contactStore().list({ ownerUserId: user.id, kind: "contact", rule: findRule(f), now, limit: 2000 });
+  const { contacts } = await listAll({ ownerUserId: user.id, kind: "contact", rule: findRule(f), now });
   const threads = await touchStore().threads(user.id, 2000);
   const last = new Map(threads.map((t) => [t.contactId, t.at]));
   const n = f.name.trim().toLowerCase();

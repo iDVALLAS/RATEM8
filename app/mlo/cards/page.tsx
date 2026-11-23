@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import PageShell from "@/app/mlo/CcShell";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { decodeFlash } from "@/lib/mlo/flash";
-import { contactStore } from "@/lib/contacts/store";
+import { contactStore, listAll, PICKER_CAP } from "@/lib/contacts/store";
 import { requestOrigin } from "@/lib/mail/origin";
 import { CARD_MAX, CARD_STARTERS } from "@/lib/cards/library";
 import { cardStore } from "@/lib/cards/store";
@@ -104,7 +104,11 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
 
   const [nc, p46, p69, styles] = await Promise.all([designsFor(me, "notecard", null), designsFor(me, "postcard", "4x6"), designsFor(me, "postcard", "6x9"), stylesFor(me)]);
   const problem = [nc, p46, p69, styles].find((r) => !r.ok);
-  const { contacts } = await contactStore().list({ ownerUserId: me.id, limit: 5000 });
+  // D87.2: the book page by page (one read used to stop at 500), up to the picker's 5,000; a person sent here from
+  // their contact page is always in it.
+  const book = await listAll({ ownerUserId: me.id }, { cap: PICKER_CAP });
+  const asked = sp.c && !book.contacts.some((c) => c.id === sp.c) ? await contactStore().get(sp.c) : null;
+  const contacts = asked && asked.ownerUserId === me.id ? [...book.contacts, asked] : book.contacts;
   const people: PickPerson[] = contacts
     .filter((c) => c.ownerUserId === me.id)
     .map((c) => {
@@ -133,6 +137,7 @@ export default async function CardsPage({ searchParams }: { searchParams: Promis
         startWith={sp.starter}
         startGroup={sp.group}
       />
+      {book.capped ? <p className="mlo-note">{`Showing the first ${book.contacts.length.toLocaleString("en-US")} of your ${book.total.toLocaleString("en-US")} people (by last name). To send a card to someone further down, open their contact page and choose Send a card.`}</p> : null}
       <section className="mlo-section" id="neighborhood" aria-labelledby="nb-h">
         <h2 id="nb-h" className="text-xl">Mail a neighborhood</h2>
         <p className="mlo-note">4 × 6 postcards to the homes nearest an address (a listing, an open house, your office). Thanks.io finds and prices the list first; nothing is bought until you send. Audiences are by home and stage only, never by family, age or wealth.</p>

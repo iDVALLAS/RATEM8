@@ -7313,3 +7313,74 @@ Owner: "Call new leads who named you the day they arrive — don't name it that,
   ("Leads without wording that names you need their own yes first.").
 - **Verified:** `npm run verify` passes (1,095 tests).
 - **Next up:** owner review of D81–D87.1, then "promote".
+
+## D87.2 — Read the whole book past 500 contacts (2026-11-23)
+
+The bug: the Neon contact store's `list()` has always (since D2) returned at most 500 people per call, by last name,
+whatever `limit` asked; the memory store had no cap. Browser QA and unit tests run on the memory store, so nobody saw it.
+In production every caller that asked for 2,000, 5,000 or 100,000 people to read "the whole book" silently got the
+first 500 by last name, and a loan officer with more than 500 contacts was missing everyone from roughly the middle of
+the alphabet on.
+
+- **Files:** `lib/contacts/store.ts` (`LIST_PAGE_MAX` = 500 in both stores; `BOOK_CAP` 25,000; `PICKER_CAP` 5,000; `listAll`;
+  `getMany` on both stores; the id breaks name ties in both stores' order), `lib/leads/recent.ts` (new), `lib/contacts/whole-book.test.ts`
+  (new, 7 tests), and the callers below. `CLAUDE.md` (§1 note, §3.4 test count).
+- **The helper:** `listAll(filter, { cap })` reads the store 500 at a time (four pages at once, the order fixed by last name then id)
+  until the list ends or the cap (25,000 at most) is reached, and returns `{ contacts, total, capped }`. Every page carries the
+  caller's own filter (owner, kind, tag, rule with one `now`), so own-book scoping (`scopeOf`, `assistsUserId`) is exactly what the
+  caller passed; a person who shows up on two pages is kept once. Neon still caps each query at 500 (it bounds a page load); the memory
+  store now caps at 500 too, so the same truncation shows up in tests and QA from now on. `getMany(ids)` is one bound `id = ANY($1)`
+  query per 500 ids.
+- **Every caller fixed, and what a loan officer with more than 500 contacts was missing:**
+  - `lib/export/service.ts` Download everything: contacts.csv/agents.csv held only the first 500 people, and permission records,
+    and names in every other file, only for them. Now the whole book (README says "the first N of M" if 25,000 is ever reached).
+  - `lib/leads/sync.ts` lead-event backfill: imported leads past the first 500 never got an event, so they were missing from the
+    scorecard counts, Recent leads and lead-events.csv.
+  - `lib/leads/score-service.ts` scorecard, `lib/agents/business.ts` Business Manager snapshot, `lib/concierge/desk.ts` Ask your
+    Concierge pack: a closed loan whose client was past the first 500 lost its past-client credit (counted as "no source"); the pack's
+    example/real switch looked only at the first slice.
+  - `app/mlo/leads/page.tsx` Lead sources: read 2,000 (500 in Neon) and passed that slice on as if complete whenever it was under
+    2,000, which in Neon was always; Recent leads kept only leads whose person was in the slice. Now the page reads the whole book
+    with `listAll` and hands it to `syncLeadEvents`/`scorecardFor` (the `< 2000` pass-through is gone), and Recent leads looks up only
+    the people behind the newest events by id (`recentLeads`: own book, contacts only, deleted people left out).
+  - `lib/agents/runner.ts` the Concierge team's daily plan, `lib/automations/engine.ts` morning recipes (after-closing check-ins, new
+    contacts), `lib/today/facts.ts` Today's cards (asked for only 500): nobody past the first 500 ever got a card, draft or reminder.
+  - `lib/report/weekly.ts` weekly report: new contacts and new leads counted only among the first 500.
+  - `lib/contacts/bulk-consent.ts` "Record permission for past clients": past clients past the first 500 were left out of the preview
+    and the recording.
+  - `lib/messaging/service.ts` `rndNeeded` and `dncNeeded`: numbers needing a Reassigned Numbers or do-not-call check past the first
+    500 were never listed (and the Setup checklist counted only the first 500 as checked).
+  - `lib/setup/checklist.ts`: "N of M" counts for permission and do-not-call covered only the first 500 (the total was right).
+  - `lib/concierge/tell.ts` Tell your Concierge's find: people past the first 500 could never be found by name or tag.
+  - `app/mlo/connections/page.tsx`: "Connected (N)" lead counts per system counted only the first slice.
+  - `app/mlo/refi/page.tsx` Refi watch: past clients past the first 500 were never shown.
+  - Pickers (`app/mlo/cards/page.tsx` read 5,000, `app/mlo/videos/page.tsx` and `app/mlo/voicemail/page.tsx` read 500): people past the
+    first 500 couldn't be picked, and "Send a card" from someone further down opened with nobody picked. Now they
+    list up to 5,000 (`PICKER_CAP`), the people a link picks (`?c=`) are always in the list, and past 5,000 the page says
+    "Showing the first N of your M people (by last name)".
+  - `app/mlo/contacts/[id]/page.tsx`: the client's linked agent wasn't shown under "Updates to their agent" when that agent sorted after
+    the first 500 agents; it is now read by id (same book, kind agent). The picker itself stays the first 500 agents.
+- **Stayed paged on purpose:** the Contacts list (`app/mlo/contacts/page.tsx`, 50 a page with paging), duplicate search
+  (`lib/contacts/manage.ts` `searchBook`, 11), Home and Team counts (`limit: 1`, they read `total`), the contact page's agent picker
+  (above). Already paging correctly and left as they were: `peopleIn` (`lib/contacts/lists.ts`), `allMatching` (`lib/contacts/tagging.ts`),
+  the agent-merge sweep (`lib/contacts/manage.ts`); they now also get the id tie-break, so a page never repeats or skips a same-named person.
+- **Verified:** `npm run verify` passes (1,102 tests: 7 new; lint warnings unchanged from the base; check:copy, check:identity,
+  check:licensing, build, check:bundle). New tests: the memory store returns 500 a call for limits 501 to 100,000 (total 1,234);
+  `listAll` returns all 1,234 once each in name order and none of another book interleaved by name; it keeps a tag filter and a rule on
+  every page, reports `capped` at a cap of 1,000, and never reads past 25,000; `getMany`; Download everything has all 1,234 (README
+  `contacts: 1234`); the backfill adds an event for every one of 412 imported leads through the book; the scorecard credits a closed loan
+  of a past client at #1,232 to Past clients & sphere (unattributed 0); Recent leads shows a lead whose person sorts after the first 500
+  and leaves out a deleted person and another book's lead. On freshly started servers: `node scripts/qa/command-center.mjs` PROBLEMS none;
+  `node scripts/qa/buttons.mjs` 524 page views, PROBLEMS none; `node scripts/qa/leads-a11y.mjs` 42 page views, 1,590 controls named,
+  1,530 tap targets, lowest contrast 5.34:1, PROBLEMS none.
+- **Decisions:** (a) 500 a query stays in Neon and is now in memory too. (b) One cap for whole-book readers (25,000, the bound merges and
+  import undo already use) and 5,000 for pickers that send every name to the browser. (c) Pages are read four at a time to keep big
+  books quick. (d) No owner-decided behaviour changed: the same people, filters and rules, just all of them. D87's uncertain item (e)
+  ("Lead sources reads up to 2,000 contacts") is fixed.
+- **Known issues:** (1) Same pattern in a different store, not fixed here: the Neon message store's `since()` returns the newest 5,000
+  messages (`LIMIT 5000`, memory has none), so Download everything's messages.csv, the weekly report and the team's daily plan see at most
+  5,000 messages. (2) A book near 25,000 people may make Download everything larger than Vercel's ~4.5 MB response (receipts are already
+  budgeted; the CSVs aren't). (3) Today for the owner (team scope) now reads every book up to 25,000 people instead of 500; it's one page
+  of queries per 500 people. (4) Neon wasn't run here (no database); its `getMany` and the `ORDER BY sort_name, id` change are covered by
+  type checks and the same tests on the memory store.
+- **Next up:** owner review of D81–D87.2, then "promote".

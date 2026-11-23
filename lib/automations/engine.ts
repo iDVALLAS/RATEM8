@@ -10,7 +10,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { accountStore, type User } from "@/lib/accounts/store";
-import { contactStore, type Contact } from "@/lib/contacts/store";
+import { contactStore, listAll, type Contact } from "@/lib/contacts/store";
 import { summarize } from "@/lib/contacts/service";
 import { gateFor } from "@/lib/messaging/service";
 import { touchStore } from "@/lib/messaging/store";
@@ -96,7 +96,7 @@ export async function runDaily(user: User, now = new Date()): Promise<RunResult>
   const settings = await automationStore().settings(user.id);
   const recipes = RECIPES.filter((r) => settings.enabled.includes(r.id) && r.trigger.kind !== "stage");
   if (!recipes.length) return out;
-  const { contacts } = await contactStore().list({ ownerUserId: user.id, kind: "contact", limit: 2000 });
+  const { contacts } = await listAll({ ownerUserId: user.id, kind: "contact" });
   const loans = await pipelineStore().list(user.id);
   const closedOn = (c: Contact) => c.loan?.closedOn ?? loans.find((l) => l.contactId === c.id && l.closed)?.keyDates.closing ?? null;
   const consents = await contactStore().consentsFor(contacts.map((c) => c.id));

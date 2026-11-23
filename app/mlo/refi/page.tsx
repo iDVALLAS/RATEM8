@@ -4,7 +4,7 @@ import PageShell from "@/app/mlo/CcShell";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { listTenants } from "@/lib/pricing/tenants";
 import { requireViewer } from "@/lib/mlo/page-auth";
-import { contactStore } from "@/lib/contacts/store";
+import { contactStore, listAll } from "@/lib/contacts/store";
 import { scopeOf, summarize } from "@/lib/contacts/service";
 import { refinanceReference } from "@/lib/today/facts";
 import { estimate } from "@/lib/refi/watch";
@@ -32,7 +32,7 @@ export default async function RefiWatch({ searchParams }: { searchParams: Promis
   const cost = num(sp.cost, 4000, 0, 50000);
   const minGap = num(sp.gap, 0.5, 0, 5);
   const now = new Date();
-  const { contacts } = me ? await contactStore().list({ ownerUserId: scopeOf(me), kind: "contact", limit: 2000 }) : { contacts: [] };
+  const { contacts } = me ? await listAll({ ownerUserId: scopeOf(me), kind: "contact" }) : { contacts: [] };
   const consents = me ? await contactStore().consentsFor(contacts.map((c) => c.id)) : [];
   const rows = refRate
     ? contacts

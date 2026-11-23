@@ -8,7 +8,7 @@ import { requestOrigin } from "@/lib/mail/origin";
 import { KIND_LABELS, ROUTE_LABELS, SYSTEMS, type System } from "@/lib/connect/catalog";
 import { connectionStore, type Connection } from "@/lib/connect/service";
 import { pipelineStore } from "@/lib/pipeline/store";
-import { contactStore } from "@/lib/contacts/store";
+import { listAll } from "@/lib/contacts/store";
 import { CONNECTIONS, SUBS } from "@/lib/content/cc-pages";
 import { FlashBox } from "../MloChrome";
 import PageHead from "../PageHead";
@@ -46,7 +46,7 @@ export default async function Connections({ searchParams }: { searchParams: Prom
         hookStore().list(me.id).catch(() => []),
         pipelineStore().keys(me.id).catch(() => []),
         pipelineStore().list(me.id).catch(() => []),
-        contactStore().list({ ownerUserId: me.id, kind: "contact", limit: 2000 }).then((x) => x.contacts).catch(() => []),
+        listAll({ ownerUserId: me.id, kind: "contact" }).then((x) => x.contacts).catch(() => []),
       ])
     : [[], [], [], [], []];
   const callUrl = `${origin}/api/zapier/call`;

@@ -3,7 +3,7 @@ import Link from "next/link";
 import PageShell from "@/app/mlo/CcShell";
 import { requireViewer } from "@/lib/mlo/page-auth";
 import { decodeFlash } from "@/lib/mlo/flash";
-import { contactStore } from "@/lib/contacts/store";
+import { listAll, PICKER_CAP } from "@/lib/contacts/store";
 import { videoStore } from "@/lib/videos/store";
 import { DEFAULT_NOTE, NEEDS_TOKEN, UPLOADS_OFF, NOTE_MAX, ownMedia, prefixFor, transcribeOn, uploadsOn, videosOn } from "@/lib/videos/service";
 import { emailReadyFor } from "@/lib/messaging/email";
@@ -45,7 +45,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
       </NotOnYet>,
     );
 
-  const [videos, sends, people, mail] = await Promise.all([videoStore().videosFor(me.id, 50), videoStore().sendsFor(me.id, 200), contactStore().list({ ownerUserId: me.id, limit: 500 }), emailReadyFor(me)]);
+  const [videos, sends, people, mail] = await Promise.all([videoStore().videosFor(me.id, 50), videoStore().sendsFor(me.id, 200), listAll({ ownerUserId: me.id }, { cap: PICKER_CAP }), emailReadyFor(me)]);
   const ready = videos.filter((x) => x.status === "ok");
   const byVideo = new Map<string, typeof sends>();
   for (const s of sends) byVideo.set(s.videoId, [...(byVideo.get(s.videoId) ?? []), s]);
@@ -79,6 +79,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
                 {contacts.map((c) => <option key={c.id} value={c.id}>{`${c.firstName} ${c.lastName}`.trim() || c.email}</option>)}
               </select>
             </label>
+            {people.capped ? <p className="mlo-note">{`Showing the first ${people.contacts.length.toLocaleString("en-US")} of your ${people.total.toLocaleString("en-US")} people (by last name).`}</p> : null}
             <label className="mlo-field">
               <span>Note with the link ({"{first}"} is their first name)</span>
               <textarea name="note" rows={2} maxLength={NOTE_MAX} className="mlo-textarea" defaultValue={DEFAULT_NOTE} required />

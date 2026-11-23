@@ -6,7 +6,7 @@
  * expense drafts to confirm, receipts missing, quarterly estimated taxes.
  */
 import type { User } from "@/lib/accounts/store";
-import { contactStore } from "@/lib/contacts/store";
+import { listAll } from "@/lib/contacts/store";
 import { yearSummary } from "@/lib/expenses/service";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { WEB_FORM_KEY } from "@/lib/leads/source-key";
@@ -48,7 +48,7 @@ export const sourceLines = (card: Pick<LeadScorecard, "rows">): SourceLine[] =>
 
 export async function snapshot(user: User, now = new Date()): Promise<Snapshot> {
   const year = now.getUTCFullYear();
-  const [y, loans, contacts] = await Promise.all([yearSummary(user, year).catch(() => null), pipelineStore().list(user.id).catch(() => []), contactStore().list({ ownerUserId: user.id, kind: "contact", limit: 5000 }).then((r) => r.contacts).catch(() => [])]);
+  const [y, loans, contacts] = await Promise.all([yearSummary(user, year).catch(() => null), pipelineStore().list(user.id).catch(() => []), listAll({ ownerUserId: user.id, kind: "contact" }).then((r) => r.contacts).catch(() => [])]);
   const card = await scorecardFor(user, "90d", now, { contacts }).catch(() => null);
   const closedThisYear = loans.filter((l) => l.closed && !l.dead && l.milestoneAt.startsWith(String(year)));
   const income = y?.incomeCents ?? 0;

@@ -7,7 +7,7 @@ import { CONFIG, mloById } from "@/lib/config";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { redactChatInput } from "@/lib/m8/redact";
 import { canSee, recordConsent, summarize } from "@/lib/contacts/service";
-import { contactStore, type Channel, type Contact, type Purpose } from "@/lib/contacts/store";
+import { contactStore, listAll, type Channel, type Contact, type Purpose } from "@/lib/contacts/store";
 import { toE164 } from "@/lib/contacts/normalize";
 import { toGsm } from "./segments";
 import { decide, type GateDecision } from "@/lib/send-gate/gate";
@@ -267,7 +267,7 @@ export async function recordRndBulk(actor: User, text: string, source: string, n
 /** D21: this user's numbers that need a Reassigned Numbers Database check before texts or M8 calls, with the date to check from. */
 export async function rndNeeded(actor: User, now = new Date()): Promise<{ phone: string; since: string; name: string }[]> {
   const store = contactStore();
-  const { contacts } = await store.list({ ownerUserId: actor.id, kind: "contact", limit: 5000 });
+  const { contacts } = await listAll({ ownerUserId: actor.id, kind: "contact" }, { store });
   const consents = await store.consentsFor(contacts.map((c) => c.id));
   const out: { phone: string; since: string; name: string }[] = [];
   for (const c of contacts) {
@@ -289,7 +289,7 @@ export async function rndNeeded(actor: User, now = new Date()): Promise<{ phone:
  * D75: `people` limits it to a list (one import's people, already checked with `canSee`).
  */
 export async function dncNeeded(actor: User, now = new Date(), people?: Contact[]): Promise<{ phone: string; name: string }[]> {
-  const contacts = people ?? (await contactStore().list({ ownerUserId: actor.id, limit: 5000 })).contacts;
+  const contacts = people ?? (await listAll({ ownerUserId: actor.id })).contacts;
   return contacts
     .filter((c) => c.phone && !c.locked && !(c.dnc && now.getTime() - Date.parse(c.dnc.checkedAt) <= 31 * 86_400_000))
     .map((c) => ({ phone: c.phone!, name: `${c.firstName} ${c.lastName}`.trim() }));

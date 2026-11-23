@@ -18,7 +18,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { accountStore, type User } from "@/lib/accounts/store";
-import { contactStore, type Contact } from "@/lib/contacts/store";
+import { listAll, type Contact } from "@/lib/contacts/store";
 import { touchStore } from "@/lib/messaging/store";
 import { sendText, type SendOutcome } from "@/lib/messaging/service";
 import { sendEmail } from "@/lib/messaging/email";
@@ -199,7 +199,7 @@ function relocationPlan(ctx: Ctx): Proposal[] {
 
 /** Every proposal for today, before Compliance and de-duplication. */
 export async function proposeAll(user: User, settings: TeamSettings, now: Date): Promise<Proposal[]> {
-  const { contacts } = await contactStore().list({ ownerUserId: user.id, limit: 5000 });
+  const { contacts } = await listAll({ ownerUserId: user.id });
   const mine = contacts.filter((c) => c.ownerUserId === user.id);
   const touches = await touchStore().since(user.id, iso(new Date(now.getTime() - 400 * DAY)));
   const lastTouch = new Map<string, string>();

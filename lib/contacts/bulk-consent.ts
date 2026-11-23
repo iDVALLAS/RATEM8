@@ -20,7 +20,7 @@
  *    reviewed or undone
  */
 import { accountStore, type User } from "@/lib/accounts/store";
-import { contactStore, type Contact, type Evidence, type Purpose } from "./store";
+import { contactStore, listAll, type Contact, type Evidence, type Purpose } from "./store";
 import { summarize } from "./service";
 
 export type BulkConsentInput = {
@@ -39,7 +39,7 @@ export type BulkConsentInput = {
 export type BulkPreview = { eligible: Contact[]; skipped: { stopped: number; held: number; priorEmployer: number; notPastClient: number } };
 
 export async function previewBulk(actor: User, sinceYear: number | null = null): Promise<BulkPreview> {
-  const { contacts } = await contactStore().list({ ownerUserId: actor.id, kind: "contact", limit: 5000 });
+  const { contacts } = await listAll({ ownerUserId: actor.id, kind: "contact" });
   const consents = await contactStore().consentsFor(contacts.map((c) => c.id));
   const out: BulkPreview = { eligible: [], skipped: { stopped: 0, held: 0, priorEmployer: 0, notPastClient: 0 } };
   for (const c of contacts) {

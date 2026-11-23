@@ -9,7 +9,7 @@
  * fixed, so running it twice (or two runs at once) never doubles a lead.
  */
 import { accountStore, type User } from "@/lib/accounts/store";
-import { contactStore, type Contact } from "@/lib/contacts/store";
+import { contactStore, listAll, type Contact } from "@/lib/contacts/store";
 import { consentNamesUs } from "./intake";
 import { eventId, leadEventStore, type LeadEvent } from "./events";
 import { isImportedLead, planLeadEvents } from "./backfill";
@@ -22,7 +22,8 @@ export async function syncLeadEvents(user: User, opts: { now?: Date; contacts?: 
   const store = leadEventStore();
   const [history, existing] = await Promise.all([store.marked(owner, HISTORY_MARK).then((m) => !m), store.list(owner)]);
   const have = new Set(existing.map((e) => e.id));
-  const contacts = opts.contacts ?? (await contactStore().list({ ownerUserId: owner, kind: "contact", limit: 100000 })).contacts;
+  // D87.2: the whole book (one read used to stop at 500 people, so later imported leads never got an event).
+  const contacts = opts.contacts ?? (await listAll({ ownerUserId: owner, kind: "contact" })).contacts;
   const mine = contacts.filter((c) => c.ownerUserId === owner && c.kind === "contact");
   // Imported leads with no event yet, and (the first time) everyone delivered to the lead address.
   const todo = mine.filter((c) => (isImportedLead(c) && !have.has(eventId(owner, c.id, "import"))) || (history && c.source.startsWith("lead:")));

@@ -5,7 +5,7 @@ import { requireViewer } from "@/lib/mlo/page-auth";
 import { decodeFlash } from "@/lib/mlo/flash";
 import { companyDetails, companyOfMlo } from "@/lib/accounts/company";
 import { mloById } from "@/lib/config";
-import { contactStore } from "@/lib/contacts/store";
+import { contactStore, listAll, PICKER_CAP } from "@/lib/contacts/store";
 import { voicemailStore } from "@/lib/voicemail/store";
 import { callerFor, MAX_BATCH, optOutLine, ownAudio, voicemailOn } from "@/lib/voicemail/service";
 import { transcribeOn } from "@/lib/videos/transcribe";
@@ -46,10 +46,12 @@ export default async function VoicemailPage({ searchParams }: { searchParams: Pr
 
   const m = mloById(me.mloId);
   const co = companyDetails(m);
-  const [mine, drops, people, caller] = await Promise.all([voicemailStore().voicemailsFor(me.id), voicemailStore().dropsFor(me.id, 50), contactStore().list({ ownerUserId: me.id, kind: "contact", limit: 500 }), callerFor(companyOfMlo(me.mloId))]);
-  const withPhone = people.contacts.filter((c) => c.phone).sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
-  const titleOf = new Map(mine.map((x) => [x.id, x.title]));
+  const [mine, drops, people, caller] = await Promise.all([voicemailStore().voicemailsFor(me.id), voicemailStore().dropsFor(me.id, 50), listAll({ ownerUserId: me.id, kind: "contact" }, { cap: PICKER_CAP }), callerFor(companyOfMlo(me.mloId))]);
   const picked = new Set((sp.c ?? "").split(",").filter(Boolean));
+  // D87.2: the book page by page (one read used to stop at 500); people picked in the link are always listed.
+  const far = people.capped ? (await contactStore().getMany([...picked].filter((id) => !people.contacts.some((c) => c.id === id)))).filter((c) => c.ownerUserId === me.id && c.kind === "contact") : [];
+  const withPhone = [...people.contacts, ...far].filter((c) => c.phone).sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
+  const titleOf = new Map(mine.map((x) => [x.id, x.title]));
 
   return shell(
     <>
@@ -105,6 +107,7 @@ export default async function VoicemailPage({ searchParams }: { searchParams: Pr
                 <label key={c.id} className="mlo-check" style={{ padding: "4px 0" }}><input type="checkbox" name="contactIds" value={c.id} defaultChecked={picked.has(c.id)} /> {`${c.firstName} ${c.lastName}`.trim()}</label>
               )) : <p className="mlo-note">No contacts with a phone number yet.</p>}
             </fieldset>
+            {people.capped ? <p className="mlo-note">{`Showing the first ${people.contacts.length.toLocaleString("en-US")} of your ${people.total.toLocaleString("en-US")} contacts (by last name).`}</p> : null}
             <button type="submit" className="mlo-btn">Leave voicemail</button>
             <p className="mlo-note">People your contact rules don&apos;t allow right now are skipped, with the reason. Nothing is left outside their calling hours.</p>
           </form>

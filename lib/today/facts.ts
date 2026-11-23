@@ -2,7 +2,7 @@
  * lib/today/facts.ts — gathers what the Today screen ranks (D5). SERVER-ONLY.
  */
 import type { User } from "@/lib/accounts/store";
-import { contactStore } from "@/lib/contacts/store";
+import { contactStore, listAll } from "@/lib/contacts/store";
 import { scopeOf, summarize } from "@/lib/contacts/service";
 import { touchStore } from "@/lib/messaging/store";
 import { DAILY_SCENARIOS } from "@/lib/pricing/daily";
@@ -27,7 +27,7 @@ export async function refinanceReference(): Promise<RateRef> {
 /** `ownOnly`: only the user's own book, even for the owner (the Concierge works one loan officer's clients). */
 export async function todayFor(user: User, now = new Date(), opts: { ownOnly?: boolean } = {}): Promise<{ cards: TodayCard[]; people: number; ref: RateRef }> {
   const scope = opts.ownOnly ? user.id : scopeOf(user);
-  const { contacts } = await contactStore().list({ ownerUserId: scope, limit: 500 });
+  const { contacts } = await listAll({ ownerUserId: scope });
   const [consents, threads, ref] = await Promise.all([contactStore().consentsFor(contacts.map((c) => c.id)), touchStore().threads(scope, 500), refinanceReference()]);
   const lastBy = new Map(threads.map((t) => [t.contactId, t]));
   const facts = contacts.map((contact) => {

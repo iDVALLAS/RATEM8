@@ -13,7 +13,7 @@ import { sendText } from "@/lib/messaging/service";
 import { sendEmail } from "@/lib/messaging/email";
 import { todayFor } from "@/lib/today/facts";
 import { guardReply } from "@/lib/m8/guard";
-import { contactStore } from "@/lib/contacts/store";
+import { contactStore, listAll } from "@/lib/contacts/store";
 import { redactChatInput } from "@/lib/m8/redact";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { prefsFor } from "@/lib/profile/prefs";
@@ -166,7 +166,7 @@ function leadAskApi(meter: Meter): LeadAskCall {
 export async function leadPackFor(actor: User, period: ScorePeriod, budgetCents: number | null, now = new Date()): Promise<LeadPack> {
   const [events, contacts, prefs, monthly, keys, plan] = await Promise.all([
     leadEventStore().list(actor.id).catch(() => []),
-    contactStore().list({ ownerUserId: actor.id, kind: "contact", limit: 2000 }).then((r) => r.contacts).catch(() => []),
+    listAll({ ownerUserId: actor.id, kind: "contact" }).then((r) => r.contacts).catch(() => []),
     prefsFor(actor),
     monthlyStore().list(actor.id).catch(() => []),
     pipelineStore().keys(actor.id).catch(() => []),
@@ -176,7 +176,7 @@ export async function leadPackFor(actor: User, period: ScorePeriod, budgetCents:
   const mine = events.filter((e) => e.ownerUserId === actor.id);
   const own = contacts.filter((c) => c.ownerUserId === actor.id);
   const example = !hasRealLeads({ contacts: own, leadEvents: mine.length });
-  const card = example ? null : await scorecardFor(actor, period, now, { events: mine, contacts: own.length < 2000 ? own : undefined }).catch(() => null);
+  const card = example ? null : await scorecardFor(actor, period, now, { events: mine, contacts: own }).catch(() => null);
   return buildLeadPack({
     period,
     example,

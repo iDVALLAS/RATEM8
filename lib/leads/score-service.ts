@@ -8,7 +8,7 @@
  * no scorecard (no spend), so this is never called for one.
  */
 import type { User } from "@/lib/accounts/store";
-import { contactStore, type Contact } from "@/lib/contacts/store";
+import { listAll, type Contact } from "@/lib/contacts/store";
 import { expenseStore } from "@/lib/expenses/store";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { prefsFor } from "@/lib/profile/prefs";
@@ -26,7 +26,8 @@ export async function scorecardsFor(user: User, periods: readonly ScorePeriod[],
     opts.events ?? leadEventStore().list(user.id).catch(() => []),
     expenseStore().list(user.id, null).catch(() => []),
     pipelineStore().list(user.id).catch(() => []),
-    opts.contacts ?? contactStore().list({ ownerUserId: user.id, kind: "contact", limit: 5000 }).then((r) => r.contacts).catch(() => []),
+    // D87.2: the whole book (a loan's contact past the first 500 used to fall out of the scorecard).
+    opts.contacts ?? listAll({ ownerUserId: user.id, kind: "contact" }).then((r) => r.contacts).catch(() => []),
     prefsFor(user),
     monthlyStore().list(user.id).catch(() => []),
   ]);

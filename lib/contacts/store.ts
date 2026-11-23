@@ -119,6 +119,12 @@ export interface ContactStore {
   findByPhone(phone: string): Promise<Contact[]>;
   put(c: Contact): Promise<void>;
   get(id: string): Promise<Contact | null>;
+  /** D87.2: these people, by id, in no particular order (ids not found are left out). Callers still check `canSee`. */
+  getMany(ids: readonly string[]): Promise<Contact[]>;
+  /**
+   * One page, by last name. At most LIST_PAGE_MAX people per call in both stores, whatever `limit` asks;
+   * `total` is everyone the filter finds. To read a whole book use `listAll` (below).
+   */
   list(f: ContactFilter): Promise<{ contacts: Contact[]; total: number }>;
   /** D73: each tag in a book (or every book, owner undefined) with how many people have it, most used first. */
   tagCounts(ownerUserId: string | undefined, kind?: "contact" | "agent"): Promise<TagCount[]>;
@@ -149,9 +155,19 @@ const matches = (c: Contact, f: ContactFilter) => {
   }
   return true;
 };
-const byName = (a: Contact, b: Contact) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`);
+// D87.2: the id breaks ties so pages never overlap or skip someone with the same name.
+const byName = (a: Contact, b: Contact) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 const byCount = (a: TagCount, b: TagCount) => b.count - a.count || a.tag.localeCompare(b.tag);
 export const MAX_TAG_COUNTS = 500;
+/**
+ * D87.2: the most people one `list` call returns, in both stores. Neon has always stopped here (it keeps a
+ * page load bounded); the memory store now does too, so tests and browser QA see the same thing production does.
+ */
+export const LIST_PAGE_MAX = 500;
+/** D87.2: the most `listAll` reads for one caller unless it asks for fewer (the bound merges and import undo already use). */
+export const BOOK_CAP = 25_000;
+/** D87.2: the most people a page's picker lists (cards, videos, voicemail); past it the page says so. */
+export const PICKER_CAP = 5_000;
 
 export class MemoryContactStore implements ContactStore {
   readonly kind = "memory";
@@ -191,6 +207,12 @@ export class MemoryContactStore implements ContactStore {
     const c = this.rows.get(id);
     return c ? structuredClone(c) : null;
   }
+  async getMany(ids: readonly string[]) {
+    return [...new Set(ids)].flatMap((id) => {
+      const c = this.rows.get(id);
+      return c ? [structuredClone(c)] : [];
+    });
+  }
   /** D78: what a rule needs beyond the record: its consent log, and its messages in and out. */
   private async facts(c: Contact, rule: ListRule): Promise<RuleFacts> {
     const out: RuleFacts = {};
@@ -213,7 +235,8 @@ export class MemoryContactStore implements ContactStore {
     }
     all.sort(byName);
     const off = f.offset ?? 0;
-    return { contacts: all.slice(off, off + (f.limit ?? 50)).map((c) => structuredClone(c)), total: all.length };
+    const lim = Math.max(0, Math.min(f.limit ?? 50, LIST_PAGE_MAX));
+    return { contacts: all.slice(off, off + lim).map((c) => structuredClone(c)), total: all.length };
   }
   async tagCounts(owner: string | undefined, kind?: "contact" | "agent") {
     const n = new Map<string, number>();
@@ -323,6 +346,14 @@ export class NeonContactStore implements ContactStore {
     const r = await this.q(`SELECT body FROM cc_contacts WHERE id = $1`, [id]);
     return r[0] ? toContact(r[0]) : null;
   }
+  async getMany(ids: readonly string[]) {
+    const all = [...new Set(ids.filter(Boolean))];
+    if (!all.length) return [];
+    await this.init();
+    const out: Contact[] = [];
+    for (let i = 0; i < all.length; i += LIST_PAGE_MAX) out.push(...(await this.q(`SELECT body FROM cc_contacts WHERE id = ANY($1)`, [all.slice(i, i + LIST_PAGE_MAX)])).map(toContact));
+    return out;
+  }
   async list(f: ContactFilter) {
     await this.init();
     const where: string[] = [];
@@ -351,7 +382,7 @@ export class NeonContactStore implements ContactStore {
     if (f.rule) where.push(...ruleSql(f.rule, f.now ?? new Date(), p));
     const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
     const total = Number((await this.q(`SELECT count(*)::int AS n FROM cc_contacts ${w}`, p))[0]?.n ?? 0);
-    const rows = await this.q(`SELECT body FROM cc_contacts ${w} ORDER BY sort_name LIMIT ${Math.min(f.limit ?? 50, 500)} OFFSET ${Math.max(0, f.offset ?? 0)}`, p);
+    const rows = await this.q(`SELECT body FROM cc_contacts ${w} ORDER BY sort_name, id LIMIT ${Math.max(0, Math.min(f.limit ?? 50, LIST_PAGE_MAX))} OFFSET ${Math.max(0, f.offset ?? 0)}`, p);
     return { contacts: rows.map(toContact), total };
   }
   async tagCounts(owner: string | undefined, kind?: "contact" | "agent") {
@@ -394,6 +425,52 @@ const memory = (g.__lm8ContactMemory ??= new MemoryContactStore());
 
 export function setContactStoreForTests(s: ContactStore | null) {
   override = s;
+}
+
+/** D87.2: what `listAll` read. `capped` means the cap stopped it before everyone (`total`) was read. */
+export type WholeList = { contacts: Contact[]; total: number; capped: boolean };
+
+/**
+ * D87.2: everyone a filter finds, read LIST_PAGE_MAX at a time until the list ends or `cap` is reached
+ * (BOOK_CAP at most). Each page keeps the same filter, so a book stays a book: callers pass the owner
+ * (`scopeOf`, an assistant's `assistsUserId`) exactly as they would to `list`, and still check `canSee`.
+ * A person who appears on two pages (a write moved them) is kept once.
+ */
+export async function listAll(f: Omit<ContactFilter, "limit" | "offset">, opts: { cap?: number; store?: ContactStore } = {}): Promise<WholeList> {
+  const store = opts.store ?? contactStore();
+  const cap = Math.max(1, Math.min(Math.floor(opts.cap ?? BOOK_CAP), BOOK_CAP));
+  // Every page reads the rule at the same moment.
+  const base: ContactFilter = { ...f, ...(f.rule ? { now: f.now ?? new Date() } : {}) };
+  const out: Contact[] = [];
+  const seen = new Set<string>();
+  const take = (cs: Contact[]) => {
+    for (const c of cs) {
+      if (out.length >= cap) return;
+      if (seen.has(c.id)) continue;
+      seen.add(c.id);
+      out.push(c);
+    }
+  };
+  const first = await store.list({ ...base, limit: LIST_PAGE_MAX, offset: 0 });
+  take(first.contacts);
+  let total = first.total;
+  let more = first.contacts.length === LIST_PAGE_MAX;
+  for (let offset = LIST_PAGE_MAX; more && out.length < cap; ) {
+    // A few pages at once; the order (last name, then id) is fixed, so they line up.
+    const n = Math.min(4, Math.ceil((cap - out.length) / LIST_PAGE_MAX));
+    const pages = await Promise.all(Array.from({ length: n }, (_, i) => store.list({ ...base, limit: LIST_PAGE_MAX, offset: offset + i * LIST_PAGE_MAX })));
+    for (const p of pages) {
+      take(p.contacts);
+      total = Math.max(total, p.total);
+      if (p.contacts.length < LIST_PAGE_MAX) {
+        more = false;
+        break;
+      }
+    }
+    offset += n * LIST_PAGE_MAX;
+  }
+  total = Math.max(total, out.length);
+  return { contacts: out, total, capped: out.length < total };
 }
 
 export function contactStore(): ContactStore {

@@ -7,7 +7,7 @@
  * who turn it on (Concierge settings), once a week.
  */
 import type { User } from "@/lib/accounts/store";
-import { contactStore } from "@/lib/contacts/store";
+import { listAll } from "@/lib/contacts/store";
 import { touchStore } from "@/lib/messaging/store";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { conciergeStore } from "@/lib/concierge/store";
@@ -50,7 +50,7 @@ async function numbers(user: User, from: Date, to: Date): Promise<WeekNumbers> {
   const t = to.toISOString();
   const inRange = (iso: string | null | undefined) => !!iso && iso >= f && iso < t;
   const touches = (await touchStore().since(user.id, f)).filter((x) => x.at < t);
-  const { contacts } = await contactStore().list({ ownerUserId: user.id, limit: 5000 });
+  const { contacts } = await listAll({ ownerUserId: user.id });
   const loans = await pipelineStore().list(user.id);
   const drafts = await conciergeStore().proposals(user.id);
   const optOut = (note: string | null) => (note ?? "").startsWith("Opt-out recorded");

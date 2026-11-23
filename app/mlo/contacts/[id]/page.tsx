@@ -124,8 +124,12 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
   const callStopped = s.call.service.evidence === "revoked" || s.call.marketing.evidence === "revoked";
   const signalGoals = known.signals.map((x) => x.goal);
   // D10: the client's own agents list, for "Updates to their agent".
-  const agents = c.kind === "contact" ? (await store.list({ ownerUserId: c.ownerUserId, kind: "agent", limit: 500 })).contacts : [];
-  const linkedAgent = c.partnerUpdates?.agentContactId ? agents.find((a) => a.id === c.partnerUpdates!.agentContactId) ?? null : null;
+  // The picker is the first page of agents (by last name); D87.2: the linked agent is always found, even past it.
+  const firstAgents = c.kind === "contact" ? (await store.list({ ownerUserId: c.ownerUserId, kind: "agent", limit: 500 })).contacts : [];
+  const linkedId = c.kind === "contact" ? c.partnerUpdates?.agentContactId ?? null : null;
+  const farAgent = linkedId && !firstAgents.some((a) => a.id === linkedId) ? await store.get(linkedId) : null;
+  const agents = farAgent && farAgent.ownerUserId === c.ownerUserId && farAgent.kind === "agent" ? [...firstAgents, farAgent] : firstAgents;
+  const linkedAgent = linkedId ? agents.find((a) => a.id === linkedId) ?? null : null;
   const goalOptions = c.kind === "agent" ? (["partner"] as const) : [...new Set([...signalGoals, ...GOALS.filter((g) => g !== "auto" && g !== "partner")])];
   // D77: merging. People who share a phone or email, a search, and the comparison for one picked record.
   const [maybe, found, preview] = await Promise.all([

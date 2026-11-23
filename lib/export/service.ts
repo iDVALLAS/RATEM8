@@ -12,7 +12,7 @@
  */
 import type { User } from "@/lib/accounts/store";
 import { CONFIG, mloById } from "@/lib/config";
-import { contactStore, type Contact } from "@/lib/contacts/store";
+import { contactStore, listAll, type Contact } from "@/lib/contacts/store";
 import { touchStore } from "@/lib/messaging/store";
 import { conciergeStore } from "@/lib/concierge/store";
 import { pipelineStore } from "@/lib/pipeline/store";
@@ -40,7 +40,9 @@ export type ExportResult = { file: Buffer; filename: string; counts: Record<stri
 export async function buildExport(user: User, now = new Date()): Promise<ExportResult> {
   const owner = user.id;
   const nowIso = now.toISOString();
-  const all = (await contactStore().list({ ownerUserId: owner, limit: 100000 })).contacts.filter((c) => c.ownerUserId === owner);
+  // D87.2: the whole book, page by page (one read used to stop at 500 people).
+  const book = await listAll({ ownerUserId: owner });
+  const all = book.contacts.filter((c) => c.ownerUserId === owner);
   const byId = new Map(all.map((c) => [c.id, c]));
   const who = (id: string | null | undefined) => (id ? nameOf(byId.get(id)) : "");
   const contactRow = (c: Contact) => ({ name: nameOf(c), ...c });
@@ -131,6 +133,7 @@ export async function buildExport(user: User, now = new Date()): Promise<ExportR
       "Each .csv file opens in Excel, Numbers or Google Sheets. Most other CRMs can import contacts.csv and agents.csv directly.",
       "",
       ...Object.entries(counts).map(([k, n]) => `${k}: ${n}`),
+      ...(book.capped ? ["", `This download holds the first ${book.contacts.length.toLocaleString("en-US")} of the ${book.total.toLocaleString("en-US")} people in your book (by last name).`] : []),
       ...(left ? ["", `${left} receipt file${left === 1 ? " is" : "s are"} too large to fit in this download. Download them one by one from Expenses.`] : []),
       "",
       "What each file holds:",

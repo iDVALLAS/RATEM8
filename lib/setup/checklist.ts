@@ -11,7 +11,7 @@ import { neon } from "@neondatabase/serverless";
 import type { User } from "@/lib/accounts/store";
 import { companyOfMlo, singleCompany } from "@/lib/accounts/company";
 import { hasApplicationUrl, mloById } from "@/lib/config";
-import { contactStore } from "@/lib/contacts/store";
+import { contactStore, listAll } from "@/lib/contacts/store";
 import { summarize } from "@/lib/contacts/service";
 import { conciergeStore } from "@/lib/concierge/store";
 import { automationStore } from "@/lib/automations/store";
@@ -98,7 +98,7 @@ export const MANUAL_IDS = ["optout_wording", "campaign_approved", "rnd_account"]
 export async function checklist(user: User, now = new Date()): Promise<SetupItem[]> {
   const mlo = mloById(user.mloId);
   const marks = new Set(await setupStore().marks(user.id));
-  const { contacts, total } = await contactStore().list({ ownerUserId: user.id, kind: "contact", limit: 5000 });
+  const { contacts, total } = await listAll({ ownerUserId: user.id, kind: "contact" });
   const consents = await contactStore().consentsFor(contacts.map((c) => c.id));
   const withPhone = contacts.filter((c) => c.phone && !c.locked);
   const dncFresh = withPhone.filter((c) => c.dnc && now.getTime() - Date.parse(c.dnc.checkedAt) <= 31 * 86_400_000).length;
