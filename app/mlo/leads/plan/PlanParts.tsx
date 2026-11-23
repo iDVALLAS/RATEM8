@@ -147,7 +147,7 @@ export function Split({ alloc, estimate, suggestions, noSources }: { alloc: Allo
           </ul>
         </>
       ) : null}
-      <div className="cc-lplan-est" aria-labelledby="lplan-est">
+      <div className="cc-lplan-est" role="group" aria-labelledby="lplan-est">
         <h3 className="cc-lplan-sub" id="lplan-est">{E.title}</h3>
         {estimate ? (
           <>

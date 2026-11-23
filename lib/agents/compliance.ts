@@ -14,7 +14,7 @@
  */
 import { checkTemplate } from "@/lib/templates/service";
 import { findRateMentions } from "@/lib/m8/guard";
-import { leadAdviceIssue } from "@/lib/concierge/guard";
+import { leadAdviceIssue, leadPromiseIssue } from "@/lib/concierge/guard";
 import type { Move } from "./store";
 
 const RESPA: [RegExp, string][] = [
@@ -48,7 +48,7 @@ export function reviewMessage(body: string, subject: string, to: "client" | "age
  */
 export function reviewLeadMove(text: string): Review {
   if (!text.trim()) return { ok: false, reason: "is empty" };
-  const why = leadAdviceIssue(text);
+  const why = leadAdviceIssue(text) ?? leadPromiseIssue(text);
   if (why) return { ok: false, reason: why };
   if (findRateMentions(text).length) return { ok: false, reason: "mentions a rate" };
   return { ok: true };

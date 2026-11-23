@@ -286,6 +286,12 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     plan steps) and the Business Manager's day 30/60/90 check-in (`lead-source:checkin:…`, banner, `pending` split); Approve (`approveLeadMove`, bound,
     `reviewMove`) only updates the plan (pause → left out 60 days; check-in → its split) and adds steps (no duplicate titles); Business Finder catalog
     of six types, no prices ("Cost comes from your own spend once you test it."); plan card real once saved; pack + `lead-plan.csv`; assistants: none.
+    D87 tests, red team and docs: `SUBS.leads` and the Leads nav entry read "Where your leads come from, what each source costs, and what to
+    do next."; `tests/lead-d87-redteam.spec.ts` sweeps every D81–D86 string and 121 books of Concierge answers and moves (banned words read
+    from check:copy, no rates, promises, gendered words, unsafe topics only in the negative); the lead guard adds things of value for
+    referrals, credit data by other names, list blasts, `LEAD_PROMISE` and `leadAudienceIssue`; roadmap steps and check-ins have ids fixed by
+    their key (`keyedMoveId`: two runs at once no longer double them); fold headings and `.cc-tap` links are 44px targets with no layout change;
+    `node scripts/qa/leads-a11y.mjs` audits names, 44px targets, 4.5:1 contrast and the keyboard on Lead sources, the planner and Expenses.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -394,7 +400,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1035 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1092 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -925,6 +931,7 @@ node scripts/qa/footer.mjs      # scroll to the footer; nothing may cover the st
 node scripts/qa/about.mjs       # nav "About" lands on #about clear of the sticky nav
 node scripts/qa/command-center.mjs  # D28: every /mlo page at 390/1280 plus each screen's main flow (start the server with CC_DEV_LOGIN=1 CC_LINK_SECRET=qa-secret MLO_OWNER_EMAIL=owner@example.com)
 node scripts/qa/buttons.mjs     # D72: button and form alignment, overflow and cut-off controls on every /mlo page (same server)
+node scripts/qa/leads-a11y.mjs  # D87: names, 44px targets, 4.5:1 contrast and a keyboard-only walk on Lead sources, the planner and Expenses (same server)
 ```
 
 The QA scripts need Playwright available to Node (`npm i -D playwright`

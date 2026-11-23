@@ -18,7 +18,7 @@
  *
  * Own book only; an assistant has no plan (spend is private).
  */
-import { randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { accountStore, type User } from "@/lib/accounts/store";
 import { pipelineStore } from "@/lib/pipeline/store";
 import { reviewLeadMove, reviewMove } from "@/lib/agents/compliance";
@@ -106,8 +106,16 @@ export async function savePlan(user: User, dollars: number, now = new Date()): P
   return { ok: true, kind: !prev ? "new" : keep ? "changed" : "restarted", steps: adv.steps };
 }
 
+/**
+ * D87: a keyed step's or check-in's id, fixed by its owner and key. Two runs at once (a page view and the morning
+ * run, or the planner and Lead sources) both pass the "not made yet" check; with the same id the second write lands
+ * on the first instead of adding a twin. Every key here is made once (roadmap steps, approved steps, check-ins), so a
+ * fixed id never overwrites an earlier move of the same key.
+ */
+export const keyedMoveId = (owner: string, key: string) => `mv_${createHash("sha256").update(`${owner}\n${key}`).digest("base64url").slice(0, 12)}`;
+
 const blankMove = (user: User, key: string, title: string, why: string, href: string, score: number, now: Date, note: string): Move => ({
-  id: `mv_${randomBytes(9).toString("base64url")}`,
+  id: keyedMoveId(user.id, key),
   key,
   ownerUserId: user.id,
   agent: "business",

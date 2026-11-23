@@ -23,7 +23,7 @@
  *  - `answerIssue` is the guard every AI answer passes (a failure holds the
  *    whole answer and the template is shown instead).
  */
-import { checkNote, leadAdviceIssue } from "@/lib/concierge/guard";
+import { checkNote, leadAdviceIssue, leadAudienceIssue, leadPromiseIssue } from "@/lib/concierge/guard";
 import { dataBlock, dataRule } from "@/lib/concierge/data";
 import { findRateMentions, guardReply } from "@/lib/m8/guard";
 import { LEAD_ASK, LEADS } from "@/lib/content/cc-pages";
@@ -329,6 +329,9 @@ export function answerIssue(text: string): string | null {
   if (findRateMentions(text).length) return "mentioned a rate";
   const why = leadAdviceIssue(text);
   if (why) return why;
+  // D87: no promised results, timing or earnings, and no audience aimed by who people are.
+  const promise = leadPromiseIssue(text) ?? leadAudienceIssue(text);
+  if (promise) return promise;
   for (const line of text.split(/\n+/)) {
     const n = checkNote(line);
     if (!n.ok && n.reason !== "empty") return n.reason;

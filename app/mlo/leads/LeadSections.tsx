@@ -287,7 +287,7 @@ export function MonthlyAmounts({ rows, options, month }: { rows: MonthlyRow[]; o
         <label className="mlo-field"><span>{m.amount}</span><input name="dollars" type="number" min={1} max={100000} step="1" inputMode="decimal" className="mlo-input" required /></label>
         <button type="submit" className="mlo-btn">{m.save}</button>
       </form>
-      <p className="mlo-note"><Link href="/mlo/expenses#drafts">{m.drafts}</Link></p>
+      <p className="mlo-note"><Link href="/mlo/expenses#drafts" className="cc-tap">{m.drafts}</Link></p>
     </section>
   );
 }
@@ -414,7 +414,7 @@ export function RealRecent({ rows }: { rows: RecentRow[] }) {
           <tbody>
             {rows.map(({ id, name, source, at, ok, repeat }) => (
               <tr key={id}>
-                <th scope="row"><Link href={`/mlo/contacts/${id}`}>{name}</Link><br /><span className="mlo-note">{source}{repeat ? ` · ${LEADS.recent.repeat}` : ""} · {at}</span></th>
+                <th scope="row"><Link href={`/mlo/contacts/${id}`} className="cc-tap">{name}</Link><br /><span className="mlo-note">{source}{repeat ? ` · ${LEADS.recent.repeat}` : ""} · {at}</span></th>
                 <td className="cc-leadperm-cell">
                   {ok ? (
                     <span className="cc-reach cc-reach--ok">{LEADS.status.ok}</span>

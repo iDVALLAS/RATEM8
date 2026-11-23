@@ -30,7 +30,7 @@ export default async function LeadPlan({ searchParams }: { searchParams: Promise
   const me = v.user;
   const tenant = listTenants()[0];
   const now = new Date();
-  const head = <PageHead k="leads" eyebrow={<Link href="/mlo/leads">{LEAD_PLAN.back}</Link>} title={LEAD_PLAN.title} sub={SUBS.leadPlan} />;
+  const head = <PageHead k="leads" eyebrow={<Link href="/mlo/leads" className="cc-tap">{LEAD_PLAN.back}</Link>} title={LEAD_PLAN.title} sub={SUBS.leadPlan} />;
   if (!me || me.role === "assistant") {
     return (
       <PageShell>

@@ -374,6 +374,10 @@
 /* Long sections, folded by Folds.tsx (attributes only). */
 .cc-app .mlo-section[data-fold] > h2:first-child { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; border-radius: 12px; user-select: none; }
 .cc-app .mlo-section[data-fold="closed"] > h2:first-child { margin-bottom: 0; }
+/* D87: the fold heading is a 44px tap target (it was 30px); padding and a matching negative margin keep the words and
+   the arrow exactly where they were. */
+.cc-app .mlo-section[data-fold] > h2:first-child { min-height: 44px; box-sizing: border-box; padding-block: 7px; margin-top: -7px; margin-bottom: 1px; }
+.cc-app .mlo-section[data-fold="closed"] > h2:first-child { margin-bottom: -7px; }
 .cc-app .mlo-section[data-fold="closed"] > h2:first-child::after { transform: rotate(-90deg); }
 .cc-app .mlo-section[data-fold="closed"] > :not(:first-child) { display: none !important; }
 .cc-app .mlo-section[data-fold] > h2:first-child:focus-visible, .cc-fold > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
@@ -1255,3 +1259,7 @@
 .cc-lplan-save .mlo-actions form { display: contents; }
 .cc-lplan-guards { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
 .cc-lplan-guards .cc-chip { min-height: 32px; box-sizing: border-box; padding: 6px 12px; border-radius: 999px; color: var(--fg); }
+
+/* ─── D87: a link standing on its own (not inside a sentence) gets a 44px tap target; the negative margin keeps the
+   line its own height, so nothing moves. ─── */
+.cc-app .cc-tap { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; margin-block: -12px; margin-block: calc((1lh - 44px) / 2); }

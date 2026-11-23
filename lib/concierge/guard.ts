@@ -134,6 +134,12 @@ export function checkNote(raw: string, ctx: ScanContext = {}): DraftCheck {
  */
 /** "referral", "referred", "refers", "refer". */
 const REFERR = "refer(?:r|s\\b|\\b)";
+/** D87: things of value, for the referral rule below (a free service, a card, cash, tickets, a meal, a tip, covering someone's costs). */
+const VALUE = "free\\s+\\w+|gift\\s*cards?|visa\\s+cards?|prepaid\\s+cards?|cash|money|\\$\\s?\\d[\\d,]*|tickets?|seats|(?:ball\\s*)?games?|golf|outings?|concerts?|lunch(?:es)?|dinners?|drinks|tips?|discounts?|credits?|bonus(?:es)?|perks?|swag|trips?|vacations?|(?:cover|covering|pay|paying)\\s+(?:for\\s+)?(?:the\\s+|their\\s+|her\\s+|his\\s+|an?\\s+)?(?:agent'?s?\\s+|realtor'?s?\\s+|builder'?s?\\s+)?(?:costs?|ads?|marketing|open\\s+houses?|fees?|expenses?|bills?)";
+/** D87: settlement-service partners who could send a loan officer business. */
+const PRO = "agents?|realtors?|real estate agents?|builders?|brokers?|escrow\\s+\\w+|title\\s+(?:reps?|officers?|compan\\w*|agents?)|(?:referral\\s+)?partners?|planners?|cpas?|attorneys?|lawyers?";
+/** D87: sending business ("sends me buyers", "if they send me", "her buyers close with you"). */
+const SENDS = "\\b(?:sends?|sent|sending|brings?|bringing|brought|steers?|steered|steering|hands?|handed|handing)\\s+(?:me|you|us)\\b|\\b(?:sends?|sent|sending|brings?|bringing|brought|steers?|steered|steering)\\s+(?:me\\s+|you\\s+|us\\s+)?(?:her|his|their|more|all|over)?\\s*(?:\\w+\\s+)?(?:buyers?|clients?|business|deals?|files?|leads?)\\b|\\b(?:she|he|they)\\s+(?:sends?|sent|brings?|steers?)\\b|\\b(?:(?:her|his|their)\\s+(?:buyers?|clients?)|(?:buyers?|clients?)\\s+of\\s+(?:hers|his|theirs))\\b[^.?!\\n]{0,30}\\bclose[sd]?\\b";
 export const LEAD_ADVICE: [RegExp, string][] = [
   [new RegExp(`\\bgifts?\\b[^.\\n]{0,80}\\b${REFERR}|\\b${REFERR}\\w*[^.\\n]{0,80}\\bgifts?\\b`, "i"), "ties a gift to referrals"],
   [/\b(gifts?|lunch(es)?|dinners?|tickets?|gift\s*cards?|bonus(es)?|perks?|swag)\b[^.\n]{0,60}\b(for|in exchange for|in return for|when(ever)? they|every time they|if they|each time they)\b[^.\n]{0,30}\b(send|sends|sent|bring|brings|hand|hands|steer|steers|refer\w*)\b/i, "ties a gift to referrals"],
@@ -145,7 +151,45 @@ export const LEAD_ADVICE: [RegExp, string][] = [
   [/\btrigger(ed)?[\s-]*leads?\b|\bcredit[\s-]*(inquiry|inquiries|pull|pulls|bureau)\s+(data|lists?|leads?|files?|alerts?)\b|\binquiry\s+(data|lists?|leads?|alerts?)\b|\b(buy|buying|purchase|purchasing)\b[^.\n]{0,30}\bcredit\s+(data|lists?|inquir\w*)\b/i, "suggests trigger leads or credit-inquiry data"],
   [/\b(call|text|email|message|contact|reach|dial|blast|robocall)\w*\b[^.\n]{0,60}\b(without|no)\s+(their\s+|the\s+|any\s+)?(permission|consent|opt[\s-]?ins?)\b|\bignor\w*\s+(the\s+|their\s+)?(consent|permission|opt[\s-]?outs?|do[\s-]not[\s-]call|dnc|stops?)\b|\b(call|text|email|message|contact|dial)\w*\b[^.\n]{0,60}\b(don'?t|do not|didn'?t|did not|never)\s+(give|gave|have|had|say|said)\s+(me\s+|you\s+)?(permission|consent|yes)\b|\b(call|text|dial)\w*\b[^.\n]{0,40}\b(who|that)\s+(said|texted|replied)\s+stop\b|\b(get around|bypass|skip|work around)\b[^.\n]{0,30}\b(consent|permission|opt[\s-]?outs?|do[\s-]not[\s-]call|dnc)\b/i, "suggests contacting leads without permission"],
   [/\binterest\s+rates?\b|\bAPR\b|\brates?\s+(of|at|from)\s+\d|\bmortgage\s+rates?\b|\brate\s+(quotes?|sheets?|locks?)\b|\bquot\w*\b[^.\n]{0,30}\brates?\b/i, "mentions a rate"],
+  // D87 red team: anything of value (not only a "gift") for referrals: a free service, a card, cash, tickets, a meal,
+  // a tip, a discount, or covering the agent's own costs or ads (RESPA section 8). Closing gifts on their own never
+  // name a referral, so they pass (owner decision 3).
+  [new RegExp(`\\b(${VALUE})\\b[^.?\\n]{0,80}\\b${REFERR}\\w*|\\b${REFERR}\\w*[^.?\\n]{0,60}\\b(${VALUE})\\b`, "i"), "ties something of value to referrals (RESPA section 8)"],
+  // … and for an agent, builder or other settlement-service partner sending you business ("tickets if they send me
+  // buyers", "a card when one of her buyers closes with you"). A vendor that sends leads for a price isn't a person
+  // referring business, so a sentence needs one of these partners in it.
+  [new RegExp(`(?:^|[.?!\\n])(?=[^.?!\\n]*\\b(${PRO})\\b)[^.?!\\n]*?(?:\\b(${VALUE})\\b[^.?!\\n]{0,80}(${SENDS})|(${SENDS})[^.?!\\n]{0,60}\\b(${VALUE})\\b)`, "i"), "ties something of value to referrals (RESPA section 8)"],
+  [/\b(pay|paying|pays|cover|covering|covers)\s+(more|less)\s+than\s+(my|your|our|her|his|their|a fair)\s+(share|half|part)\b/i, "suggests paying for referrals (RESPA section 8)"],
+  // D87 red team: credit data by other names (prescreened lists, people whose credit another lender pulled).
+  [/\bpre-?screen\w*\b[^.?\n]{0,30}\b(lists?|leads?|data|offers?|names)\b|\bcredit\b[^.?\n]{0,30}\b(was|were|got|been|just)\s+pulled\b|\b(buy|buying|get|getting|purchase|purchasing|sells?|selling|find|source)\b[^.?\n]{0,40}\b(people|leads?|lists?|names|borrowers)\b[^.?\n]{0,40}\b(applied|shopp\w*|inquired)\b[^.?\n]{0,40}\b(elsewhere|another lender|other lenders?|somewhere else|a competitor)\b/i, "suggests trigger leads or credit-inquiry data"],
+  // D87 red team: blasting a whole list by recorded call, auto-dialer or mass text skips each person's own yes.
+  [/\b(robo-?call|robo-?text|robo-?dial|auto-?dial|mass[- ]text|blast)\w*\b[^.?\n]{0,40}\b(list|lists|everyone|everybody|all|whole|entire|leads|contacts|book)\b/i, "suggests contacting leads without permission"],
 ];
+
+/**
+ * D87 red team: a promise about results, a timing promise or an earnings claim in lead-source advice ("you'll get 40
+ * leads", "loans within a week", "earn $50,000 more"). The Concierge explains the loan officer's own numbers and
+ * labels estimates; it never promises an outcome. Spelled in pieces so check:copy passes.
+ */
+export const LEAD_PROMISE: [RegExp, string][] = [
+  [/\b(you(?:'ll|’ll| will)|you(?:'re|’re| are) going to|(?:i|we) promise|expect to|this (?:plan|source|split) will)\s+(?:definitely\s+|certainly\s+|easily\s+)?(get|close|see|earn|make|land|win|double|triple|bring in|generate)\b[^.?\n]{0,30}(\d|\b(more|extra|dozens|hundreds|lots)\b)/i, "sounds like a promise"],
+  [/\b(leads?|loans?|closings?|results?|replies|calls?|business|deals?)\b[^.?\n]{0,40}\b(within|in)\s+(minutes|an hour|hours|a day|one day|days|a week|one week|24 hours|48 hours|\d+\s+(minutes?|hours?))\b/i, "makes a timing promise"],
+  [/\bguarant(?:ee|eed|ees)\b|\b(earn|earning|make|making|bring in|add)\s+(an extra\s+|another\s+)?\$\s?\d[\d,.]*k?\b[^.?\n]{0,30}\b(more|extra|a year|a month|per year|per month|income|profit)\b|\b(more|extra)\s+(income|money|profit)\b|\bsix[- ]figure/i, "makes an earnings claim"],
+];
+
+/** The first promise rule a text breaks, or null. */
+export function leadPromiseIssue(text: string): string | null {
+  for (const [re, why] of LEAD_PROMISE) if (re.test(text)) return why;
+  return null;
+}
+
+/**
+ * D87 red team (fair housing): an audience picked by age, sex or a generation, beyond the protected words
+ * `protectedTopic` already catches ("people under 35", "millennials", "women only"). Ads and audiences are aimed by
+ * place and interest in homes only.
+ */
+const LEAD_AUDIENCE = /\b(people|buyers|folks|adults|users|anyone|homeowners|renters|men|women|prospects|leads)\s+(under|over|younger than|older than|aged?|ages|between)\s+\d{2}\b|\b(millennials?|gen[- ]?z|gen[- ]?x|boomers?|young (people|buyers|couples|families|professionals|adults)|older (people|buyers|folks|adults|homeowners))\b|\b(men|women|males?|females?)\s+only\b|\bonly\s+(to\s+)?(men|women|males?|females?)\b/i;
+export const leadAudienceIssue = (text: string): string | null => (LEAD_AUDIENCE.test(text) ? "aims an audience by who people are (fair housing)" : null);
 
 /** The first lead-advice rule a text breaks, or null. Rates are also caught by `findRateMentions` where this runs. */
 export function leadAdviceIssue(text: string): string | null {
@@ -174,6 +218,9 @@ export function leadQuestionIssue(q: string): LeadQuestionIssue | null {
   if (/\b(pay|paying|reward|compensat\w*|kick\w*)\b[^.?\n]{0,30}\b(real estate agents?|realtors?|agents?)\b/i.test(q)) return { code: "referral", reason: "suggests paying for referrals (RESPA section 8)" };
   const topic = protectedTopic(q);
   if (topic) return { code: "protected", reason: `touches ${topic}` };
+  // D87: an audience by age, sex or generation ("ads only to people under 35").
+  const aim = leadAudienceIssue(q);
+  if (aim) return { code: "protected", reason: aim };
   return null;
 }
 

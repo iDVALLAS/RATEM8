@@ -48,7 +48,7 @@ export const DESTS: Dest[] = [
   { key: "agentlist", href: "/mlo/contacts?kind=agent", label: "Agents", icon: "users", group: "people", desc: "Real estate agents you work with, and the agent lists you've imported.", match: /^$/ },
   { key: "import", href: "/mlo/contacts/import", label: "Import", icon: "upload", group: "people", desc: "Drop Excel, CSV or phone contacts. Matched, cleaned and merged for you.", account: true },
   { key: "permission", href: "/mlo/contacts/permission", label: "Permission", icon: "check", group: "people", desc: "Record consent you already hold, and do-not-call checks, in bulk.", account: true },
-  { key: "leads", href: "/mlo/leads", label: "Leads", icon: "lead", group: "people", desc: "New leads from your lead vendors, with where each came from." },
+  { key: "leads", href: "/mlo/leads", label: "Leads", icon: "lead", group: "people", desc: "Where your leads come from, what each source costs, and what to do next." },
   { key: "campaigns", href: "/mlo/campaigns", label: "Campaigns", icon: "send", group: "people", desc: "Texts, emails and reminders spaced over days, sent for you through your contact rules.", account: true },
   { key: "cards", href: "/mlo/cards", label: "Cards by mail", icon: "mail", group: "people", desc: "Pick people, or everyone, and send handwritten-style notes and holiday cards through Thanks.io.", account: true },
   { key: "videos", href: "/mlo/videos", label: "Video messages", icon: "video", group: "people", desc: "Record a short video, have its words checked, and send each person their own link. See who watched.", account: true },

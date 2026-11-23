@@ -69,7 +69,8 @@ export const SUBS = {
   pipeline: "Loans from your loan system, each with its journey and clocks.",
   agents: "Who works for you, and whether each one is on.",
   team: "Who's on Command Center, their roles and whose book they work in.",
-  leads: "New leads from your lead vendors and web forms, with where each came from.",
+  // D87: the owner's words for the Lead sources entry.
+  leads: "Where your leads come from, what each source costs, and what to do next.",
   /** D86: the budget planner. */
   leadPlan: "Pick a monthly budget. Your Concierge splits it across your sources by what each one has actually closed.",
 } as const;
