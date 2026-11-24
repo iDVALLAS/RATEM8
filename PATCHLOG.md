@@ -7919,3 +7919,16 @@ type errors" and "scan the site for any errors like this."
   (c) `text-fit.mjs` seeds the book, so run it on a fresh server before the other audits, as `command-center.mjs` also expects.
 - **Known issues:** none found by the scan.
 - **Next up:** promote (the owner already asked for it).
+
+## Promote — D91 to production (2026-11-24)
+
+Owner: "promote D90 and D91 when they're done".
+
+- Reviewed before promote: the showcase screenshots at 390, 600, 904 and 1280 in Night and Paper (step labels spaced,
+  every tile word whole), and the builder's audit results (text-fit, command-center, pages, leads-a11y, buttons,
+  overflow and hydration all clean; `npm run verify` with 1174 tests).
+- Remote M8 red team against the c061b6b preview: 43 of 43.
+- Production deployment of the exact commit c061b6b (D91 plus the D90 promote log), created from Git.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/sign-up` 200 with the
+  new step labels, `/api/health` 200, `/chat` 307 (tester lock).
+- **Next up:** nothing queued; waiting on the owner.
