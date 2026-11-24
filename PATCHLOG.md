@@ -7961,3 +7961,15 @@ recommended".
 - **Tests:** `app/mlo/auth-scroll.test.ts` +1 (the new words, and never the bare "Recommended").
 - **Verified:** `npm run verify` passed (1177 tests).
 - **Next up:** promote D91.1 and D91.2 (the owner said "promote both").
+
+## Promote — D91.1 and D91.2 to production (2026-11-24)
+
+Owner: "make the change but say … 'Turn on: recommended' and promote both".
+
+- Remote M8 red team against the b2bfa7a preview: 43 of 43.
+- Production deployment of the exact commit b2bfa7a (D91.1 sign-in/sign-up open at the top, D91.2 "Turn on:
+  recommended"), created from Git.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/sign-up` 200,
+  `/api/health` 200, `/chat` 307 (tester lock).
+- **Owner check:** tap "Sign in" at the bottom of the sign-up page in Safari; it should open at the top.
+- **Next up:** nothing queued; waiting on the owner.
