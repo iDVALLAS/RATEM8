@@ -3,6 +3,7 @@ import { AGENT_KEYS, AGENTS } from "@/lib/agents/team";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Icon } from "./icons";
 import Brand from "./Brand";
+import AuthScrollTop from "./AuthScrollTop";
 import type { IconName } from "./nav";
 import { NOW_STEP, stepLabelClass } from "./auth-steps";
 import "./cc-shell.css";
@@ -20,6 +21,7 @@ const POINTS: readonly { icon: IconName; text: string }[] = CC_POINTS;
 export default function CcAuthShell({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
   return (
     <div className="cc-app cc-auth">
+      <AuthScrollTop />
       <a href="#main" className="skip-link">Skip to content</a>
       <header className="cc-bar">
         <div className="cc-bar__in">

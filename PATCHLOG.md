@@ -7932,3 +7932,20 @@ Owner: "promote D90 and D91 when they're done".
 - loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/sign-up` 200 with the
   new step labels, `/api/health` 200, `/chat` 307 (tester lock).
 - **Next up:** nothing queued; waiting on the owner.
+
+## D91.1 — Sign-in and sign-up open at the top (2026-11-24)
+
+The owner's report: on the sign-up page, "Already have an account? Sign in" opened the sign-in page part-way down
+instead of at the top.
+
+- **Cause:** the link sits at the bottom of the long sign-up form, and sign-in is a shorter page. Moving between them
+  without a full reload can leave some browsers keeping the old scroll position. Chromium (desktop sizes, iPhone and
+  Pixel emulation) already landed at the top, so the jump is most likely Safari, which this sandbox can't run.
+- **Fix:** `app/mlo/AuthScrollTop.tsx`, mounted once in `app/mlo/CcAuthShell.tsx`, scrolls to the top whenever one of
+  the four auth pages opens (`/sign-in`, `/sign-in/code`, `/sign-up`, `/sign-up/confirm`), unless the address has a
+  `#link`, which keeps its spot. Nothing else on the pages changes.
+- **Tests:** `app/mlo/auth-scroll.test.ts` (2) keeps it mounted and keeps the #link exception.
+- **Verified:** `npm run verify` passed (1176 tests). On a fresh production server, sign-up → Sign in landed at the top
+  at 1440×900, 1536×864, 1920×1080, 1280×720, 1024×768, 768×1024, iPhone 14, iPhone SE and Pixel 7.
+- **Known issue:** not checked in real Safari here; the owner's phone or Mac is the check.
+- **Next up:** promote on the owner's word.
