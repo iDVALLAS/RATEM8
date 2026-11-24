@@ -8,11 +8,12 @@ import ThemeToggle from "./ThemeToggle";
 import PartnerMenu from "./PartnerMenu";
 import LocationBeacon from "./LocationBeacon";
 import { copy } from "@/lib/copy";
+import { loadPricedToday } from "@/lib/priced-today";
 
 /**
  * Nav — sticky top bar.
  * Desktop: Wordmark, then two groups split by a thin vertical divider:
- *   group 1 (brighter): Calculators, M8 Chat, Partner ▾
+ *   group 1 (brighter): [Today's pricing], Calculators, M8 Chat, Partner ▾
  *   group 2 (dimmer):   Principles, About, Privacy
  * then the theme toggle. Partner is a dropdown (MLOs, agents,
  * investors; see PartnerMenu). D90: no separate "MLO login" button;
@@ -26,6 +27,11 @@ import { copy } from "@/lib/copy";
  * link tap (same-page links too), and starts at the measured header
  * height. v20: the sheet is rendered after the header, not inside it (the
  * header's backdrop-filter collapsed it to 0px in Safari/Firefox).
+ *
+ * D92: "Today's pricing" (→ /rates) leads group 1, left of Calculators, and
+ * heads the sheet's first group, only on a day the owner priced: PRICING_MANUAL
+ * on and a fresh snapshot (/api/rates/available, asked once per page load).
+ * Server HTML and any error render no link at all.
  */
 export function Nav() {
   const [open, setOpen] = useState(false);
@@ -33,6 +39,15 @@ export function Nav() {
   const headerRef = useRef<HTMLElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const [priced, setPriced] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    loadPricedToday().then((yes) => live && setPriced(yes));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   // The sheet starts exactly under the header (it was a fixed 61px).
   useEffect(() => {
@@ -84,6 +99,11 @@ export function Nav() {
 
           <nav className="hidden items-center text-sm lg:flex" aria-label="Primary">
             <div className="nav-group nav-group--primary">
+              {priced && (
+                <Link href={copy.nav.todaysPricing.href} className={`nav-link nav-link--priced ${isActive(copy.nav.todaysPricing.href) ? "nav-link--active" : ""}`} aria-current={isActive(copy.nav.todaysPricing.href) ? "page" : undefined}>
+                  {copy.nav.todaysPricing.label}
+                </Link>
+              )}
               {copy.nav.links.map((l) => (
                 <Link key={l.href} href={l.href} className={`nav-link ${isActive(l.href) ? "nav-link--active" : ""}`} aria-current={isActive(l.href) ? "page" : undefined}>
                   {l.label}
@@ -152,6 +172,11 @@ export function Nav() {
             {"// menu"}
           </div>
           <div className="flex flex-col">
+            {priced && (
+              <Link href={copy.nav.todaysPricing.href} className="nav-sheet__link" tabIndex={open ? 0 : -1}>
+                {copy.nav.todaysPricing.label}
+              </Link>
+            )}
             {copy.nav.links.map((l) => (
               <Link key={l.href} href={l.href} className="nav-sheet__link" tabIndex={open ? 0 : -1}>
                 {l.label}

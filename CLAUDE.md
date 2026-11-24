@@ -331,6 +331,7 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     2×2 from 520px); step labels keep a gap and a narrow tile shows first/current/last (`app/mlo/auth-steps.ts`).
     D91.1: the sign-in/sign-up pages open at the top (`app/mlo/AuthScrollTop.tsx` in `CcAuthShell`; a #link keeps its spot).
     D91.2: `/mlo/security` reads "OFF · Turn on: recommended" while the phone code is off.
+    D92: "Today's pricing" (→ `/rates`) leads the public nav's group 1 and the sheet only while `PRICING_MANUAL` is on and a snapshot is fresh (`/api/rates/available` → `{available}`, `pricedToday()`; asked once per load, fails closed).
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -439,7 +440,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1177 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1184 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -903,9 +904,16 @@ with the source screenshot. Pricing APIs and the rate sheet engine
 
 ## 4d. Nav — `components/Nav.tsx`, `components/PartnerMenu.tsx` (v14)
 
-- Desktop has two groups split by `.nav-divider`. Group 1 (Calculators,
-  M8 Chat, Partner ▾) is `--fg-soft`; group 2 (Principles, About, Privacy)
-  is `--muted`.
+- Desktop has two groups split by `.nav-divider`. Group 1 ([Today's
+  pricing], Calculators, M8 Chat, Partner ▾) is `--fg-soft`; group 2
+  (Principles, About, Privacy) is `--muted`.
+- D92: "Today's pricing" (`copy.nav.todaysPricing`, → `/rates`) is first in
+  group 1, left of Calculators, and first in the sheet's first group, only
+  on a priced day: `PRICING_MANUAL` on and a fresh snapshot, the same test
+  `/rates` uses (C13). The browser asks `/api/rates/available` once per page
+  load (`lib/priced-today.ts`; 60s shared cache); server HTML and any error
+  show no link. Group 1 is right-anchored, so it extends the row leftward
+  and existing items don't move.
 - Partner is a disclosure dropdown (MLOs → `/join`, agents → `/agents`,
   investors → `/investors`):
   - opens on hover, click or tap

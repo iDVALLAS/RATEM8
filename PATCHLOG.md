@@ -7973,3 +7973,49 @@ Owner: "make the change but say … 'Turn on: recommended' and promote both".
   `/api/health` 200, `/chat` 307 (tester lock).
 - **Owner check:** tap "Sign in" at the bottom of the sign-up page in Safari; it should open at the top.
 - **Next up:** nothing queued; waiting on the owner.
+
+## D92 — "Today's pricing" in the main menu on priced days (2026-11-24)
+
+Owner: "can you have those show up on the main menu if they are pulled for that day?" Then: put it to the left of
+"Calculators".
+
+- **What shows when:** the public main nav gets a "Today's pricing" link to `/rates`, first in group 1 (left of
+  Calculators) on desktop and first in the mobile sheet's first group. It appears only while `PRICING_MANUAL` is on AND
+  at least one daily scenario has a fresh snapshot: the same test `/rates` uses to show or 404 (C13), so the link and
+  the page always agree. With `PRICING_MANUAL` off, `/rates` shows the sample examples and the link never appears. No
+  fresh snapshot, an error, or a refused call (the C22 tester lock answers `/api/*` with 401) renders nothing: no
+  placeholder and no disabled link.
+- **How the nav learns it:** `app/api/rates/available/route.ts` (new, public like every `/api/*`) answers
+  `{ available: boolean }` from `pricedToday()` (`lib/pricing/display.ts`: `CONFIG.pricing.manual &&
+  availableScenarios().length > 0`), with `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`; nothing else
+  leaves (no prices, lender names or scenario names). `lib/priced-today.ts` (new) asks once per page load (shared by every
+  Nav mount until a full reload) and fails closed: anything but a 200 with `available: true` is no link. Pages stay
+  static; the server HTML never has the link.
+- **Fit:** the link uses the existing `.nav-link` style (group 1's `--fg-soft`, accent when on `/rates`). Desktop group 1
+  is right-anchored, so the new link extends the row to the left and every existing item keeps its exact position
+  (Calculators at x=646 at 1280 and x=390 at 1024, before and after). At 1024 the link starts at x=268 with the wordmark
+  ending at x=127, so no fit rule was needed. The mobile sheet link is a normal `.nav-sheet__link` row (about 50px tall).
+- **Copy:** `copy.nav.todaysPricing` in `lib/copy.ts` ("Today's pricing"); passes check:copy.
+- **Files:** `app/api/rates/available/route.ts` (new), `lib/priced-today.ts` (new), `lib/pricing/display.ts`,
+  `components/Nav.tsx`, `lib/copy.ts`, `lib/pricing/available.test.ts` (new, 7 tests), `CLAUDE.md` (§1 note, §3.4 count,
+  §4d).
+- **Tests:** the endpoint is false with `PRICING_MANUAL` off even with a fresh snapshot, false with it on and no snapshot,
+  false once the only snapshot is 25 hours old, true with a fresh one (body is exactly `{available: true}`, no figures or
+  lender names, the cache header), and false when the store throws; the browser check is true only for a 200 with
+  `available: true` (false, "true", null, non-200, network error and bad JSON all give no link); the server-rendered Nav
+  has no `/rates` link.
+- **Verified:** `npm run verify` passes (1184 tests). Fresh production server (`NEXT_PUBLIC_STEALTH_MODE=false
+  PRICING_MANUAL=true`): with no fresh snapshot the endpoint said false, `/rates` 404, and no link at 390 (sheet), 1024,
+  1280 and 1440 in Night and Paper on `/` and `/calculators`. With one snapshot seeded into a scratch store
+  (`PRICING_STORE_DIR`, removed afterwards; `.data/pricing` untouched): true, `/rates` 200, the link first in the desktop
+  row and first in the sheet at every width and theme, accent on `/rates`, one row, no overlaps, no horizontal scroll, no
+  page errors. `overflow.mjs` 48 routes ok, one h1 each (only the off-Vercel Analytics 404); `text-fit.mjs` on the 28
+  public pages: 366 views at 360/390/768/1024/1280 in Night and Paper, FINDINGS none. Screenshots at 390 (sheet open)
+  and 1280 in Night and Paper.
+- **Decisions:** (a) "Pulled for that day" uses the existing freshness rule (`manualStaleHours`, default 24h), the same
+  one `/rates` uses, rather than a calendar day, so the link and the page never disagree. (b) Placement per the owner:
+  first in group 1, left of Calculators. (c) Desktop nav links keep their existing size (32px tall, like Calculators);
+  the phone sheet rows are the touch targets.
+- **Known issues:** up to a minute (plus five of stale-while-revalidate) between a new snapshot and the link showing on a
+  cached edge, and the same after a snapshot goes stale; a visitor who keeps a tab open keeps that page load's answer.
+- **Next up:** promote on the owner's word.

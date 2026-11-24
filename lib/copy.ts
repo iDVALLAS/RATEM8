@@ -43,6 +43,13 @@ export const copy = {
     // Principles, About, Privacy). Owner change list 2026-10-01 (Edit 5):
     // two groups, and "For agents" becomes the "Partner" dropdown.
     /** Group 1 (brighter): Calculators, M8 Chat, then the Partner dropdown. */
+    /**
+     * D92 (owner 2026-11-24): first in group 1, left of Calculators, and
+     * first in the mobile sheet. Shown only while PRICING_MANUAL is on and
+     * a snapshot priced today is fresh (/api/rates/available); otherwise
+     * nothing renders.
+     */
+    todaysPricing: { href: "/rates", label: "Today's pricing" },
     links: [
       { href: "/calculators", label: "Calculators" },
       { href: "/chat", label: "M8 Chat" },

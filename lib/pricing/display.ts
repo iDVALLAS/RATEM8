@@ -50,6 +50,16 @@ export async function availableScenarios(): Promise<BandedScenario[]> {
   return CONFIG.pricing.demoExamples ? displayScenarios() : [];
 }
 
+/**
+ * D92: whether the main menu shows "Today's pricing". Only the owner's daily
+ * priced snapshots count: with PRICING_MANUAL off, /rates shows the sample
+ * examples and the menu link stays away.
+ */
+export async function pricedToday(): Promise<boolean> {
+  if (!CONFIG.pricing.manual) return false;
+  return (await availableScenarios()).length > 0;
+}
+
 export async function resolveDisplay(scenarioId: string): Promise<DisplayRun | null> {
   const scenario = pricingScenarios().find((s) => s.id === scenarioId);
   if (!scenario) return null;
