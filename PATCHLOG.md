@@ -7949,3 +7949,15 @@ instead of at the top.
   at 1440×900, 1536×864, 1920×1080, 1280×720, 1024×768, 768×1024, iPhone 14, iPhone SE and Pixel 7.
 - **Known issue:** not checked in real Safari here; the owner's phone or Mac is the check.
 - **Next up:** promote on the owner's word.
+
+## D91.2 — "Turn on: recommended" on Sign-in security (2026-11-24)
+
+The owner's report: on `/mlo/security` the phone-code card read "OFF Recommended", which looks like "off is
+recommended".
+
+- **Change:** `app/mlo/security/page.tsx`: while the phone code is off (and not required by the owner) the note after
+  the OFF badge reads "Turn on: recommended" (the owner's wording). "On · Since … · N recovery codes left" and
+  "Required by the owner" are unchanged.
+- **Tests:** `app/mlo/auth-scroll.test.ts` +1 (the new words, and never the bare "Recommended").
+- **Verified:** `npm run verify` passed (1177 tests).
+- **Next up:** promote D91.1 and D91.2 (the owner said "promote both").

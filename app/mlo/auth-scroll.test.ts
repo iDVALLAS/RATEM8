@@ -20,3 +20,11 @@ describe("D91.1 auth pages open at the top", () => {
     expect(src).toMatch(/\}, \[path\]\);/);
   });
 });
+
+describe("D91.2 sign-in security wording", () => {
+  it("an off phone code says to turn it on, not that off is recommended", () => {
+    const src = read("app/mlo/security/page.tsx");
+    expect(src).toContain('"Turn on: recommended"');
+    expect(src).not.toMatch(/: "Recommended"\}/);
+  });
+});

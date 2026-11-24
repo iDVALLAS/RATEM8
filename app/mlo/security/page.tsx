@@ -43,7 +43,7 @@ export default async function Security({ searchParams }: { searchParams: Promise
             <section className="mlo-section">
               <h2>A code from your phone</h2>
               <p className="mlo-note">Your client files hold personal financial information, so the FTC&apos;s Safeguards Rule asks for a second sign-in step. After the emailed link, you&apos;ll type a 6-digit code from an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy or similar). It takes a minute to set up.</p>
-              <p style={{ marginTop: 10 }}><span className={`mlo-pill ${on ? "" : "mlo-pill--off"}`}>{on ? "On" : "Off"}</span> <span className="mlo-note">{on ? `Since ${new Date(rec!.enabledAt!).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${rec!.recoveryHashes.length} recovery codes left` : mfaRequired() ? "Required by the owner" : "Recommended"}</span></p>
+              <p style={{ marginTop: 10 }}><span className={`mlo-pill ${on ? "" : "mlo-pill--off"}`}>{on ? "On" : "Off"}</span> <span className="mlo-note">{on ? `Since ${new Date(rec!.enabledAt!).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${rec!.recoveryHashes.length} recovery codes left` : mfaRequired() ? "Required by the owner" : "Turn on: recommended"}</span></p>
             </section>
             {!on ? (
               <section className="mlo-section" id="setup">
