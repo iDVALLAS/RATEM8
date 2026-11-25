@@ -8019,3 +8019,16 @@ Owner: "can you have those show up on the main menu if they are pulled for that 
 - **Known issues:** up to a minute (plus five of stale-while-revalidate) between a new snapshot and the link showing on a
   cached edge, and the same after a snapshot goes stale; a visitor who keeps a tab open keeps that page load's answer.
 - **Next up:** promote on the owner's word.
+
+## Promote — D92 to production (2026-11-25)
+
+Owner: "promote it when it's done".
+
+- Reviewed before promote: the menu screenshots at 1280 and 390 (Night and Paper), and the endpoint answers only
+  `{available}` and fails closed.
+- Remote M8 red team against the 85b9243 preview: 43 of 43.
+- Production deployment of the exact commit 85b9243 (D92), created from Git.
+- loanm8.com checked: the deployment READY on the loanm8.com alias, `/` 200, `/sign-in` 200, `/sign-up` 200,
+  `/api/health` 200, `/chat` 307 (tester lock). `/api/rates/available` answers 401 without the tester password while
+  the C22 lock is on, so only testers see the link until `SITE_LOCK="false"`, as the D92 entry says.
+- **Next up:** the core 11 pricing scenarios (`docs/TODO.md`), on the owner's word.
