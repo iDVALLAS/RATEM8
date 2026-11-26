@@ -121,6 +121,18 @@ export default function EditDetails({
         {field("leadSource", e.leadSource, { autoComplete: "off", maxLength: 120 })}
         {field("referredBy", e.referredBy, { autoComplete: "off", maxLength: 120 })}
       </div>
+      {agent ? null : (
+        <fieldset className="cc-edit__co">
+          <legend className="cc-edit__h cc-edit__sub">{e.coHeading}</legend>
+          <p className="mlo-note">{e.coNote}</p>
+          <div className="mlo-grid mlo-grid--2">
+            {field("coFirstName", e.coFirst, { autoComplete: "off", maxLength: 60 })}
+            {field("coLastName", e.coLast, { autoComplete: "off", maxLength: 80 })}
+            {field("coPhone", e.coPhone, { type: "tel", inputMode: "tel", autoComplete: "off", maxLength: 30 })}
+            {field("coEmail", e.coEmail, { type: "email", inputMode: "email", autoComplete: "off", maxLength: 254 })}
+          </div>
+        </fieldset>
+      )}
       <label className="mlo-field">
         <span>{e.notes}</span>
         <textarea name="notes" value={v.notes} onChange={set("notes")} rows={5} maxLength={4000} />

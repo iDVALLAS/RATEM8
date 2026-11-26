@@ -38,6 +38,8 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.getByRole('button', { name: 'Continue', exact: true }).click(); await page.locator('h2', { hasText: 'Where did these lists come from?' }).waitFor();
     const cb = page.locator('.mlo-section input[type=checkbox]'); if (await cb.count()) await cb.check();
     await page.getByRole('button', { name: /^Import \d+ (people|person)/ }).click(); await page.locator('h2', { hasText: 'Imported' }).waitFor();
+    // D93: the permission dialog opens after a client import; "Not now" closes it.
+    const later = page.getByRole('button', { name: 'Not now' }); await later.waitFor({ timeout: 5000 }).then(() => later.click()).catch(() => {});
   };
   const importAll = async () => { await toColumns(); await toReview(); await finish(); };
 

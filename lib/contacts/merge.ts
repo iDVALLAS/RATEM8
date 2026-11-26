@@ -53,6 +53,8 @@ export function mergeFields(keep: Contact, drop: Contact, at: string): Contact {
     referredBy: pick(keep.referredBy, drop.referredBy),
     loan: keep.loan ?? drop.loan ?? null,
     agent: keep.agent ?? drop.agent ?? null,
+    // D93: the kept record's co-borrower, else the other's (information only).
+    coBorrower: keep.coBorrower ?? drop.coBorrower ?? null,
     notes,
     tags,
     dnc: phoneFrom.dnc ?? null,

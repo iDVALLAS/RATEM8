@@ -332,6 +332,20 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     D91.1: the sign-in/sign-up pages open at the top (`app/mlo/AuthScrollTop.tsx` in `CcAuthShell`; a #link keeps its spot).
     D91.2: `/mlo/security` reads "OFF · Turn on: recommended" while the phone code is off.
     D92: "Today's pricing" (→ `/rates`) leads the public nav's group 1 and the sheet only while `PRICING_MANUAL` is on and a snapshot is fresh (`/api/rates/available` → `{available}`, `pricedToday()`; asked once per load, fails closed).
+    D93 smart import (`lib/contacts/{guess,ai-safe,ai-read,import-steps}.ts`, `app/mlo/contacts/import/{FixAll,PermissionDialog}.tsx`): owner decision 2026-11-25,
+    "AI has full access to the MLO CC": inside Command Center M8 may read real contact values (a spread sample per column, unsure rows,
+    "Needs a look" values with their row); this covers Command Center only, never the public LoanM8 side, and replaces D74's
+    "samples stay on the device" for the import (the one-at-a-time Fix with M8 tip still sends shapes). Still never sent: SSN, birth date,
+    account-number and protected-trait columns (header and contents, re-checked on the server, cells scrubbed), agent-only imports and RETR-looking
+    files (`isRetrFile`); nonce blocks, zod-checked answers, `import` meter route, rules first with a no-AI path. M8 never fills a consent field
+    (D69 guards and D74 questions unchanged). Cards show "M8's best guess" / "Best guess" (ZIP vs State/City ZIP3, Last First from header or emails,
+    co-borrower columns, "John & Jane Smith"). `Contact.coBorrower` {first, last, phone, email}: info only, the gate never reads it, no consent
+    carries; Details shows/edits it, export, D77 merge (main's else other's) and D75 fill-blank carry it. Placeholder phones/emails (repeated
+    digits, 123-456-7890, 555-0100–0199, zeros, none@none.com) read as blank, kept in notes. Both kinds can be ticked: rows sorted by Type/Agent/
+    brokerage columns, then M8; agents get relationship agent + tag "Agent", no opt-ins; step 3 split with Move. Step pills are buttons (back keeps
+    everything). Fix all with M8 lists proposed fixes kept only if `checkValue` and `derivable` pass; accept/reject each. After a client import a
+    dialog asks "Did these contacts agree to be contacted?" (Record permission `?import=…#record`, scoped; Contacts `?import=…&perm=relationship`;
+    Not now); the bulk bar has "Record permission" (`#record`, scoped to the picked people).
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -440,7 +454,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1184 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1210 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

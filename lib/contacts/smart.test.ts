@@ -1,14 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { inflateRawSync } from "node:zlib";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { readXlsx, serialToIso, colIndex } from "./xlsx";
 import { mergeRecords, parseVcf, relationshipFromName, shapeOf, shapes, smartMap, sniffColumn, toCleanCsv, toTable } from "./smart";
 import { buildRecords } from "./mapping";
 import { isoDate } from "./normalize";
 import { parseCsv } from "./csv";
-import { aiMapColumns, type MapCall } from "./ai-map";
-import { MemoryUsageStore, setUsageStoreForTests } from "@/lib/ai/meter";
 
 const inflate = async (d: Uint8Array) => new Uint8Array(inflateRawSync(d));
 const FIXTURE = join(process.cwd(), "fixtures/contacts/sample.xlsx");
@@ -98,25 +96,5 @@ describe("Bulk (D42)", () => {
     expect(records.length).toBe(10_000);
     expect(m.records.length).toBeLessThan(10_000); // the repeated emails merged
     expect(m.merged).toBe(10_000 - m.records.length);
-  });
-});
-
-describe("M8 column matching (D42)", () => {
-  beforeEach(() => setUsageStoreForTests(new MemoryUsageStore()));
-  afterEach(() => setUsageStoreForTests(null));
-  const cols = [{ header: "Client", shapes: ["Aaa Aaa"] }, { header: "Cell", shapes: ["(999) 999-9999"] }, { header: "Funded", shapes: ["9999-99-99"] }];
-
-  it("sends headers and shapes only, keeps each field once, and never runs on agent lists", async () => {
-    let sent = "";
-    const call: MapCall = async (_s, u) => {
-      sent = u;
-      return { stop: "end_turn", json: JSON.stringify({ columns: [{ column: 0, field: "fullName" }, { column: 1, field: "phone" }, { column: 2, field: "phone" }, { column: 9, field: "email" }], relationship: "past_client" }) };
-    };
-    const r = await aiMapColumns({ id: "lo1" }, { fileName: "Past clients 2021.xlsx", kind: "contacts", columns: [...cols, { header: "Leak", shapes: ["Ann Lee"] }] }, { call });
-    expect(r).toEqual({ ok: true, mapping: { fullName: 0, phone: 1 }, relationship: "past_client", fields: ["fullName", "phone", "phone", "none"], unsure: [] });
-    expect(sent).toContain("Aaa Aaa");
-    expect(sent).not.toContain("Ann Lee"); // a "shape" that's really a value is dropped
-    expect(await aiMapColumns({ id: "lo1" }, { fileName: "retr.csv", kind: "agents", columns: cols }, { call })).toMatchObject({ ok: false });
-    expect(await aiMapColumns({ id: "lo1" }, { fileName: "x.csv", kind: "contacts", columns: cols }, { call: async () => ({ stop: "end_turn", json: "{bad" }) })).toMatchObject({ ok: false });
   });
 });

@@ -209,6 +209,38 @@ export function dateProblem(raw: string, order: DateOrder = "mdy", now = new Dat
 /** D74: a cell that only says "nothing here" ("N/A", "none", "-"), so it isn't flagged as a bad value. */
 export const isPlaceholder = (raw: string) => /^(n\/?a|none|null|nil|unknown|tbd|-+|\.+|x|0)$/i.test(raw.trim());
 
+/**
+ * D93: a phone a CRM filled in because the real one was missing:
+ * "111-111-1111" and other repeated digits, 123-456-7890 (and 0123456789,
+ * 9876543210), the 555-0100 to 555-0199 fiction range, and runs of zeros.
+ * Read as blank (kept in notes as written), never as a value that needs a look.
+ */
+export function isPlaceholderPhone(raw: string): boolean {
+  const s = raw.trim();
+  if (isPlaceholder(s)) return true;
+  const d = s.replace(/\D/g, "");
+  if (d.length < 7 || d.length > 11) return false;
+  const ten = d.length === 11 && d.startsWith("1") ? d.slice(1) : d;
+  if (/^(\d)\1+$/.test(ten) || /^0+$/.test(d)) return true;
+  if (/^(0?123456789|1234567890|9876543210|0987654321)$/.test(ten) || ten === "1234567") return true;
+  // 555-0100 to 555-0199, with or without an area code in front.
+  if (/^(\d{3})?55501\d{2}$/.test(ten)) return true;
+  // An area code or exchange of all zeros ("000-000-1234", "206-000-0000").
+  if (/^000/.test(ten) || /^\d{3}0000000$/.test(ten)) return true;
+  return false;
+}
+
+/** D93: an email a CRM filled in because the real one was missing ("none@none.com", "noemail@…", "na@na.com"). */
+export function isPlaceholderEmail(raw: string): boolean {
+  const s = raw.trim().toLowerCase();
+  if (isPlaceholder(s)) return true;
+  const at = s.lastIndexOf("@");
+  if (at < 1) return false;
+  const local = s.slice(0, at);
+  const domain = s.slice(at + 1);
+  return /^(no|none|noemail|no-?email|nomail|no-?mail|na|n\/a|null|unknown|x+|noreply|no-?reply|donotemail|dontemail)$/.test(local) || /^(none|noemail|nomail|noemail\.?address|na|null|unknown)\.(com|net|org)$/.test(domain);
+}
+
 /** D74: why a phone number wasn't read: too short, too long, a 555 test number, or not a real US number. */
 export function phoneProblem(raw: string): string {
   const d = raw.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");

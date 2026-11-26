@@ -496,15 +496,26 @@
 /* ---- D74: import review ---- */
 /* The four steps. */
 .im-steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; scroll-margin-top: 96px; }
-.im-steps li { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; box-sizing: border-box; padding: 4px 14px 4px 4px; border: 1px solid var(--rule-strong); border-radius: 999px; color: var(--muted); font-size: 14px; }
-.im-steps__n { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 28px; height: 28px; border-radius: 999px; background: var(--cc-card-2); color: var(--fg-soft); font-family: var(--font-jetbrains), monospace; font-size: 12px; }
-.cc-app .im-steps li[aria-current="step"] { border-color: var(--cc-nav-on); color: var(--fg); font-weight: 600; }
-.cc-app .im-steps li[aria-current="step"] .im-steps__n { background: var(--cc-nav-on); color: var(--cc-nav-on-fg); }
-.im-steps li[data-done] { color: var(--fg-soft); }
+/* D93: each step is a button; done steps (and reached ones) open with everything kept. */
+.im-steps li { display: flex; min-width: 0; }
+.im-steps__btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; width: 100%; box-sizing: border-box; margin: 0; padding: 4px 14px 4px 6px; border: 1px solid var(--rule-strong); border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: 14px; line-height: 1.25; text-align: left; cursor: pointer; }
+.im-steps__btn:hover:not([aria-disabled]):not([aria-current]) { border-color: var(--fg-soft); color: var(--fg); }
+.im-steps__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.im-steps__btn[aria-disabled="true"] { cursor: not-allowed; border-style: dashed; }
+.im-steps__n { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 30px; height: 30px; border-radius: 999px; background: var(--cc-card-2); color: var(--fg-soft); font-family: var(--font-jetbrains), monospace; font-size: 12px; }
+.cc-app .im-steps__btn[aria-current="step"] { border-color: var(--cc-nav-on); color: var(--fg); font-weight: 600; cursor: default; }
+.cc-app .im-steps__btn[aria-current="step"] .im-steps__n { background: var(--cc-nav-on); color: var(--cc-nav-on-fg); }
+.im-steps li[data-done] .im-steps__btn { color: var(--fg-soft); }
 .im-steps li[data-done] .im-steps__n { background: var(--accent-soft); color: var(--fg); }
+.cc-app .im-kept { margin-top: 8px; }
+/* D93: the permission dialog after an import. */
+.im-perm .cc-report__panel { overflow-y: auto; max-height: calc(100svh - 34px); }
+.im-perm__body { margin: 0; color: var(--fg-soft); font-size: 15px; line-height: 1.5; }
+.im-perm__opts { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.im-perm__opt { width: 100%; box-sizing: border-box; }
 @media (max-width: 520px) {
   .im-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .im-steps li { font-size: 13px; padding-right: 10px; }
+  .im-steps__btn { font-size: 13px; padding-right: 10px; }
 }
 .im-sub { margin-top: 18px; }
 .cc-app .im-gap { margin-top: 8px; }
@@ -530,6 +541,10 @@
 .im-col__ex { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .im-col__note { margin: 0; font-size: 13.5px; color: var(--fg-soft); }
 .im-col__note--check { color: var(--cc-warn-text); }
+/* D93: the best guess on a column card or a question. */
+.im-col__guess { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--fg-soft); overflow-wrap: anywhere; }
+.im-col__guess strong { color: var(--fg); font-weight: 600; }
+.cc-app .im-hint { margin: 14px 0 0; }
 /* Format questions. */
 .im-qs { display: grid; gap: 10px; margin-top: 14px; }
 .im-q { display: grid; gap: 10px; min-width: 0; padding: 14px 16px; border: 1px solid var(--rule-strong); border-radius: 14px; background: var(--cc-card-2); }
@@ -560,6 +575,13 @@
 .im-fix { display: grid; gap: 10px; margin-top: 4px; border-color: var(--rule-strong); }
 .im-fix__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .im-fix__head .cc-card__title { margin: 0; }
+/* D93: Fix all with M8: proposed fixes to accept or reject. */
+.im-fixall__list { list-style: none; margin: 0; padding: 0; display: grid; }
+.im-fixall__row { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--rule); min-width: 0; }
+.im-fixall__what { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.im-fixall__from { font-size: 14px; color: var(--fg-soft); }
+.im-fixall__to { font-size: 15px; font-weight: 600; color: var(--fg); }
+@media (min-width: 640px) { .im-fixall__row { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
 .cc-app .im-fix__x { width: 44px; height: 44px; font-size: 22px; }
 .im-fix__ask { margin: 0; color: var(--fg); font-size: 16px; overflow-wrap: anywhere; }
 .im-suggest { display: grid; gap: 8px; }
@@ -849,10 +871,14 @@
 .cc-dl dt { color: var(--muted); font-size: 13px; }
 .cc-dl dd { margin: 0; color: var(--fg); font-size: 15px; overflow-wrap: anywhere; }
 .cc-dl__pre { white-space: pre-wrap; }
+/* D93: a short line under a value (the co-borrower's "information only"). */
+.cc-dl__sub { display: block; margin-top: 4px; font-size: 13.5px; }
 @media (min-width: 640px) { .cc-dl > div { grid-template-columns: 160px minmax(0, 1fr); gap: 16px; } }
 .cc-details__tags { margin-top: 18px; }
 .cc-details__tags h3, .cc-merge h3, .cc-ctabs__panel .mlo-section h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; color: var(--fg); }
 .cc-edit__h { margin: 0; font-size: 18px; font-weight: 600; color: var(--fg); }
+.cc-edit__co { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 10px; }
+.cc-edit__sub { padding: 0; font-size: 16px; }
 .cc-field-err { color: var(--cc-warn-text); font-size: 13.5px; }
 .cc-app .mlo-field [aria-invalid="true"] { border-color: var(--cc-warn); box-shadow: inset 0 0 0 1px var(--cc-warn); }
 .cc-warnline { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--cc-warn-bg); color: var(--cc-warn-text); font-size: 14px; line-height: 1.45; }

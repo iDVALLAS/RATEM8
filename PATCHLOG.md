@@ -8032,3 +8032,147 @@ Owner: "promote it when it's done".
   `/api/health` 200, `/chat` 307 (tester lock). `/api/rates/available` answers 401 without the tester password while
   the C22 lock is on, so only testers see the link until `SITE_LOCK="false"`, as the D92 entry says.
 - **Next up:** the core 11 pricing scenarios (`docs/TODO.md`), on the owner's word.
+
+## D93 — Smart import: M8 reads the file, co-borrowers, mixed lists, step back, permission after import (2026-11-25)
+
+Owner decisions (2026-11-25):
+- "I want AI to see the full extent of all the CRM contacts to help aid with everything in the MLO CC. The only thing
+  that mattered was the consumer facing LoanM8 side where their info stays private. AI has full access to the MLO CC."
+  This covers Command Center only (never the public LoanM8 side) and replaces D74's "samples stay on the device / Fix
+  with M8 sends only field, value shape and a reason code" for the import. Limits that stay: SSN, date-of-birth and
+  account-number columns are never imported or sent; RETR data never goes to a model; file text goes only in nonce data
+  blocks and answers are zod-checked (invalid = dropped, rules carry on); M8 never decides consent or opt-outs (D69
+  guards and D74 questions unchanged); everything through the `import` meter route with a no-AI path.
+- Co-borrowers: "Save on the contact, info only." Nothing is texted, called or emailed to them until their own
+  permission is recorded; no consent carries from the borrower.
+
+What the loan officer sees:
+- **Step 1, Add files:** "What's in these files?" is two checkboxes (Clients and contacts, Real estate agents; at least
+  one stays ticked; adding agents to clients keeps every column choice). The drop-zone note now says M8 reads a sample of
+  each column (never SSN, birth dates or account numbers). A file that looks like a RETR export gets its own line:
+  nothing in it goes to M8.
+- **Step pills:** each step is a button (`aria-current="step"` on the current one, `aria-disabled` plus a reason for one
+  not open yet). Any done or reached step opens with everything kept (files, column choices, answers, fixes, moves,
+  tags, sources); forward only while what it needs holds (files; every question answered; someone to import). A note
+  under the pills says going back keeps everything. Rules in `lib/contacts/import-steps.ts` (`stepStatus`, `canGo`,
+  `goTo`, `next`).
+- **Step 2, Check columns:** "Have a column that says who agreed? Map it here…" at the top. Each card can carry a
+  "Best guess:" (rules, on the device) or "M8's best guess:" (the model) line, with Sure / Check this and "Use this
+  guess" when it names a different field: a 5-digit column whose ZIPs fall in the State column's state (USPS ZIP3) or
+  share a prefix within a City ("30 of 30 fall in the State column's state"; low agreement says these may be Excel
+  dates); a ZIP matched by contents that agrees reads Sure; co-borrower columns; "N names hold two people". The name
+  question shows the best guess for First Last / Last First (from the header, "Name (Last, First)", or from emails:
+  `john.smith@`, `jsmith@`; else M8's) and still waits for the loan officer's tap. Headers: "LAST NAME", "Borrower
+  Last/First", "Last, First" and "Borrower Name" map; "Role" is a relationship column.
+- **Co-borrowers:** `Contact.coBorrower` {firstName, lastName, phone, email}. Columns "Co-Borrower First", "CoBorrower
+  Last", "Co Borrower Email", "Borrower 2 Cell", "Spouse Name/Phone/Email", "Co-Applicant…" map to five new fields
+  (`coFirstName`, `coLastName`, `coFullName`, `coPhone`, `coEmail`); a person's own fields still never take them (D69).
+  "John & Jane Smith", "Smith, John and Jane", "John Smith & Jane Doe" and First = "John and Jane" become borrower plus
+  co-borrower when the file has no co-borrower columns. A co-borrower phone or email that doesn't read (or a placeholder)
+  is kept in notes as written, never "Needs a look". Details shows "Co-borrower" with "Saved for your reference. Nothing
+  is texted, called or emailed to them…"; Edit has its four boxes, checked like the rest (`checkEdit`; agents have none).
+  Download everything carries `coBorrower.*` columns, the cleaned CSV four co-borrower columns, a D77 merge keeps the
+  main record's else the other's, an in-file merge and a D75 re-import fill a blank one ("newer" takes the file's).
+  The send gate reads only `phone`/`email`, so a co-borrower is never reachable, and an inbound text from their number
+  finds no contact.
+- **Placeholders:** phones like 111-111-1111 (any repeated digit), 123-456-7890, 0123456789, 9876543210, 555-0100 to
+  555-0199, all zeros or a zero area code / line, and emails like none@none.com, noemail@…, na@na.com, x@x.com read as
+  blank, go into notes "as written", and are counted ("N placeholder phones or emails … don't need a look"). 222-222-2222
+  used to pass as a real number; it no longer does.
+- **Step 3, Fix and tag:** "Fix all with M8" (or "Suggest fixes for all" for an agent-only import) beside the one-at-a-time
+  "Fix with M8". M8 gets each value, its reason code and the rest of the row (name, email, phone, street, city, state,
+  ZIP), file by file, 100 at a time, up to 1,000; the server keeps a fix only if `checkValue` passes and `derivable`
+  says it can come from what's written (phone digits a subsequence of the raw, ZIP digits or a lost leading zero, email
+  within 4 edits, date parts present, a name from the email); everything else, agent rows, RETR files and the no-key
+  path get the device's own `localSuggestion`. Each proposal has Accept / Reject (and Accept all); nothing changes until
+  accepted. Mixed imports get "Clients and agents": "N clients · N agents", why each row landed (Type column, Agent
+  column, brokerage or license, Sorted by M8, Moved by you, Not sure), Move to agents / Move to clients per row; unsure
+  rows count as clients.
+- **Sorting a mixed file:** Type/Role/Category values first (agent, realtor, broker, listing… vs buyer, seller,
+  borrower, client, lead…), then an "Agent?" yes/no column, then a brokerage, license, MLS ID or DRE column; M8 sorts only
+  rows still unsure (150 per file, never a RETR file); the loan officer's move wins. An agent row gets relationship
+  "agent" (filed under Agents by D80's rule), the tag "Agent", its brokerage, no loan, no co-borrower and no opt-ins
+  (opt-outs still count).
+- **Step 4 and after:** the mixed counts show above the consent summary. As soon as a client import finishes, a dialog
+  asks "Did these contacts agree to be contacted?" (texts and calls need each person's permission; email is fine for
+  people you know; nobody is marked as agreeing unless you record it): "Record permission for this import"
+  (`/mlo/contacts/permission?import=…#record`), "Go through them one by one" (`/mlo/contacts?import=…&perm=relationship`),
+  "Not now" (Esc and a tap outside close it; focus returns to "Imported"). Record permission now covers only the
+  import's people (or the people picked on Contacts: `ids=` / `scope=list`), with "N left out: not past clients"; the
+  wording, confirmations and consent records are the existing D12.2 ones. The Contacts bulk bar gets "Record
+  permission" → "Record permission for these people" (same page, `#record`).
+
+What goes to the model, and what never does:
+- Goes (clients, not RETR): headers plus 12 different values from across each column (first, last and evenly between),
+  what the rules matched; unsure rows' cells in a mixed file; "Needs a look" values with their row.
+- Never: columns that are private by header or contents (SSN, birth date, account number, credit score…, or >50%
+  SSN-shaped values) or protected traits, re-checked on the server whatever the browser sends; any cell is scrubbed
+  again (SSN shapes, 9-digit runs, 12+ digit runs, dates near a birth word → •••); agent-only imports; files that look
+  like RETR exports (name, a RETR header, or two production columns). The model can't map a consent field (they aren't
+  offered and are dropped); its column answers sit under the rules (fills what the rules couldn't place, flags a
+  disagreement, never moves an opt-out).
+- Retired: `lib/contacts/ai-map.ts` and `aiMapAction` (shapes only), replaced by `lib/contacts/ai-read.ts`
+  (`aiReadColumns`, `aiSortRows`, `aiFixAll`) and `aiReadAction` / `aiSortAction` / `aiFixAllAction`.
+
+Files: new `lib/contacts/{guess,ai-safe,ai-read,import-steps}.ts`, `lib/contacts/d93.test.ts`,
+`app/mlo/contacts/import/{FixAll,PermissionDialog}.tsx`; changed `lib/contacts/{mapping,normalize,review,smart,reimport,
+merge,editing,service,bulk-consent,tags}.ts`, `app/mlo/contacts/import/{ImportWizard,ColumnsStep,ReviewStep,types}.tsx`,
+`app/mlo/contacts/{actions.ts,ContactsTable.tsx}`, `app/mlo/contacts/[id]/{page,EditDetails}.tsx`,
+`app/mlo/contacts/permission/{page.tsx,actions.ts}`, `app/mlo/cc-shell.css`, `lib/content/{contacts-import,
+contact-page,contact-lists,import-check}.ts`, `lib/contacts/smart.test.ts` (the shapes-only test went with ai-map),
+`scripts/qa/{command-center,buttons,text-fit}.mjs` (close the dialog; text-fit also audits both kinds ticked, Fix all,
+the dialog and the done screen), `CLAUDE.md` (§1 D93, §3.4 count).
+- **Tests:** `lib/contacts/d93.test.ts` (27): ZIP against the State column and within a City, Excel-date doubt, a
+  contents-matched ZIP confirmed Sure; LAST NAME / Borrower Last / "Last, First" / Name headers, First Last vs Last
+  First from the header and from emails, M8's order marked unsure; "Last, First" split and two people in one cell;
+  co-borrower header mapping and D69 refusals (private headers feed nothing); co-borrower built, kept in notes, in the
+  clean CSV, re-import fill, D77 merge, in-file merge, export columns, Details edit checks; the gate texts only the
+  borrower's number, refuses a contact whose only phone is the co-borrower's, and a co-borrower's STOP finds no
+  contact; placeholder phones/emails (and 222-222-2222) blank, in notes, counted, out of Needs a look; mixed sorting by
+  rules, M8's sort only for unsure rows, the loan officer's move wins, agent rows filed with the tag and no opt-ins
+  (opt-outs kept); mocked M8 answers checked (consent fields, repeats, unknown columns, fields a header may not feed,
+  bad JSON, refusal, no key all dropped or fall back); SSN, DOB, account, SSN-shaped and protected columns and birth
+  dates in notes never in the model message (and the server drops them again), spread sampling; no model call for an
+  agent list or a RETR file (columns, sort or fixes); Fix all keeps only checked, derivable fixes; step navigation keeps
+  every answer and locks a step that's no longer ready; the dialog's two links. The shapes-only `aiMapColumns` test
+  went with `ai-map.ts`. Suite: 1210 passed (was 1184).
+- **Verified:** `npm run verify` passes. Fresh production server (`npm start` with `CC_DEV_LOGIN=1 …`, no AI key) and a
+  messy two-file import I wrote (a "Name" column in Last, First with some "Last First" rows, Cell / E-mail / City / ST,
+  a 5-digit "Column 6", Co-Borrower First / CoBorrower Last / Spouse Phone, a Type column with Buyer / Seller / Agent /
+  Realtor / blank, a Brokerage column, a "Text OK" column, an SSN column, placeholder phones 111-111-1111,
+  000-000-0000, 123-456-7890, 999-999-9999 and 555-01xx, none@none.com; plus "Borrower First / Borrower Last /
+  Co-Borrower First / CoBorrower Last / Co-Borrower Email / Zip Code / Type" with an "ext 12" phone): both kinds
+  ticked (the last one can't be unticked); step 2 showed "Best guess: ZIP. 30 of 30 fall in the State column's state",
+  the co-borrower guesses, "Last First. 4 of 4 email addresses…", the opt-in hint, SSN Not imported, Continue and the
+  step-3 pill locked until answered; step 3: 32 people ready, "25 clients · 7 agents", 11 placeholders read as blank,
+  Ana Lopez moved to agents (24 · 8), Fix all (no-AI path: "Worked out on this device, because the AI isn't turned on
+  yet") proposed (509) 555-2204 and Accept took Needs a look from 2 to 1; back to step 2 by its pill (answers and the
+  "kept" note there), forward to 3 by its pill (the move and the fix kept), step 1 by keyboard (both files there);
+  step 4 showed 24 · 8; Import opened the dialog with `…/permission?import=imp_…#record` and
+  `/mlo/contacts?import=imp_…&perm=relationship`; Esc closed it and focus returned to "Imported"; Record permission
+  read "9 past clients from this import this would cover"; Maria Garcia's Details showed "Co-borrower: Luis Garcia ·
+  (206) 555-4321"; Ada Okafor was under Agents. Screenshots of every step (and step 2 after going back) and the dialog
+  at 390 and 1280 in Night and Paper are in the session scratchpad (`d93/`). QA: `text-fit.mjs` on a fresh server
+  (with a locked server on 3101), now also covering both kinds ticked, Fix all, the dialog and the done screen: 151
+  pages, 3,126 views at 360/390/768/1024/1280 in Night and Paper, FINDINGS none. `buttons.mjs`: 536 views, PROBLEMS
+  none. `hydration.mjs`: 240 slow-stream + 240 busy-server loads, React #418 0, PROBLEMS none.
+  `command-center.mjs`: every step through D78 passes, including every import flow and the new dialog; 33 steps from
+  D79's Inbox "Done" on fail, and the same 33 fail on an unchanged build of 37739db run the same evening (see Known
+  issues). `pages.mjs`: no import, permission or contact-page problems; 24 `page.goto` timeouts on public pages
+  (`/tools/*`, `/states/*`, `/terms`, `/chat`, two calculators; each answers 200 in a few ms by curl) and "Open the
+  journey" landing at #clocks on a pipeline page, none on pages D93 touches.
+- **Decisions:** (a) Rule-based guesses are labeled "Best guess:", the model's "M8's best guess:", so nothing that
+  ran on the device claims to be AI. (b) The name question still blocks Continue even with a confident guess (the
+  guess is marked "(best guess)" on its button). (c) M8's column reading sits under the rules and never touches a
+  consent field; an opt-in column is still mapped by the loan officer (the step-2 hint says how). (d) Record permission
+  from an import or a selection reuses D12.2 as is (past clients, the same confirmations and records) and lists who
+  was left out as not past clients. (e) Agent rows in a mixed file get no opt-ins, like an agent list. (f) A
+  co-borrower phone or email that doesn't read goes to notes rather than "Needs a look" (they're never contacted from
+  here). (g) The 555-0100 to 0199 range counts as a placeholder (it was already refused as a phone).
+- **Known issues:** (1) `command-center.mjs` stalls at D79 (the Inbox "Done" click never navigates, and the same
+  browser page stays unusable afterwards while a new page works) on both this build and an unchanged 37739db build;
+  earlier runs that day passed, so it looks time-of-day or environment related. Suggested as its own task. (2) The
+  no-key path was the only one run in the browser; M8's reading, sorting and Fix all were tested with mocked answers.
+  (3) M8 sorts at most 150 unsure rows per file and Fix all sends at most 1,000 values; the rest fall back to the rules
+  and the device. (4) A "Buyer" or "Seller" value in a Type column still reads as relationship "Other" (as before D93).
+- **Next up:** promote on the owner's word.

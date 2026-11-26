@@ -75,7 +75,7 @@ const FILL_FIELDS = ["firstName", "lastName", "email", "phone", "phone2", "stree
 /** Plain names for the preview ("Would change: Name, Address"). */
 export const CHANGE_LABELS: Record<string, string> = {
   firstName: "Name", lastName: "Name", email: "Email", phone: "Phone", phone2: "Other phone", street: "Address", city: "Address", state: "Address", zip: "Address",
-  leadSource: "Lead source", referredBy: "Referred by", relationship: "Relationship", notes: "Notes", loan: "Loan details", agent: "Production",
+  leadSource: "Lead source", referredBy: "Referred by", relationship: "Relationship", notes: "Notes", loan: "Loan details", agent: "Production", coBorrower: "Co-borrower",
 };
 export const changeLabels = (fields: readonly string[]) => [...new Set(fields.map((f) => CHANGE_LABELS[f] ?? f))];
 
@@ -108,11 +108,13 @@ export function applyImport(existing: Contact, r: ImportRecord, mode: ReimportMo
   if (next.relationship === "other" && r.relationship && r.relationship !== "other") next.relationship = r.relationship;
   next.loan = mergeNumbers(next.loan, r.loan, newer);
   next.agent = mergeNumbers(next.agent, r.agent, newer);
+  // D93: a blank co-borrower (or blank parts of one) is filled in; "newer" takes the file's. Info only, never a way to reach anyone.
+  if (r.coBorrower) next.coBorrower = mergeNumbers((next.coBorrower ?? null) as Numbers | null, r.coBorrower as unknown as Numbers, newer) as unknown as Contact["coBorrower"];
   if (r.notes) {
     if (blank(next.notes)) next.notes = r.notes;
     else if (newer && !String(next.notes).includes(r.notes)) next.notes = `${next.notes}\n${r.notes}`.slice(0, 2000);
   }
-  const keys = [...FILL_FIELDS, "relationship", "loan", "agent", "notes"];
+  const keys = [...FILL_FIELDS, "relationship", "loan", "agent", "coBorrower", "notes"];
   const changed = keys.filter((k) => !same((existing as unknown as Record<string, unknown>)[k], rec[k]));
   // D73: the import's tags always land (the picked ones first), capped for a contact.
   next.tags = withExtraTags(existing.tags ?? [], mergeTags(r.tags, opts.extraTags ?? []), MAX_CONTACT_TAGS);

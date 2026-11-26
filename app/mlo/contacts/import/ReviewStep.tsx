@@ -10,6 +10,8 @@ import { contactsImportCopy as ic } from "@/lib/content/contacts-import";
 import { contactTagsCopy as tc } from "@/lib/content/contact-tags";
 import TagInput from "../TagInput";
 import FixWithM8, { FixEditor } from "./FixWithM8";
+import FixAll from "./FixAll";
+import type { SortWhy } from "@/lib/contacts/guess";
 import type { Item, Look } from "./types";
 
 const rv = ic.review;
@@ -19,6 +21,9 @@ const READY_SHOWN = 25;
 
 type Tab = "ready" | "look" | "skipped";
 export type ReachSuggestion = { itemId: string; col: number; field: Field; header: string };
+/** D93: one row of a mixed import, and how it was sorted. */
+export type SortRow = { itemId: string; at: number; name: string; file: string; row: number; agent: boolean; why: SortWhy };
+const SORT_SHOWN = 100;
 
 /** Phones get the sheet; wider screens edit in the row. */
 function useNarrow(): boolean {
@@ -44,7 +49,10 @@ export function downloadText(text: string, name: string) {
 /**
  * Step 3 (D74): Ready, Needs a look and Skipped, Fix with M8, then the tags
  * from D73. Every value that was read as blank is listed with what the file
- * said; every skipped row can be seen and downloaded with its reason.
+ * said; every skipped row can be seen and downloaded with its reason. D93:
+ * Fix all with M8 (a reviewable list of proposed fixes), placeholders read
+ * as blank, and in a mixed import the client and agent split with a way to
+ * move any row.
  */
 export default function ReviewStep(props: {
   kind: ImportKind;
@@ -69,10 +77,20 @@ export default function ReviewStep(props: {
   fileLine?: (itemId: string) => string | null;
   /** D75: People you already have (between the review and the tags). */
   between?: React.ReactNode;
+  /** D93: placeholder phones and emails read as blank. */
+  placeholders: number;
+  /** D93: whether a value may go to M8 (never a RETR file or an agent row), and its row for context. */
+  m8Allowed: (l: Look) => boolean;
+  contextOf: (l: Look) => { file: string; headers: string[]; context: Record<string, string> };
+  /** D93: a mixed import's rows and how each was sorted (null: not mixed), and moving one. */
+  sortList: SortRow[] | null;
+  sortingNow: boolean;
+  onMove: (r: SortRow, to: "client" | "agent") => void;
 }) {
   const { kind, items, records, looks, skipped } = props;
   const [tab, setTab] = useState<Tab>(looks.length ? "look" : "ready");
   const [fixing, setFixing] = useState(false);
+  const [fixingAll, setFixingAll] = useState(false);
   const narrow = useNarrow();
   const fields = fieldsFor(kind) as Record<string, string>;
   const people = new Set(looks.map((l) => `${l.itemId}:${l.at}`)).size;
@@ -140,16 +158,20 @@ export default function ReviewStep(props: {
               {kind === "contacts" && records.some((r) => r.attestedOptIns.length) ? <p className="mlo-note">Some files have opt-in columns. Those are recorded as <strong>your word</strong> that they opted in, not as proof.</p> : null}
             </>
           ) : tab === "look" ? (
-            looks.length || fixing ? (
+            looks.length || fixing || fixingAll ? (
               <>
-                {fixing ? (
+                {fixingAll ? (
+                  <FixAll looks={looks} kind={kind} allowed={props.m8Allowed} contextOf={props.contextOf} dateOrderOf={props.dateOrderOf} onAccept={props.onFix} onClose={() => setFixingAll(false)} />
+                ) : fixing ? (
                   <FixWithM8 looks={looks} kind={kind} dateOrderOf={props.dateOrderOf} onSave={props.onFix} onSkip={skip} onClose={() => setFixing(false)} />
                 ) : (
                   <div className="mlo-actions">
-                    <button type="button" className="mlo-btn" onClick={() => setFixing(true)}>{ic.fix.open}</button>
+                    <button type="button" className="mlo-btn" onClick={() => setFixingAll(true)}>{kind === "contacts" ? ic.fixAll.open : ic.fixAll.openLocal}</button>
+                    <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => setFixing(true)}>{ic.fix.open}</button>
                   </div>
                 )}
                 {looks.length ? <p className="mlo-note">{rv.lookNote}</p> : null}
+                {props.placeholders ? <p className="mlo-note">{rv.placeholders(props.placeholders)}</p> : null}
                 <ul className="im-look">
                   {looks.slice(0, LOOK_SHOWN).map((l) => (
                     <li key={l.key} className="im-look__row">
@@ -171,7 +193,10 @@ export default function ReviewStep(props: {
                 {looks.length > LOOK_SHOWN ? <p className="mlo-note">{rv.lookMore(looks.length - LOOK_SHOWN)}</p> : null}
               </>
             ) : (
-              <p className="mlo-note">{rv.lookNone}</p>
+              <>
+                <p className="mlo-note">{rv.lookNone}</p>
+                {props.placeholders ? <p className="mlo-note">{rv.placeholders(props.placeholders)}</p> : null}
+              </>
             )
           ) : skipped.length ? (
             <>
@@ -210,6 +235,8 @@ export default function ReviewStep(props: {
         </div>
       </section>
 
+      {props.sortList ? <SortReview rows={props.sortList} working={props.sortingNow} onMove={props.onMove} multi={items.length > 1} /> : null}
+
       {props.between}
 
       <section className="mlo-section">
@@ -234,5 +261,69 @@ export default function ReviewStep(props: {
         </ol>
       </section>
     </>
+  );
+}
+
+/**
+ * D93: a mixed import's split: "N clients · N agents", then the agents and
+ * the rows that couldn't be sorted (counted as clients), each with a button
+ * to move it; the clients in a fold. Moving a row changes nothing else.
+ */
+function SortReview({ rows, working, onMove, multi }: { rows: SortRow[]; working: boolean; onMove: (r: SortRow, to: "client" | "agent") => void; multi: boolean }) {
+  const s = ic.sort;
+  const agents = rows.filter((r) => r.agent);
+  const unsure = rows.filter((r) => !r.agent && r.why === null);
+  const clients = rows.filter((r) => !r.agent && r.why !== null);
+  const table = (list: SortRow[], label: string) => (
+    <div className="mlo-scroll">
+      <table className="mlo-table mlo-table--cards im-sort">
+        <caption className="sr-only">{label}</caption>
+        <thead><tr><th>{s.cols.name}</th><th>{s.cols.row}</th><th>{s.cols.why}</th><th>{s.cols.move}</th></tr></thead>
+        <tbody>
+          {list.slice(0, SORT_SHOWN).map((r) => {
+            const to = r.agent ? "client" : "agent";
+            const verb = r.agent ? s.toClients : s.toAgents;
+            return (
+              <tr key={`${r.itemId}:${r.at}`}>
+                <th scope="row">{r.name}</th>
+                <td data-label={s.cols.row}>{multi ? `${r.file}, row ${r.row}` : `Row ${r.row}`}</td>
+                <td data-label={s.cols.why}>{s.why[r.why ?? "none"]}</td>
+                <td data-label={s.cols.move}><button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => onMove(r, to)} aria-label={s.moveLabel(r.name, verb)}>{verb}</button></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+  return (
+    <section className="mlo-section im-sortsec" aria-labelledby="im-sort-title" aria-live="polite">
+      <h2 id="im-sort-title">{s.title}</h2>
+      <p className="im-preview">{s.counts(rows.length - agents.length, agents.length)}</p>
+      {working ? <p className="mlo-note" role="status">{s.working}</p> : null}
+      {unsure.length ? <p className="mlo-note">{s.unsure(unsure.length)}</p> : null}
+      <p className="mlo-note">{s.note}</p>
+      {agents.length ? (
+        <>
+          <h3 className="cc-card__title im-sub">{s.lists.agents} ({agents.length.toLocaleString("en-US")})</h3>
+          {table(agents, s.lists.agents)}
+          {agents.length > SORT_SHOWN ? <p className="mlo-note">{s.more(agents.length - SORT_SHOWN)}</p> : null}
+        </>
+      ) : null}
+      {unsure.length ? (
+        <>
+          <h3 className="cc-card__title im-sub">{s.lists.unsure} ({unsure.length.toLocaleString("en-US")})</h3>
+          {table(unsure, s.lists.unsure)}
+          {unsure.length > SORT_SHOWN ? <p className="mlo-note">{s.more(unsure.length - SORT_SHOWN)}</p> : null}
+        </>
+      ) : null}
+      {clients.length ? (
+        <details className="mlo-details">
+          <summary>{s.lists.clients} ({clients.length.toLocaleString("en-US")})</summary>
+          {table(clients, s.lists.clients)}
+          {clients.length > SORT_SHOWN ? <p className="mlo-note">{s.more(clients.length - SORT_SHOWN)}</p> : null}
+        </details>
+      ) : null}
+    </section>
   );
 }

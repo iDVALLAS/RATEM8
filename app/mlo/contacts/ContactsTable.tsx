@@ -26,7 +26,7 @@ export type ContactRow = {
   /** D80: on a list about loans, "7.875% · Closed Oct 2023 · FHA" (their own closed rate, for the loan officer only). */
   loan?: string;
 };
-type Action = "tag" | "campaign" | "check" | "assign" | "download" | "delete";
+type Action = "tag" | "campaign" | "permission" | "check" | "assign" | "download" | "delete";
 
 function downloadCsv(text: string, name: string) {
   const a = document.createElement("a");
@@ -104,6 +104,8 @@ export default function ContactsTable({ rows, total, rule, knownTags, selectAll,
   };
   // "Check do-not-call and phone type" opens Record permission for just these people.
   const checkHref = matching ? `/mlo/contacts/permission?scope=list&${ruleQuery(rule)}#lines` : `/mlo/contacts/permission?ids=${[...picked].join(",")}#lines`;
+  // D93: "Record permission" opens the same page's permission form, covering just these people.
+  const permHref = checkHref.replace(/#lines$/, "#record");
   // Call: the contact rules are checked and the call logged first, then the phone app opens.
   const call = async (r: ContactRow) => {
     if (calling) return;
@@ -160,6 +162,7 @@ export default function ContactsTable({ rows, total, rule, knownTags, selectAll,
             <select className="mlo-select" value={action} onChange={(e) => { setAction(e.target.value as Action); setMsg(null); }} aria-label={lc.action} disabled={pending}>
               <option value="tag">{lc.actions.tag}</option>
               <option value="campaign">{lc.actions.campaign}</option>
+              <option value="permission">{lc.actions.permission}</option>
               <option value="check">{lc.actions.check}</option>
               {team.length ? <option value="assign">{lc.actions.assign}</option> : null}
               <option value="download">{lc.actions.download}</option>
@@ -185,6 +188,11 @@ export default function ContactsTable({ rows, total, rule, knownTags, selectAll,
                 <p className="mlo-note cc-bulkbar__note">{lc.campaignNote}</p>
               </>
             ) : <p className="mlo-note cc-bulkbar__note">{lc.noCampaigns} <Link href="/mlo/campaigns?new=1">{lc.newCampaign}</Link></p>
+          ) : action === "permission" ? (
+            <>
+              <div className="cc-bulkbar__row"><Link className="mlo-btn" href={permHref}>{lc.permissionGo}</Link></div>
+              <p className="mlo-note cc-bulkbar__note">{lc.permissionNote2}</p>
+            </>
           ) : action === "check" ? (
             <>
               <div className="cc-bulkbar__row"><Link className="mlo-btn" href={checkHref}>{lc.checkGo}</Link></div>

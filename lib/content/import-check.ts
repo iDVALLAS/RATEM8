@@ -23,4 +23,8 @@ export const importCheckCopy = {
   listTitle: (n: number) => `Checks for the ${people(n)} with a phone you picked`,
   listLead: "Only the people you picked on Contacts.",
   listDone: "Every number you picked has a recent phone-type check.",
+  /** D93: Record permission, limited to an import's people or the ones picked on Contacts. */
+  recordFromImport: "from this import ",
+  recordFromPicked: "you picked ",
+  notPastClient: (n: number) => `${people(n)} left out: not past clients. Record theirs one at a time on each contact's Permission tab, with where their permission came from.`,
 } as const;

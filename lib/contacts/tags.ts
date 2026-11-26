@@ -15,6 +15,8 @@ export const MAX_TAGS = 20;
 export const MAX_CONTACT_TAGS = 30;
 /** Tags picked for a whole import, or for one list in it. */
 export const MAX_IMPORT_TAGS = 5;
+/** D93: the tag on an agent sorted out of a mixed import (they're also filed under Agents). */
+export const AGENT_TAG = "Agent";
 
 /** One tag, tidied: no control characters, single spaces, at most 60 characters. */
 export function cleanTag(raw: string): string {

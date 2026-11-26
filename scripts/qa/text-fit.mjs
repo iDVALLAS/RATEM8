@@ -433,6 +433,8 @@ if (!ONLY.length || ONLY.includes('import steps')) {
     await p.setInputFiles('input[type=file]', ['past-clients-messy.csv', 'bonzo-optout.csv'].map((f) => path.join(process.cwd(), 'tests/fixtures/import', f)));
     await p.locator('.im-filelist__row').nth(1).waitFor({ timeout: 20000 });
     await p.getByText('My own relationships').first().click();
+    // D93: both kinds ticked, so step 3 shows the clients and agents split.
+    await p.getByRole('checkbox', { name: 'Real estate agents' }).check();
     await auditHere(p, L('1 add files'), w);
     await p.getByRole('button', { name: 'Continue', exact: true }).click(); await p.locator('.im-cols').first().waitFor({ state: 'attached' });
     await auditHere(p, L('2 columns'), w);
@@ -443,12 +445,23 @@ if (!ONLY.length || ONLY.includes('import steps')) {
     for (const c of await p.locator('.im-col input[type=checkbox]').all()) await c.check();
     await p.getByRole('button', { name: 'Continue to fix and tag' }).click(); await p.locator('h2', { hasText: 'ready' }).first().waitFor();
     await auditHere(p, L('3 needs a look'), w);
+    // D93: Fix all with M8 (worked out on this device without a key), then closed.
+    await p.getByRole('button', { name: /^(Fix all with M8|Suggest fixes for all)$/ }).click();
+    await p.waitForFunction(() => !/looking at/.test(document.querySelector('#im-fixall-title')?.textContent ?? 'looking at'), null, { timeout: 30000 });
+    await auditHere(p, L('3 fix all'), w);
+    await p.getByRole('button', { name: 'Close the list' }).click();
     await p.getByRole('tab', { name: /^Skipped/ }).click(); await auditHere(p, L('3 skipped'), w);
     await p.getByRole('tab', { name: /^Ready/ }).click(); await auditHere(p, L('3 ready'), w);
     for (const d of await p.locator('#im-existing details').all()) if (!(await d.evaluate((x) => x.open))) await d.locator('summary').click();
     await auditHere(p, L('3 already yours'), w);
     await p.getByRole('button', { name: 'Continue', exact: true }).click(); await p.locator('h2', { hasText: 'Where did these lists come from?' }).waitFor();
     await auditHere(p, L('4 where from'), w);
+    // D93: Import, then the permission dialog and the done screen.
+    const cb = p.locator('.mlo-section input[type=checkbox]'); if (await cb.count()) await cb.check();
+    await p.getByRole('button', { name: /^Import \d+ (people|person)/ }).click(); await p.getByRole('dialog').waitFor();
+    await auditHere(p, L('5 permission dialog'), w);
+    await p.keyboard.press('Escape');
+    await auditHere(p, L('5 done'), w);
   });
 }
 

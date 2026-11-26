@@ -94,7 +94,7 @@ export const contactListsCopy = {
   selectList: "Select all",
   // The bulk bar
   action: "Action",
-  actions: { tag: "Add or remove a tag", campaign: "Add to a campaign", check: "Check do-not-call and phone type", assign: "Assign to a team member", download: "Download a spreadsheet (CSV)", delete: "Delete" },
+  actions: { tag: "Add or remove a tag", campaign: "Add to a campaign", permission: "Record permission", check: "Check do-not-call and phone type", assign: "Assign to a team member", download: "Download a spreadsheet (CSV)", delete: "Delete" },
   pickCampaign: "Campaign",
   noCampaigns: "No campaigns yet.",
   newCampaign: "Start one",
@@ -109,6 +109,9 @@ export const contactListsCopy = {
     ].filter(Boolean).join(" "),
   checkGo: "Check them",
   checkNote: "Opens Record permission for just these people: the do-not-call list to upload, and a phone-type check with its cost shown first.",
+  // D93: the permission you already hold, recorded for just the people picked (past clients; anyone who said stop is left out).
+  permissionGo: "Record permission for these people",
+  permissionNote2: "Opens Record permission for just these people. It covers past clients who signed consent, says where the proof is, and never overrides anyone who said stop.",
   pickMember: "Team member",
   assign: "Assign",
   assignNote: "They move to that loan officer's book. Permission on file stays with each person; campaigns they're in stop.",

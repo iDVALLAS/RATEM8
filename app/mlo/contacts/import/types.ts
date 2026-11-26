@@ -5,6 +5,7 @@
 import type { Csv } from "@/lib/contacts/csv";
 import { guardOptOuts, type Field, type FixField, type Mapping, type RowFixes, type RowWarning } from "@/lib/contacts/mapping";
 import type { ColumnChoice, ColumnFlag, ColumnTarget, FileAnswers } from "@/lib/contacts/review";
+import type { M8Read, RowSort } from "@/lib/contacts/guess";
 
 export type Item = {
   id: string;
@@ -24,6 +25,13 @@ export type Item = {
   fixes: RowFixes;
   /** The columns panel: open or closed by the loan officer (null: open when something needs checking). */
   expanded: boolean | null;
+  /** D93: M8's reading of the columns (null: not read, no AI, or a RETR file). */
+  m8: M8Read | null;
+  /** D93: the file looks like a RETR export, so nothing in it goes to M8. */
+  retr: boolean;
+  /** D93: in a mixed import, M8's sort of rows the rules couldn't sort (row index → kind), and the loan officer's moves. */
+  m8Sorts?: Record<number, RowSort>;
+  moves: Record<number, "client" | "agent">;
 };
 
 /** A "Needs a look" row with the list it came from. */

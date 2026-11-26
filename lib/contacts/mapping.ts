@@ -6,8 +6,8 @@
  * from Bonzo, Total Expert, Jungo, Salesforce, Google, Outlook, Excel) and
  * "agents" (RETR exports, or any agent list).
  */
-import { cleanEmail, cleanState, dateProblem, emailProblem, isoDate, isPlaceholder, phoneProblem, splitName, stateFromZip, toE164, type DateOrder, type NameOrder } from "./normalize";
-import { MAX_TAG, MAX_TAGS, mergeTags, splitTags, withExtraTags } from "./tags";
+import { cleanEmail, cleanState, dateProblem, emailProblem, isoDate, isPlaceholder, isPlaceholderEmail, isPlaceholderPhone, phoneProblem, splitName, stateFromZip, toE164, type DateOrder, type NameOrder } from "./normalize";
+import { AGENT_TAG, MAX_TAG, MAX_TAGS, mergeTags, splitTags, withExtraTags } from "./tags";
 import type { Csv } from "./csv";
 import { anyLoan, readLender, readMargin, readOccupancy, readProgram, readPropertyType, readPurpose, readRateType, readTerm, type LoanDetails } from "./loan";
 
@@ -28,6 +28,12 @@ export const CONTACT_FIELDS = {
   // D74: where a lead came from, and who sent them.
   leadSource: "Lead source",
   referredBy: "Referred by",
+  // D93: a co-borrower or spouse, saved on the borrower's contact. Information only: never texted, called or emailed.
+  coFirstName: "Co-borrower first name",
+  coLastName: "Co-borrower last name",
+  coFullName: "Co-borrower name",
+  coPhone: "Co-borrower phone",
+  coEmail: "Co-borrower email",
   tags: "Tags",
   notes: "Notes",
   closedOn: "Loan closed on",
@@ -97,9 +103,16 @@ export type OptOutField = (typeof OPT_OUT_FIELDS)[number];
  * status, national origin or citizenship, religion, disability, language.
  */
 export const PROTECTED_HEADER = /\b(ages?|aged|birth\w*|born|dob|race|racial|ethnic\w*|hispanic|latin[oax]|gender|sex|male|female|marital|married|spouse.?status|famil(y|ial).?(status|size)|children|kids|dependents?|religio\w*|national.?origin|nationality|citizenship|immigration|disabilit\w*|handicap\w*|language|hmda)\b/i;
-/** D69: a second borrower's details never fill the person's own name, phone or email. */
-const CO_BORROWER = /co-?borrower|spouse/;
+/** Social Security numbers, birth dates, account numbers, credit scores, passwords: never imported, never sent (D74). */
+export const SENSITIVE_HEADER = /\b(ssn|ss#|social security|soc\.? ?sec|tax ?id|tin|dob|date of birth|birth ?date|birthday|account ?(number|no|num|#)|acct|routing|credit ?score|fico|password|pin)\b/i;
+/** D93: the words that name a second borrower ("Co-Borrower", "CoBorrower", "Spouse", "Borrower 2", "Co-Applicant"). */
+const CO_WORD = "co[\\s_.-]?borrower|\\bspouse|\\bborrower ?(?:2|two|#2)\\b|\\b(?:2nd|second) borrower|co[\\s_.-]?applicant|co[\\s_.-]?buyer|co[\\s_.-]?signer";
+/** D69: a second borrower's details never fill the person's own name, phone or email (D93: they go to the co-borrower). */
+export const CO_BORROWER = new RegExp(CO_WORD, "i");
 const PERSON_FIELDS = new Set<Field>(["firstName", "lastName", "fullName", "email", "phone", "phone2"]);
+export const CO_FIELDS = ["coFirstName", "coLastName", "coFullName", "coPhone", "coEmail"] as const;
+/** D93: a co-borrower on the borrower's contact. Information only: the send gate never reads it. */
+export type CoBorrower = { firstName: string; lastName: string; phone: string | null; email: string | null };
 
 const TEXT_WORDS = /sms|text/;
 const CALL_WORDS = /call|phone|voice/;
@@ -114,6 +127,14 @@ const SYNONYMS: [Field, RegExp][] = [
   ["optInText", /(sms|text).*(opt(?!(ed)?.?out)|consent|permission)|(opt(?!(ed)?.?out)|consent).*(sms|text)/],
   ["optInCall", /(call|phone|voice).*(opt(?!(ed)?.?out)|consent|permission)|(opt(?!(ed)?.?out)|consent).*(call|phone)/],
   ["optInEmail", /e-?mail.*(opt(?!(ed)?.?out)|consent|permission)|(opt(?!(ed)?.?out)|consent).*e-?mail/],
+  // D93: a co-borrower's or spouse's columns, before the person's own name, phone and email.
+  ["coFirstName", new RegExp(`(${CO_WORD}).*\\b(first|given|fname)\\b|\\b(first|given)\\b.*(${CO_WORD})`)],
+  ["coLastName", new RegExp(`(${CO_WORD}).*\\b(last|surname|lname)\\b|\\b(last|surname)\\b.*(${CO_WORD})`)],
+  ["coEmail", new RegExp(`(${CO_WORD}).*e-?mail|e-?mail.*(${CO_WORD})`)],
+  ["coPhone", new RegExp(`(${CO_WORD}).*(phone|mobile|cell|tel)|(phone|mobile|cell)\\b.*(${CO_WORD})`)],
+  ["coFullName", new RegExp(`^(${CO_WORD})('?s)?( (full )?name)?$|^(full )?name.*(${CO_WORD})\\)?$`)],
+  // D93: one column with "Last, First" names (the order is read from the header).
+  ["fullName", /^last( name)?\s*[,/&]?\s*first( name)?$|^name\s*\(last,? first\)$|^(borrower|client|customer|contact|primary)'?s? (full )?name$/],
   ["buyerUnits", /buy(er)?.*(side|units|sides|transactions)/],
   ["listingUnits", /(list|listing|sell(er)?).*(side|units|sides|transactions)/],
   ["units", /^(total )?(units|transactions|sides|closed units)|units.*(12|ttm|year)/],
@@ -125,8 +146,8 @@ const SYNONYMS: [Field, RegExp][] = [
   ["referredBy", /referred.?by|^referr(al|er)( name)?$|^referred$/],
   // D80: an ARM's change date ("First Change Date") before first names and the closing date.
   ["armFirstChange", /(first|initial|next).*(change|adjust|reset)|(change|adjust|reset).*date|arm.*(change|reset|adjust)/],
-  ["firstName", /^(first|given|fname|first name|contact first name)|first.?name/],
-  ["lastName", /^(last|surname|family|lname)|last.?name/],
+  ["firstName", /^(first|given|fname|first name|contact first name)|first.?name|^(borrower|client|customer|contact|primary|buyer)'?s? (first|given)$/],
+  ["lastName", /^(last|surname|family|lname)|last.?name|^(borrower|client|customer|contact|primary|buyer)'?s? (last|surname)$/],
   ["fullName", /^(name|full name|contact name|agent name|agent|client|borrower)$|full.?name/],
   ["email", /e-?mail/],
   ["phone2", /(home|work|office|other|secondary|alt).*phone|phone ?2/],
@@ -136,7 +157,7 @@ const SYNONYMS: [Field, RegExp][] = [
   ["state", /^state|province|^st$/],
   ["zip", /zip|postal/],
   // D74: a bare "Stage" / "Pipeline stage" column goes to notes for now (the stage board comes later).
-  ["relationship", /relationship|contact type|lead type|client type|category|lifecycle|^type$|^status$/],
+  ["relationship", /relationship|contact type|lead type|client type|category|lifecycle|^type$|^status$|^(contact )?role$/],
   ["tags", /^(tags?|labels?|groups?|lists?)$|\btags?\b/],
   ["appliedOn", /^app(l|lication)?\.? ?date$|appl(ication|ied).*(date|on)|date.*appl(ication|ied)|^applied$|^lead ?date$|^date (received|of inquiry)$|^inquiry date$/],
   ["closedOn", /(close|closing|funded|fund).*date|date.*(closed|funded)|closed on/],
@@ -156,8 +177,8 @@ const SYNONYMS: [Field, RegExp][] = [
 /** Whether a column with this header may feed this field at all (D69 rules, before any pattern). */
 export function headerAllowed(field: Field, header: string): boolean {
   const h = header.trim().toLowerCase();
-  // D80: a protected trait never feeds any field.
-  if (PROTECTED_HEADER.test(h)) return false;
+  // D80: a protected trait never feeds any field. D93: nor does private data ("Co-Borrower SSN").
+  if (PROTECTED_HEADER.test(h) || SENSITIVE_HEADER.test(h)) return false;
   const optOut = OPT_OUT_HEADER.test(h);
   if ((OPT_OUT_FIELDS as readonly string[]).includes(field)) return optOut;
   if (optOut) return false;
@@ -240,6 +261,12 @@ export type ImportRecord = {
   /** D74: "Zillow", "Open house"…, and who referred them. */
   leadSource?: string | null;
   referredBy?: string | null;
+  /**
+   * D93: a co-borrower or spouse from the same row (their own columns, or "John & Jane Smith").
+   * Saved on this contact as information only; nothing is ever sent to them from here, and no
+   * consent carries to them from the borrower.
+   */
+  coBorrower?: CoBorrower | null;
   /** D80: plus program, fixed or ARM, term, purpose, occupancy, property type, lender and the ARM's change date and margin. */
   loan: LoanDetails | null;
   agent: { brokerage: string | null; units: number | null; volume: number | null; buyerUnits: number | null; listingUnits: number | null; avgPrice: number | null; topLender: string | null } | null;
@@ -295,7 +322,31 @@ export type BuildOptions = {
   /** The loan officer's reading of an opt-in column's values (lowercased value → yes or no; "*" = any other value). */
   consent?: Partial<Record<"optInText" | "optInCall" | "optInEmail", Record<string, boolean>>>;
   fixes?: RowFixes;
+  /**
+   * D93: a mixed import (clients and agents ticked): which rows (0-based) are
+   * agents. An agent row is filed under Agents with the Agent tag, no loan,
+   * no co-borrower and no opt-ins (opt-outs still count).
+   */
+  agentRows?: ReadonlySet<number>;
+  /** D93: the column an agent row's brokerage comes from. */
+  brokerageCol?: number;
 };
+
+/**
+ * D93: two people in one name cell ("John & Jane Smith", "Smith, John and
+ * Jane", "John Smith & Jane Doe"): the first is the borrower, the second the
+ * co-borrower. Null when the cell holds one person.
+ */
+export function splitCouple(raw: string): { main: string; co: string } | null {
+  const s = raw.trim().replace(/\s+/g, " ");
+  const comma = /^([^,&]+),\s*([^\s,&]+)\s+(?:&|and|\+)\s+([^\s,&]+)$/i.exec(s);
+  if (comma) return { main: `${comma[1]}, ${comma[2]}`, co: `${comma[1]}, ${comma[3]}` };
+  const shared = /^([^\s,&]+)\s+(?:&|and|\+)\s+([^\s,&]+)\s+([^,&]+)$/i.exec(s);
+  if (shared) return { main: `${shared[1]} ${shared[3]}`, co: `${shared[2]} ${shared[3]}` };
+  const two = /^([^,&]+\s[^,&]+?)\s+(?:&|and|\+)\s+([^,&]+\s[^,&]+)$/i.exec(s);
+  if (two) return { main: two[1], co: two[2] };
+  return null;
+}
 
 export { MAX_TAG, MAX_TAGS } from "./tags";
 
@@ -351,11 +402,13 @@ export const RELATIONSHIP_LABELS: Record<string, string> = { past_client: "Past 
  * the value as written is kept in their notes so nothing is lost. A row with
  * a phone or email but no name is kept as "(no name)" with a warning.
  */
-export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts: BuildOptions = {}): { records: ImportRecord[]; problems: RowProblem[]; warnings: RowWarning[] } {
+export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts: BuildOptions = {}): { records: ImportRecord[]; problems: RowProblem[]; warnings: RowWarning[]; placeholders: number } {
   const rowNo = (i: number) => i + (opts.firstRow ?? 2);
   const records: ImportRecord[] = [];
   const problems: RowProblem[] = [];
   const warnings: RowWarning[] = [];
+  // D93: placeholder phones and emails read as blank (they'd have needed a look before).
+  let placeholders = 0;
   // D69: a column may only feed a field its header allows (an opt-out column never feeds an opt-in).
   const safe = guardOptOuts(csv.headers, mapping);
   const used = new Set(Object.values(safe));
@@ -376,14 +429,29 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
       const k = as ?? (f as FixField);
       return fix && k in fix ? (fix[k] ?? "").trim() : cell(f);
     };
+    const isAgentRow = kind === "contacts" && !!opts.agentRows?.has(i);
+    const hasCoColumns = CO_FIELDS.some((f) => safe[f] !== undefined);
     let first = "";
     let last = "";
+    // D93: "John & Jane Smith" in one name cell is two people when the file has no co-borrower columns.
+    let coFromName: [string, string] | null = null;
     if (fix && "name" in fix) [first, last] = splitName(fix.name);
     else {
       first = cell("firstName");
       last = cell("lastName");
-      if (!first && !last) [first, last] = splitName(cell("fullName"), opts.nameOrder);
-      else if (!last && first.includes(",")) [first, last] = splitName(first);
+      if (!first && !last) {
+        const full = cell("fullName");
+        const couple = !hasCoColumns && !isAgentRow ? splitCouple(full) : null;
+        [first, last] = splitName(couple ? couple.main : full, opts.nameOrder);
+        if (couple) coFromName = splitName(couple.co, opts.nameOrder);
+      } else if (!last && first.includes(",")) [first, last] = splitName(first);
+      else if (!hasCoColumns && !isAgentRow && last) {
+        const pair = /^(\S+)\s+(?:&|and|\+)\s+(\S+)$/i.exec(first);
+        if (pair) {
+          first = pair[1];
+          coFromName = [pair[2], last];
+        }
+      }
     }
     const display = `${first} ${last}`.trim() || "(no name)";
     const asWritten: string[] = [];
@@ -399,15 +467,24 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
     const rawEmail = get("email");
     const rawPhone = get("phone");
     const rawPhone2 = get("phone2");
-    const email = cleanEmail(rawEmail);
-    const phone = toE164(rawPhone);
-    const phone2 = toE164(rawPhone2);
+    // D93: a placeholder ("111-111-1111", "123-456-7890", "none@none.com") is read as blank and kept in notes as written; it doesn't need a look.
+    const placeholder = (f: "phone" | "phone2" | "email", raw: string) => {
+      const ph = !!raw && (f === "email" ? isPlaceholderEmail(raw) : isPlaceholderPhone(raw));
+      if (ph && !isPlaceholder(raw)) {
+        asWritten.push(`${label(f)} (as written): ${raw.slice(0, 120)}`);
+        placeholders++;
+      }
+      return ph;
+    };
+    const email = placeholder("email", rawEmail) ? null : cleanEmail(rawEmail);
+    const phone = placeholder("phone", rawPhone) ? null : toE164(rawPhone);
+    const phone2 = placeholder("phone2", rawPhone2) ? null : toE164(rawPhone2);
     if (!email && !phone && !phone2) {
       return problems.push({ row: rowNo(i), reason: "no valid phone or email", name: display, cells: row });
     }
-    if (rawPhone && !phone && !isPlaceholder(rawPhone)) warn("phone", "phone", rawPhone, phoneProblem(rawPhone), "phone");
-    if (rawPhone2 && !phone2 && !isPlaceholder(rawPhone2)) warn("phone2", "phone", rawPhone2, phoneProblem(rawPhone2), "phone2");
-    if (rawEmail && !email && !isPlaceholder(rawEmail)) warn("email", "email", rawEmail, emailProblem(rawEmail), "email");
+    if (rawPhone && !phone && !isPlaceholderPhone(rawPhone)) warn("phone", "phone", rawPhone, phoneProblem(rawPhone), "phone");
+    if (rawPhone2 && !phone2 && !isPlaceholderPhone(rawPhone2)) warn("phone2", "phone", rawPhone2, phoneProblem(rawPhone2), "phone2");
+    if (rawEmail && !email && !isPlaceholderEmail(rawEmail)) warn("email", "email", rawEmail, emailProblem(rawEmail), "email");
     if (!first && !last && !(fix && "name" in fix)) warn("name", "name_missing", "", "Needs a name");
     const rawZip = get("zip");
     const zip = ZIP_RE.test(rawZip) ? rawZip : null;
@@ -420,7 +497,7 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
     // D74: a column the loan officer made into tags adds each value (split on ; , |).
     for (const c of tagCols) rawTags.push(...splitCell((row[c] ?? "").trim()));
     const fileTags = mergeTags(rawTags);
-    const tags = withExtraTags(fileTags, extra, MAX_TAGS);
+    const tags = withExtraTags(fileTags, isAgentRow ? mergeTags(extra, [AGENT_TAG]) : extra, MAX_TAGS);
     if (rawTags.some((t) => t.length > MAX_TAG) || fileTags.some((t) => !tags.includes(t))) {
       warn("tags", "tags", get("tags"), `tags shortened (${MAX_TAG} characters each, ${MAX_TAGS} at most)`);
       keepTags(fileTags.filter((t) => tags.includes(t)));
@@ -460,10 +537,26 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
     const phoneStopped = !!(optOuts.text || optOuts.call);
     const inField = (c: ConsentChannel) => (c === "text" ? "optInText" : c === "call" ? "optInCall" : "optInEmail") as "optInText" | "optInCall" | "optInEmail";
     // D74: a value the loan officer hasn't read as yes ("maybe", "X") is never permission.
-    const optIns = kind === "contacts" ? (["text", "call", "email"] as const).filter((c) => readOptIn(cell(inField(c)), opts.consent?.[inField(c)]) === "yes").filter((c) => (c === "email" ? !optOuts.email : !phoneStopped)) : [];
+    // D93: an agent sorted out of a mixed import gets no opt-ins (as in an agent list); their opt-outs still count.
+    const optIns = kind === "contacts" && !isAgentRow ? (["text", "call", "email"] as const).filter((c) => readOptIn(cell(inField(c)), opts.consent?.[inField(c)]) === "yes").filter((c) => (c === "email" ? !optOuts.email : !phoneStopped)) : [];
+    // D93: the co-borrower, from their own columns or the name cell. Info only: a phone or email that doesn't read is kept in notes, never "needs a look".
+    let coBorrower: CoBorrower | null = null;
+    if (kind === "contacts" && !isAgentRow) {
+      let [cf, cl] = [cell("coFirstName"), cell("coLastName")];
+      if (!cf && !cl) [cf, cl] = cell("coFullName") ? splitName(cell("coFullName"), opts.nameOrder) : coFromName ?? ["", ""];
+      else if (!cl && cf.includes(",")) [cf, cl] = splitName(cf);
+      const rawCoPhone = cell("coPhone");
+      const rawCoEmail = cell("coEmail");
+      const coPhone = rawCoPhone && !isPlaceholderPhone(rawCoPhone) ? toE164(rawCoPhone) : null;
+      const coEmail = rawCoEmail && !isPlaceholderEmail(rawCoEmail) ? cleanEmail(rawCoEmail) : null;
+      if (rawCoPhone && !coPhone && !isPlaceholder(rawCoPhone)) asWritten.push(`${label("coPhone")} (as written): ${rawCoPhone.slice(0, 120)}`);
+      if (rawCoEmail && !coEmail && !isPlaceholder(rawCoEmail)) asWritten.push(`${label("coEmail")} (as written): ${rawCoEmail.slice(0, 120)}`);
+      if (cf || cl || coPhone || coEmail) coBorrower = { firstName: cf.slice(0, 60), lastName: cl.slice(0, 80), phone: coPhone, email: coEmail };
+    }
     const noteLines = [cell("notes"), ...noteCols.map((c) => ((row[c] ?? "").trim() ? `${(csv.headers[c] ?? "").trim() || `Column ${c + 1}`}: ${(row[c] ?? "").trim()}` : "")), ...asWritten].filter(Boolean);
     const leadSource = get("leadSource").slice(0, 120) || null;
     const referredBy = get("referredBy").slice(0, 120) || null;
+    const brokerage = isAgentRow && opts.brokerageCol !== undefined ? (row[opts.brokerageCol] ?? "").trim().slice(0, 120) || null : null;
     records.push({
       firstName: first.slice(0, 60),
       lastName: last.slice(0, 80),
@@ -474,23 +567,26 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
       city: get("city").slice(0, 60) || null,
       state,
       zip,
-      // D42: a file named "Past clients…" makes "past client" the default when a row doesn't say.
-      relationship: get("relationship") || !opts.defaultRelationship || kind === "agents" ? relationshipOf(get("relationship"), kind) : opts.defaultRelationship,
+      // D42: a file named "Past clients…" makes "past client" the default when a row doesn't say. D93: an agent row is an agent.
+      relationship: isAgentRow ? "agent" : get("relationship") || !opts.defaultRelationship || kind === "agents" ? relationshipOf(get("relationship"), kind) : opts.defaultRelationship,
       tags,
       notes: noteLines.join("\n").slice(0, 2000) || null,
-      ...(kind === "contacts" && (leadSource || referredBy) ? { leadSource, referredBy } : {}),
-      loan: kind === "contacts" && (closedOn || amount || noteRate || anyLoan(loanMore)) ? { closedOn, amount, noteRate: noteRate !== null && noteRate > 0 && noteRate < 20 ? noteRate : null, ...loanMore } : null,
+      ...(kind === "contacts" && !isAgentRow && (leadSource || referredBy) ? { leadSource, referredBy } : {}),
+      ...(coBorrower ? { coBorrower } : {}),
+      loan: kind === "contacts" && !isAgentRow && (closedOn || amount || noteRate || anyLoan(loanMore)) ? { closedOn, amount, noteRate: noteRate !== null && noteRate > 0 && noteRate < 20 ? noteRate : null, ...loanMore } : null,
       agent:
         kind === "agents"
           ? { brokerage: get("brokerage").slice(0, 120) || null, units: num(get("units")), volume: num(get("volume")), buyerUnits: num(get("buyerUnits")), listingUnits: num(get("listingUnits")), avgPrice: num(get("avgPrice")), topLender: get("topLender").slice(0, 120) || null }
-          : null,
+          : isAgentRow && brokerage
+            ? { brokerage, units: null, volume: null, buyerUnits: null, listingUnits: null, avgPrice: null, topLender: null }
+            : null,
       attestedOptIns: optIns,
       ...(Object.keys(optOuts).length ? { optOuts } : {}),
       ...(opts.fileName ? { sourceFile: opts.fileName.slice(0, 160) } : {}),
       sourceRow: rowNo(i),
     });
   });
-  return { records, problems, warnings };
+  return { records, problems, warnings, placeholders };
 }
 
 /** D69: whether a record asked to stop every channel (texts, calls and email). */

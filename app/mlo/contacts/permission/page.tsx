@@ -25,7 +25,6 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
   const tenant = listTenants()[0];
   const me = v.user;
   const since = Number(sp.since) >= 1990 && Number(sp.since) <= 2100 ? Number(sp.since) : null;
-  const p = me ? await previewBulk(me, since) : null;
   const need = me ? await rndNeeded(me) : [];
   // D75: "Check do-not-call and phone type for these N people" from an import's done screen: this section limited to its people.
   const run = me && /^imp_[A-Za-z0-9_-]{6,40}$/.test(sp.import ?? "") ? await getImport(me, sp.import!) : null;
@@ -33,6 +32,8 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
   const scope = !run ? checkScope(sp) : "";
   const picked = me && scope ? await scopePeople(me, scope) : null;
   const people = me && run ? await importPeople(me, run.id) : picked;
+  // D93: recording permission from an import (or a selection) covers only those people.
+  const p = me ? await previewBulk(me, since, people ? new Set(people.map((c) => c.id)) : null) : null;
   const dncNeed = me ? await dncNeeded(me, new Date(), people ?? undefined) : [];
   const lineNeed = people ? linesNeeded(people) : [];
   const price = lookupPriceUsd();
@@ -48,7 +49,7 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
         ) : (
           <>
             <section className="mlo-section">
-              <h2>{p.eligible.length} past {p.eligible.length === 1 ? "client" : "clients"} this would cover</h2>
+              <h2>{p.eligible.length} past {p.eligible.length === 1 ? "client" : "clients"} {run ? kc.recordFromImport : scope ? kc.recordFromPicked : ""}this would cover</h2>
               <p className="mlo-note">
                 If your clients signed permission for calls and texts (for example, the consent in your loan application), record it here so your contact rules can see it. Each person gets an entry in their permission log saying where the proof is. It never overrides anyone who said stop.
               </p>
@@ -56,16 +57,21 @@ export default async function BulkPermission({ searchParams }: { searchParams: P
                 {p.skipped.stopped ? <li>{p.skipped.stopped} left out: they said stop.</li> : null}
                 {p.skipped.priorEmployer ? <li>{p.skipped.priorEmployer} left out: from a previous employer&apos;s system (permission given to another company doesn&apos;t carry over).</li> : null}
                 {p.skipped.held ? <li>{p.skipped.held} left out: on hold.</li> : null}
+                {(run || scope) && p.skipped.notPastClient ? <li>{kc.notPastClient(p.skipped.notPastClient)}</li> : null}
               </ul>
               <form method="get" className="mlo-row-form">
+                {run ? <input type="hidden" name="import" value={run.id} /> : null}
+                {scope ? Array.from(new URLSearchParams(scope)).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />) : null}
                 <label className="mlo-field"><span>Only loans closed in or after (optional)</span><input name="since" inputMode="numeric" defaultValue={since ?? ""} placeholder="2022" /></label>
                 <button type="submit" className="mlo-btn mlo-btn--ghost">Update the count</button>
               </form>
             </section>
 
-            <form action={bulkConsentAction} className="mlo-section mlo-grid">
+            <form action={bulkConsentAction} className="mlo-section mlo-grid" id="record">
               <h2>What they gave permission for</h2>
               <input type="hidden" name="since" value={since ?? ""} />
+              {run ? <input type="hidden" name="import" value={run.id} /> : null}
+              {scope ? <input type="hidden" name="scope" value={scope} /> : null}
               <label className="mlo-check"><input type="checkbox" name="text" defaultChecked /> <span>Texts from me</span></label>
               <label className="mlo-check"><input type="checkbox" name="ai_call" /> <span>Recorded or AI-voice calls (voicemail drops and M8)</span></label>
               <label className="mlo-check"><input type="checkbox" name="service" defaultChecked /> <span>About their loan or account</span></label>

@@ -31,6 +31,11 @@ export async function bulkConsentAction(fd: FormData): Promise<void> {
   const u = (await currentUser()) ?? redirect("/sign-in");
   const on = (k: string) => fd.get(k) === "on";
   const since = Number(fd.get("since"));
+  // D93: from an import (or people picked on Contacts), only those people; each one checked with canSee.
+  const imp = String(fd.get("import") ?? "");
+  const sc = checkScope(new URLSearchParams(String(fd.get("scope") ?? "").slice(0, 20_000)));
+  const people = IMP.test(imp) ? await importPeople(u, imp) : sc ? await scopePeople(u, sc) : null;
+  const back = IMP.test(imp) ? `import=${imp}&` : sc ? `${sc}&` : "";
   const r = await recordBulkConsent(u, {
     channels: [...(on("text") ? (["text"] as const) : []), ...(on("ai_call") ? (["ai_call"] as const) : [])],
     purposes: [...(on("service") ? (["service"] as const) : []), ...(on("marketing") ? (["marketing"] as const) : [])],
@@ -38,9 +43,10 @@ export async function bulkConsentAction(fd: FormData): Promise<void> {
     proof: String(fd.get("proof") ?? ""),
     confirms: { namesUs: on("namesUs"), canProduce: on("canProduce"), coversAiVoice: on("coversAiVoice") },
     sinceYear: since >= 1990 && since <= 2100 ? since : null,
+    onlyIds: people ? new Set(people.map((c) => c.id)) : null,
   });
   const line = r.ok ? `Recorded for ${r.people} past ${r.people === 1 ? "client" : "clients"}. Their pages show it under Permission, with where the proof is.` : r.error;
-  redirect(`/mlo/contacts/permission?f=${encodeFlash({ ok: r.ok, lines: [line] })}`);
+  redirect(`/mlo/contacts/permission?${back}f=${encodeFlash({ ok: r.ok, lines: [line] })}#record`);
 }
 
 export async function rndBulkAction(fd: FormData): Promise<void> {

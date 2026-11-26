@@ -55,6 +55,8 @@ const Record_ = z.object({
   // D74: where a lead came from, and who sent them.
   leadSource: s(120).nullable().optional(),
   referredBy: s(120).nullable().optional(),
+  // D93: a co-borrower or spouse, saved on this contact as information only (the send gate never reads it).
+  coBorrower: z.object({ firstName: s(60), lastName: s(80), phone: z.string().regex(/^\+1\d{10}$/).nullable(), email: s(254).nullable() }).nullable().optional(),
   // D80: the loan's program, fixed or ARM, term, ARM change and margin, purpose, occupancy, property type and lender (fixed values only).
   loan: z
     .object({
@@ -289,12 +291,36 @@ export async function rotateClientLinkAction(contactId: string): Promise<void> {
   redirect(`/mlo/contacts/${encodeURIComponent(contactId)}?f=${encodeFlash({ ok: !!c, lines: [c ? "New link made. The old one no longer works." : "No such contact."] })}#their-page`);
 }
 
-/** D42: M8 matches columns from headers and value shapes only (never values; never agent lists). */
-export async function aiMapAction(input: { fileName: string; kind: string; columns: { header: string; shapes: string[] }[] }): Promise<import("@/lib/contacts/ai-map").AiMapResult> {
+/**
+ * D93: M8 reads the file's columns (headers and a spread sample of real
+ * values; owner decision 2026-11-25). Private and protected columns never go,
+ * agent lists and RETR files are refused, and `{ ok: false }` means the
+ * rules carry on alone (no key, allowance used, or an answer that didn't check).
+ */
+export async function aiReadAction(input: unknown): Promise<import("@/lib/contacts/ai-read").ReadResult> {
   const actor = await currentUser();
   if (!actor) return { ok: false, error: "Sign in first." };
-  const { aiMapColumns } = await import("@/lib/contacts/ai-map");
-  return aiMapColumns(actor, input);
+  const { aiReadColumns } = await import("@/lib/contacts/ai-read");
+  return aiReadColumns(actor, input);
+}
+
+/** D93: in a mixed import, M8 sorts the rows the rules couldn't (client or agent). */
+export async function aiSortAction(input: unknown): Promise<import("@/lib/contacts/ai-read").SortResult> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in first." };
+  const { aiSortRows } = await import("@/lib/contacts/ai-read");
+  return aiSortRows(actor, input);
+}
+
+/** D93: "Fix all with M8": proposed fixes the loan officer accepts or rejects; nothing changes here. */
+export async function aiFixAllAction(input: unknown): Promise<import("@/lib/contacts/ai-read").FixAllResult & { why?: string }> {
+  const actor = await currentUser();
+  if (!actor) return { ok: false, error: "Sign in first." };
+  const { aiFixAll } = await import("@/lib/contacts/ai-read");
+  const r = await aiFixAll(actor, input);
+  if (r.ok || r.error !== "no AI") return r;
+  const { aiOffReason } = await import("@/lib/ai/meter");
+  return { ...r, why: await aiOffReason(actor) };
 }
 
 /**

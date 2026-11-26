@@ -350,7 +350,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
       <section className="mlo-section" id="details">
         <h2>Details</h2>
         <EditDetails
-          initial={{ firstName: c.firstName, lastName: c.lastName, phone: formatPhone(c.phone), phone2: formatPhone(c.phone2), email: c.email ?? "", street: c.street ?? "", city: c.city ?? "", state: c.state ?? "", zip: c.zip ?? "", relationship: c.relationship, leadSource: c.leadSource ?? "", referredBy: c.referredBy ?? "", notes: c.notes ?? "" }}
+          initial={{ firstName: c.firstName, lastName: c.lastName, phone: formatPhone(c.phone), phone2: formatPhone(c.phone2), email: c.email ?? "", street: c.street ?? "", city: c.city ?? "", state: c.state ?? "", zip: c.zip ?? "", relationship: c.relationship, leadSource: c.leadSource ?? "", referredBy: c.referredBy ?? "", notes: c.notes ?? "", coFirstName: c.coBorrower?.firstName ?? "", coLastName: c.coBorrower?.lastName ?? "", coPhone: formatPhone(c.coBorrower?.phone ?? null), coEmail: c.coBorrower?.email ?? "" }}
           relationships={relationshipsFor(c.kind).map((r) => ({ value: r, label: RELATIONSHIP_LABELS[r] }))}
           states={US_STATES.map((x) => ({ code: x.code, name: x.name }))}
           agent={c.kind === "agent"}
@@ -363,6 +363,7 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
             <div><dt>Relationship</dt><dd>{RELATIONSHIP_LABELS[c.relationship]}</dd></div>
             {c.leadSource ? <div><dt>Lead source</dt><dd>{c.leadSource}</dd></div> : null}
             {c.referredBy ? <div><dt>Referred by</dt><dd>{c.referredBy}</dd></div> : null}
+            {c.coBorrower ? <div><dt>{cp.edit.coHeading}</dt><dd>{[`${c.coBorrower.firstName} ${c.coBorrower.lastName}`.trim(), c.coBorrower.phone ? formatPhone(c.coBorrower.phone) : "", c.coBorrower.email ?? ""].filter(Boolean).join(" · ") || "Not known"}<span className="mlo-note cc-dl__sub">{cp.edit.coNote}</span></dd></div> : null}
             {c.loan ? <div><dt>Their loan</dt><dd>{[c.loan.closedOn ? `closed ${c.loan.closedOn}` : "", loanKind(c.loan), money(c.loan.amount), c.loan.noteRate ? `${showRate(c.loan.noteRate)} note rate` : ""].filter(Boolean).join(" · ")}</dd></div> : null}
             {c.agent ? <div><dt>Production</dt><dd>{[c.agent.brokerage, c.agent.units !== null ? `${c.agent.units} units` : "", c.agent.volume !== null ? `${money(c.agent.volume)} volume` : "", c.agent.buyerUnits !== null ? `${c.agent.buyerUnits} buyer-side` : "", c.agent.listingUnits !== null ? `${c.agent.listingUnits} listings` : "", c.agent.topLender ? `usually works with ${c.agent.topLender}` : ""].filter(Boolean).join(" · ") || "Not known"}</dd></div> : null}
             {c.notes ? <div><dt>Notes</dt><dd className="cc-dl__pre">{c.notes}</dd></div> : null}

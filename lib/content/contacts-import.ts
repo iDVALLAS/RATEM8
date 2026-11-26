@@ -1,10 +1,13 @@
 /**
  * lib/content/contacts-import.ts — strings for importing contacts
  * (D69: opt-outs in a file, plain-words batch errors, resuming; D74: the
- * four-step review, format questions, "Needs a look" and Fix with M8).
+ * four-step review, format questions, "Needs a look" and Fix with M8;
+ * D93: M8's best guesses, mixed client and agent files, going back a step,
+ * Fix all with M8 and the permission dialog after an import).
  * Internal Command Center copy, behind sign-in.
  */
 const people = (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? "person" : "people"}`;
+const count = (n: number, one: string, many: string) => `${n.toLocaleString("en-US")} ${n === 1 ? one : many}`;
 
 export const contactsImportCopy = {
   /** Everyone whose file says stop to texts, calls and email (or "do not contact"). */
@@ -36,8 +39,19 @@ export const contactsImportCopy = {
   },
   steps: ["Add files", "Check columns", "Fix and tag", "Where they came from"],
   stepsLabel: "Import steps",
+  // D93: the step pills are buttons; everything done so far is kept when you go back.
+  stepGo: (label: string, n: number) => `Step ${n}: ${label}`,
+  stepLocked: { files: "Add a file first.", questions: "Answer the questions in Check columns first.", people: "There's nobody to import yet." },
+  stepKept: "Going back keeps everything you've done: files, column choices, fixes, tags and sources.",
   kindLabel: "What's in these files?",
   kinds: { contacts: "Clients and contacts", agents: "Real estate agents" },
+  kindNote: "Tick both if your files mix clients and agents. Each row is sorted into clients or agents for you, and you can move any row before importing.",
+  kindOne: "Keep at least one ticked.",
+  dropTitle: "Drop your contact files here, or tap to choose",
+  dropReading: "Reading your files…",
+  dropNote: "Excel (every sheet), CSV, or phone contacts (.vcf). Exports from Bonzo, Total Expert, Jungo, Salesforce, Google, Outlook, iPhone or Android all work. As many files as you like; they're combined and duplicates merged. Files are read on this device. To place your columns, M8 reads a sample of each one (never Social Security numbers, birth dates or account numbers), then the cleaned rows are sent.",
+  agentsOnly: "RETR's terms (updated September 2026) don't allow its data to be used with AI or automated tools, so agent lists are matched without M8, and M8 never sees agents' production.",
+  retrFile: (name: string) => `${name} looks like a RETR export, so nothing in it goes to M8. Its columns were matched on this device.`,
   sourceTitle: "Where are these lists from?",
   sourceNote: "This decides what Command Center may do with them. Lists exported from a previous employer's system are put on hold until you confirm you're allowed to use them.",
   leadVendorPicked: "Picked “Leads I bought or got from a web form” from the file name. Change it if that's not right.",
@@ -49,8 +63,9 @@ export const contactsImportCopy = {
   addFirst: "Add at least one file to continue.",
   columns: {
     title: "Check how your columns were read",
-    byM8: "M8 saw your column names and the shape of the values, never the values. The examples below stay on this device.",
+    byM8: "M8 read your column names and a sample of values from across the file to place each column. Its guesses are marked below; change any you don't agree with.",
     byNames: "Matched by column names and what's in them, on this device.",
+    optInHint: "Have a column that says who agreed? Map it here: pick “Opted in to texts”, “calls” or “email” under Goes into. You decide what each value means; M8 never does.",
     counts: (c: { sure: number; check: number; none: number }) => [`${c.sure} sure`, `${c.check} check this`, `${c.none} not imported`],
     summary: (n: number) => `All ${n} ${n === 1 ? "column" : "columns"}`,
     status: { sure: "Sure", check: "Check this", none: "Not imported" },
@@ -68,6 +83,7 @@ export const contactsImportCopy = {
       unsure: "M8 wasn't sure. Check what it goes into.",
       disagree: "M8 and the column name didn't agree. Check what it goes into.",
       contents: "Matched by what's in it; the column name didn't say.",
+      m8: "Placed by M8 from the values. Change it if it's wrong.",
       notes: "No field matched, so each value goes into their notes as “Column: value”.",
       stage: "Saved as a note for now.",
       tags: "Split on ; , and |",
@@ -75,6 +91,7 @@ export const contactsImportCopy = {
       skip: "Not imported.",
     },
     optOutConfirm: "Yes, this column lists people who asked to stop",
+    useGuess: "Use this guess",
     readings: { yes: "opted in", no: "not opted in", unknown: "?", stop: "asked to stop", noStop: "no stop" },
     blank: "(blank)",
     relationship: "Anyone the file doesn't label is a",
@@ -99,6 +116,59 @@ export const contactsImportCopy = {
     other: (n: number) => `Any other value (${n.toLocaleString("en-US")} more)`,
     optedIn: "Opted in",
     notOptedIn: "Not opted in",
+    guessed: "(best guess)",
+  },
+  /** D93: the line on a column card or a question: what M8 (or the rules, on this device) think it is. */
+  guess: {
+    m8: "M8's best guess:",
+    rules: "Best guess:",
+    zipState: (n: number, of: number) => `${n.toLocaleString("en-US")} of ${of.toLocaleString("en-US")} fall in the State column's state.`,
+    zipStateLow: (n: number, of: number) => `Only ${n.toLocaleString("en-US")} of ${of.toLocaleString("en-US")} fall in the State column's state, so these may not be ZIP codes (Excel stores dates as 5-digit numbers too).`,
+    zipCity: (n: number, of: number) => `Rows in the same city share a ZIP prefix (${n.toLocaleString("en-US")} of ${of.toLocaleString("en-US")}).`,
+    zipCityLow: "Rows in the same city have ZIPs far apart, so these may not be ZIP codes.",
+    zipDigits: "Every value is 5 digits.",
+    nameHeader: (h: string) => `The column is called “${h}”.`,
+    nameEmail: (n: number, of: number) => `${n.toLocaleString("en-US")} of ${of.toLocaleString("en-US")} email addresses start with the name in this order.`,
+    nameM8: "From the names in the file.",
+    co: "Saved on the borrower's contact as Co-borrower. Nothing is sent to them.",
+    couples: (n: number) => `${count(n, "name holds", "names hold")} two people (“John & Jane Smith”). The second is saved as Co-borrower on the same contact.`,
+    reading: "M8 is reading your columns…",
+  },
+  /** D93: one file with clients and agents. */
+  sort: {
+    title: "Clients and agents",
+    counts: (clients: number, agents: number) => `${count(clients, "client", "clients")} · ${count(agents, "agent", "agents")}`,
+    unsure: (n: number) => `${count(n, "row", "rows")} couldn't be sorted, so ${n === 1 ? "it's" : "they're"} counted as ${n === 1 ? "a client" : "clients"}. Move any that are agents.`,
+    note: "Agents are filed under Agents with the tag “Agent”, get no loan details or co-borrower, and get no client messages. Opt-outs in the file still count for them.",
+    why: { type: "Type column", agent_col: "Agent column", brokerage: "Has a brokerage or license", m8: "Sorted by M8", moved: "Moved by you", none: "Not sure" },
+    lists: { agents: "Agents", unsure: "Not sure (counted as clients)", clients: "Clients" },
+    toAgents: "Move to agents",
+    toClients: "Move to clients",
+    moveLabel: (name: string, to: string) => `${to}: ${name}`,
+    more: (n: number) => `${n.toLocaleString("en-US")} more not shown.`,
+    working: "M8 is sorting the rows the columns didn't decide…",
+    m8Done: "M8 sorted the rows the columns didn't decide. Check them below.",
+    cols: { name: "Name", row: "Row", why: "Why", move: "Move" },
+  },
+  /** D93: Fix all with M8. */
+  fixAll: {
+    open: "Fix all with M8",
+    openLocal: "Suggest fixes for all",
+    working: (n: number) => `M8 is looking at ${count(n, "value", "values")}…`,
+    title: (n: number) => `${count(n, "suggested fix", "suggested fixes")}`,
+    note: "Nothing changes until you accept a fix. Each one was checked the way the import checks values, and only fixes that can be worked out from what's written are shown.",
+    local: (why: string) => `Worked out on this device, because ${why}.`,
+    accept: "Accept",
+    reject: "Reject",
+    acceptLabel: (what: string) => `Accept: ${what}`,
+    rejectLabel: (what: string) => `Reject: ${what}`,
+    acceptAll: (n: number) => `Accept all ${n.toLocaleString("en-US")}`,
+    close: "Close the list",
+    none: "No fix could be worked out from what's written. These stay in Needs a look, and anything you don't fix is kept in their notes as written.",
+    left: (n: number) => `${count(n, "value", "values")} couldn't be worked out from what's written; ${n === 1 ? "it stays" : "they stay"} in Needs a look.`,
+    accepted: (n: number) => `${count(n, "fix", "fixes")} accepted.`,
+    notSent: "Agent rows and RETR files are never sent to M8; their fixes are worked out on this device.",
+    from: (field: string, name: string, raw: string) => `${name} · ${field} · “${raw}”`,
   },
   review: {
     ready: (n: number) => `${n.toLocaleString("en-US")} ${n === 1 ? "person" : "people"} ready`,
@@ -110,6 +180,7 @@ export const contactsImportCopy = {
     readyNote: (shown: number, total: number) => (total > shown ? `The first ${shown} of ${total.toLocaleString("en-US")}.` : ""),
     lookNone: "Nothing needs a look.",
     lookNote: "Each value was read as blank. Fix it here, or import as is: anything you don't fix is kept in their notes as written.",
+    placeholders: (n: number) => `${count(n, "placeholder phone or email", "placeholder phones or emails")} (like 111-111-1111 or none@none.com) ${n === 1 ? "was" : "were"} read as blank and kept in notes as written. ${n === 1 ? "It doesn't" : "They don't"} need a look.`,
     lookMore: (n: number) => `${n.toLocaleString("en-US")} more. Fix with M8 steps through all of them.`,
     fix: "Fix",
     save: "Save",
@@ -179,6 +250,18 @@ export const contactsImportCopy = {
     permissionNote: "For past clients who signed it",
     undoTitle: "Made a mistake?",
     undoNote: "You can undo this import for 30 days. People you've messaged or recorded permission for since stay, and anyone who asked not to be contacted stays marked that way.",
+    /** D93: asked as soon as an import finishes. Nobody is marked as agreeing without the loan officer's own step. */
+    dialog: {
+      title: "Did these contacts agree to be contacted?",
+      body: "Texts and calls need each person's permission, recorded with where it came from. Email is fine for people you already know, as it is today. Nobody is marked as agreeing unless you record it.",
+      record: "Record permission for this import",
+      recordNote: "For past clients who signed consent, for example in their loan application",
+      oneByOne: "Go through them one by one",
+      oneByOneNote: "Contacts from this import who don't have permission on file yet",
+      later: "Not now",
+      close: "Close",
+      bar: "On Contacts you can also tick people and choose Record permission in the bar.",
+    },
   },
   reimport: {
     preview: (c: { fresh: number; existing: number; inFile: number }) => `${c.fresh.toLocaleString("en-US")} new · ${c.existing.toLocaleString("en-US")} already in your contacts · ${c.inFile.toLocaleString("en-US")} merged inside your files`,

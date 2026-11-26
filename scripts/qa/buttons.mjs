@@ -149,6 +149,7 @@ function audit() {
     await sp.getByRole('button', { name: 'Continue', exact: true }).click();
     await sp.getByRole('button', { name: /^Import \d+ (people|person)/ }).click();
     await sp.locator('h2', { hasText: 'Imported' }).waitFor();
+    const later = sp.getByRole('button', { name: 'Not now' }); await later.waitFor({ timeout: 5000 }).then(() => later.click()).catch(() => {});
   }
   await sp.goto(B + '/mlo/pipeline');
   if (!(await sp.getByRole('link', { name: 'Bo Park' }).count())) {
@@ -299,6 +300,9 @@ function audit() {
         await check('4 where from');
         const cb = page.locator('.mlo-section input[type=checkbox]'); if (await cb.count()) await cb.check();
         await page.getByRole('button', { name: /^Import \d+/ }).click(); await page.locator('h2', { hasText: 'Imported' }).waitFor();
+        await check('5 done, permission dialog');
+        // D93: "Not now" closes the permission dialog.
+        await page.getByRole('button', { name: 'Not now' }).click();
         await check('5 done');
         await page.locator('.im-undo summary').click(); await check('5 done, undo open');
         const imp = (/import=(imp_[\w-]+)/.exec(await page.getByRole('link', { name: /See these people/ }).getAttribute('href')) || [])[1];

@@ -4,10 +4,11 @@
  * import (lib/contacts/normalize.ts); a value that doesn't read is an error
  * the loan officer sees, never a silent blank. No protected traits are
  * fields here (fair lending): names, phones, email, address, relationship,
- * lead source, referred by and notes only.
+ * lead source, referred by, notes and (D93) a co-borrower's name, phone and
+ * email only.
  */
 import { cleanEmail, cleanState, cleanZip, emailProblem, phoneProblem, toE164 } from "./normalize";
-import { RELATIONSHIP_LABELS } from "./mapping";
+import { RELATIONSHIP_LABELS, type CoBorrower } from "./mapping";
 import { contactPageCopy as cp } from "@/lib/content/contact-page";
 import type { Contact } from "./store";
 import { isDay } from "./filter";
@@ -16,14 +17,18 @@ import { anyLoan, LOAN_PROGRAMS, LOAN_PURPOSES, OCCUPANCIES, PROPERTY_TYPES, RAT
 import { contactListsCopy as lc } from "@/lib/content/contact-lists";
 
 /** The fields a person can edit by hand. */
-export const EDIT_FIELDS = ["firstName", "lastName", "phone", "phone2", "email", "street", "city", "state", "zip", "relationship", "leadSource", "referredBy", "notes"] as const;
+export const EDIT_FIELDS = ["firstName", "lastName", "phone", "phone2", "email", "street", "city", "state", "zip", "relationship", "leadSource", "referredBy", "notes", "coFirstName", "coLastName", "coPhone", "coEmail"] as const;
 export type EditField = (typeof EDIT_FIELDS)[number];
+/** D93: the co-borrower's parts of the form (saved together as `coBorrower`). */
+export const CO_EDIT_FIELDS = ["coFirstName", "coLastName", "coPhone", "coEmail"] as const;
+type CoEditField = (typeof CO_EDIT_FIELDS)[number];
+const CO_KEY: Record<CoEditField, keyof CoBorrower> = { coFirstName: "firstName", coLastName: "lastName", coPhone: "phone", coEmail: "email" };
 export type EditInput = Partial<Record<EditField, string>>;
-export type EditValues = { firstName: string; lastName: string; phone: string | null; phone2: string | null; email: string | null; street: string | null; city: string | null; state: string | null; zip: string | null; relationship: string; leadSource: string | null; referredBy: string | null; notes: string | null };
+export type EditValues = { firstName: string; lastName: string; phone: string | null; phone2: string | null; email: string | null; street: string | null; city: string | null; state: string | null; zip: string | null; relationship: string; leadSource: string | null; referredBy: string | null; notes: string | null; coBorrower: CoBorrower | null };
 export type EditCheck = { ok: true; values: EditValues } | { ok: false; errors: Partial<Record<EditField, string>> };
 
-const MAX: Partial<Record<EditField, number>> = { firstName: 60, lastName: 80, street: 120, city: 60, leadSource: 120, referredBy: 120, notes: 4000 };
-const LABEL: Record<EditField, string> = { firstName: cp.edit.first, lastName: cp.edit.last, phone: cp.edit.phone, phone2: cp.edit.phone2, email: cp.edit.email, street: cp.edit.street, city: cp.edit.city, state: cp.edit.state, zip: cp.edit.zip, relationship: cp.edit.relationship, leadSource: cp.edit.leadSource, referredBy: cp.edit.referredBy, notes: cp.edit.notes };
+const MAX: Partial<Record<EditField, number>> = { firstName: 60, lastName: 80, street: 120, city: 60, leadSource: 120, referredBy: 120, notes: 4000, coFirstName: 60, coLastName: 80 };
+const LABEL: Record<EditField, string> = { firstName: cp.edit.first, lastName: cp.edit.last, phone: cp.edit.phone, phone2: cp.edit.phone2, email: cp.edit.email, street: cp.edit.street, city: cp.edit.city, state: cp.edit.state, zip: cp.edit.zip, relationship: cp.edit.relationship, leadSource: cp.edit.leadSource, referredBy: cp.edit.referredBy, notes: cp.edit.notes, coFirstName: cp.edit.coFirst, coLastName: cp.edit.coLast, coPhone: cp.edit.coPhone, coEmail: cp.edit.coEmail };
 
 /** Relationships a person of this kind can have (agents are always "agent"). */
 export const relationshipsFor = (kind: "contact" | "agent") => (kind === "agent" ? ["agent"] : Object.keys(RELATIONSHIP_LABELS).filter((k) => k !== "agent"));
@@ -58,6 +63,15 @@ export function checkEdit(input: EditInput, kind: "contact" | "agent"): EditChec
   if (zipRaw && !zip) errors.zip = cp.errors.zip;
   const relationship = raw("relationship") || (kind === "agent" ? "agent" : "");
   if (!relationshipsFor(kind).includes(relationship)) errors.relationship = cp.errors.relationship;
+  // D93: the co-borrower, checked like everyone else (agents have none). Saved as information only; nothing is sent to them.
+  const coFirst = kind === "agent" ? "" : text("coFirstName");
+  const coLast = kind === "agent" ? "" : text("coLastName");
+  const coPhoneRaw = kind === "agent" ? "" : raw("coPhone");
+  const coPhone = coPhoneRaw ? toE164(coPhoneRaw) : null;
+  if (coPhoneRaw && !coPhone) errors.coPhone = cp.errors.coPhone(phoneProblem(coPhoneRaw));
+  const coEmailRaw = kind === "agent" ? "" : raw("coEmail");
+  const coEmail = coEmailRaw ? cleanEmail(coEmailRaw) : null;
+  if (coEmailRaw && !coEmail) errors.coEmail = cp.errors.coEmail(emailProblem(coEmailRaw));
   const values: EditValues = {
     firstName,
     lastName,
@@ -72,17 +86,18 @@ export function checkEdit(input: EditInput, kind: "contact" | "agent"): EditChec
     leadSource: text("leadSource") || null,
     referredBy: text("referredBy") || null,
     notes: text("notes") || null,
+    coBorrower: coFirst || coLast || coPhone || coEmail ? { firstName: coFirst, lastName: coLast, phone: coPhone, email: coEmail } : null,
   };
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, values };
 }
 
 /** The fields an edit changes (compared with the stored contact). */
 export function changedFields(c: Contact, v: EditValues): EditField[] {
-  const now = (f: EditField): string | null => {
-    const x = (c as unknown as Record<string, unknown>)[f];
-    return x === undefined || x === null || x === "" ? null : String(x);
-  };
-  return EDIT_FIELDS.filter((f) => now(f) !== (v[f] === "" ? null : v[f]));
+  const norm = (x: unknown) => (x === undefined || x === null || x === "" ? null : String(x));
+  const isCo = (f: EditField): f is CoEditField => (CO_EDIT_FIELDS as readonly string[]).includes(f);
+  const now = (f: EditField) => norm(isCo(f) ? c.coBorrower?.[CO_KEY[f]] : (c as unknown as Record<string, unknown>)[f]);
+  const next = (f: EditField) => norm(isCo(f) ? v.coBorrower?.[CO_KEY[f]] : (v as unknown as Record<string, unknown>)[f]);
+  return EDIT_FIELDS.filter((f) => now(f) !== next(f));
 }
 
 // ---- D80: loan details, edited by hand on the Loan & agent tab ----

@@ -4,6 +4,7 @@ import { fieldsFor, readsOptOut, RELATIONSHIP_LABELS, type Field, type ImportKin
 import { splitName, type NameOrder, type DateOrder } from "@/lib/contacts/normalize";
 import { cardCounts, consentReadings, namePreview, OPT_IN_FIELDS, unanswered, type ColumnCard, type ColumnTarget, type Question } from "@/lib/contacts/review";
 import { contactsImportCopy as ic } from "@/lib/content/contacts-import";
+import { cardGuesses, nameGuess, type Guess } from "@/lib/contacts/guess";
 import { setTarget, type Item } from "./types";
 
 const c = ic.columns;
@@ -14,16 +15,20 @@ type FileView = { it: Item; cards: ColumnCard[]; questions: Question[] };
 /**
  * Step 2 (D74): one card per column of each file, what it goes into and
  * whether it's Sure, Check this or Not imported, then the format questions
- * for that file. Sample values are shown here only; they never leave the
- * device.
+ * for that file. D93: each card carries the best guess for that column
+ * (M8's, from a sample of the values, or the rules' on this device: a ZIP
+ * that fits the State column, a co-borrower column, two people in one name)
+ * with Sure or Check this, and a button to use the guess.
  */
 export default function ColumnsStep({ kind, files, update }: { kind: ImportKind; files: FileView[]; update: (id: string, fn: (it: Item) => Item) => void }) {
   const fields = fieldsFor(kind) as Record<string, string>;
   return (
     <>
+      {kind === "contacts" ? <p className="mlo-note im-hint">{c.optInHint}</p> : null}
       {files.map(({ it, cards, questions }) => {
         const counts = cardCounts(cards);
         const open = it.expanded ?? counts.check > 0;
+        const guesses = cardGuesses(it.table, it.mapping, it.m8, (f) => fields[f] ?? f);
         return (
           <section key={it.id} className="mlo-section im-file" aria-labelledby={`im-f-${it.id}`}>
             <h2 id={`im-f-${it.id}`} className="im-file__name">{it.name}</h2>
@@ -47,7 +52,7 @@ export default function ColumnsStep({ kind, files, update }: { kind: ImportKind;
             <details className="mlo-details im-colpanel" open={open} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open; if (o !== open) update(it.id, (x) => ({ ...x, expanded: o })); }}>
               <summary>{c.summary(cards.length)}</summary>
               <ol className="im-cols">
-                {cards.map((card) => <Card key={card.col} it={it} card={card} fields={fields} update={update} />)}
+                {cards.map((card) => <Card key={card.col} it={it} card={card} fields={fields} update={update} guess={card.sensitive ? null : guesses[card.col] ?? null} />)}
               </ol>
             </details>
             {questions.length ? (
@@ -62,7 +67,7 @@ export default function ColumnsStep({ kind, files, update }: { kind: ImportKind;
   );
 }
 
-function Card({ it, card, fields, update }: { it: Item; card: ColumnCard; fields: Record<string, string>; update: (id: string, fn: (it: Item) => Item) => void }) {
+function Card({ it, card, fields, update, guess }: { it: Item; card: ColumnCard; fields: Record<string, string>; update: (id: string, fn: (it: Item) => Item) => void; guess: Guess | null }) {
   const confirmed = it.answers.optOutOk?.includes(card.col) ?? false;
   const optOutField = card.optOut && !card.sensitive;
   const consent = OPT_IN_FIELDS.includes(card.target as (typeof OPT_IN_FIELDS)[number]) || (optOutField && card.target in fields);
@@ -73,6 +78,8 @@ function Card({ it, card, fields, update }: { it: Item; card: ColumnCard; fields
   else if (card.note) noteText = c.notes[card.note];
   else if (optOutField && confirmed) noteText = c.notes.optoutDone;
   const id = `im-c-${it.id}-${card.col}`;
+  // D93: the guess names a field this column isn't in yet (and may go in).
+  const useGuess = !!guess?.field && guess.field !== card.target && card.options.includes(guess.field) && !card.optOut;
   return (
     <li className="cc-card im-col" data-status={card.status}>
       <div className="im-col__head">
@@ -100,6 +107,7 @@ function Card({ it, card, fields, update }: { it: Item; card: ColumnCard; fields
         </select>
       </label>
       {noteText ? <p className={`im-col__note${card.status === "check" ? " im-col__note--check" : ""}`}>{noteText}</p> : null}
+      {guess ? <p className="im-col__guess"><strong>{guess.by === "m8" ? ic.guess.m8 : ic.guess.rules}</strong> {guess.text}</p> : null}
       {readings ? (
         <p className="im-col__ex">
           {readings.values.map((v) => `${v.value || c.blank} → ${optOutField && v.reading === "no" ? c.readings.noStop : c.readings[v.reading]}`).join(" · ")}
@@ -112,8 +120,11 @@ function Card({ it, card, fields, update }: { it: Item; card: ColumnCard; fields
           <span>{c.optOutConfirm}</span>
         </label>
       ) : null}
-      {card.suggest || (card.status === "check" && card.note && card.note !== "optout" && card.note !== "question") ? (
+      {card.suggest || useGuess || (card.status === "check" && card.note && card.note !== "optout" && card.note !== "question") ? (
         <div className="mlo-row-form im-col__acts">
+          {useGuess ? (
+            <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => update(it.id, (x) => setTarget(x, card.col, guess!.field as Field))} aria-describedby={id}>{c.useGuess}</button>
+          ) : null}
           {card.suggest ? (
             <button type="button" className="mlo-btn mlo-btn--ghost" onClick={() => update(it.id, (x) => setTarget(x, card.col, card.suggest as Field))}>{c.useAs(fields[card.suggest] ?? card.suggest)}</button>
           ) : null}
@@ -138,6 +149,8 @@ function QuestionCard({ it, q: x, update }: { it: Item; q: Question; update: (id
   const left = unanswered([x], it.answers);
   const id = `im-q-${it.id}-${x.kind}-${x.col}`;
   const setAnswers = (a: Partial<Item["answers"]>) => update(it.id, (y) => ({ ...y, answers: { ...y.answers, ...a } }));
+  // D93: the best guess for how names are written; the question still waits for the loan officer's answer.
+  const named = x.kind === "name" ? nameGuess(it.table, it.mapping, it.m8) : null;
   return (
     <div className="im-q" role="group" aria-labelledby={id} data-open={left ? "" : undefined}>
       <p className="im-q__eyebrow">{q.title(x.header)}</p>
@@ -154,9 +167,10 @@ function QuestionCard({ it, q: x, update }: { it: Item; q: Question; update: (id
       ) : x.kind === "name" ? (
         <>
           <p id={id} className="im-q__ask">{q.name}</p>
+          {named ? <p className="im-col__guess"><strong>{named.by === "m8" ? ic.guess.m8 : ic.guess.rules}</strong> {q.nameOrders[named.order]}. {named.text}</p> : null}
           <div className="mlo-row-form">
             {(["first_last", "last_first"] as NameOrder[]).map((o) => (
-              <Choice key={o} on={it.answers.nameOrder === o} onClick={() => setAnswers({ nameOrder: o })}>{q.nameOrders[o]}</Choice>
+              <Choice key={o} on={it.answers.nameOrder === o} onClick={() => setAnswers({ nameOrder: o })}>{q.nameOrders[o]}{named?.order === o ? ` ${q.guessed}` : ""}</Choice>
             ))}
           </div>
           <ul className="im-q__preview" aria-label={q.preview}>

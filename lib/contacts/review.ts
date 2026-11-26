@@ -13,13 +13,13 @@
  *    and the plain sentence for each one.
  *  - The skipped rows as a CSV with a Reason column, formula-safe.
  *
- * Sample values and every value in "Needs a look" stay on the device. The
- * only thing that may go to M8 is a field name, a value's shape and a
- * reason code (lib/contacts/ai-fix.ts).
+ * D93 (owner decision 2026-11-25): M8 may read a sample of each column and
+ * the values in "Needs a look" to help (lib/contacts/ai-read.ts), never a
+ * private or protected column; what goes is built in lib/contacts/ai-safe.ts.
  */
 import { cell } from "@/lib/export/csv";
 import type { Csv } from "./csv";
-import { headerAllowed, OPT_OUT_FIELDS, OPT_OUT_HEADER, PROTECTED_HEADER, readOptIn, readsOptOut, type BuildOptions, type Field, type FixField, type ImportKind, type ImportRecord, type Mapping, type OptOutField, type RowProblem, type RowWarning, fieldsFor } from "./mapping";
+import { headerAllowed, OPT_OUT_FIELDS, OPT_OUT_HEADER, PROTECTED_HEADER, readOptIn, SENSITIVE_HEADER, readsOptOut, type BuildOptions, type Field, type FixField, type ImportKind, type ImportRecord, type Mapping, type OptOutField, type RowProblem, type RowWarning, fieldsFor } from "./mapping";
 import { cleanEmail, cleanState, formatPhone, isoDate, scanDates, spellDate, splitName, toE164, type DateOrder, type NameOrder } from "./normalize";
 import { MAX_TAG, MAX_TAGS, mergeTags, splitTags } from "./tags";
 import { usStateName } from "@/lib/us-states";
@@ -30,13 +30,13 @@ export type ColumnChoice = "notes" | "tag" | "skip";
 export type ColumnTarget = Field | ColumnChoice;
 export type ColumnStatus = "sure" | "check" | "none";
 /** Why a matched column needs a look: M8 wasn't sure, M8 and the name match disagree, or it was matched by its contents only. */
-export type ColumnFlag = "unsure" | "disagree" | "contents";
+export type ColumnFlag = "unsure" | "disagree" | "contents" | "m8";
 export type ColumnNote = "private" | "protected" | "optout" | "question" | ColumnFlag | "notes" | "stage" | "tags" | "empty" | "skip" | null;
 export type OptInField = "optInText" | "optInCall" | "optInEmail";
 export const OPT_IN_FIELDS: readonly OptInField[] = ["optInText", "optInCall", "optInEmail"];
 
-/** Social Security numbers, birth dates, account numbers, credit scores, passwords: never imported, never sent. */
-export const SENSITIVE_HEADER = /\b(ssn|ss#|social security|soc\.? ?sec|tax ?id|tin|dob|date of birth|birth ?date|birthday|account ?(number|no|num|#)|acct|routing|credit ?score|fico|password|pin)\b/i;
+/** Social Security numbers, birth dates, account numbers, credit scores, passwords: never imported, never sent (the list lives in mapping.ts). */
+export { SENSITIVE_HEADER };
 const SSN_VALUE = /^\d{3}-\d{2}-\d{4}$/;
 /** D74: a "Stage" or "Pipeline stage" column is kept as a note for now (the stage board comes later). */
 export const STAGE_HEADER = /^(pipeline |lead |deal |sales )?stage$|pipeline.?stage/i;
@@ -270,6 +270,8 @@ export function columnCards(t: Csv, mapping: Mapping, kind: ImportKind, choice: 
     else if (optOut && !review.optOutOk?.includes(col)) [status, note] = ["check", "optout"];
     else if (questionCols.includes(col)) [status, note] = ["check", "question"];
     else if (ok) status = "sure";
+    // D93: a column M8 placed with confidence reads Sure, with its guess on the card.
+    else if (review.flags?.[col] === "m8") [status, note] = ["sure", "m8"];
     else if (review.flags?.[col]) [status, note] = ["check", review.flags[col]];
     else if (target === "notes") [status, note] = STAGE_HEADER.test(header.trim()) ? ["sure", "stage"] : ["check", "notes"];
     if (status === "sure" && note === null && target === "tags") note = "tags";
