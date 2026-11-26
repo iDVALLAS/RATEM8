@@ -8176,3 +8176,33 @@ the dialog and the done screen), `CLAUDE.md` (§1 D93, §3.4 count).
   (3) M8 sorts at most 150 unsure rows per file and Fix all sends at most 1,000 values; the rest fall back to the rules
   and the device. (4) A "Buyer" or "Seller" value in a Type column still reads as relationship "Other" (as before D93).
 - **Next up:** promote on the owner's word.
+
+## D93.1 — QA: `command-center.mjs` runs clean again (the D79 "Done" stall) (2026-11-26)
+
+QA script only; no app change.
+
+- **Cause:** D79's "Text from my phone" reply ends in `window.location.href = "sms:…"` (`PhoneText.tsx`, as built in
+  D67). The sweep runs the full Chromium binary (`QA_CHROME=/opt/pw-browsers/chromium`), which answers an `sms:`
+  navigation with its "open the app?" external-protocol dialog. Headless, the dialog is never shown, but it stays on
+  that tab and swallows every later click, even after `page.goto`: so the Inbox "Done" form never submitted and the
+  rest of the sweep (33 steps, D79 to D88) used a dead tab. `page.evaluate` still worked and a new tab did not have
+  the dialog, which matches what was seen on 2026-11-25. The headless shell
+  (`/opt/pw-browsers/chromium_headless_shell`) doesn't do this.
+- **Why it seemed time-of-day:** the reply only reaches the `sms:` link when Ann (WA) is inside her texting hours.
+  Outside them the reply is refused for quiet hours, the step accepts that, no `sms:` navigation happens, and the
+  sweep passes. Daytime Pacific runs (21:00–22:00 UTC is early afternoon there) stalled every time.
+- **Fix (`scripts/qa/command-center.mjs`):** an `inOwnTab(url, fn)` helper opens a second tab in the same context
+  (same sign-in, same console/page-error/5xx watchers), runs the "Open in Messages" click there, reads the result and
+  closes the tab, which takes the dialog with it. The step checks what it did before (the "Messages is opening" line,
+  then Ann out of Needs reply and the reply in her conversation, or a quiet-hours refusal) and now also that "Open
+  Messages again" points to `sms:` Ann's number with the reply as its body. The listeners moved into a `watch(p)`
+  helper so both tabs report the same way.
+- **Verified:** a 10-line page that sets `location.href = "sms:…"` reproduces the stall in full Chromium (checkbox
+  "did not change its state", a link that doesn't navigate after `goto`, a new tab fine) and not in the headless
+  shell; the same click in a tab of its own, closed after, leaves the main tab working. Fresh production server
+  (`.data` removed, `CC_DEV_LOGIN=1 …`, full Chromium) at 00:56 UTC, inside Ann's texting hours: d79 took the
+  "Messages is opening" path, then Done ("Marked Cy done…"), snooze, settings and the new-lead alert passed, and the
+  whole sweep ended `PROBLEMS: none` in 71 s.
+- **Known issues:** on a real desktop browser, "Open in Messages" still navigates to `sms:` (an app prompt or
+  nothing, by browser); that is D67's design and unchanged here.
+- **Next up:** owner's sign-off.

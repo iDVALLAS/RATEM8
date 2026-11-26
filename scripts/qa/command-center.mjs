@@ -17,9 +17,16 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
   const page = await ctx.newPage();
   const problems = [];
   let where = 'start';
-  page.on('pageerror', (e) => problems.push(`[${where}] pageerror: ${e.message}`));
-  page.on('console', (m) => { if (m.type() === 'error' && !/_vercel\/insights/.test(m.text()) && !/404 \(Not Found\)/.test(m.text())) problems.push(`[${where}] console: ${m.text().slice(0, 200)}`); });
-  page.on('response', (r) => { if (r.status() >= 500) problems.push(`[${where}] HTTP ${r.status()} ${r.url()}`); });
+  const watch = (p) => {
+    p.on('pageerror', (e) => problems.push(`[${where}] pageerror: ${e.message}`));
+    p.on('console', (m) => { if (m.type() === 'error' && !/_vercel\/insights/.test(m.text()) && !/404 \(Not Found\)/.test(m.text())) problems.push(`[${where}] console: ${m.text().slice(0, 200)}`); });
+    p.on('response', (r) => { if (r.status() >= 500) problems.push(`[${where}] HTTP ${r.status()} ${r.url()}`); });
+  };
+  watch(page);
+  // A click that sends the tab to an sms: link ("Open in Messages") must happen in a tab of its own, closed after.
+  // Full Chromium (QA_CHROME=/opt/pw-browsers/chromium) answers sms: with an "open the app?" dialog that is never
+  // shown headless but swallows every later click in that tab, even after page.goto (the headless shell doesn't).
+  const inOwnTab = async (url, fn) => { const p = await ctx.newPage(); watch(p); try { await p.goto(url); return await fn(p); } finally { await p.close(); } };
   const flash = async () => (await page.locator('.mlo-flash').first().innerText().catch(() => '(no flash)')).replace(/\n/g, ' | ').slice(0, 160);
   const step = async (name, fn) => { where = name; try { await fn(); } catch (e) { problems.push(`[${name}] FAILED: ${e.message.split('\n')[0]}`); } };
   // D74: the import's four steps. After the files are added: pick the source, Continue, answer every question
@@ -525,13 +532,18 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     await page.locator('.cc-thread', { hasText: 'Ann Lee' }).click(); await page.waitForURL(/c=c_/);
     if (!/Ann Lee/.test(await page.locator('.cc-ibx-card').innerText())) problems.push('[d79] pane is not Ann');
     if (!(await page.locator('.cc-tl--in', { hasText: 'Is the appraisal back yet?' }).count())) problems.push('[d79] Ann\'s message not in the conversation');
-    // Reply (texting isn't set up here, so it's "Text from my phone": the same checks, then logged).
-    await page.locator('#phone-text textarea').fill('Yes, it came in at value. I will call you.');
-    await page.locator('#phone-text').getByRole('button', { name: 'Open in Messages' }).click();
-    await page.locator('#phone-text .mlo-flash').waitFor();
-    const said = await page.locator('#phone-text .mlo-flash').innerText();
+    // Reply (texting isn't set up here, so it's "Text from my phone": the same checks, then logged). It opens an
+    // sms: link, so it runs in its own tab (see inOwnTab).
+    const { said, sms } = await inOwnTab(page.url(), async (p) => {
+      await p.locator('#phone-text textarea').fill('Yes, it came in at value. I will call you.');
+      await p.locator('#phone-text').getByRole('button', { name: 'Open in Messages' }).click();
+      await p.locator('#phone-text .mlo-flash').waitFor();
+      const again = p.locator('#phone-text').getByRole('link', { name: 'Open Messages again' });
+      return { said: await p.locator('#phone-text .mlo-flash').innerText(), sms: (await again.count()) ? await again.getAttribute('href') : null };
+    });
     console.log('d79: reply:', said.replace(/\n/g, ' | ').slice(0, 160));
     if (/Messages is opening/.test(said)) {
+      if (!/^sms:(\+1)?2065551234\?&body=Yes%2C%20it%20came%20in%20at%20value\./.test(sms ?? '')) problems.push('[d79] the Messages link is not to Ann with the reply: ' + sms);
       await page.goto(B + '/mlo/inbox?tab=all&c=' + ann);
       if ((await page.locator('.cc-thread', { hasText: 'Ann Lee' }).getAttribute('data-state')) !== 'sent') problems.push('[d79] Ann still needs a reply after the reply');
       if (!(await page.locator('.cc-tl', { hasText: 'Yes, it came in at value.' }).count())) problems.push('[d79] the reply is not in the conversation');
