@@ -8202,7 +8202,8 @@ QA script only; no app change.
   shell; the same click in a tab of its own, closed after, leaves the main tab working. Fresh production server
   (`.data` removed, `CC_DEV_LOGIN=1 …`, full Chromium) at 00:56 UTC, inside Ann's texting hours: d79 took the
   "Messages is opening" path, then Done ("Marked Cy done…"), snooze, settings and the new-lead alert passed, and the
-  whole sweep ended `PROBLEMS: none` in 71 s.
+  whole sweep ended `PROBLEMS: none` in 71 s. The unchanged script on another fresh server at 01:12 UTC failed the
+  same 33 steps as reported (first: d79 `page.waitForURL` after "Done", right after "Messages is opening").
 - **Known issues:** on a real desktop browser, "Open in Messages" still navigates to `sms:` (an app prompt or
   nothing, by browser); that is D67's design and unchanged here.
 - **Next up:** owner's sign-off.
