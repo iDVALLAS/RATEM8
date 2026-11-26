@@ -352,6 +352,12 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     `moveTo` (checked by `moveAllowed`); each ZIP/State/Closed on look has Move to buttons plus a draggable chip; `RowFixes` takes city,
     street and `note`. Contact Details: a pencil per detail (`data-edit-field`, Their loan → `#loan-edit`), Edit's address boxes swap by drag
     and take "as written" values from notes (`chipInto`), nothing saved until Save.
+    D94 Face ID (`lib/accounts/passkeys.ts`, `/api/cc/passkey/<step>`, `app/sign-in/{FaceIdSignIn,FaceIdBox,FaceIdSetup,faceid-client}`, `/sign-in/face-id`,
+    `/mlo/security#face-id`, copy `lib/content/{face-id,sign-in}.ts`): a platform passkey (UV required, discoverable) is a whole sign-in (email and
+    phone code skipped; account must be active; 12 h or 30 days with Remember); "Use Face ID to sign in on this device" (off) on the three code forms
+    rides `lm8_cc_faceid` and opens `/sign-in/face-id` after sign-in; challenges once, 5 min, bound to `lm8_cc_pk`, stored hashed in `cc_login_tokens`;
+    rpID = request host, exact origin; counter must rise; `cc_passkeys`; owner's reset and disabling remove them, phone code on/off and sign-out don't.
+    "Remember this device for 30 days" / "Forget my remembered devices" (was "computer"; cookie and row names unchanged).
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -460,7 +466,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1235 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1247 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.
@@ -978,7 +984,7 @@ No dependency was added in v12 through v24. Runtime (`package.json`):
 `next 15.5.18`, `react 19.0.0`, `react-dom 19.0.0`, `geist ^1.7.2`,
 `zod ^4.6.5`, `@anthropic-ai/sdk ^0.115.0`, `@vercel/analytics ^2.0.1`,
 `@neondatabase/serverless ^1.2.0` (C4, owner-approved Neon), `@vercel/blob 2.8.2` (D55,
-video uploads straight from the browser; D65.1 pinned for private stores), `qrcode ^1.5.4` (D63, the authenticator setup QR code), `pdf-lib 1.17.1` (D66, letters and filling forms). Upstash and
+video uploads straight from the browser; D65.1 pinned for private stores), `qrcode ^1.5.4` (D63, the authenticator setup QR code), `pdf-lib 1.17.1` (D66, letters and filling forms), `@simplewebauthn/server 14.1.0` and `@simplewebauthn/browser 14.0.0` (D94, Face ID passkeys: the CBOR/COSE parsing and signature checks, so they aren't hand-rolled). Upstash and
 Resend are called over HTTP with `fetch`, so they need no library.
 Dev: `tailwindcss ^4`, `@tailwindcss/postcss ^4`, `postcss ^8.4.49`,
 `typescript ^5`, `eslint ^9.17`, `eslint-config-next ^15.1`,

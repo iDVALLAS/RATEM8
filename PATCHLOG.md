@@ -8293,3 +8293,110 @@ walk adds the shifted-rows file; buttons and `command-center.mjs` click Edit by 
   otherwise shifted still reads as an Excel date number, as before (D93's step-2 doubt line is the warning for that).
   (4) `command-center.mjs` was not re-run (its D79 Inbox stall from D93 is still queued separately).
 - **Next up:** promote on the owner's word.
+
+## D94 — Face ID sign-in and "this device" (2026-11-26)
+
+Owner's request (2026-11-26): "Let's add Face ID toggle for the sign in page, and where it says 'remember this computer
+for 30 days' let's say device instead of computer."
+
+What the loan officer sees:
+- **Wording:** "Remember this device for 30 days" on the email-code form, the emailed link's page and the phone-code page
+  ("Leave it unticked on a shared or public device"); on `/mlo/security` the section is "Remembered devices" with "Forget my
+  remembered devices" ("Forgot 2 remembered devices…"); the owner's Recent activity says "Remembered a device for 30 days" /
+  "Forgot their remembered devices". Cookie names (`lm8_cc_device`, `lm8_cc_remember`), `dev:` rows and the audit field
+  `rememberedComputer` are unchanged (no migration).
+- **Sign in with Face ID** (`/sign-in`, above the email box, 44px, a face icon), only where the browser says the device has a
+  user-verifying platform authenticator (`isUserVerifyingPlatformAuthenticatorAvailable`): "Or your fingerprint or Windows
+  Hello, on a device where you turned it on.", its own "Remember this device for 30 days" box, then "or use your email" and
+  the email form as before. No email needed: the device offers its own passkey. Where the browser supports it, the email box
+  also suggests the passkey (conditional UI, `autocomplete="email webauthn"`). A cancel says "Face ID didn't finish. Try
+  again, or use your email."; a removed device or a disabled account says "This device's Face ID isn't set up for an active
+  Command Center account. Use your email, then turn Face ID on again."
+- **Turning it on:** "Use Face ID to sign in on this device" (off by default, same 44px row style as Remember, with "Or your
+  fingerprint or Windows Hello. After you sign in, this device asks once to set it up. Only on a device that's yours.") under
+  Remember on the email-code form, the link page and the phone-code page (the tick rides from the email step to the phone-code
+  step in `lm8_cc_faceid`, path /sign-in, 5 minutes, like Remember). Ticked, a successful sign-in lands on
+  `/sign-in/face-id` ("Turn on Face ID"), which asks the device at once; "Face ID is on for this device." then Command Center.
+  A cancel says "Face ID wasn't set up. You're signed in either way, and nothing was saved." with Turn on Face ID / Continue.
+  Where a browser wants a tap first (the request ends before any prompt shows), the page just shows the button.
+- **`/mlo/security#face-id`:** "Face ID" with each device ("iPhone · added Nov 26, 2026 · last used Nov 26, 2026", named
+  from the browser: iPhone, iPad, Mac, Android phone/tablet, Windows PC, Chromebook, Linux computer), Remove on each (bound
+  action), "Add this device" where the device can (else "This browser can't use Face ID here…"), and a line on what keeps and
+  removes it. The sign-in pitch's fine print adds "or with Face ID on a device you set up".
+
+How it works (`lib/accounts/passkeys.ts`, `app/api/cc/passkey/[step]/route.ts`; cryptography by `@simplewebauthn/server`):
+- A passkey with `authenticatorAttachment: "platform"`, `residentKey: "required"`, `userVerification: "required"`,
+  attestation none; a cross-platform answer (another phone, a security key) is refused. User handle = the opaque account id.
+- A Face ID sign-in is the whole sign-in (email step and phone code), because a user-verified passkey is something you have
+  and something you are. It opens a normal session (`openSession(…, { passkey: true })`, audit `signin.ok {faceId: true}`):
+  12 hours, or 30 days with Remember. The account must exist and be active; a user handle that isn't the saved account is
+  refused. `CC_REQUIRE_MFA` still sends someone with no phone code to set it up (Face ID doesn't replace the owner's rule).
+- Challenges: random (library), stored only as a hash in `cc_login_tokens` (`sha256("pk:<reg|auth>:<binding>:<challenge>")`,
+  setup ones tied to the signed-in person, sign-in ones to a marker), 5 minutes, used once whatever happens, and only from the
+  browser holding the `lm8_cc_pk` binding (httpOnly, SameSite=Strict, path /api/cc/passkey, 5 minutes).
+- rpID = the request's Host (loanm8.com in production, the preview host on previews, localhost locally); origin must match
+  exactly; the route also refuses any POST whose Origin header isn't the site. A signature counter that doesn't go up (when
+  either side counts) is refused (the library throws; our own check too, audited `passkey.counter_refused`).
+- `cc_passkeys` (Neon; id, credential_id unique, user_id, public_key, counter, transports, device_name, backed_up,
+  created_at, last_used_at) with the same in-memory store fallback; at most 10 per person.
+- Limits per hour: 120 sign-in challenges and 30 sign-in answers per hashed IP (every `/sign-in` view where autofill works
+  asks for one challenge), 20 setup challenges per person. Logs carry reason codes only ("[cc-passkey] signin refused:
+  unknown"); audit rows carry our row ids and counts, never credential ids or keys: `passkey.add`, `passkey.remove`,
+  `passkey.remove_all`, `passkey.signin`, `passkey.counter_refused` (words in `lib/content/activity.ts`, "Face ID activity").
+- Removed by: Remove on Security; the owner's (or team lead's) "Reset phone code" (`resetFor`, audit `mfa.reset
+  {faceIdRemoved}`); disabling an account (`updateUser`). Kept by: signing out, Forget my remembered devices, turning the
+  phone code off or on.
+- Stealth and the C22 lock: `/sign-in/face-id` joins `lib/public-paths.ts` and the lock's open list, as do the four
+  `/api/cc/passkey/*` routes (they check their own challenge and sign-in).
+
+Files: new `lib/accounts/passkeys.ts`, `lib/accounts/passkeys.test.ts`, `app/api/cc/passkey/[step]/route.ts`,
+`app/sign-in/{fields.ts,faceid-client.ts,FaceIcon.tsx,FaceIdBox.tsx,FaceIdSignIn.tsx,FaceIdSetup.tsx,face-id/page.tsx}`,
+`app/mlo/security/AddFaceId.tsx`, `lib/content/{face-id,sign-in}.ts`; changed `lib/accounts/{store,auth,mfa}.ts`,
+`lib/accounts/remember.test.ts` (wording), `app/sign-in/{land.ts,RememberBox.tsx,page.tsx,link/page.tsx,code/page.tsx}`,
+`app/mlo/security/{page,actions}.tsx`, `app/mlo/CcAuthShell.tsx`, `app/mlo/cc-shell.css`, `lib/content/activity.ts`,
+`lib/public-paths.ts`, `lib/site-lock.ts`, `package.json`/`package-lock.json` (`@simplewebauthn/server 14.1.0` of 2026-11-06,
+`@simplewebauthn/browser 14.0.0` of 2026-09-02, exact), `CLAUDE.md` (§1 D94, §3.4 count, §6).
+- **Tests:** `lib/accounts/passkeys.test.ts` (12) runs real ceremonies through `@simplewebauthn/server` with a software
+  authenticator (an ES256 key, "none" attestation, signed assertions), so origin, RP ID, user verification and the counter are
+  the library's own checks, not mocks: "device" wording (Remember, Security page and actions, activity words); options ask for
+  platform + discoverable + UV under the site's host, challenge stored only hashed; `rpFrom` (https, localhost over http,
+  odd hosts refused); turn on → sign in with no email → a 12-hour session, audit without credential ids or keys; a challenge
+  works once, for 5 minutes, only with its browser binding, setup and sign-in challenges never swap, one person's setup isn't
+  another's; wrong origin, http origin, wrong RP ID and no UV refused at setup and at sign-in; counter not rising (same, lower,
+  stored counter ahead) refused; disabled account and a mismatched user handle refused, disabling removes devices; list and
+  Remove (only your own), 10 at most; owner's reset removes them while phone code on/off, Forget and sign-out keep them, and
+  Face ID still signs in with the phone code on; per-IP limits; helpers. Suite: 1247 passed (was 1235).
+- **Verified:** `npm run verify` passes (lint: no warnings in changed files; check:copy, check:identity, check:licensing;
+  1,247 tests passed, 83 skipped; build; check:bundle). In a browser (production build, headless Chromium with a CDP
+  virtual platform authenticator: ctap2, internal, resident key, user verification), a scripted walk (54 checks, three
+  clean runs in a row on the final build; the sign-in email caught locally by a QA-only fetch shim, no real Resend): the
+  Face ID button and the code step's toggle (off) show at 390 and 1280 in Night and Paper, fit their boxes, 44px targets,
+  no sideways scroll; email code + toggle → `/sign-in/face-id` → "Face ID is on for this device." → `/mlo`, one resident
+  credential on the device; sign out → "Sign in with Face ID" → `/mlo`, counter up; the email box's autofill (conditional
+  UI) signs in too; Security lists the device ("Linux computer · added Nov 26, 2026 · last used Nov 26, 2026"), Remove
+  empties it and says so; the removed device is then refused with the calm message and the email box stays; Add this
+  device lists it again and Face ID signs in; a refused setup (UV off) says "Face ID wasn't set up…", stays signed in, saves
+  nothing; with no authenticator nothing about Face ID shows; no page errors. QA on fresh servers: `text-fit.mjs` (with the
+  locked server on 3101) 151 pages, 3,126 views, FINDINGS none; `buttons.mjs` 536 views, PROBLEMS none; `hydration.mjs`
+  240 slow-stream + 240 busy-server loads, React #418 0, PROBLEMS none. (Those three ran on the build before the last two
+  small changes: the sign-in rate limit raised from 30 to 120 challenges an hour, and the autofill request skipped where
+  the device has no Face ID; the walk ran again on the final build.) Screenshots in the session scratchpad (`d94/`).
+- **Decisions (the brief's, for the owner to change):** (a) "Face ID" = a platform passkey with user verification; the
+  words say Face ID first with "or your fingerprint or Windows Hello". (b) A Face ID sign-in counts as the whole sign-in
+  (email step and phone code); everything else still applies (active account, sessions 12 hours or 30 days with Remember,
+  the owner's `CC_REQUIRE_MFA`). (c) Turned on by a toggle on the code steps (off by default) or Add this device on Security;
+  a cancel keeps them signed in and saves nothing. (d) Removed by Remove, an owner's reset or disabling; kept by sign-out,
+  Forget my remembered devices and phone code on/off. (e) `@simplewebauthn/server` and `/browser`, pinned. (f) Only the
+  devices where the browser reports a platform authenticator see any of it. (g) Wording "device" everywhere a person reads
+  it; storage names unchanged.
+- **Known issues:** (1) **Not tried on a real iPhone, Android phone, Mac or Windows Hello** — every browser test used
+  Chromium's virtual authenticator. In particular Safari may want a tap before it shows the Face ID prompt on
+  `/sign-in/face-id` (the page then shows the "Turn on Face ID" button rather than prompting by itself), and the autofill
+  suggestion on iPhone wasn't seen. (2) A passkey belongs to the host it was made on: one made on a preview URL doesn't work
+  on loanm8.com, and loanm8.com and www.loanm8.com are different hosts (both are on the Vercel project); if www doesn't
+  redirect to the apex, a loan officer could need Face ID on each. (3) Neon wasn't run here; `cc_passkeys` and its queries are
+  bound-parameter SQL covered by type checks and the memory-store tests. (4) `/mlo/team`'s "Reset phone code" button shows
+  only for people with the phone code on; someone with Face ID only is cleared by disabling (or they remove it themselves).
+  (5) A Face ID sign-in counts as both factors; worth confirming against the brokerage's information security program
+  alongside D89's 30-day choice. (6) `@simplewebauthn/server` 14 needs Node 22+; the Vercel project is on 24.x.
+- **Next up:** promote on the owner's word.

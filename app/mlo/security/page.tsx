@@ -9,7 +9,11 @@ import { mfaRequired, pendingEnroll } from "@/lib/accounts/mfa";
 import { FlashBox, MloNav } from "../MloChrome";
 import Confirm from "./Confirm";
 import QRCode from "qrcode";
-import { disableAction, forgetDevicesAction, startAction } from "./actions";
+import { disableAction, forgetDevicesAction, removePasskeyAction, startAction } from "./actions";
+import { listPasskeysFor, passkeyLabel } from "@/lib/accounts/passkeys";
+import { FACE_ID } from "@/lib/content/face-id";
+import FaceIcon from "@/app/sign-in/FaceIcon";
+import AddFaceId from "./AddFaceId";
 import "../mlo.css";
 import PageHead from "@/app/mlo/PageHead";
 
@@ -28,6 +32,7 @@ export default async function Security({ searchParams }: { searchParams: Promise
   // D63: a QR code to scan from a computer screen (drawn here from the same setup link; nothing leaves the server).
   const qr = pending ? await QRCode.toString(pending.uri, { type: "svg", errorCorrectionLevel: "M", margin: 2, color: { dark: "#000000", light: "#ffffff" } }).catch(() => null) : null;
   const left = recovery !== undefined ? Number(recovery) : null;
+  const passkeys = me ? await listPasskeysFor(me) : [];
   return (
     <PageShell>
       <div className="mlo-wrap">
@@ -73,11 +78,31 @@ export default async function Security({ searchParams }: { searchParams: Promise
                 )}
               </section>
             )}
+            <section className="mlo-section" id="face-id">
+              <h2>{FACE_ID.sectionTitle}</h2>
+              <p className="mlo-note">{FACE_ID.sectionNote}</p>
+              {passkeys.length ? (
+                <ul className="cc-faceid-list" aria-label="Devices with Face ID">
+                  {passkeys.map((p) => (
+                    <li key={p.id}>
+                      <span><FaceIcon size={20} /> {passkeyLabel(p)}</span>
+                      <form action={removePasskeyAction.bind(null, p.id)}>
+                        <button type="submit" className="mlo-btn mlo-btn--ghost" aria-label={`${FACE_ID.remove}: ${passkeyLabel(p)}`}>{FACE_ID.remove}</button>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mlo-note" style={{ marginTop: 10 }}>{FACE_ID.none}</p>
+              )}
+              <AddFaceId />
+              <p className="mlo-note" style={{ marginTop: 10 }}>{FACE_ID.keeps}</p>
+            </section>
             <section className="mlo-section" id="remembered">
-              <h2>Remembered computers</h2>
-              <p className="mlo-note">When you tick &ldquo;Remember this computer for 30 days&rdquo; as you sign in, that computer stays signed in for 30 days{on ? " and skips the phone code for 30 days" : ""}. Unticked, a sign-in lasts 12 hours. Lost a laptop, or ticked it on a shared computer? Forget them all here; {on ? "each one asks for your phone code again next time" : "this matters once the phone code is on"}.</p>
+              <h2>Remembered devices</h2>
+              <p className="mlo-note">When you tick &ldquo;Remember this device for 30 days&rdquo; as you sign in, that device stays signed in for 30 days{on ? " and skips the phone code for 30 days" : ""}. Unticked, a sign-in lasts 12 hours. Lost a phone or laptop, or ticked it on a shared device? Forget them all here; {on ? "each one asks for your phone code again next time" : "this matters once the phone code is on"}.</p>
               <form action={forgetDevicesAction} className="mlo-actions">
-                <button type="submit" className="mlo-btn mlo-btn--ghost">Forget my remembered computers</button>
+                <button type="submit" className="mlo-btn mlo-btn--ghost">Forget my remembered devices</button>
               </form>
             </section>
           </>

@@ -1,7 +1,8 @@
 /**
  * lib/accounts/store.ts — Command Center accounts (D1). SERVER-ONLY.
  *
- * Users, one-time sign-in links, sessions and an append-only audit log.
+ * Users, one-time sign-in links, sessions, Face ID devices (D94) and an
+ * append-only audit log.
  * Neon Postgres when DATABASE_URL is set (tables made on first use), an
  * in-memory store for tests and local runs without a database.
  *
@@ -31,6 +32,24 @@ export type User = {
 /** D34: a second sign-in step. The secret is stored encrypted; recovery codes only as hashes. */
 export type MfaRecord = { userId: string; secretEnc: string; enabledAt: string | null; lastStep: number; recoveryHashes: string[]; createdAt: string };
 
+/**
+ * D94: a Face ID sign-in (a passkey on the person's own device). Only the public key is stored; the private key never
+ * leaves the device. `id` is our own random handle (pages and actions use it); `credentialId` is the authenticator's.
+ */
+export type PasskeyRecord = {
+  id: string;
+  credentialId: string;
+  userId: string;
+  /** The COSE public key, base64url. */
+  publicKey: string;
+  counter: number;
+  transports: string[];
+  deviceName: string;
+  backedUp: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+
 export type AuditEntry = { at: string; actor: string; action: string; detail: Record<string, string | number | boolean | null> };
 
 export interface AccountStore {
@@ -51,8 +70,18 @@ export interface AccountStore {
   sessionUser(hash: string, now: string): Promise<string | null>;
   deleteSession(hash: string): Promise<void>;
   deleteSessionsFor(userId: string): Promise<void>;
-  /** D89: forgets this person's remembered computers (rows whose hash starts "dev:"); their sign-ins stay. Returns how many. */
+  /** D89: forgets this person's remembered devices (rows whose hash starts "dev:"); their sign-ins stay. Returns how many. */
   deleteDevicesFor(userId: string): Promise<number>;
+  /** D94: one person's Face ID devices, oldest first. */
+  listPasskeys(userId: string): Promise<PasskeyRecord[]>;
+  passkeyByCredential(credentialId: string): Promise<PasskeyRecord | null>;
+  putPasskey(p: PasskeyRecord): Promise<void>;
+  /** D94: after a good Face ID sign-in: the new signature counter and when. */
+  touchPasskey(id: string, counter: number, at: string): Promise<void>;
+  /** D94: removes one of this person's devices; false when it isn't theirs or is already gone. */
+  deletePasskey(userId: string, id: string): Promise<boolean>;
+  /** D94: removes every Face ID device this person has (an owner's reset, a disabled account). Returns how many. */
+  deletePasskeysFor(userId: string): Promise<number>;
   audit(e: AuditEntry): Promise<void>;
   recentAudit(limit: number): Promise<AuditEntry[]>;
   /** D83: one action's rows for one loan officer (`detail.owner`), oldest first. */
@@ -66,6 +95,7 @@ export class MemoryAccountStore implements AccountStore {
   private sessions = new Map<string, { userId: string; expiresAt: string }>();
   private log: AuditEntry[] = [];
   private mfa = new Map<string, MfaRecord>();
+  private passkeys = new Map<string, PasskeyRecord>();
 
   async userByEmail(email: string) {
     return [...this.users.values()].find((u) => u.email === email.toLowerCase()) ?? null;
@@ -120,6 +150,30 @@ export class MemoryAccountStore implements AccountStore {
     for (const [k, s] of this.sessions) if (s.userId === userId && k.startsWith("dev:")) n += this.sessions.delete(k) ? 1 : 0;
     return n;
   }
+  async listPasskeys(userId: string) {
+    return [...this.passkeys.values()].filter((p) => p.userId === userId).sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((p) => ({ ...p, transports: [...p.transports] }));
+  }
+  async passkeyByCredential(credentialId: string) {
+    const p = [...this.passkeys.values()].find((x) => x.credentialId === credentialId);
+    return p ? { ...p, transports: [...p.transports] } : null;
+  }
+  async putPasskey(p: PasskeyRecord) {
+    this.passkeys.set(p.id, { ...p, transports: [...p.transports] });
+  }
+  async touchPasskey(id: string, counter: number, at: string) {
+    const p = this.passkeys.get(id);
+    if (p) this.passkeys.set(id, { ...p, counter, lastUsedAt: at });
+  }
+  async deletePasskey(userId: string, id: string) {
+    const p = this.passkeys.get(id);
+    if (!p || p.userId !== userId) return false;
+    return this.passkeys.delete(id);
+  }
+  async deletePasskeysFor(userId: string) {
+    let n = 0;
+    for (const [k, p] of this.passkeys) if (p.userId === userId) n += this.passkeys.delete(k) ? 1 : 0;
+    return n;
+  }
   async audit(e: AuditEntry) {
     this.log.push(e);
   }
@@ -146,6 +200,19 @@ const toUser = (r: Row): User => ({
   createdBy: r.created_by as string,
 });
 
+const toPasskey = (r: Row): PasskeyRecord => ({
+  id: r.id as string,
+  credentialId: r.credential_id as string,
+  userId: r.user_id as string,
+  publicKey: r.public_key as string,
+  counter: Number(r.counter ?? 0),
+  transports: (typeof r.transports === "string" ? JSON.parse(r.transports) : (r.transports ?? [])) as string[],
+  deviceName: r.device_name as string,
+  backedUp: !!r.backed_up,
+  createdAt: new Date(r.created_at as string).toISOString(),
+  lastUsedAt: r.last_used_at ? new Date(r.last_used_at as string).toISOString() : null,
+});
+
 export class NeonAccountStore implements AccountStore {
   readonly kind = "neon";
   private ready: Promise<void> | null = null;
@@ -160,6 +227,8 @@ export class NeonAccountStore implements AccountStore {
         await this.q(`CREATE TABLE IF NOT EXISTS cc_sessions (token_hash text PRIMARY KEY, user_id text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), expires_at timestamptz NOT NULL)`);
         await this.q(`CREATE INDEX IF NOT EXISTS cc_sessions_user ON cc_sessions (user_id)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_mfa (user_id text PRIMARY KEY, secret_enc text NOT NULL, enabled_at timestamptz, last_step bigint NOT NULL DEFAULT -1, recovery_hashes jsonb NOT NULL DEFAULT '[]', created_at timestamptz NOT NULL)`);
+        await this.q(`CREATE TABLE IF NOT EXISTS cc_passkeys (id text PRIMARY KEY, credential_id text NOT NULL UNIQUE, user_id text NOT NULL, public_key text NOT NULL, counter bigint NOT NULL DEFAULT 0, transports jsonb NOT NULL DEFAULT '[]', device_name text NOT NULL, backed_up boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL, last_used_at timestamptz)`);
+        await this.q(`CREATE INDEX IF NOT EXISTS cc_passkeys_user ON cc_passkeys (user_id)`);
         await this.q(`CREATE TABLE IF NOT EXISTS cc_audit (id bigserial PRIMARY KEY, at timestamptz NOT NULL, actor text NOT NULL, action text NOT NULL, detail jsonb NOT NULL)`);
       })().catch((e) => {
         this.ready = null;
@@ -246,6 +315,36 @@ export class NeonAccountStore implements AccountStore {
   async deleteDevicesFor(userId: string) {
     await this.init();
     const r = await this.q(`WITH d AS (DELETE FROM cc_sessions WHERE user_id = $1 AND token_hash LIKE 'dev:%' RETURNING 1) SELECT count(*)::int AS n FROM d`, [userId]);
+    return Number(r[0]?.n ?? 0);
+  }
+  async listPasskeys(userId: string) {
+    await this.init();
+    return (await this.q(`SELECT * FROM cc_passkeys WHERE user_id = $1 ORDER BY created_at`, [userId])).map(toPasskey);
+  }
+  async passkeyByCredential(credentialId: string) {
+    await this.init();
+    const r = await this.q(`SELECT * FROM cc_passkeys WHERE credential_id = $1`, [credentialId]);
+    return r[0] ? toPasskey(r[0]) : null;
+  }
+  async putPasskey(p: PasskeyRecord) {
+    await this.init();
+    await this.q(
+      `INSERT INTO cc_passkeys (id, credential_id, user_id, public_key, counter, transports, device_name, backed_up, created_at, last_used_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [p.id, p.credentialId, p.userId, p.publicKey, p.counter, JSON.stringify(p.transports), p.deviceName, p.backedUp, p.createdAt, p.lastUsedAt],
+    );
+  }
+  async touchPasskey(id: string, counter: number, at: string) {
+    await this.init();
+    await this.q(`UPDATE cc_passkeys SET counter = $2, last_used_at = $3 WHERE id = $1`, [id, counter, at]);
+  }
+  async deletePasskey(userId: string, id: string) {
+    await this.init();
+    const r = await this.q(`DELETE FROM cc_passkeys WHERE id = $1 AND user_id = $2 RETURNING 1`, [id, userId]);
+    return r.length > 0;
+  }
+  async deletePasskeysFor(userId: string) {
+    await this.init();
+    const r = await this.q(`WITH d AS (DELETE FROM cc_passkeys WHERE user_id = $1 RETURNING 1) SELECT count(*)::int AS n FROM d`, [userId]);
     return Number(r[0]?.n ?? 0);
   }
   async audit(e: AuditEntry) {

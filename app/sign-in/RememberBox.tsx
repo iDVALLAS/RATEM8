@@ -1,13 +1,9 @@
-import { REMEMBER_FIELD } from "./land";
+import { REMEMBER_COPY } from "@/lib/content/sign-in";
+import { REMEMBER_FIELD } from "./fields";
 
-/** D89: the words, in one place for the three forms that can finish signing in. */
-export const REMEMBER_COPY = {
-  label: "Remember this computer for 30 days",
-  note: "Leave it unticked on a shared or public computer. Unticked, you stay signed in for 12 hours.",
-  noteMfa: "Ticked, this computer also skips this phone-code step for 30 days. Leave it unticked on a shared or public computer.",
-};
+export { REMEMBER_COPY };
 
-/** D89: "Remember this computer for 30 days", unticked unless the person ticked it a step earlier. */
+/** D89: "Remember this device for 30 days" (D94: was "computer"), unticked unless the person ticked it a step earlier. */
 export default function RememberBox({ checked = false, mfa = false }: { checked?: boolean; mfa?: boolean }) {
   return (
     <div className="cc-auth__remember">

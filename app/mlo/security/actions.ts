@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { currentUser, forgetDevices } from "@/lib/accounts/auth";
 import { confirmEnroll, disableOwn, startEnroll } from "@/lib/accounts/mfa";
+import { removePasskey } from "@/lib/accounts/passkeys";
+import { FACE_ID } from "@/lib/content/face-id";
 import { encodeFlash } from "@/lib/mlo/flash";
 
 const back = (ok: boolean, line: string) => redirect(`/mlo/security?f=${encodeFlash({ ok, lines: [line] })}`);
@@ -26,12 +28,20 @@ export async function confirmAction(_prev: ConfirmState, fd: FormData): Promise<
   return r.ok ? { ok: true, recovery: r.recovery } : { ok: false, error: r.error };
 }
 
-/** D89: forget every computer this person ticked "Remember this computer for 30 days" on. */
+/** D89: forget every device this person ticked "Remember this device for 30 days" on. */
 export async function forgetDevicesAction(): Promise<void> {
   const u = await currentUser();
   if (!u) redirect("/sign-in");
   const n = await forgetDevices(u);
-  back(true, n ? `Forgot ${n} remembered ${n === 1 ? "computer" : "computers"}. Each one asks for your phone code next time.` : "No computers were remembered.");
+  back(true, n ? `Forgot ${n} remembered ${n === 1 ? "device" : "devices"}. Each one asks for your phone code next time.` : "No devices were remembered.");
+}
+
+/** D94: removes one of your Face ID devices (bound to its row id). */
+export async function removePasskeyAction(id: string): Promise<void> {
+  const u = await currentUser();
+  if (!u) redirect("/sign-in");
+  const gone = await removePasskey(u, String(id ?? ""));
+  redirect(`/mlo/security?f=${encodeFlash({ ok: gone, lines: [gone ? FACE_ID.removed : FACE_ID.removedNone] })}#face-id`);
 }
 
 export async function disableAction(fd: FormData): Promise<void> {

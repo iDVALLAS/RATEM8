@@ -45,12 +45,19 @@ const OPEN_EXACT = new Set([
   "/sign-in/code",
   // D47: the emailed link lands here.
   "/sign-in/link",
+  // D94: Face ID setup right after signing in (the page itself needs a sign-in).
+  "/sign-in/face-id",
   // D45: loan officer sign-up has its own checks.
   "/sign-up",
   "/sign-up/confirm",
   "/api/cc/verify",
   "/api/cc/signout",
   "/api/cc/dev-login",
+  // D94: Face ID sign-in and setup check their own challenges and sign-in.
+  "/api/cc/passkey/signin-options",
+  "/api/cc/passkey/signin",
+  "/api/cc/passkey/register-options",
+  "/api/cc/passkey/register",
   // D8: the scheduled Concierge run checks CRON_SECRET.
   "/api/cc/concierge/sweep",
   // D51: the campaign run checks CRON_SECRET.

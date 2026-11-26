@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import CcAuthShell from "@/app/mlo/CcAuthShell";
 import { cookies } from "next/headers";
 import { DEVICE_COOKIE, verifySignIn } from "@/lib/accounts/auth";
-import { land, rememberTicked } from "../land";
+import { faceIdTicked, land, rememberTicked } from "../land";
 import RememberBox from "../RememberBox";
+import FaceIdBox from "../FaceIdBox";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Sign in on this device", robots: { index: false, follow: false }, referrer: "no-referrer" };
@@ -15,7 +16,7 @@ async function openLink(t: string, fd: FormData) {
   const device = (await cookies()).get(DEVICE_COOKIE)?.value;
   const r = await verifySignIn(t, Date.now(), { remember, device }).catch(() => null);
   if (!r) redirect("/sign-in?e=expired");
-  await land(r, remember);
+  await land(r, remember, faceIdTicked(fd));
 }
 
 /**
@@ -32,6 +33,7 @@ export default async function SignInLink({ searchParams }: { searchParams: Promi
       <p className="cc-auth__lede">This signs in the browser you&apos;re using now. To sign in on another computer, type the 6-digit code from the same email there instead.</p>
       <form action={openLink.bind(null, t.slice(0, 100))} className="mlo-section">
         <RememberBox />
+        <FaceIdBox />
         <button type="submit" className="mlo-btn">Sign in on this device</button>
       </form>
     </CcAuthShell>

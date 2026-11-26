@@ -29,6 +29,8 @@ export const STEALTH_PUBLIC_FILES = [
   "/sign-in/code",
   // D47: the emailed link lands here; a button signs in.
   "/sign-in/link",
+  // D94: Face ID setup right after signing in.
+  "/sign-in/face-id",
   // D45: loan officers sign themselves up (noindex).
   "/sign-up",
   "/sign-up/confirm",

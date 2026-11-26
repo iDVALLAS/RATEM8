@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import CcAuthShell from "@/app/mlo/CcAuthShell";
-import { DEVICE_COOKIE, MFA_COOKIE, openSession, REMEMBER_COOKIE, REMEMBER_TTL_MS, rememberDevice, SESSION_COOKIE, sessionTtl } from "@/lib/accounts/auth";
-import { rememberTicked } from "../land";
+import { DEVICE_COOKIE, FACEID_COOKIE, MFA_COOKIE, openSession, REMEMBER_COOKIE, REMEMBER_TTL_MS, rememberDevice, SESSION_COOKIE, sessionTtl } from "@/lib/accounts/auth";
+import { afterSignIn, faceIdTicked, rememberTicked } from "../land";
 import RememberBox from "../RememberBox";
+import FaceIdBox from "../FaceIdBox";
 import { finishCodeStep } from "@/lib/accounts/mfa";
 
 export const dynamic = "force-dynamic";
@@ -26,11 +27,13 @@ async function check(fd: FormData) {
   const secure = (h.get("x-forwarded-proto") ?? "https") === "https";
   jar.delete({ name: MFA_COOKIE, path: "/sign-in" });
   jar.delete({ name: REMEMBER_COOKIE, path: "/sign-in" });
-  // D89: ticked, the sign-in lasts 30 days and this computer skips this step for 30 days.
+  jar.delete({ name: FACEID_COOKIE, path: "/sign-in" });
+  // D89: ticked, the sign-in lasts 30 days and this device skips this step for 30 days.
   const remember = rememberTicked(fd);
   jar.set(SESSION_COOKIE, await openSession(r.user, Date.now(), remember), { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: Math.floor(sessionTtl(remember) / 1000) });
   if (remember) jar.set(DEVICE_COOKIE, await rememberDevice(r.user), { httpOnly: true, secure, sameSite: "lax", path: "/sign-in", maxAge: Math.floor(REMEMBER_TTL_MS / 1000) });
-  redirect(r.used === "recovery" ? `/mlo/security?recovery=${r.recoveryLeft}` : "/mlo");
+  // D94: with Face ID ticked, its setup comes first.
+  redirect(afterSignIn(faceIdTicked(fd), r.used === "recovery" ? `/mlo/security?recovery=${r.recoveryLeft}` : "/mlo"));
 }
 
 /** /sign-in/code — the second sign-in step (D34), after the emailed link. */
@@ -39,6 +42,7 @@ export default async function Code({ searchParams }: { searchParams: Promise<{ e
   const jar = await cookies();
   if (!jar.get(MFA_COOKIE)) redirect("/sign-in?e=expired");
   const remembered = jar.get(REMEMBER_COOKIE)?.value === "1";
+  const faceId = jar.get(FACEID_COOKIE)?.value === "1";
   return (
     <CcAuthShell>
         <h1>Enter your code</h1>
@@ -50,6 +54,7 @@ export default async function Code({ searchParams }: { searchParams: Promise<{ e
             <input name="code" required autoFocus inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,7}|[A-Za-z0-9-]{10,11}" maxLength={11} className="mlo-input" style={{ letterSpacing: "0.2em", fontSize: 22 }} />
           </label>
           <RememberBox checked={remembered} mfa />
+          <FaceIdBox checked={faceId} />
           <button type="submit" className="mlo-btn">Sign in</button>
           <p className="mlo-note" style={{ marginTop: 12 }}>Lost your phone? Enter one of your recovery codes instead, or ask the owner to reset it. This step expires five minutes after you opened the link.</p>
         </form>

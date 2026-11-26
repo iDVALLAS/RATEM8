@@ -19,7 +19,7 @@ import {
 } from "./auth";
 import { resetMemoryCounters } from "@/lib/m8/kv";
 
-/** D89: "Remember this computer for 30 days", 12 hours otherwise, and a remembered computer skipping the phone code. */
+/** D89: "Remember this device for 30 days" (D94: was "computer"), 12 hours otherwise, and a remembered device skipping the phone code. */
 
 const T0 = Date.parse("2026-11-23T18:00:00Z");
 const H = 3_600_000;
@@ -34,7 +34,7 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => (cookieSession ? { value: cookieSession } : undefined), delete: () => {} }),
 }));
 
-describe("Remember this computer (D89)", () => {
+describe("Remember this device (D89)", () => {
   let store: MemoryAccountStore;
   let sent: string[];
   const saved = { ...process.env };
@@ -95,7 +95,7 @@ describe("Remember this computer (D89)", () => {
     expect(oks).toEqual(expect.arrayContaining([{ remember: false }, { remember: true }]));
   });
 
-  it("with the phone code on, a computer remembered after passing it skips the code for 30 days, and only for that person", async () => {
+  it("with the phone code on, a device remembered after passing it skips the code for 30 days, and only for that person", async () => {
     const key = await enroll(owner, T0);
     // First sign-in: the email code, then the phone code (Remember ticked there).
     const a = await ask(owner.email, T0 + 60_000, "ip1");
@@ -105,7 +105,7 @@ describe("Remember this computer (D89)", () => {
     if (!done.ok) throw new Error(done.error);
     const device = await rememberDevice(done.user, T0 + 120_000);
     expect(await deviceTrusted(owner.id, device, T0 + 121_000)).toBe(true);
-    // Next sign-in on that computer: the email step still, then straight in.
+    // Next sign-in on that device: the email step still, then straight in.
     const b = await ask(owner.email, T0 + 2 * D, "ip2");
     const skip = await verifySignInCode(b.pending, b.code, T0 + 2 * D + 1000, { device, remember: true });
     expect("session" in skip).toBe(true);
@@ -121,7 +121,7 @@ describe("Remember this computer (D89)", () => {
     expect("mfa" in (await verifySignInCode(e.pending, e.code, T0 + 31 * D + 1000, { device }))).toBe(true);
   });
 
-  it("never stores the token, and a remembered-computer token is not a sign-in (nor the other way round)", async () => {
+  it("never stores the token, and a remembered-device token is not a sign-in (nor the other way round)", async () => {
     const device = await rememberDevice(owner, T0);
     const session = await openSession(owner, T0, true);
     const keys = [...(store as unknown as { sessions: Map<string, unknown> }).sessions.keys()];
@@ -132,16 +132,16 @@ describe("Remember this computer (D89)", () => {
     expect(await store.sessionUser(sha256(device), new Date(T0).toISOString())).toBeNull();
   });
 
-  it("is forgotten by Forget my remembered computers, an authenticator reset, turning the code off or on again; plain sign-out keeps it", async () => {
+  it("is forgotten by Forget my remembered devices, an authenticator reset, turning the code off or on again; plain sign-out keeps it", async () => {
     const key = await enroll(owner, T0);
     const device = await rememberDevice(owner, T0 + 1000);
     const session = await openSession(owner, T0 + 1000, true);
-    // Signing out of this browser ends the sign-in, not the remembered computer.
+    // Signing out of this browser ends the sign-in, not the remembered device.
     cookieSession = session;
     await signOut();
     expect(await userForSession(session, T0 + 2000)).toBeNull();
     expect(await deviceTrusted(owner.id, device, T0 + 2000)).toBe(true);
-    // Forget them all: the sign-in on another computer stays.
+    // Forget them all: the sign-in on another device stays.
     const other = await openSession(owner, T0 + 3000, true);
     expect(await forgetDevices(owner, T0 + 4000)).toBe(1);
     expect(await deviceTrusted(owner.id, device, T0 + 5000)).toBe(false);
@@ -154,14 +154,14 @@ describe("Remember this computer (D89)", () => {
     const d3 = await rememberDevice(owner, T0 + 92_000);
     await enroll(owner, T0 + 93_000);
     expect(await deviceTrusted(owner.id, d3, T0 + 94_000)).toBe(false);
-    // An owner's reset of someone's authenticator signs them out everywhere and forgets their computers.
+    // An owner's reset of someone's authenticator signs them out everywhere and forgets their devices.
     await enroll(lo, T0 + 95_000);
     const d4 = await rememberDevice(lo, T0 + 96_000);
     expect((await resetFor(owner, lo.id, T0 + 97_000)).ok).toBe(true);
     expect(await deviceTrusted(lo.id, d4, T0 + 98_000)).toBe(false);
   });
 
-  it("without the phone code on, Remember only lengthens the sign-in (no computer is remembered)", async () => {
+  it("without the phone code on, Remember only lengthens the sign-in (no device is remembered)", async () => {
     const a = await ask(lo.email, T0, "ip1");
     const r = await verifySignInCode(a.pending, a.code, T0 + 1000, { remember: true });
     expect("session" in r).toBe(true);

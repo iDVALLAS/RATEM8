@@ -4,8 +4,8 @@
  *
  * Sign-in is an emailed one-time link (no passwords): 15 minutes, single
  * use. It opens a session: a random token in an httpOnly cookie, stored
- * only as a hash. D89: 12 hours, or 30 days when "Remember this computer for
- * 30 days" is ticked; a remembered computer also skips the authenticator
+ * only as a hash. D89: 12 hours, or 30 days when "Remember this device for
+ * 30 days" is ticked; a remembered device also skips the authenticator
  * step (D34) for 30 days from the sign-in that passed it. Rate limited per IP and per email. The sign-in
  * form always says the same thing whether or not the email has an account.
  *
@@ -14,6 +14,9 @@
  * else on /mlo/team. During the switch from the old shared admin login,
  * HTTP Basic (MLO_ADMIN_USER / MLO_ADMIN_PASSWORD) still works unless
  * MLO_BASIC_AUTH="false".
+ *
+ * D94: Face ID (a passkey on the person's own device, lib/accounts/passkeys.ts)
+ * is a whole sign-in on its own; it opens a session through openSession too.
  */
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { cookies } from "next/headers";
@@ -38,19 +41,21 @@ export const LINK_TTL_MS = 15 * 60 * 1000;
 export const PENDING_COOKIE = "lm8_cc_pending";
 export const CODE_TRIES = 5;
 const codeHash = (pending: string, code: string) => sha256(`code:${pending}:${code}`);
-/** D89: a sign-in lasts 12 hours unless "Remember this computer for 30 days" is ticked. */
+/** D89: a sign-in lasts 12 hours unless "Remember this device for 30 days" is ticked. */
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 export const REMEMBER_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const sessionTtl = (remember: boolean) => (remember ? REMEMBER_TTL_MS : SESSION_TTL_MS);
 /**
- * D89: a remembered computer (httpOnly, path /sign-in, 30 days). Set only after the authenticator step is
- * passed with Remember ticked; it lets that computer skip the step until it expires. The email step is
+ * D89: a remembered device (httpOnly, path /sign-in, 30 days). Set only after the authenticator step is
+ * passed with Remember ticked; it lets that device skip the step until it expires. The email step is
  * never skipped. Stored only as a hash beside the sessions ("dev:" prefix), so signing someone out
  * everywhere (disable, an authenticator reset) forgets it too; plain sign-out keeps it.
  */
 export const DEVICE_COOKIE = "lm8_cc_device";
 /** D89: carries the Remember tick from the email step to the authenticator step (path /sign-in, 5 minutes). */
 export const REMEMBER_COOKIE = "lm8_cc_remember";
+/** D94: carries the "Use Face ID to sign in on this device" tick to the authenticator step (path /sign-in, 5 minutes). */
+export const FACEID_COOKIE = "lm8_cc_faceid";
 const deviceHash = (t: string) => `dev:${sha256(`device:${t}`)}`;
 
 export const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -163,7 +168,7 @@ export async function requestSignIn(emailRaw: string, origin: string, ipHash: st
   return { ok: true, pending };
 }
 
-/** D89: how the browser finishing sign-in asked: Remember ticked, and its remembered-computer cookie if any. */
+/** D89: how the browser finishing sign-in asked: Remember ticked, and its remembered-device cookie if any. */
 export type SignInOpts = { remember?: boolean; device?: string | null };
 
 /** The emailed link. Returns a new session token for the cookie, or null. */
@@ -173,13 +178,13 @@ export async function verifySignIn(t: string, now = Date.now(), opts: SignInOpts
   return userId ? finishSignIn(userId, now, opts) : null;
 }
 
-/** D89: whether this browser's remembered-computer token is live and belongs to this person. */
+/** D89: whether this browser's remembered-device token is live and belongs to this person. */
 export async function deviceTrusted(userId: string, device: string | null | undefined, now = Date.now()): Promise<boolean> {
   if (!device || device.length > 100) return false;
   return (await accountStore().sessionUser(deviceHash(device), iso(now))) === userId;
 }
 
-/** D89: remembers this computer for 30 days after it passed the authenticator step. Returns the cookie value. */
+/** D89: remembers this device for 30 days after it passed the authenticator step. Returns the cookie value. */
 export async function rememberDevice(user: User, now = Date.now()): Promise<string> {
   const store = accountStore();
   const t = token();
@@ -188,7 +193,7 @@ export async function rememberDevice(user: User, now = Date.now()): Promise<stri
   return t;
 }
 
-/** D89: forgets every computer this person ticked Remember on (their current sign-ins stay). */
+/** D89: forgets every device this person ticked Remember on (their current sign-ins and Face ID stay). */
 export async function forgetDevices(user: User, now = Date.now()): Promise<number> {
   const n = await accountStore().deleteDevicesFor(user.id);
   await accountStore().audit({ at: iso(now), actor: user.email, action: "signin.devices_forgotten", detail: { n } });
@@ -200,7 +205,7 @@ async function finishSignIn(userId: string, now: number, opts: SignInOpts = {}):
   const user = await accountStore().userById(userId);
   if (!user || user.status !== "active") return null;
   // D34: with an authenticator app on, the email step opens the code step instead of a session,
-  // unless (D89) this is a computer remembered after passing that step.
+  // unless (D89) this is a device remembered after passing that step.
   if (await mfaOn(user.id)) {
     if (!(await deviceTrusted(user.id, opts.device, now))) return { mfa: await openCodeStep(user.id, now), user };
     return { session: await openSession(user, now, !!opts.remember, { device: true }), user };
@@ -219,12 +224,12 @@ export async function verifySignInCode(pending: string | undefined, rawCode: str
   return done ?? { error: "That code doesn't match, or it has expired. Check the newest email, or ask for a new code." };
 }
 
-/** A new session for a user who has passed every sign-in step: 12 hours, or 30 days when remembered (D89). */
-export async function openSession(user: User, now = Date.now(), remember = false, note: { device?: boolean } = {}): Promise<string> {
+/** A new session for a user who has passed every sign-in step: 12 hours, or 30 days when remembered (D89). D94: or Face ID. */
+export async function openSession(user: User, now = Date.now(), remember = false, note: { device?: boolean; passkey?: boolean } = {}): Promise<string> {
   const store = accountStore();
   const session = token();
   await store.putSession(sha256(session), user.id, iso(now + sessionTtl(remember)));
-  await store.audit({ at: iso(now), actor: user.email, action: "signin.ok", detail: { remember, ...(note.device ? { rememberedComputer: true } : {}) } });
+  await store.audit({ at: iso(now), actor: user.email, action: "signin.ok", detail: { remember, ...(note.device ? { rememberedComputer: true } : {}), ...(note.passkey ? { faceId: true } : {}) } });
   return session;
 }
 
@@ -301,7 +306,12 @@ export async function updateUser(actor: User, userId: string, change: { role?: s
   const assistsUserId = role === "assistant" ? await validAssist(change.assistsUserId !== undefined ? change.assistsUserId : target.assistsUserId, target.mloId ?? actor.mloId) : null;
   if (role === "assistant" && !assistsUserId) return { ok: false, error: "Pick the loan officer this assistant works for." };
   await store.putUser({ ...target, role, status, assistsUserId });
-  if (status === "disabled") await store.deleteSessionsFor(target.id);
+  if (status === "disabled") {
+    await store.deleteSessionsFor(target.id);
+    // D94: a disabled account's Face ID devices go too (a passkey for a disabled account signs nobody in either way).
+    const n = await store.deletePasskeysFor(target.id);
+    if (n) await store.audit({ at: iso(now), actor: actor.email, action: "passkey.remove_all", detail: { userId, n } });
+  }
   await store.audit({ at: iso(now), actor: actor.email, action: "user.update", detail: { userId, role, status } });
   return { ok: true };
 }

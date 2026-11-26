@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import CcAuthShell from "@/app/mlo/CcAuthShell";
 import { currentUser, DEVICE_COOKIE, LINK_TTL_MS, PENDING_COOKIE, requestSignIn, verifySignInCode } from "@/lib/accounts/auth";
 import { hashIp } from "@/lib/m8/limits";
-import { land, rememberTicked } from "./land";
+import { faceIdTicked, land, rememberTicked } from "./land";
 import RememberBox from "./RememberBox";
+import FaceIdBox from "./FaceIdBox";
+import FaceIdSignIn from "./FaceIdSignIn";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: { absolute: "Sign in — MLO Command Center" }, robots: { index: false, follow: false } };
@@ -39,7 +41,7 @@ async function enterCode(fd: FormData) {
     }
     redirect(`/sign-in?e=sent&err=${encodeURIComponent(r.error)}`);
   }
-  await land(r, remember);
+  await land(r, remember, faceIdTicked(fd));
 }
 
 function EmailForm({ again = false }: { again?: boolean }) {
@@ -47,14 +49,14 @@ function EmailForm({ again = false }: { again?: boolean }) {
     <form action={send} className="mlo-section">
       <label className="mlo-field">
         <span>Work email</span>
-        <input type="email" name="email" required autoComplete="email" className="mlo-input" />
+        <input type="email" name="email" required autoComplete={again ? "email" : "email webauthn"} className="mlo-input" />
       </label>
       <button type="submit" className={again ? "mlo-btn mlo-btn--ghost" : "mlo-btn"}>{again ? "Send a new code" : "Email me a sign-in code"}</button>
     </form>
   );
 }
 
-/** /sign-in — Command Center sign-in: an emailed code for this device, or a link for the device that reads it (D1, D47). */
+/** /sign-in — Command Center sign-in: an emailed code for this device, or a link for the device that reads it (D1, D47); D94: or Face ID. */
 export default async function SignIn({ searchParams }: { searchParams: Promise<{ e?: string; err?: string }> }) {
   const { e, err } = await searchParams;
   if (await currentUser().catch(() => null)) redirect("/mlo");
@@ -72,6 +74,7 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
               <input name="code" required autoFocus inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,7}" maxLength={7} className="mlo-input cc-auth__code" />
             </label>
             <RememberBox />
+            <FaceIdBox />
             <button type="submit" className="mlo-btn">Sign in</button>
           </form>
           <p className="mlo-note" style={{ marginTop: 12 }}>The code works for 15 minutes. Nothing yet? Check Junk or Quarantine; work email can hold new senders for a few minutes.</p>
@@ -86,6 +89,7 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
           <p className="cc-auth__lede">We&apos;ll email you a code. No password to remember.</p>
           {e && NOTES[e] ? <div className="mlo-flash mlo-flash--ok" role="status">{NOTES[e]}</div> : null}
           {err ? <div className="mlo-flash mlo-flash--err" role="alert">{err.slice(0, 200)}</div> : null}
+          <FaceIdSignIn />
           <EmailForm />
         </>
       )}

@@ -95,7 +95,7 @@ export async function confirmEnroll(user: User, code: string, now = Date.now()):
   if (step === null) return { ok: false, error: "That code didn't match. Check the phone's clock is set automatically, and enter the newest code." };
   const recovery = Array.from({ length: RECOVERY_COUNT }, newRecovery);
   await store.putMfa({ ...r, enabledAt: new Date(now).toISOString(), lastStep: step, recoveryHashes: recovery.map((c) => sha256(normRecovery(c))) });
-  // D89: computers remembered under an earlier phone don't skip the new one.
+  // D89: devices remembered under an earlier phone don't skip the new one. D94: Face ID stays.
   await store.deleteDevicesFor(user.id);
   await store.audit({ at: new Date(now).toISOString(), actor: user.email, action: "mfa.on", detail: {} });
   return { ok: true, recovery };
@@ -112,14 +112,16 @@ export async function disableOwn(user: User, code: string, now = Date.now()): Pr
   return { ok: true };
 }
 
-/** Owner or team lead: reset someone who lost their phone. Signs them out everywhere. */
+/** Owner or team lead: reset someone who lost their phone. Signs them out everywhere and removes their Face ID devices (D94). */
 export async function resetFor(actor: User, userId: string, now = Date.now()): Promise<{ ok: true } | { ok: false; error: string }> {
   const store = accountStore();
   const target = await store.userById(userId);
   if (!target || target.id === actor.id || !canManage(actor, target.role)) return { ok: false, error: "You can't reset that account." };
   await store.deleteMfa(userId);
   await store.deleteSessionsFor(userId);
-  await store.audit({ at: new Date(now).toISOString(), actor: actor.email, action: "mfa.reset", detail: { userId } });
+  // D94: their Face ID devices too (a lost phone is the usual reason for a reset).
+  const n = await store.deletePasskeysFor(userId);
+  await store.audit({ at: new Date(now).toISOString(), actor: actor.email, action: "mfa.reset", detail: { userId, faceIdRemoved: n } });
   return { ok: true };
 }
 

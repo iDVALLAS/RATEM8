@@ -8,8 +8,13 @@ const EXACT: Record<string, string> = {
   "user.update": "Changed someone's role or details",
   "signin.link_sent": "Asked for a sign-in link",
   "signin.ok": "Signed in",
-  "signin.device_remembered": "Remembered a computer for 30 days",
-  "signin.devices_forgotten": "Forgot their remembered computers",
+  "signin.device_remembered": "Remembered a device for 30 days",
+  "signin.devices_forgotten": "Forgot their remembered devices",
+  "passkey.add": "Turned on Face ID on a device",
+  "passkey.remove": "Removed Face ID from a device",
+  "passkey.remove_all": "Face ID removed from all of someone's devices",
+  "passkey.signin": "Signed in with Face ID",
+  "passkey.counter_refused": "A Face ID sign-in was refused (copied key)",
   "mfa.on": "Turned on the sign-in code",
   "mfa.off": "Turned off the sign-in code",
   "mfa.reset": "Reset someone's sign-in code",
@@ -150,6 +155,7 @@ const PREFIX: [string, string][] = [
   ["gate.block.", "The contact rules held a message"],
   ["loa.", "LOA activity"],
   ["mfa.", "Sign-in code activity"],
+  ["passkey.", "Face ID activity"],
 ];
 
 /** A code like "contacts.import.finish" in plain words. */
