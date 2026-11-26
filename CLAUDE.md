@@ -346,6 +346,12 @@ continuity log is `LoanM8_Project_Handoff_README.md`.
     everything). Fix all with M8 lists proposed fixes kept only if `checkValue` and `derivable` pass; accept/reject each. After a client import a
     dialog asks "Did these contacts agree to be contacted?" (Record permission `?import=…#record`, scoped; Contacts `?import=…&perm=relationship`;
     Not now); the bulk bar has "Record permission" (`#record`, scoped to the picked people).
+    D93.1 shifted rows (`lib/contacts/reslot.ts` pure, `app/mlo/contacts/import/Shift.tsx`): a row whose ZIP sits in Closed on, state in ZIP,
+    city in State gets one card atop Needs a look ("ZIP 85262 · State AZ · City Scottsdale", Accept / Keep as written) and one Fix all proposal;
+    device-made, only the row's own text moves (ZIP only into a blank/failing/same box and never against the row's state); M8 may answer
+    `moveTo` (checked by `moveAllowed`); each ZIP/State/Closed on look has Move to buttons plus a draggable chip; `RowFixes` takes city,
+    street and `note`. Contact Details: a pencil per detail (`data-edit-field`, Their loan → `#loan-edit`), Edit's address boxes swap by drag
+    and take "as written" values from notes (`chipInto`), nothing saved until Save.
     D66 LOA forms (`lib/forms/*`, `/mlo/pipeline/<id>/forms`, library on `/mlo/loa#forms`, `/api/cc/forms/<id>`):
     letters from the file as PDFs on letterhead, fillable PDFs filled from the file (pdf-lib), forms
     sent as email attachments; never SSN/DOB/account numbers/signatures; disclosures stay in the LOS.
@@ -454,7 +460,7 @@ service area"), never scarcity language. Bracketed `[PLACEHOLDERS]` mean
    Do not promote to production and do not merge; production only on the
    owner's "promote".
 4. **Verify before every push:** `npm run verify` (lint, `check:copy`,
-   `check:identity`, `check:licensing`, 1210 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
+   `check:identity`, `check:licensing`, 1235 vitest tests (plus 37 live red-team cases, skipped without a key), production build, `check:bundle`). For layout changes also run the
    browser audits in `scripts/qa/` against a local `npm start` (see §7).
 5. **Facts come from config.** Never type a name, NMLS number,
    license, lender count, rate, or booking URL into a component.

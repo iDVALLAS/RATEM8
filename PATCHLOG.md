@@ -8193,3 +8193,103 @@ as built, and leave step 1's "Where are these lists from?" question as it is.
 - Not yet tried: the AI path (column reading, row sorting, Fix all) against the real model; only mocked answers were
   tested. The owner's next import on loanm8.com is the first real run.
 - **Next up:** the core 11 pricing scenarios (`docs/TODO.md`), on the owner's word.
+
+## D93.1 — Shifted rows: move a value to the box it belongs in, at import and on the contact page (2026-11-26)
+
+Owner's report (step 3 "Needs a look" on loanm8.com): row 126, Closed on "98168" ("can't be read as a date"); row 127,
+ZIP "AZ", State "SCOTTSDALE", Closed on "85262". "AI has to know that this is a zip code for the state abbreviation
+where the contact lives and should switch those." Plus: on the contact card, an edit pencil and drag and drop with a
+dotted line.
+
+Why it happened: those rows are shifted one column (city in State, state in ZIP, ZIP in Closed on). Each Needs a look
+value was handled alone: the device's `localSuggestion` and Fix all (`aiFixAll` + `derivable`) could only propose a new
+value for the same field, so "85262 is a ZIP, move it" couldn't be said, and `derivable("closedOn")` dropped it. The
+column-level ZIP checks in step 2 don't help, because most rows in the column are fine.
+
+What the loan officer sees:
+- **Step 3, Needs a look:** at the top, one card per shifted row: "Row 127 looks shifted one column · ZIP 85262 · State
+  AZ · City Scottsdale · Closed on left blank · 85262 is a ZIP in Arizona, which matches the state." with Accept and Keep
+  as written (and "Accept all N shifted rows" when there's more than one). Accept writes every box of the row at once and
+  the replaced values leave Needs a look; Keep as written hides the card and leaves everything as before (values in
+  notes as written). Worked out on the device, so it works without an AI key.
+- **Move to…:** every ZIP, State or Closed on value in Needs a look has a "Move to" row: a button for each box the value
+  fits (ZIP / State / City / Street / Closed on, only when that box is blank, also failing, or holds the same value)
+  plus Notes. The value is also a chip that can be dragged onto one of those buttons; while dragging, each shows a
+  dashed outline (no transition under reduced motion). A failing value already in the box swaps back into the box the
+  value came from, so it shows up in Needs a look there and can be moved next (98168 → ZIP, then AZ → State, then
+  SCOTTSDALE → City walks the row right). Notes keeps the value in their notes as written.
+- **Fix all:** a shifted row is one proposal ("Lou · Row 127 looks shifted one column → ZIP 85262 · State AZ · City
+  Scottsdale"), accepted as one; its values aren't sent to M8 again. M8 may now answer `moveTo` for a value (zip, state,
+  city, street, closedOn or note); its moves for a row are planned together with the same rules as the device's.
+- **Contact page, Details:** a 44px pencil beside Phone, Email, Where, Relationship (not agents), Lead source, Referred by,
+  Co-borrower and Notes (aria-label "Edit Where" and so on) opens Edit with that box focused; the pencil beside Their
+  loan goes to the Loan & agent tab's form (`#loan-edit`, opened) with Closed on focused. In Edit, each address box
+  (Street, City, Property state, ZIP) has a drag handle; dropping it on another address box swaps the two (the state
+  list only takes a state). Values an import kept in notes "as written" show as "From the file" chips ("85262 · was
+  Closed on"); dropping one on a box puts it there and takes its line out of the notes (a city in capitals lands
+  title-cased; whatever the box held goes into notes as written). Each place a value can go shows a dashed outline
+  while dragging. Nothing is saved until Save, which runs the same `checkEdit`. Keyboard users type as before.
+
+The rules (`lib/contacts/reslot.ts`, pure, no AI):
+- Only street, city, state, ZIP and closed on are ever written, plus a notes line. Never consent, opt-outs, phone
+  checks, provenance or the hold.
+- 5 digits or ZIP+4 → ZIP, only when ZIP is blank, failing, or the same ZIP (then the stray is just cleared). A
+  different good ZIP stays and the stray stays in notes as written. A ZIP whose USPS ZIP3 state disagrees with the
+  row's state (wherever it sits after the moves) is never moved; one that agrees makes the card say so.
+- A 2-letter code or a state's name → State. Words only, sitting in State, → City (title-cased "Scottsdale") only while
+  a state code is moving into State and City is blank or the same. A street → Street, a written date → Closed on.
+- A plain 5-digit Closed on that reads only as an Excel date number (so it never reached Needs a look) counts as a
+  stray only in a row whose ZIP or State failed, and moves only when its ZIP agrees with the row's state.
+- Two values wanting one box: neither moves. A failing value pushed out with nowhere to go is kept in notes as written.
+  Every value written is the row's own text (trimmed; a state code upper-cased, a city title-cased): nothing invented.
+- M8's `moveTo` (`moveAllowed` in `lib/contacts/ai-read.ts`): only a ZIP, State or Closed on item; the value must be the
+  item's own text (case aside); it must read right in the new box; the box must not hold a different good value (per
+  the row's context); a ZIP must fit the row's state when one reads. An unknown target is dropped per item, not the
+  whole answer. Context sent with each value now includes the row's closed-on cell (`CONTEXT_KEYS`); private columns
+  are still never sent.
+
+Files: new `lib/contacts/reslot.ts`, `lib/contacts/reslot.test.ts`, `app/mlo/contacts/import/Shift.tsx`,
+`tests/fixtures/import/shifted-rows.csv` (made-up people, the owner's values); changed `lib/contacts/{mapping,ai-read,
+editing}.ts` (`RowFixes` takes `city`, `street`, `note`; `moveTo`; `canSwap`/`swapBoxes`/`asWrittenLines`/`chipInto`),
+`app/mlo/contacts/import/{ImportWizard,ReviewStep,FixAll,types}.tsx`, `app/mlo/contacts/[id]/{page,EditDetails}.tsx`,
+`app/mlo/cc-shell.css`, `lib/content/{contacts-import,contact-page}.ts`, `scripts/qa/{text-fit,buttons}.mjs` (the import
+walk adds the shifted-rows file; buttons and `command-center.mjs` click Edit by its exact name), `CLAUDE.md` (§1 D93.1, §3.4 count).
+- **Tests:** `lib/contacts/reslot.test.ts` (25): the owner's two rows exactly (the screenshot's warnings; 98168 moved to
+  ZIP and sure against WA; ZIP 85262 · State AZ · City Scottsdale and sure against AZ; built records clean, nothing "as
+  written" left; no value that isn't the row's own text); a different good ZIP left alone (still in notes as written),
+  the same ZIP just cleared, a ZIP against the row's state never moved, a ZIP with no state moved but not sure, City
+  only while a state moves in (a taken City sends the stray to notes), an Excel-number ZIP in Closed on only in a shifted
+  row whose state agrees, two values for one box dropped, title-casing; Move to's targets, the swap back, walking row
+  127 one move at a time to a clean record, notes lines added not replaced; M8's `moveTo` kept for the row's own text
+  and planned into the same row, and dropped for an unknown target, a value not in the row, a ZIP against the state and
+  a box holding another good ZIP or city; closed on in the context, a private cell not; the contact page's swap rules,
+  "as written" chips into a box (and the old value to notes), `checkEdit` after; the pencils, the delegation and the
+  drag wiring in the source. Suite: 1235 passed (was 1210).
+- **Verified:** `npm run verify` passes. Fresh production server (`npm start` with `CC_DEV_LOGIN=1 …`, no AI key) and
+  `tests/fixtures/import/shifted-rows.csv` (made-up names, the owner's values in rows 3 and 4) at 390 and 1280 in Night
+  and Paper: step 3 showed both cards ("ZIP 98168 · Closed on left blank · 98168 is a ZIP in Washington, which matches
+  the state"; "ZIP 85262 · State AZ · City Scottsdale · …Arizona…"). At 1280 Night: "Move “98168” to ZIP" cleared row 3;
+  dragging the 85262 chip onto its ZIP button swapped AZ into Closed on and the card became "State AZ · City
+  Scottsdale"; Accept took Needs a look to 0. A fresh run's Fix all (no-AI path) listed the two rows as one proposal
+  each and Accept all took Needs a look to 0. A third run kept row 4 as written and imported; on that contact's
+  Details the pencils were 44×44 with names ("Edit Where" focused Street); in Edit the three "From the file" chips
+  dropped into ZIP (85262), City (Scottsdale) and the state list (Arizona) and left the notes empty; a Street → City
+  handle drag swapped them (dashed outline on each box that could take it, solid on the one under the pointer) and a
+  second swapped back; Save showed "Saved." and Where read "9000 E Pima Center Pkwy, Scottsdale, Arizona, 85262". Ann's
+  "Edit Their loan" pencil opened the Loan & agent tab with the form open and Closed on focused. No page errors (only
+  the local `/_vercel/insights` 404). Screenshots in the session scratchpad (`d93-1/`). QA: `text-fit.mjs` on a fresh
+  server (with the locked server on 3101), the import walk now including the shifted-rows file: 151 pages, 3,126 views,
+  FINDINGS none. `buttons.mjs`: 536 views, PROBLEMS none (after its contact-details step and `command-center.mjs`'s
+  were made to click the Edit button by its exact name, since the pencils are also "Edit …").
+- **Decisions:** (a) A shifted row is one card and one Fix all proposal; its values aren't sent to M8 separately.
+  (b) The loan officer's own move swaps a failing value back into the box the value came from rather than dropping it.
+  (c) City moves only from State and only while a state code moves in; a lone city word in State stays a Needs a look.
+  (d) A ZIP is never moved against the row's state. (e) Closed on lives on the Loan & agent tab's own form (a date box),
+  so it isn't a drop target in Details Edit: its pencil opens that form, and a ZIP the import kept from Closed on is a
+  "From the file" chip there. (f) The people in the fixture and tests are made up; only the owner's values are used.
+- **Known issues:** (1) The drag is HTML drag and drop: on phones it depends on the browser and wasn't tried on a real
+  phone (QA was headless Chromium); the buttons and typing are the way that always works. (2) M8's `moveTo` was tested with mocked answers only;
+  without a key in QA the device's own rule did the work. (3) A ZIP below 80000 in Closed on of a row that isn't
+  otherwise shifted still reads as an Excel date number, as before (D93's step-2 doubt line is the warning for that).
+  (4) `command-center.mjs` was not re-run (its D79 Inbox stall from D93 is still queued separately).
+- **Next up:** promote on the owner's word.

@@ -296,8 +296,13 @@ export type RowProblem = { row: number; reason: string; name?: string; cells?: s
 /** D74: a field a value can be fixed in from the "Needs a look" list. `name` is the person's whole name. */
 export const FIX_FIELDS = ["name", "phone", "phone2", "email", "state", "zip", "closedOn", "tags"] as const;
 export type FixField = (typeof FIX_FIELDS)[number];
-/** D74: per row (0-based index into the file's rows), the value the loan officer typed instead of the file's. "" = leave it blank. */
-export type RowFixes = Record<number, Partial<Record<FixField, string>>>;
+/**
+ * D74: per row (0-based index into the file's rows), the value the loan officer typed instead of the file's. "" = leave it blank.
+ * D93.1: a shifted row's values can also be moved into City or Street, and `note` adds lines to the person's notes
+ * (a value kept "as written" rather than in a box).
+ */
+export type RowFixKey = FixField | "city" | "street" | "note";
+export type RowFixes = Record<number, Partial<Record<RowFixKey, string>>>;
 export type WarningCode = "name_missing" | "phone" | "email" | "state" | "zip" | "date" | "tags";
 
 /**
@@ -426,7 +431,7 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
     const cell = (f: Field) => (safe[f] !== undefined ? (row[safe[f]!] ?? "").trim() : "");
     // D74: a value the loan officer typed in "Needs a look" replaces the file's.
     const get = (f: Field, as?: FixField) => {
-      const k = as ?? (f as FixField);
+      const k = as ?? (f as RowFixKey);
       return fix && k in fix ? (fix[k] ?? "").trim() : cell(f);
     };
     const isAgentRow = kind === "contacts" && !!opts.agentRows?.has(i);
@@ -553,7 +558,9 @@ export function buildRecords(csv: Csv, mapping: Mapping, kind: ImportKind, opts:
       if (rawCoEmail && !coEmail && !isPlaceholder(rawCoEmail)) asWritten.push(`${label("coEmail")} (as written): ${rawCoEmail.slice(0, 120)}`);
       if (cf || cl || coPhone || coEmail) coBorrower = { firstName: cf.slice(0, 60), lastName: cl.slice(0, 80), phone: coPhone, email: coEmail };
     }
-    const noteLines = [cell("notes"), ...noteCols.map((c) => ((row[c] ?? "").trim() ? `${(csv.headers[c] ?? "").trim() || `Column ${c + 1}`}: ${(row[c] ?? "").trim()}` : "")), ...asWritten].filter(Boolean);
+    // D93.1: a value the loan officer moved to notes (or a shifted row's value with nowhere else to go), as written.
+    const movedToNotes = (fix?.note ?? "").split("\n").map((l) => l.trim().slice(0, 160));
+    const noteLines = [cell("notes"), ...noteCols.map((c) => ((row[c] ?? "").trim() ? `${(csv.headers[c] ?? "").trim() || `Column ${c + 1}`}: ${(row[c] ?? "").trim()}` : "")), ...asWritten, ...movedToNotes].filter(Boolean);
     const leadSource = get("leadSource").slice(0, 120) || null;
     const referredBy = get("referredBy").slice(0, 120) || null;
     const brokerage = isAgentRow && opts.brokerageCol !== undefined ? (row[opts.brokerageCol] ?? "").trim().slice(0, 120) || null : null;

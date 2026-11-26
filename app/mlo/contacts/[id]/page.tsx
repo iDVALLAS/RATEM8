@@ -345,6 +345,12 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
     </>
   );
 
+  // D93.1: a pencil beside each detail opens Edit with that box focused (EditDetails listens for `data-edit-field`).
+  const pen = (field: string, label: string) => (
+    <button type="button" className="cc-pen" data-edit-field={field} aria-label={cp.edit.pen(label)}>
+      <Icon name="pen" size={18} />
+    </button>
+  );
   const details = (
     <>
       <section className="mlo-section" id="details">
@@ -357,16 +363,16 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
           action={updateContactAction.bind(null, c.id)}
         >
           <dl className="cc-dl">
-            <div><dt>Phone</dt><dd>{c.phone ? formatPhone(c.phone) : "None"}{c.phone2 ? ` · ${formatPhone(c.phone2)} (other)` : ""}</dd></div>
-            <div><dt>Email</dt><dd>{c.email ?? "None"}</dd></div>
-            <div><dt>Where</dt><dd>{[c.street, c.city, usStateName(c.state) ?? c.state, c.zip].filter(Boolean).join(", ") || "Not known"}</dd></div>
-            <div><dt>Relationship</dt><dd>{RELATIONSHIP_LABELS[c.relationship]}</dd></div>
-            {c.leadSource ? <div><dt>Lead source</dt><dd>{c.leadSource}</dd></div> : null}
-            {c.referredBy ? <div><dt>Referred by</dt><dd>{c.referredBy}</dd></div> : null}
-            {c.coBorrower ? <div><dt>{cp.edit.coHeading}</dt><dd>{[`${c.coBorrower.firstName} ${c.coBorrower.lastName}`.trim(), c.coBorrower.phone ? formatPhone(c.coBorrower.phone) : "", c.coBorrower.email ?? ""].filter(Boolean).join(" · ") || "Not known"}<span className="mlo-note cc-dl__sub">{cp.edit.coNote}</span></dd></div> : null}
-            {c.loan ? <div><dt>Their loan</dt><dd>{[c.loan.closedOn ? `closed ${c.loan.closedOn}` : "", loanKind(c.loan), money(c.loan.amount), c.loan.noteRate ? `${showRate(c.loan.noteRate)} note rate` : ""].filter(Boolean).join(" · ")}</dd></div> : null}
+            <div><dt>Phone</dt><dd className="cc-dl__val"><span>{c.phone ? formatPhone(c.phone) : "None"}{c.phone2 ? ` · ${formatPhone(c.phone2)} (other)` : ""}</span>{pen("phone", "Phone")}</dd></div>
+            <div><dt>Email</dt><dd className="cc-dl__val"><span>{c.email ?? "None"}</span>{pen("email", "Email")}</dd></div>
+            <div><dt>Where</dt><dd className="cc-dl__val"><span>{[c.street, c.city, usStateName(c.state) ?? c.state, c.zip].filter(Boolean).join(", ") || "Not known"}</span>{pen("street", "Where")}</dd></div>
+            <div><dt>Relationship</dt><dd className="cc-dl__val"><span>{RELATIONSHIP_LABELS[c.relationship]}</span>{c.kind === "agent" ? null : pen("relationship", "Relationship")}</dd></div>
+            {c.leadSource ? <div><dt>Lead source</dt><dd className="cc-dl__val"><span>{c.leadSource}</span>{pen("leadSource", "Lead source")}</dd></div> : null}
+            {c.referredBy ? <div><dt>Referred by</dt><dd className="cc-dl__val"><span>{c.referredBy}</span>{pen("referredBy", "Referred by")}</dd></div> : null}
+            {c.coBorrower ? <div><dt>{cp.edit.coHeading}</dt><dd className="cc-dl__val"><span>{[`${c.coBorrower.firstName} ${c.coBorrower.lastName}`.trim(), c.coBorrower.phone ? formatPhone(c.coBorrower.phone) : "", c.coBorrower.email ?? ""].filter(Boolean).join(" · ") || "Not known"}<span className="mlo-note cc-dl__sub">{cp.edit.coNote}</span></span>{pen("coFirstName", cp.edit.coHeading)}</dd></div> : null}
+            {c.loan ? <div><dt>Their loan</dt><dd className="cc-dl__val"><span>{[c.loan.closedOn ? `closed ${c.loan.closedOn}` : "", loanKind(c.loan), money(c.loan.amount), c.loan.noteRate ? `${showRate(c.loan.noteRate)} note rate` : ""].filter(Boolean).join(" · ")}</span>{c.kind === "contact" && me.status === "active" ? <a href="#loan-edit" className="cc-pen" aria-label={cp.edit.pen("Their loan")}><Icon name="pen" size={18} /></a> : null}</dd></div> : null}
             {c.agent ? <div><dt>Production</dt><dd>{[c.agent.brokerage, c.agent.units !== null ? `${c.agent.units} units` : "", c.agent.volume !== null ? `${money(c.agent.volume)} volume` : "", c.agent.buyerUnits !== null ? `${c.agent.buyerUnits} buyer-side` : "", c.agent.listingUnits !== null ? `${c.agent.listingUnits} listings` : "", c.agent.topLender ? `usually works with ${c.agent.topLender}` : ""].filter(Boolean).join(" · ") || "Not known"}</dd></div> : null}
-            {c.notes ? <div><dt>Notes</dt><dd className="cc-dl__pre">{c.notes}</dd></div> : null}
+            {c.notes ? <div><dt>Notes</dt><dd className="cc-dl__val"><span className="cc-dl__pre">{c.notes}</span>{pen("notes", "Notes")}</dd></div> : null}
             <div><dt>Added</dt><dd>{fmt(c.createdAt)} · {c.source}</dd></div>
             <div><dt>Where it came from</dt><dd>{PROVENANCE_LABELS[c.provenance]}{c.locked ? " · on hold until you release your prior-employer lists" : ""}</dd></div>
             {c.mergedFrom?.length ? <div><dt>Merged in</dt><dd>{c.mergedFrom.map((m) => `${m.name} (${fmt(m.at)})`).join(", ")}</dd></div> : null}
@@ -519,11 +525,11 @@ export default async function ContactPage({ params, searchParams }: { params: Pr
       ) : <p className="mlo-note">{L.none}</p>}
       {ln?.noteRate ? <p className="mlo-note">{L.rateNote}</p> : null}
       {me.status === "active" ? (
-        <details className="mlo-details">
+        <details className="mlo-details" id="loan-edit">
           <summary>{L.edit}</summary>
           <form action={updateLoanAction.bind(null, c.id)} className="mlo-grid">
             <div className="mlo-grid mlo-grid--2">
-              <label className="mlo-field"><span>{lf.closedOn}</span><input name="closedOn" type="date" defaultValue={ln?.closedOn ?? ""} /></label>
+              <label className="mlo-field" data-focus><span>{lf.closedOn}</span><input name="closedOn" type="date" defaultValue={ln?.closedOn ?? ""} /></label>
               <label className="mlo-field"><span>{lf.amount}</span><input name="amount" inputMode="numeric" defaultValue={ln?.amount ?? ""} placeholder="425000" autoComplete="off" /></label>
               <label className="mlo-field"><span>{lf.noteRate}</span><input name="noteRate" inputMode="decimal" defaultValue={ln?.noteRate ?? ""} placeholder="6.875" autoComplete="off" /></label>
               <label className="mlo-field"><span>{lf.program}</span>{pick("program", ln?.program, LOAN_PROGRAMS, L.programs)}</label>

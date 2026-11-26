@@ -6,6 +6,7 @@ import type { Csv } from "@/lib/contacts/csv";
 import { guardOptOuts, type Field, type FixField, type Mapping, type RowFixes, type RowWarning } from "@/lib/contacts/mapping";
 import type { ColumnChoice, ColumnFlag, ColumnTarget, FileAnswers } from "@/lib/contacts/review";
 import type { M8Read, RowSort } from "@/lib/contacts/guess";
+import type { Plan, SlotFixes } from "@/lib/contacts/reslot";
 
 export type Item = {
   id: string;
@@ -57,3 +58,14 @@ export function setTarget(it: Item, col: number, target: ColumnTarget): Item {
 export function setFix(it: Item, at: number, field: FixField, value: string): Item {
   return { ...it, fixes: { ...it.fixes, [at]: { ...it.fixes[at], [field]: value } } };
 }
+
+/** D93.1: several boxes of one row at once (a shifted row, or a value moved to another box). A notes line is added, never replaced. */
+export function setFixes(it: Item, at: number, patch: SlotFixes): Item {
+  const cur = it.fixes[at] ?? {};
+  const { note, ...boxes } = patch;
+  const notes = [cur.note, note].filter(Boolean).join("\n");
+  return { ...it, fixes: { ...it.fixes, [at]: { ...cur, ...boxes, ...(notes ? { note: notes } : {}) } } };
+}
+
+/** D93.1: a shifted row worked out on the device (or M8's moves for it), shown as one card. */
+export type RowPlan = { key: string; itemId: string; at: number; row: number; file: string; name: string; plan: Plan; by: "device" | "m8"; why?: string; /** The "Needs a look" keys it answers. */ looks: string[] };

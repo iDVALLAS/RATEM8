@@ -206,7 +206,7 @@ function audit() {
         }
         // D77: the Details tab's edit form.
         if (label === 'contact details') {
-          await page.locator('#edit').getByRole('button', { name: 'Edit' }).click();
+          await page.locator('#edit').getByRole('button', { name: 'Edit', exact: true }).click();
           await page.locator('form#edit').waitFor();
           const ed = await page.evaluate(audit);
           total++;
@@ -274,7 +274,7 @@ function audit() {
       const check = async (n) => { await page.waitForTimeout(150); const res = await page.evaluate(audit); total++; for (const p of [...new Set(res.problems)]) problems.push(`[${where(n)}] ${p}`); json[where(n)] = { height: res.height, buttons: res.dump }; };
       try {
         await page.goto(B + '/mlo/contacts/import', { waitUntil: 'networkidle' });
-        await page.setInputFiles('input[type=file]', ['past-clients-messy.csv', 'bonzo-optout.csv'].map((f) => path.join(process.cwd(), 'tests/fixtures/import', f)));
+        await page.setInputFiles('input[type=file]', ['past-clients-messy.csv', 'bonzo-optout.csv', 'shifted-rows.csv'].map((f) => path.join(process.cwd(), 'tests/fixtures/import', f)));
         await page.locator('.im-filelist__row').nth(1).waitFor({ timeout: 20000 });
         await page.getByText('My own relationships').first().click();
         await check('1 add files');

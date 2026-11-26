@@ -430,7 +430,7 @@ if (!ONLY.length || ONLY.includes('import steps')) {
   await each(async (p, w) => {
     const L = (n) => `/mlo/contacts/import (${n})`;
     await open(p, B + '/mlo/contacts/import');
-    await p.setInputFiles('input[type=file]', ['past-clients-messy.csv', 'bonzo-optout.csv'].map((f) => path.join(process.cwd(), 'tests/fixtures/import', f)));
+    await p.setInputFiles('input[type=file]', ['past-clients-messy.csv', 'bonzo-optout.csv', 'shifted-rows.csv'].map((f) => path.join(process.cwd(), 'tests/fixtures/import', f)));
     await p.locator('.im-filelist__row').nth(1).waitFor({ timeout: 20000 });
     await p.getByText('My own relationships').first().click();
     // D93: both kinds ticked, so step 3 shows the clients and agents split.

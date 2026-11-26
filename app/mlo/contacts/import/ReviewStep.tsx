@@ -12,7 +12,9 @@ import TagInput from "../TagInput";
 import FixWithM8, { FixEditor } from "./FixWithM8";
 import FixAll from "./FixAll";
 import type { SortWhy } from "@/lib/contacts/guess";
-import type { Item, Look } from "./types";
+import type { Item, Look, RowPlan } from "./types";
+import { MoveTo, ShiftCards } from "./Shift";
+import { moveOne, SLOT_FIELDS, type SlotField, type SlotFixes, type Slots } from "@/lib/contacts/reslot";
 
 const rv = ic.review;
 const LOOK_SHOWN = 100;
@@ -61,6 +63,10 @@ export default function ReviewStep(props: {
   merged: number;
   over: number | null;
   looks: Look[];
+  /** D93.1: rows that look shifted one column, the row's five boxes now, and writing several boxes of a row at once. */
+  plans: RowPlan[];
+  slotsAt: (itemId: string, at: number) => Slots;
+  onSlots: (itemId: string, at: number, patch: SlotFixes) => void;
   skipped: (SkippedRow & { itemId: string })[];
   suggestions: ReachSuggestion[];
   stops: { all: number; phone: number; email: number };
@@ -97,6 +103,9 @@ export default function ReviewStep(props: {
   const readyN = Math.max(0, records.length - people);
   const tabs: [Tab, string, number][] = [["ready", rv.tabs.ready, readyN], ["look", rv.tabs.look, looks.length], ["skipped", rv.tabs.skipped, skipped.length]];
   const skip = (l: Look) => props.onFix(l, l.keep ?? "");
+  const isSlot = (f: string): f is SlotField => (SLOT_FIELDS as readonly string[]).includes(f);
+  const failingAt = (l: Look) => looks.filter((x) => x.itemId === l.itemId && x.at === l.at && isSlot(x.field)).map((x) => x.field as SlotField);
+  const acceptPlan = (p: RowPlan) => props.onSlots(p.itemId, p.at, p.plan.fixes);
 
   return (
     <>
@@ -161,7 +170,7 @@ export default function ReviewStep(props: {
             looks.length || fixing || fixingAll ? (
               <>
                 {fixingAll ? (
-                  <FixAll looks={looks} kind={kind} allowed={props.m8Allowed} contextOf={props.contextOf} dateOrderOf={props.dateOrderOf} onAccept={props.onFix} onClose={() => setFixingAll(false)} />
+                  <FixAll looks={looks} kind={kind} allowed={props.m8Allowed} contextOf={props.contextOf} dateOrderOf={props.dateOrderOf} onAccept={props.onFix} plans={props.plans} slotsAt={props.slotsAt} onAcceptRow={acceptPlan} onClose={() => setFixingAll(false)} />
                 ) : fixing ? (
                   <FixWithM8 looks={looks} kind={kind} dateOrderOf={props.dateOrderOf} onSave={props.onFix} onSkip={skip} onClose={() => setFixing(false)} />
                 ) : (
@@ -172,6 +181,7 @@ export default function ReviewStep(props: {
                 )}
                 {looks.length ? <p className="mlo-note">{rv.lookNote}</p> : null}
                 {props.placeholders ? <p className="mlo-note">{rv.placeholders(props.placeholders)}</p> : null}
+                {!fixingAll ? <ShiftCards plans={props.plans} multi={items.length > 1} onAccept={acceptPlan} /> : null}
                 <ul className="im-look">
                   {looks.slice(0, LOOK_SHOWN).map((l) => (
                     <li key={l.key} className="im-look__row">
@@ -179,6 +189,18 @@ export default function ReviewStep(props: {
                         <strong>{l.name}</strong>
                         <span className="im-look__field">{FIX_LABELS[l.field]}{items.length > 1 ? ` · ${l.file}, row ${l.row}` : ` · row ${l.row}`}</span>
                         <span className="im-look__raw">{l.raw ? <>“{l.raw}” {l.reason}</> : l.reason}</span>
+                        {isSlot(l.field) ? (
+                          <MoveTo
+                            from={l.field}
+                            slots={props.slotsAt(l.itemId, l.at)}
+                            failing={failingAt(l)}
+                            dateOrder={props.dateOrderOf(l.itemId)}
+                            onMove={(to) => {
+                              const patch = moveOne(props.slotsAt(l.itemId, l.at), failingAt(l), l.field as SlotField, to, { dateOrder: props.dateOrderOf(l.itemId) });
+                              if (patch) props.onSlots(l.itemId, l.at, patch);
+                            }}
+                          />
+                        ) : null}
                       </div>
                       {narrow ? (
                         <DetailSheet label={rv.fix} title={`${FIX_LABELS[l.field]} · ${l.name}`} buttonClassName="mlo-btn mlo-btn--ghost" className="cc-dsheet" closeLabel={ic.fix.close}>

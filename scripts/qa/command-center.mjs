@@ -390,7 +390,7 @@ fs.writeFileSync(CSV, 'First Name,Last Name,Mobile Phone,Email,State,Contact Typ
     if (await page.locator('#cc-panel-conversation').isHidden()) problems.push('[d77] Text did not open Conversation');
     // Edit: a new phone warns, then clears the checks and sets text permission back.
     await page.getByRole('tab', { name: 'Details' }).click();
-    await page.locator('#edit').getByRole('button', { name: 'Edit' }).click();
+    await page.locator('#edit').getByRole('button', { name: 'Edit', exact: true }).click();
     await page.locator('#edit').getByLabel('Mobile or main phone').fill('(509) 555-3199');
     if (!(await page.locator('#edit .cc-warnline', { hasText: 'Permission you recorded for the old number may not cover the new one.' }).count())) problems.push('[d77] no warning on a phone change');
     await page.locator('#edit').getByLabel('ZIP').fill('992');

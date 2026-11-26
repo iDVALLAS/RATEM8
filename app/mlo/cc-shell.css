@@ -583,6 +583,26 @@
 .im-fixall__to { font-size: 15px; font-weight: 600; color: var(--fg); }
 @media (min-width: 640px) { .im-fixall__row { grid-template-columns: minmax(0, 1fr) auto; align-items: center; } }
 .cc-app .im-fix__x { width: 44px; height: 44px; font-size: 22px; }
+/* D93.1: a row shifted one column, as one card at the top of Needs a look. */
+.im-shifts { display: grid; gap: 10px; margin-top: 12px; }
+.im-shift__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.im-shift { display: grid; gap: 6px; min-width: 0; border-color: var(--rule-strong); }
+.im-shift p { margin: 0; overflow-wrap: anywhere; }
+.im-shift .cc-card__title { margin: 0; }
+.im-shift__who { color: var(--fg); }
+.im-shift__moves { color: var(--fg); font-size: 16px; font-weight: 600; }
+.im-shift > .mlo-row-form { margin-top: 4px; }
+/* D93.1: "Move to": the value as a chip that can be dragged, then a button per box it fits. */
+.im-move { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; min-width: 0; }
+.im-move__chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; max-width: 100%; padding: 0 12px; border: 1px dashed var(--rule-strong); border-radius: 9999px; background: var(--bg-sunken); color: var(--fg); font-size: 14px; cursor: grab; overflow-wrap: anywhere; user-select: none; -webkit-user-select: none; }
+.im-move__chip:active { cursor: grabbing; }
+.im-move__grip { color: var(--muted); font-size: 13px; }
+.im-move__label { color: var(--muted); font-size: 13px; }
+.cc-app .im-move__to { padding: 0 14px; }
+/* While a value is dragged, each place it can go shows a dashed outline. */
+.cc-app .im-drop, .cc-app .cc-drop--on { outline: 2px dashed var(--accent); outline-offset: 3px; transition: outline-color 150ms ease, background-color 150ms ease; }
+.cc-app .im-drop--over, .cc-app .cc-drop--over { outline-style: solid; background-color: var(--bg-sunken); }
+@media (prefers-reduced-motion: reduce) { .cc-app .im-drop, .cc-app .cc-drop--on { transition: none; } }
 .im-fix__ask { margin: 0; color: var(--fg); font-size: 16px; overflow-wrap: anywhere; }
 .im-suggest { display: grid; gap: 8px; }
 .im-suggest p, .im-consent p { margin: 0; }
@@ -871,6 +891,21 @@
 .cc-dl dt { color: var(--muted); font-size: 13px; }
 .cc-dl dd { margin: 0; color: var(--fg); font-size: 15px; overflow-wrap: anywhere; }
 .cc-dl__pre { white-space: pre-wrap; }
+/* D93.1: a detail with its pencil (opens Edit with that box focused). */
+.cc-dl dd.cc-dl__val { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.cc-dl__val > span:first-child { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; padding-top: 10px; }
+.cc-app .cc-pen { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0; padding: 0; border: 1px solid transparent; border-radius: 9999px; background: transparent; color: var(--muted); cursor: pointer; }
+.cc-app .cc-pen:hover { color: var(--fg); border-color: var(--rule-strong); }
+.cc-app .cc-pen:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; color: var(--fg); }
+/* D93.1: the Edit form's drag handle beside an address box's label, and values kept from the file. */
+.cc-drag-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cc-drag { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 24px; border-radius: 6px; color: var(--muted); cursor: grab; user-select: none; -webkit-user-select: none; }
+.cc-drag:hover { color: var(--fg); background: var(--bg-sunken); }
+.cc-app .mlo-field.cc-drop--on, .cc-app .mlo-field.cc-drop--over { border-radius: 10px; }
+.cc-fromfile { display: grid; gap: 6px; min-width: 0; }
+.cc-fromfile p { margin: 0; }
+.cc-fromfile__chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.cc-fromfile__was { color: var(--muted); font-size: 12.5px; }
 /* D93: a short line under a value (the co-borrower's "information only"). */
 .cc-dl__sub { display: block; margin-top: 4px; font-size: 13.5px; }
 @media (min-width: 640px) { .cc-dl > div { grid-template-columns: 160px minmax(0, 1fr); gap: 16px; } }

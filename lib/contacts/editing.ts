@@ -15,6 +15,7 @@ import { isDay } from "./filter";
 import { isoDate } from "./normalize";
 import { anyLoan, LOAN_PROGRAMS, LOAN_PURPOSES, OCCUPANCIES, PROPERTY_TYPES, RATE_TYPES, readMargin, readTerm, type LoanDetails } from "./loan";
 import { contactListsCopy as lc } from "@/lib/content/contact-lists";
+import { titleCase } from "./reslot";
 
 /** The fields a person can edit by hand. */
 export const EDIT_FIELDS = ["firstName", "lastName", "phone", "phone2", "email", "street", "city", "state", "zip", "relationship", "leadSource", "referredBy", "notes", "coFirstName", "coLastName", "coPhone", "coEmail"] as const;
@@ -89,6 +90,61 @@ export function checkEdit(input: EditInput, kind: "contact" | "agent"): EditChec
     coBorrower: coFirst || coLast || coPhone || coEmail ? { firstName: coFirst, lastName: coLast, phone: coPhone, email: coEmail } : null,
   };
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, values };
+}
+
+// ---- D93.1: moving a value between address boxes in the Edit form ----
+
+/** The boxes a value can be dragged between (the state box is a list of states). */
+export const DROP_BOXES = ["street", "city", "state", "zip"] as const;
+export type DropBox = (typeof DROP_BOXES)[number];
+type Boxes = Record<DropBox | "notes", string>;
+
+/** A value as it lands in a box: the state box takes only a state (as its code); the rest take it as written. Null = it can't go there. */
+function landed(to: DropBox, value: string, fromFile = false): string | null {
+  const v = value.trim();
+  // A city kept from the file in capitals ("SCOTTSDALE") lands as "Scottsdale", as the import does.
+  if (to === "city" && fromFile) return titleCase(v);
+  if (to !== "state") return v;
+  if (!v) return "";
+  return cleanState(v);
+}
+
+/** Whether two boxes can swap their values (each value must fit the other box). */
+export function canSwap(v: Boxes, from: DropBox, to: DropBox): boolean {
+  return from !== to && !!v[from].trim() && landed(to, v[from]) !== null && landed(from, v[to]) !== null;
+}
+
+/** The two boxes after a swap (nothing is saved until Save, which runs `checkEdit`). */
+export function swapBoxes(v: Boxes, from: DropBox, to: DropBox): Partial<Boxes> | null {
+  if (!canSwap(v, from, to)) return null;
+  return { [to]: landed(to, v[from])!, [from]: landed(from, v[to])! } as Partial<Boxes>;
+}
+
+/** A value an import kept in notes "as written" ("Closed on (as written): 85262"), one per line. */
+export type AsWritten = { line: number; label: string; value: string };
+const AS_WRITTEN = /^(.{1,80}?) \(as written\): (.+)$/;
+
+export function asWrittenLines(notes: string): AsWritten[] {
+  return notes.split("\n").flatMap((l, line) => {
+    const m = AS_WRITTEN.exec(l.trim());
+    return m && m[2].trim() ? [{ line, label: m[1].trim(), value: m[2].trim() }] : [];
+  });
+}
+
+/**
+ * A "From the file" value dropped into a box: the box takes it, its line
+ * leaves the notes, and whatever the box held goes into the notes as written
+ * (so nothing is lost). Null when it can't go there.
+ */
+export function chipInto(v: Boxes, chip: number, to: DropBox): Partial<Boxes> | null {
+  const c = asWrittenLines(v.notes)[chip];
+  if (!c) return null;
+  const value = landed(to, c.value, true);
+  if (value === null || value === "") return null;
+  const lines = v.notes.split("\n").filter((_, i) => i !== c.line);
+  const old = v[to].trim();
+  if (old && old !== value) lines.push(`${LABEL[to]} (as written): ${old}`);
+  return { [to]: value, notes: lines.join("\n").trim() } as Partial<Boxes>;
 }
 
 /** The fields an edit changes (compared with the stored contact). */

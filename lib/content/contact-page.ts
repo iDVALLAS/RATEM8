@@ -132,6 +132,14 @@ export const contactPageCopy = {
     savedEmail: "Saved. Email permission was set back to nothing on file for the new address.",
     nothing: "Nothing changed.",
     sameAs: (name: string) => `Someone else in your book has this phone or email: ${name}. If it's the same person, merge them (Details → Merge with…).`,
+    // D93.1: the pencil beside each detail, and moving a value between address boxes.
+    pen: (label: string) => `Edit ${label}`,
+    dragNote: "Is a value in the wrong box? Drag it by its handle onto another address box and the two swap. Nothing is saved until you tap Save.",
+    dragTitle: "Drag onto another address box to swap them",
+    dragging: (value: string) => `Moving “${value}”. Drop it on a box with a dashed outline.`,
+    fromFile: "From the file, kept in their notes as written. Drag one onto a box to use it:",
+    chipTitle: (label: string) => `Was in ${label} in the file. Drag it onto an address box.`,
+    chipWas: (label: string) => `was ${label}`,
   },
   errors: {
     name: "Add a first or last name.",

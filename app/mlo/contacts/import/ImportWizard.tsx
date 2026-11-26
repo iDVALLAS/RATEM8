@@ -23,7 +23,8 @@ import ColumnsStep from "./ColumnsStep";
 import ReviewStep, { downloadText, type ReachSuggestion, type SortRow } from "./ReviewStep";
 import MatchReview, { existingCounts } from "./MatchReview";
 import PermissionDialog from "./PermissionDialog";
-import { lookKey, setFix, setTarget, type Item, type Look } from "./types";
+import { lookKey, setFix, setFixes, setTarget, type Item, type Look, type RowPlan } from "./types";
+import { reslotRow, SLOT_FIELDS, slotsOf, type SlotField, type SlotFixes } from "@/lib/contacts/reslot";
 
 const SOURCES: [Provenance, string][] = [
   ["personal", "My own relationships (my phone, my email, people I know)"],
@@ -192,6 +193,17 @@ export default function ImportWizard({ initialKind, knownTags = [], lookupPrice 
     });
     const merged = mergeRecords(per.map((p) => p.records), { refs: per.map((p) => p.it.id), decide, mergedTag: mergedTag(new Date()) });
     const looks: Look[] = per.flatMap((p) => p.warnings.map((w) => ({ ...w, itemId: p.it.id, file: p.it.name, key: lookKey(p.it.id, w.at, w.field) })));
+    // D93.1: rows shifted one column (a ZIP in Closed on, a state in ZIP, a city in State), worked out on this device.
+    const plans: RowPlan[] = per.flatMap((p) => {
+      const byRow = new Map<number, Look[]>();
+      for (const l of looks) if (l.itemId === p.it.id && (SLOT_FIELDS as readonly string[]).includes(l.field)) byRow.set(l.at, [...(byRow.get(l.at) ?? []), l]);
+      const dateOrder = buildAnswers(p.it.table, p.it.mapping, p.it.answers).dateOrder;
+      return [...byRow.entries()].flatMap(([at, ls]) => {
+        const plan = reslotRow(slotsOf(p.it.table.rows[at] ?? [], p.it.mapping, p.it.fixes[at]), ls.map((l) => l.field as SlotField), { dateOrder });
+        if (!plan) return [];
+        return [{ key: `row:${p.it.id}:${at}`, itemId: p.it.id, at, row: ls[0].row, file: p.it.name, name: ls[0].name, plan, by: "device" as const, looks: ls.filter((l) => (plan.covers as string[]).includes(l.field)).map((l) => l.key) }];
+      });
+    });
     const skipped = per.flatMap((p) => p.problems.map((x) => ({ ...x, file: p.it.name, headers: p.it.table.headers, itemId: p.it.id })));
     // D75: the loan officer's pick for anyone like a person already in the book.
     const refs = merged.refs.slice(0, MAX_TOTAL);
@@ -213,7 +225,7 @@ export default function ImportWizard({ initialKind, knownTags = [], lookupPrice 
         : [],
     );
     const placeholders = per.reduce((n, p) => n + p.placeholders, 0);
-    return { per, records, refs, pairs: merged.pairs, merged: merged.merged, looks, skipped, stops, sortList, placeholders, over: merged.records.length > MAX_TOTAL ? MAX_TOTAL : null };
+    return { per, records, refs, pairs: merged.pairs, merged: merged.merged, looks, plans, skipped, stops, sortList, placeholders, over: merged.records.length > MAX_TOTAL ? MAX_TOTAL : null };
   }, [items, kind, importTags, decide, matchTo, sorts]);
 
   const gate: StepGate = { files: items.length, reading, pending, records: built.records.length };
@@ -291,14 +303,21 @@ export default function ImportWizard({ initialKind, knownTags = [], lookupPrice 
     if (!it || it.retr) return false;
     return !built.per.find((p) => p.it.id === l.itemId)?.sort?.agent.has(l.at);
   };
+  // D93.1: the row's five address-ish boxes as they read now (the file's cells, or a fix already made).
+  const slotsAt = (itemId: string, at: number) => {
+    const it = items.find((x) => x.id === itemId);
+    return slotsOf(it?.table.rows[at] ?? [], it?.mapping ?? {}, it?.fixes[at]);
+  };
   const contextOf = (l: Look): { file: string; headers: string[]; context: Record<string, string> } => {
     const it = items.find((x) => x.id === l.itemId);
     if (!it) return { file: "", headers: [], context: {} };
     const row = it.table.rows[l.at] ?? [];
     const val = (f: Field) => (it.mapping[f] !== undefined ? (row[it.mapping[f]!] ?? "").trim() : "");
-    const context: Record<string, string> = { name: l.name, email: val("email"), phone: val("phone"), street: val("street"), city: val("city"), state: val("state"), zip: val("zip") };
+    // D93.1: the row's other address-ish cells go too (closed on included), so M8 can say a value belongs in another box.
+    const context: Record<string, string> = { name: l.name, email: val("email"), phone: val("phone"), ...slotsAt(l.itemId, l.at) };
     return { file: it.name, headers: it.table.headers, context: Object.fromEntries(Object.entries(context).filter(([, v]) => v)) };
   };
+  const applySlots = (itemId: string, at: number, patch: SlotFixes) => update(itemId, (it) => setFixes(it, at, patch));
 
   const addTables = async (tables: { name: string; table: Csv }[]) => {
     const fresh: Item[] = [];
@@ -615,6 +634,9 @@ export default function ImportWizard({ initialKind, knownTags = [], lookupPrice 
             merged={built.merged}
             over={built.over}
             looks={built.looks}
+            plans={built.plans}
+            slotsAt={slotsAt}
+            onSlots={applySlots}
             skipped={built.skipped}
             suggestions={suggestions}
             stops={built.stops}
