@@ -8176,3 +8176,20 @@ the dialog and the done screen), `CLAUDE.md` (§1 D93, §3.4 count).
   (3) M8 sorts at most 150 unsure rows per file and Fix all sends at most 1,000 values; the rest fall back to the rules
   and the device. (4) A "Buyer" or "Seller" value in a Type column still reads as relationship "Other" (as before D93).
 - **Next up:** promote on the owner's word.
+
+## Promote — D93 to production (2026-11-26)
+
+Owner: "promote" (when D93 was done). While it went out the owner confirmed: keep the permission pop-up after import
+as built, and leave step 1's "Where are these lists from?" question as it is.
+
+- Reviewed before promote: the step 1–4, step-2-after-going-back and dialog screenshots at 390 and 1280 (Night and
+  Paper), and the build notes (1210 tests; text-fit, buttons and hydration audits clean; command-center.mjs's 33 Inbox
+  "Done" failures also fail on the unchanged branch build, queued separately).
+- Remote M8 red team against the 6f14479 preview: 43 of 43 (run with `NODE_USE_ENV_PROXY=1` so Node's fetch uses the
+  session proxy).
+- Production deployment of the exact commit 6f14479 (D93), created from Git; READY on the loanm8.com alias.
+- loanm8.com checked: `/` 200, `/sign-in` 200, `/sign-up` 200, `/api/health` 200, `/chat` 307 (tester lock),
+  `/mlo/contacts/import` 307 (sign-in).
+- Not yet tried: the AI path (column reading, row sorting, Fix all) against the real model; only mocked answers were
+  tested. The owner's next import on loanm8.com is the first real run.
+- **Next up:** the core 11 pricing scenarios (`docs/TODO.md`), on the owner's word.
