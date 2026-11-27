@@ -8400,3 +8400,24 @@ Files: new `lib/accounts/passkeys.ts`, `lib/accounts/passkeys.test.ts`, `app/api
   (5) A Face ID sign-in counts as both factors; worth confirming against the brokerage's information security program
   alongside D89's 30-day choice. (6) `@simplewebauthn/server` 14 needs Node 22+; the Vercel project is on 24.x.
 - **Next up:** promote on the owner's word.
+
+## Promote — D93.1 and D94 to production (2026-11-26)
+
+- **Owner's word:** "promote D93.1 and D94 when it's done."
+- **Red team:** the remote runner passed 43/43 against the D94 preview
+  (`ratem-8-d4jcdlzsp`, commit 16757b3, which also carries D93.1 a0bf075).
+- **Deployed:** that exact commit, 16757b3, as dpl_6CY7KQh6cBMBSE27eFsnmTibvbzF. It is READY and
+  aliased to loanm8.com and www.loanm8.com.
+- **Site check:**
+  - 200: `/`, `/sign-in`, `/sign-up` and `/api/health` (`ok: true`, chat on).
+  - Redirects: `/chat` → `/demo` (site lock on, as before). `/sign-in/face-id` → `/sign-in` when signed out.
+  - www.loanm8.com sends a 308 to loanm8.com, so a Face ID login made on one host works for both.
+- **Not verified:**
+  - Face ID on a real iPhone, Android, Mac or Windows Hello device. Every test used Chromium's simulated authenticator.
+  - The `cc_passkeys` queries against Neon. The table is created on first use.
+  - Drag-and-drop on a real phone (D93.1).
+  - M8's `moveTo` with the real model.
+- **Next up:**
+  - The owner sets up Face ID on loanm8.com (a login made on a preview URL won't work there).
+  - The owner re-imports contacts as the first real test of the AI path.
+  - The core 11 pricing scenarios wait for the owner's go-ahead.
